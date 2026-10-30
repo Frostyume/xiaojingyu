@@ -2001,7 +2001,7 @@ button:active:not(:disabled) {
       <div class="row" style="margin-bottom:8px">
         <label style="flex:0 0 auto">仿真代次</label>
         <select id="simPromptPreset" style="flex:0 1 280px">
-          <option value="qq-chat-v2">群聊仿真（qq-chat-v2）</option>
+          <option value="qq-chat">群聊仿真（qq-chat）</option>
         </select>
         <span class="meta">群聊仿真的提示词由预设内置；保存后需重启 DSH 或重置会话。</span>
       </div>
@@ -2022,7 +2022,7 @@ button:active:not(:disabled) {
 
       <div class="row" style="margin-top:10px">
         <label style="flex:1">启用群聊仿真</label><input type="checkbox" id="v2Enabled" style="width:auto">
-        <label style="flex:1">agentPreset</label><input type="text" id="v2AgentPreset" placeholder="qq-chat-v2" style="max-width:200px">
+        <label style="flex:1">agentPreset</label><input type="text" id="v2AgentPreset" placeholder="qq-chat" style="max-width:200px">
       </div>
       <div class="row" style="margin-top:6px">
         <label style="flex:1">提供推荐值给 AI</label><input type="checkbox" id="v2ProvideRecommendations" style="width:auto">
@@ -3194,7 +3194,7 @@ async function refreshRoles() {
 
 // ── 仿真提示词（预设内置，需重启 DSH 生效）──────────────────────────────────
 let simPromptOriginal = '';
-let simPromptPreset = 'qq-chat-v2';
+let simPromptPreset = 'qq-chat';
 
 function setSimMsg(text, ok) {
   const el = document.getElementById('simPromptMsg');
@@ -3212,7 +3212,7 @@ function setSimEditing(editing) {
 }
 
 async function refreshSimPrompt() {
-  simPromptPreset = document.getElementById('simPromptPreset').value || 'qq-chat-v2';
+  simPromptPreset = document.getElementById('simPromptPreset').value || 'qq-chat';
   setSimMsg('读取中…');
   try {
     const r = await api('/api/preset/sim-prompt?preset=' + encodeURIComponent(simPromptPreset));

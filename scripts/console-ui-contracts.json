@@ -28,7 +28,7 @@
     "path": "/api/mode",
     "body": {
       "mode": "closed-agent",
-      "closedAgentPreset": "qq-chat-v2"
+      "closedAgentPreset": "qq-chat"
     }
   },
   {

@@ -23,7 +23,7 @@
   },
   "ownerQQ": null,
   "sessionCwd": "",
-  "agentPreset": "qq-chat",
+  "agentPreset": "qq-chat-legacy",
   "workspaceTitle": "QQ 聊天",
   "allow": {
     "private": [],
@@ -131,7 +131,7 @@
   "socialV2": {
     "enabled": true,
     "autoReplyCheckMs": 30000,
-    "agentPreset": "qq-chat-v2",
+    "agentPreset": "qq-chat",
     "provideRecommendations": true,
     "tools": {
       "getPrompt": true,

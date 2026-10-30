@@ -95,9 +95,9 @@ try {
   }
 
   // ── 2. 建一个真实会话 ─────────────────────────────────────────────────────
-  const created = unwrap(await api.sessions.create({ cwd: probeDir, agentPreset: 'qq-chat-v2' }), 'session.create');
+  const created = unwrap(await api.sessions.create({ cwd: probeDir, agentPreset: 'qq-chat' }), 'session.create');
   sessionId = created.sessionId;
-  check('session/create 挂 preset qq-chat-v2 成功', typeof sessionId === 'string' && sessionId.length > 0, sessionId);
+  check('session/create 挂 preset qq-chat 成功', typeof sessionId === 'string' && sessionId.length > 0, sessionId);
   unwrap(await api.sessions.selectModel({
     sessionId, provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'max'
   }), 'session.selectModel');

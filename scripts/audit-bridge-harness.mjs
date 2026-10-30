@@ -271,7 +271,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
   vm.runInContext(`Object.assign(globalThis, (() => { ${modelViewSource}\nreturn { compactModelMessage, compactModelData, serializeModelData }; })());`, context);
   vm.runInContext(source + '\nglobalThis.auditReady = main();', context);
   const bridge = await context.auditReady;
-  bridge.setPresets(['standard', 'qq-chat', 'qq-chat-v2']);
+  bridge.setPresets(['standard', 'qq-chat-legacy', 'qq-chat']);
   bridge.setReady(true);
   // 夹具模拟「SnowLuma 已连接」：否则 outbox 会把消息留在 pending，测试看不到真实发送。
   bridge.setSnowlumaConnected?.(true);

@@ -1,27 +1,25 @@
 # QQ 桥接权限与安全规则（RULES）
 
-## 运行模式（QQ 桥接四模式）
+## 运行模式
 
 模式由**桥接控制台**（默认 `http://127.0.0.1:3100`）顶部的模式按钮切换，也可直接改 DSH 设置的 `qq-mode` 命名空间；
 控制台会**同时**写穿到 DSH 设置与本地 `qq-bridge/state/mode.json`，两者保持一致。
 （DSH 设置页目前**没有** `qq-mode` 卡片：该插件只有 host 半，未实现浏览器半。详见 docs/guides/DSH_SETUP.md。）
-桥接每 5 秒读取一次；控制台切换立即应用。会话持久化记录创建时的模式、preset 和管理员边界，权限变化时自动撤销旧会话映射和二代 token，并在下次消息到达时重建，避免继续使用旧的高权限 preset。升级前没有这些权限元数据的旧会话也会重建一次，历史仍保留在 DSH。
-全新安装运行 `scripts/setup-dsh.mjs` 后，DSH 设置与本地兜底默认均为 `reserved2`；若已存在 `state/mode.json` 或 DSH 设置旧值，脚本不会覆盖。
+桥接每 5 秒读取一次；控制台切换立即应用。会话持久化记录创建时的模式、preset 和管理员边界，权限变化时自动撤销旧会话映射和仿真 token，并在下次消息到达时重建，避免继续使用旧的高权限 preset。升级前没有这些权限元数据的旧会话也会重建一次，历史仍保留在 DSH。
+全新安装运行 `scripts/setup-dsh.mjs` 后，DSH 设置与本地兜底默认均为 `simulation`；若已存在 `state/mode.json` 或 DSH 设置旧值，脚本不会覆盖。
 
 | 模式 | 允许通道 | agent preset | 用途 |
 | --- | --- | --- | --- |
-| `chat` | 白名单群 + 白名单私聊 | qq-chat（安全聊天） | 日常聊天 |
+| `simulation`（默认） | 白名单群 + 白名单私聊 | qq-chat | 群聊仿真：文本不自动转发，AI 通过工具自主看消息/发言/等待/设置唤醒与潜水 |
 | `closed-agent` | **仅** 私聊 ownerQQ | DSH 默认 preset（通常 `standard`，完整工具） | 你在 QQ 私聊里操控 DSH |
-| `reserved`（一代仿真） | 暂同 chat | qq-chat | 仿真群友：观望/活跃/试探/退场状态机，选择性参与并主动收尾 |
-| `reserved2`（二代仿真，运行 `setup-dsh.mjs` 后默认） | 暂同 chat | qq-chat-v2 | 文本不自动转发，AI 通过工具自主看消息/发言/等待/设置唤醒与潜水 |
 
-> 📦 **本仓库只带二代预设 `qq-chat-v2`**。上表里的 `chat` / `reserved` 依赖一代 `qq-chat` preset，
-> 它**不随仓库发布**；没有它时桥接会按 fail-closed 拒绝建会话（QQ 上表现为「发消息没人回」，桥接日志会写明缺 preset）。
-> 想用这两个模式需自行按 [`dsh/agent-presets/qq-chat-v2/`](dsh/agent-presets/qq-chat-v2/) 的结构补一份，或直接用默认的 `reserved2`。
+> 📦 本仓库只带群聊仿真预设 `qq-chat`。旧拼写 `reserved2` 等价于 `simulation`，仍会被接受；
+> 更早的 `chat` / `reserved` 依赖 `qq-chat-legacy` preset，该预设**不随仓库发布**——缺少时桥接会
+> fail-closed 拒绝建会话（QQ 上表现为「发消息没人回」，桥接日志会写明缺 preset）。
 
 > ⚠️ `closed-agent` 模式下 owner 私聊 agent 拥有**完整本地工具**（DSH 默认 preset，通常是 `standard`），
 > 这是有意为之（QQ 远程操控 DSH）。该模式只放行 owner 私聊，群友完全无法触达；
-> 切换回 `chat` 后，owner 私聊也回到 qq-chat 安全预设。
+> 切换回 `simulation` 后，owner 私聊也回到 qq-chat 安全预设。
 >
 > 注：DSH 0.1.5 已不存在 `router-standard` preset。桥接现在留空表示「用 DSH 默认 preset」，
 > 并在启动时读取 `agentPresets/list` 校验；填了不存在的 preset 名会回退到默认值并打警告，
@@ -34,13 +32,13 @@
 | **管理员（ownerQQ，控制台或 DSH 设置页可配置）** | QQ 群/私聊 | 正常聊天 + **管理命令由桥接硬执行**（不经过模型）：`/role <角色名>` 切人格、`/role off` 清除、`/silent` 静默、`/active` 恢复、`/reset`、`/status`；消息自动带【管理员】标记 |
 | **群友** | QQ 群 | **仅正常聊天**。控制词、`/` 管理命令被桥接拦截；静默模式下消息不投递给 agent |
 | **管理员** | **桥接控制台**（`http://127.0.0.1:3100`） | **最高权限**：控制模式（控制台顶部模式按钮）、控制角色/静默（写 `state/current-role.json`）、完整 DSH 工具（含本地操作）、查看 QQ 活动日志（`state/qq-activity.log`）、直接打开「QQ 聊天」工作区会话对话 |
-| **QQ 会话 agent（chat 模式）** | — | 最低权限面（见下） |
+| **QQ 会话 agent（simulation / closed-agent）** | — | 最低权限面（见下；closed-agent 例外，仅 owner 私聊） |
 
 ## QQ 会话 agent 的硬边界
 
-1. **无本地工具**：qq-chat / qq-chat-v2 预设不挂载 bash/pwsh、文件读写、子代理、工作流——群友无论如何诱导，agent 物理上无法操作本机。
+1. **无本地工具**：qq-chat 预设不挂载 bash/pwsh、文件读写、子代理、工作流——群友无论如何诱导，agent 物理上无法操作本机。
 2. **QQ 动作安全子集**：只允许 `mcp__snowluma__*`、`mcp__snowluma-host__*`、`mcp__web-search-safe__*` 三个命名空间下的工具，以及 `ask_user_question` / `todo_write`；其他工具（含 `dev_*` 开发/管理工具）在执行期会被 `qq-tool-restrict.mjs` 拒绝。QQ 动作无禁言、踢人、文件上传下载等管理操作。
-3. **只读联网搜索**：`qq-chat` / `qq-chat-v2` 预设已关闭 DSH 内置 `tool-web` 的 `search` / `fetch`，联网统一走 `src/mcp-web-search-safe.js` 提供的 `mcp__web-search-safe__web_search/web_fetch`。不暴露本地文件、命令执行、写操作。
+3. **只读联网搜索**：`qq-chat` 预设已关闭 DSH 内置 `tool-web` 的 `search` / `fetch`，联网统一走 `src/mcp-web-search-safe.js` 提供的 `mcp__web-search-safe__web_search/web_fetch`。不暴露本地文件、命令执行、写操作。
    - ✅ `mcp__web-search-safe__web_fetch` 已做 SSRF 加固：仅 http/https、禁止 localhost/私有 IP/链路本地/CGNAT/带凭据 URL、DNS 解析结果全量校验、每跳重定向重新校验、响应体限量读取。
 4. **发送强制白名单**：所有发送类工具（`qq_send_group_message` / `qq_send_private_message` / `qq_send_message` / `qq_send_burst` / `qq_reply` / `qq_send_poke` / `qq_send_sticker` / `qq_send_voice` 等）的目标必须命中 `config.json` 的 `allow.groups` / `allow.private`，否则拒绝执行。
    - **语音额外收紧**：`qq_send_voice` 只能发**语音库**（`socialV2.voice.dir`，默认 `qq-bridge/audio/`）里的文件，不能发任意本地路径、URL 或 base64（防 prompt injection 拿本机文件当语音外发）；另有独立的时长/体积/频率上限（`socialV2.voice.*`），额度与文本发送分开计数。
@@ -51,11 +49,11 @@
 
 ## 提示词的两层边界（仿真 vs 人格）
 
-二代仿真模式下，AI 拿到的提示词由两层拼成，控制台「人格与角色」页可分别查看与修改：
+群聊仿真模式下，AI 拿到的提示词由两层拼成，控制台「人格与角色」页可分别查看与修改：
 
 | 层 | 位置 | 管什么 | 生效方式 |
 | --- | --- | --- | --- |
-| **仿真提示词**（两代各一份；本仓库只带二代） | `dsh/agent-presets/qq-chat-v2/agent.cordis.yml` 的 `persona.prefix`（一代对应 `qq-chat/`，未随仓库发布） | 怎么调工具、怎么参与群聊（行为与协议：安全规则、工具协议、唤醒/分条/记忆/黑话等） | 控制台可按代次分别编辑；保存会写仓库源文件并同步到 `~/.dsh/.agent-presets/<preset>/`；**新会话**自动用新版，**正在进行的 QQ 会话**需 `POST /api/session/reset` 或重启 DSH |
+| **仿真提示词** | `dsh/agent-presets/qq-chat/agent.cordis.yml` 的 `persona.prefix`（旧版对应 `qq-chat-legacy/`，未随仓库发布） | 怎么调工具、怎么参与群聊（行为与协议：安全规则、工具协议、唤醒/分条/记忆/黑话等） | 控制台可编辑；保存会写仓库源文件（旧版安装目录若存在也会同步）。DSH 0.1.7+ 从 bundle patch 读取 preset，保存后需运行 `node scripts/build-agent-preset-patches.mjs` 并重启 DSH；**新会话**自动用新版，**正在进行的 QQ 会话**还需 `POST /api/session/reset` |
 | **人格提示词** | `roles/<人格名>.md` | AI 是谁、什么性格、怎么说话（人设与语气） | 桥接每条消息前注入，**保存即生效** |
 
 - 拼装顺序：`仿真提示词 → 人格提示词 → 本轮消息`。
@@ -105,7 +103,7 @@
 
 ### 在 WebUI 与 QQ 机器人对话
 
-打开「QQ 聊天」工作区里的会话即可直接对话（DSH 原生）。`reserved2` 不自动转发 agent 文本，但工具可以发送 QQ；`chat`、`reserved` 和 `closed-agent` 会转发映射会话的 agent 回合输出，因此在这些会话中从 DSH 界面输入内容，也可能使回复出现在 QQ。需要纯本地讨论时请使用没有 QQ 映射的 DSH 会话。
+打开「QQ 聊天」工作区里的会话即可直接对话（DSH 原生）。`simulation` 不自动转发 agent 文本，但工具可以发送 QQ；`closed-agent`（以及旧版 `chat` / `reserved`）会转发映射会话的 agent 回合输出，因此在这些会话中从 DSH 界面输入内容，也可能使回复出现在 QQ。需要纯本地讨论时请使用没有 QQ 映射的 DSH 会话。
 
 ## 事故与兜底
 

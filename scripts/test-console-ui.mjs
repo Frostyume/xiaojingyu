@@ -59,7 +59,7 @@ try {
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('dialog', dialog => dialog.accept());
   await page.goto(fixture.url);
-  await page.waitForFunction(() => document.getElementById('v2AgentPreset')?.value === 'qq-chat-v2' && document.getElementById('wlGroups')?.value.includes('123456789'));
+  await page.waitForFunction(() => document.getElementById('v2AgentPreset')?.value === 'qq-chat' && document.getElementById('wlGroups')?.value.includes('123456789'));
 
   async function navigate(view) {
     if (original) return;
@@ -114,7 +114,7 @@ try {
     for (const [id, value] of Object.entries(drafts)) assert.equal(await (await reveal(`#${id}`)).inputValue(), value, `${id} lost its draft`);
     // Restore fixture defaults so the independent payload baseline remains deterministic.
     await page.reload();
-    await page.waitForFunction(() => document.getElementById('v2AgentPreset')?.value === 'qq-chat-v2');
+    await page.waitForFunction(() => document.getElementById('v2AgentPreset')?.value === 'qq-chat');
   });
 
   await test('Mode and preset contracts', async () => {
@@ -122,8 +122,8 @@ try {
       assert.deepEqual(await clickWrite(`#modeRow [data-mode="${mode}"]`, '/api/mode'), { mode, closedAgentPreset: '' });
     }
     const select = await reveal('#closedPreset');
-    await Promise.all([page.waitForResponse(r => r.url().endsWith('/api/mode') && r.request().method() === 'POST'), select.selectOption('qq-chat-v2')]);
-    assert.deepEqual(fixture.requests.at(-1).body, { mode: 'closed-agent', closedAgentPreset: 'qq-chat-v2' });
+    await Promise.all([page.waitForResponse(r => r.url().endsWith('/api/mode') && r.request().method() === 'POST'), select.selectOption('qq-chat')]);
+    assert.deepEqual(fixture.requests.at(-1).body, { mode: 'closed-agent', closedAgentPreset: 'qq-chat' });
   });
 
   await test('Role creation, selection, clearing and silent-mode contracts', async () => {
@@ -489,8 +489,8 @@ try {
     await navigate('persona');
     await page.waitForFunction(() => document.getElementById('simPromptText').value.length > 0);
     const options = await page.locator('#simPromptPreset option').evaluateAll(nodes => nodes.map(n => n.value));
-    assert.deepEqual(options, ['qq-chat-v2']);
-    assert.match(await page.locator('#simPromptStatus').textContent(), /群聊仿真|qq-chat-v2/);
+    assert.deepEqual(options, ['qq-chat']);
+    assert.match(await page.locator('#simPromptStatus').textContent(), /群聊仿真|qq-chat/);
   });
 
   if (!original) await test('人格注入上限可调，且随模式筛选后统计', async () => {

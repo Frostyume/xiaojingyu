@@ -15,7 +15,7 @@ await test('closed-agent session is not reused after switching to chat', async (
   h.setMode('chat');
   const restricted = await h.ensureSession('private:123');
   assert.notEqual(restricted, privileged);
-  assert.equal(h.calls.created.at(-1).agentPreset, 'qq-chat');
+  assert.equal(h.calls.created.at(-1).agentPreset, 'qq-chat-legacy');
   assert.ok(h.calls.cancelled.includes(privileged));
 });
 await test('unavailable preset catalogue fails closed for QQ and learner sessions', async (h) => {

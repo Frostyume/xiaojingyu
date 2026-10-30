@@ -532,9 +532,9 @@ function writeRoleContent(name, content) {
 //   人格提示词 = roles/<名称>.md，规定 AI 是谁、什么性格（人设与语气）
 // 仿真层改完需要重启 DSH 才生效（preset 由 DSH 在会话创建时装配）；
 // 人格层由桥接每条消息注入，保存即生效。
-// 两代仿真各自有独立的预设提示词：一代 qq-chat（空格分条 / [SILENT]），
-// 二代 qq-chat-v2（一切皆工具）。控制台可分别查看与修改。
-const PRESET_NAMES = { v1: 'qq-chat', v2: 'qq-chat-v2' };
+// 两代仿真各自有独立的预设提示词：旧版 qq-chat-legacy（空格分条 / [SILENT]，不随仓库发布），
+// 群聊仿真 qq-chat（一切皆工具）。控制台可分别查看与修改。
+const PRESET_NAMES = { v1: 'qq-chat-legacy', v2: 'qq-chat' };
 const PRESET_BACKUP_DIR = path.join(STATE_DIR, 'preset-backups');
 const PRESET_BACKUP_KEEP = 10;
 
@@ -567,7 +567,7 @@ function installedPresetYaml(name) {
 
 // 这里**没有**模块级的 resolvePresetName —— 曾经有一个，但它被 main() 内部同名函数完全遮蔽
 // （函数声明提升到 main 作用域，main 里所有调用点都落到内部那个），是纯死代码。
-// 而且它的语义是错的：未知名字静默回退到 qq-chat-v2，等于 fail-OPEN —— 一旦哪天有人把它
+// 而且它的语义是错的：未知名字静默回退到 qq-chat，等于 fail-OPEN —— 一旦哪天有人把它
 // "复活"成真正生效的实现，群聊会话就会在 preset 清单校验失败时照样建起来。
 // 真正在用的那个（main() 内，带 strict 开关）在名字不可用时返回 '' 让调用方拒绝建会话。
 // 同理不再保留 PRESET_NAME_SET：它只服务于那个死函数，留着只会诱惑下一个人去用它。
@@ -619,7 +619,7 @@ function presetStatus(name) {
   // （路径已经写在服务端日志里，排查时看日志即可）。
   return {
     preset: name,
-    label: name === PRESET_NAMES.v1 ? '旧版仿真（qq-chat）' : '群聊仿真（qq-chat-v2）',
+    label: name === PRESET_NAMES.v1 ? '旧版仿真（qq-chat-legacy）' : '群聊仿真（qq-chat）',
     sourceFile: path.relative(ROOT, presetSourceYaml(name)),
     installed: fs.existsSync(installedPresetYaml(name)),
     requiresRestart: true,
@@ -867,7 +867,7 @@ function loadConfig() {
     snowluma: { wsUrl: 'ws://127.0.0.1:3001', accessToken: '', ...(file.snowluma ?? {}) },
     // 空 => 每个会话在 state/agents/<key> 下建独立工作目录
     sessionCwd: file.sessionCwd ?? '',
-    agentPreset: file.agentPreset ?? 'qq-chat',
+    agentPreset: file.agentPreset ?? 'qq-chat-legacy',
     workspaceTitle: file.workspaceTitle ?? 'QQ 聊天',
     ownerQQ: normalizeOwnerQQ(file.ownerQQ),
     allow: {
@@ -944,7 +944,7 @@ function loadConfig() {
     socialV2: {
       enabled: true,
       autoReplyCheckMs: 30000,
-      agentPreset: 'qq-chat-v2',
+      agentPreset: 'qq-chat',
       provideRecommendations: true,
       tools: {
         getPrompt: true,
@@ -5427,7 +5427,7 @@ async function main() {
       if (fromDsh) {
         currentMode = fromDsh;
         // DSH 设置页也可配置管理员 QQ；**留空表示不覆盖 config.json**
-        // （见 plugins/qq-mode-console 的 schema 描述）。这里必须显式判断空串：
+        // （见 plugins/mode-console 的 schema 描述）。这里必须显式判断空串：
         // normalizeOwnerQQ('') 返回 null，若照旧 `!== undefined` 就直接赋值，
         // 设置页每次轮询都会把 config.json 里的 ownerQQ 抹成 null —— 而 5 秒一次的
         // refreshMode 会让它「几秒后必然发生」，后果是 closed-agent 谁都不放行、
@@ -5725,7 +5725,7 @@ async function main() {
     // 为什么：`sessionPolicy()` 包含 `modePreset()` 的结果，而 `modePreset()` 依赖
     // `dshPresetIds`（来自 DSH 的 `agentPresets/list`）。启动瞬间或一次瞬时失败时
     // 这个清单可能是空的，`resolvePresetName(strict)` 于是返回 ''，算出来的策略就变成
-    // `["reserved2","",null]` —— 与已存的 `["reserved2","qq-chat-v2",null]` 不等，
+    // `["reserved2","",null]` —— 与已存的 `["reserved2","qq-chat",null]` 不等，
     // 于是**所有** QQ 会话在这一个 tick 里被集体退役：DSH 会话被停掉归档、agentToken 轮换、
     // 映射删除，每个群的上下文全丢，日志里只有一句「会话权限已变化」。
     // 一次网络抖动换来全体失忆，代价完全不成比例。清单为空时宁可不判定，等下一轮。

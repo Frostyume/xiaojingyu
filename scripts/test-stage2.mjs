@@ -216,9 +216,9 @@ test('session-map: 保存/读取/清理，db v2 表存在', () => {
   const db = openDatabase({ file: path.join(dir, 'b.db'), logger: () => {} });
   assert.equal(db.get('SELECT MAX(version) AS v FROM schema_migrations').v, SCHEMA_VERSION);
   const map = new SessionMapStore({ db, logger: () => {} });
-  map.saveAll({ 'group:1': 's1', 'private:2': 's2' }, { 'group:1': { preset: 'qq-chat-v2' } });
+  map.saveAll({ 'group:1': 's1', 'private:2': 's2' }, { 'group:1': { preset: 'qq-chat' } });
   assert.equal(map.stats().keys, 2);
-  assert.equal(map.get('group:1').policy.preset, 'qq-chat-v2');
+  assert.equal(map.get('group:1').policy.preset, 'qq-chat');
   map.saveAll({ 'group:1': 's1' });
   assert.equal(map.stats().keys, 1);
   assert.equal(map.loadAll()[0].key, 'group:1');

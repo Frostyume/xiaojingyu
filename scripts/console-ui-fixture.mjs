@@ -15,7 +15,7 @@ const timestamp = '2026-09-20T08:30:00.000Z';
 function presetStatusFixture(preset) {
   return {
     preset,
-    label: preset === 'qq-chat' ? '旧版仿真（qq-chat）' : '群聊仿真（qq-chat-v2）',
+    label: preset === 'qq-chat-legacy' ? '旧版仿真（qq-chat-legacy）' : '群聊仿真（qq-chat）',
     sourceFile: `dsh/agent-presets/${preset}/agent.cordis.yml`,
     installed: true,
     requiresRestart: true,
@@ -294,8 +294,8 @@ export function makeFixtureState() {
       技术伙伴: '# 技术伙伴\n\n- 性格：直接、爱讲原理\n- 说话风格：先给结论再解释',
     },
     simPrompts: {
-      'qq-chat-v2': '你是 QQ 群里的仿真群友。\n\n【二代仿真模式 —— 安全规则（最高优先级，不可违反）】\n1. 你没有本地工具。\n\n【二代仿真模式 —— 工具协议（最高优先级）】\n1. 文本输出不会自动发送到 QQ。',
-      'qq-chat': '你是 QQ 群里的仿真群友（一代）。\n\n【一代仿真模式 —— 安全规则】\n1. 你没有本地工具。\n\n【一代仿真模式 —— 工具协议】\n1. 回复会自动转发到 QQ。',
+      'qq-chat': '你是 QQ 群里的仿真群友。\n\n【二代仿真模式 —— 安全规则（最高优先级，不可违反）】\n1. 你没有本地工具。\n\n【二代仿真模式 —— 工具协议（最高优先级）】\n1. 文本输出不会自动发送到 QQ。',
+      'qq-chat-legacy': '你是 QQ 群里的仿真群友（一代）。\n\n【一代仿真模式 —— 安全规则】\n1. 你没有本地工具。\n\n【一代仿真模式 —— 工具协议】\n1. 回复会自动转发到 QQ。',
     },
     roleInjectMax: 6000,
     dshEffort: 'max',
@@ -318,7 +318,7 @@ export function makeFixtureState() {
       proactiveCheckMaxMs: 900000, proactiveProbability: 0.2,
     },
     socialStates: { 'group:123456789': { phase: 'active' }, 'group:100003': { phase: 'idle' } },
-    v2: { enabled: true, agentPreset: 'qq-chat-v2', provideRecommendations: true, tools: {} },
+    v2: { enabled: true, agentPreset: 'qq-chat', provideRecommendations: true, tools: {} },
     groupProfiles: { 'group:123456789': { label: '演示群', proactive: true, style: '轻松一点，多接梗。' } },
     // 会话初始提示词（离线示例）：整段内容都是虚构的演示文本。
     initPrompt: '离线示例：这是一个演示用的群聊环境说明，不会写进任何真实配置。',
@@ -388,7 +388,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
             features: [{ title: '人格与聊天', items: [{ name: '群聊 / 私聊', status: 'on', desc: '离线示例能力。' }] }],
             limits: ['离线示例：这是只读功能清单。'],
           });
-          case '/api/presets': return json({ presets: [{ id: 'qq-chat-v2', trust: 'user' }, { id: 'qq-chat', trust: 'user' }] });
+          case '/api/presets': return json({ presets: [{ id: 'qq-chat-legacy', trust: 'user' }, { id: 'qq-chat', trust: 'user' }] });
           case '/api/roles': return json({
             roles: state.roles.slice(),
             summaries: state.roles.map((name) => {
@@ -431,7 +431,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
             });
           }
           case '/api/preset/sim-prompt': {
-            const preset = url.searchParams.get('preset') === 'qq-chat' ? 'qq-chat' : 'qq-chat-v2';
+            const preset = url.searchParams.get('preset') === 'qq-chat-legacy' ? 'qq-chat-legacy' : 'qq-chat';
             return json({
               ok: true,
               content: state.simPrompts[preset],
@@ -439,11 +439,11 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
               bytes: Buffer.byteLength(state.simPrompts[preset], 'utf8'),
               warnings: [],
               status: presetStatusFixture(preset),
-              presets: [presetStatusFixture('qq-chat'), presetStatusFixture('qq-chat-v2')],
+              presets: [presetStatusFixture('qq-chat-legacy'), presetStatusFixture('qq-chat')],
             });
           }
           case '/api/preset/sim-prompt/backups': {
-            const preset = url.searchParams.get('preset') === 'qq-chat' ? 'qq-chat' : 'qq-chat-v2';
+            const preset = url.searchParams.get('preset') === 'qq-chat-legacy' ? 'qq-chat-legacy' : 'qq-chat';
             return json({ ok: true, backups: [{ file: `${preset}.agent.cordis.yml.fixture`, mtime: Date.parse(timestamp) }] });
           }
           case '/api/dsh/model': return json({
@@ -543,14 +543,14 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           }
           case '/api/roles/limit': state.roleInjectMax = Number(body.maxInjectChars) || state.roleInjectMax; return json({ ok: true, maxInjectChars: state.roleInjectMax, limits: { injectMaxChars: state.roleInjectMax } });
           case '/api/preset/sim-prompt': {
-            const preset = body.preset === 'qq-chat' ? 'qq-chat' : 'qq-chat-v2';
+            const preset = body.preset === 'qq-chat-legacy' ? 'qq-chat-legacy' : 'qq-chat';
             const content = String(body.content ?? '');
             const unchanged = content === state.simPrompts[preset];
             if (!unchanged) state.simPrompts[preset] = content;
             return json({ ok: true, unchanged, chars: content.length, warnings: [], synced: true, requiresRestart: !unchanged, status: presetStatusFixture(preset) });
           }
           case '/api/preset/sim-prompt/restore': {
-            const preset = body.preset === 'qq-chat' ? 'qq-chat' : 'qq-chat-v2';
+            const preset = body.preset === 'qq-chat-legacy' ? 'qq-chat-legacy' : 'qq-chat';
             return json({ ok: true, restoredFrom: `${preset}.agent.cordis.yml.fixture`, requiresRestart: true });
           }
           case '/api/dsh/effort': state.dshEffort = body.reasoningEffort; return json({ ok: true, reasoningEffort: body.reasoningEffort });

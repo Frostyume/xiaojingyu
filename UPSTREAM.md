@@ -30,11 +30,11 @@
 1. 只按**提交**逐个评估，不整分支 merge：先看 `git show <sha> --stat`，再按 hunk 挑选。
 2. 优先吸收「上游 bug fix / 协议适配 / 安全守卫」；上游新增的通用功能若与本地实现冲突，先保留本地并记录差异。
 3. preset 相关：只把上游的**语义变更**（如删除 `{{cwd}}`、补守卫名单）手工合并进
-   `dsh/agent-presets/qq-chat-v2/agent.cordis.yml` 源文件，然后运行：
+   `dsh/agent-presets/qq-chat/agent.cordis.yml` 源文件，然后运行：
    ```bash
    node scripts/build-agent-preset-patches.mjs
    ```
-   **绝不手改** `plugins/qq-agent-presets/presets/*.patch.yml`。
+   **绝不手改** `plugins/agent-presets/presets/*.patch.yml`。
 4. 合入后必须跑：`npm run test:audit`、`npm run verify:adaptation` 与 preset 契约测试，
    并按 [RULES.md](RULES.md) 的说明重启 DSH（preset / 工具 schema 变更需要）。
 5. 若上游改了 `LICENSE`，同步保留上游版权与新条款，不覆盖为自有许可。

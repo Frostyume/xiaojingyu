@@ -48,7 +48,7 @@ fs.writeFileSync(path.join(tmpHome, 'profiles', 'web', 'package.json'), JSON.str
 
 // 用指向本仓库插件的 junction 冒充上一轮已安装的插件链接（与真实安装形态一致），
 // 这样脚本会走「已存在且指向本仓库 → 跳过」的正常分支。
-fs.symlinkSync(path.join(ROOT, 'plugins', 'qq-mode-console'), path.join(tmpHome, 'plugins', 'qq-mode-console'), 'junction');
+fs.symlinkSync(path.join(ROOT, 'plugins', 'mode-console'), path.join(tmpHome, 'plugins', 'mode-console'), 'junction');
 
 function runSetup(label) {
   const r = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'setup-dsh.mjs'), 'web'], {
@@ -102,21 +102,21 @@ if (doc) {
   console.log(`   解析出的 MCP id: ${ids.join(', ')}`);
 }
 
-// 断言 5：profile package.json 含两个 bundle（qq-mode-console + qq-agent-presets），且未破坏其他 bundle
+// 断言 5：profile package.json 含两个 bundle（mode-console + agent-presets），且未破坏其他 bundle
 const pkg = JSON.parse(fs.readFileSync(path.join(tmpHome, 'profiles', 'web', 'package.json'), 'utf8'));
 const bundles = pkg.dsh.profile.bundles;
-const okBundle = bundles.includes('qq-mode-console') && bundles.includes('qq-agent-presets') && bundles.includes('dsh-approval-toast');
+const okBundle = bundles.includes('mode-console') && bundles.includes('agent-presets') && bundles.includes('dsh-approval-toast');
 console.log(`${okBundle ? '✅' : '❌'} profile bundles 正确: ${bundles.join(', ')}`);
 if (!okBundle) failed += 1;
-const depOk = String(pkg.dependencies['qq-agent-presets'] ?? '').startsWith('link:')
-  && String(pkg.dependencies['qq-mode-console'] ?? '').startsWith('link:');
+const depOk = String(pkg.dependencies['agent-presets'] ?? '').startsWith('link:')
+  && String(pkg.dependencies['mode-console'] ?? '').startsWith('link:');
 console.log(`${depOk ? '✅' : '❌'} link: 依赖已登记（preset 子行的裸说明符靠它解析）`);
 if (!depOk) failed += 1;
 
-// 断言 6：DSH 0.1.7 机制 —— preset 由 qq-agent-presets bundle 的 patch 层装配，
+// 断言 6：DSH 0.1.7 机制 —— preset 由 agent-presets bundle 的 patch 层装配，
 // 旧目录 ~/.dsh/.agent-presets 不再写入（也不删除用户数据）。
-for (const p of ['qq-chat', 'qq-chat-v2']) {
-  const patchFile = path.join(ROOT, 'plugins', 'qq-agent-presets', 'presets', `${p}.patch.yml`);
+for (const p of ['qq-chat']) {
+  const patchFile = path.join(ROOT, 'plugins', 'agent-presets', 'presets', `${p}.patch.yml`);
   const text = fs.existsSync(patchFile) ? fs.readFileSync(patchFile, 'utf8') : '';
   const ok = text.includes('@deepseek-ai/dsh-agent-preset') && new RegExp(`^\\s+id: ${p}$`, 'm').test(text);
   console.log(`${ok ? '✅' : '❌'} preset ${p} 的 patch 层就绪（含 @deepseek-ai/dsh-agent-preset 行 + config.id）`);

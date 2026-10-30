@@ -11,7 +11,7 @@
 //   `configEditor.configuration()` → `ns: entry.options.id`），一个命名空间要能被
 //   读写，只需要：
 //     ① 存在一个 loader entry，其 **id 恰好等于命名空间名** —— 见 cordis.patch.yml
-//        的 `id: qq-mode`（不是 `qq-mode-console`）；
+//        的 `id: qq-mode`（不是 `mode-console`）；
 //     ② 该 entry 的插件模块导出 `Config`（schema 读的就是 fiber.runtime.Config）；
 //     ③ `Config` 里至少有一个字段带 `volatile` 标记。
 //   所以本插件的 `apply()` 在 0.2.0 下是**空操作**，命名空间照样出现在
@@ -28,7 +28,7 @@ import z from '@deepseek-ai/schemastery';
 // 诊断日志写系统临时目录，**不要**按相对层级往上爬。
 //
 // 历史坑：这里曾经是 path.join(__dirname, '..', '..', '..', 'state', ...)。
-// 插件是以 `link:<DSH_HOME>/plugins/qq-mode-console` 装进 profile 的，往上是
+// 插件是以 `link:<DSH_HOME>/plugins/mode-console` 装进 profile 的，往上是
 // <DSH_HOME>/..，于是在任何非作者机器上都会在用户主目录旁凭空拉出一个 state/ 目录，
 // 只有作者机器上恰好指回仓库时才"看起来正常"。可用 QQ_MODE_DIAG 覆盖路径（空字符串=关闭）。
 const DIAG = process.env.QQ_MODE_DIAG ?? path.join(os.tmpdir(), 'qq-mode-plugin.log');
@@ -41,7 +41,7 @@ function diag(msg) {
   } catch {}
 }
 
-export const name = 'qq-mode-console';
+export const name = 'mode-console';
 // 命名空间属于 settings seam：声明依赖让 entry 等 settings 就绪后再 activate。
 export const inject = ['settings'];
 
@@ -77,7 +77,7 @@ export const QqModeSchema = z.object({
  *                                            // "Plugin entry ... has no volatile fields"
  *   也就是说，一个命名空间要能被**写入**，必须同时满足三点：
  *     ① 存在一个 loader entry，其 **id 恰好等于命名空间名** —— 所以 cordis.patch.yml 里
- *        这条 entry 的 id 是 `qq-mode`（不是 `qq-mode-console`）；
+ *        这条 entry 的 id 是 `qq-mode`（不是 `mode-console`）；
  *     ② 该 entry 的插件模块导出了 `Config`（schema(entry) 读的就是 fiber.runtime.Config）；
  *     ③ `Config` 里至少有一个字段带 `volatile` 标记。
  *   0.1.5 时代只有 `ctx.settings.register()`，而 entry id 与命名空间不同名 —— 于是桥接的

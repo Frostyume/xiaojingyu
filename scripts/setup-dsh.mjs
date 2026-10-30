@@ -2,12 +2,12 @@
 // setup-dsh.mjs — 在目标设备上安装 qq-bridge 的 DSH 端配置
 //
 // 功能：
-//   1. 安装两套 agent preset：qq-chat、qq-chat-v2
-//      （DSH 0.1.7 机制：作为 qq-agent-presets bundle 的 patch 层插入
+//   1. 安装内置 agent preset：qq-chat（若磁盘上存在旧版 qq-chat-legacy 也会一并安装）
+//      （DSH 0.1.7 机制：作为 agent-presets bundle 的 patch 层插入
 //        @deepseek-ai/dsh-agent-preset 行；~/.dsh/.agent-presets/ 目录已不再被读取）
 //   2. 在 DSH profile 的 cordis.patch.yml 中挂载三个 MCP server：
 //      mcp-snowluma / mcp-snowluma-host / mcp-web-search-safe
-//   3. 在 profile package.json 中注册两个 bundle：qq-mode-console、qq-agent-presets
+//   3. 在 profile package.json 中注册两个 bundle：mode-console、agent-presets
 //
 // 用法：
 //   node scripts/setup-dsh.mjs [profile]
@@ -80,10 +80,10 @@ function backupBeforeOverwrite(file, keep = 5) {
 // 0.1.7：注册表既不扫目录也不接受 preset 路径；preset 是一条普通 loader 行
 //        （@deepseek-ai/dsh-agent-preset，config.plugins 内联子行列表），
 //        由 bundle 的 patch 文件插入。因此这里做两件事：
-//          ① 把 qq-agent-presets bundle 注册进 profile（link: 依赖 + bundles + junction）；
+//          ① 把 agent-presets bundle 注册进 profile（link: 依赖 + bundles + junction）；
 //          ② 从仓库权威源（dsh/agent-presets/<preset>/）重新生成 patch 文件。
 //        旧目录不再写入、也不删除（见 reportLegacyPresetDir）。
-const BUNDLE_NAMES = ['qq-mode-console', 'qq-agent-presets'];
+const BUNDLE_NAMES = ['mode-console', 'agent-presets'];
 
 /** 从仓库源重新生成 bundle 里的 patch 文件（人格正文/工具面改了就必须重跑）。 */
 function regeneratePresetPatches() {
@@ -260,10 +260,10 @@ function ensureDirLink(linkPath, targetDir, label) {
  *   ~/.dsh/plugins/<name>  → 仓库目录（人工可读的"安装位"）
  *   <profile>/node_modules/<name> → ~/.dsh/plugins/<name>（Node 解析路径）
  * 第二层必须自己建：preset 子行按 profile 目录解析裸说明符
- * （qq-agent-presets/qq-tool-restrict.mjs），缺了它 preset 会整条挂载失败。
+ * （agent-presets/qq-tool-restrict.mjs），缺了它 preset 会整条挂载失败。
  */
 function ensureBundle(name) {
-  const repoDir = name === 'qq-agent-presets' ? BUNDLE_DIR : path.join(REPO_ROOT, 'plugins', name);
+  const repoDir = name === 'agent-presets' ? BUNDLE_DIR : path.join(REPO_ROOT, 'plugins', name);
   const linkDir = ensureDirLink(path.join(DSH_HOME, 'plugins', name), repoDir, `bundle ${name} link`);
   ensureDirLink(path.join(DSH_HOME, 'profiles', PROFILE, 'node_modules', name), linkDir, `bundle ${name} node_modules link`);
   return linkDir;
@@ -316,7 +316,7 @@ function ensureLocalModeFile() {
   log(`state/mode.json created with mode=reserved2 (fallback if DSH settings are not available)`);
 }
 
-// qq-mode-console / qq-agent-presets 以 link: 依赖注册进 profile package.json 后，DSH 首次启动
+// mode-console / agent-presets 以 link: 依赖注册进 profile package.json 后，DSH 首次启动
 // 需要先安装一次才能解析这些 bundle（否则 cold start 报 "cannot resolve profile bundle"）。
 // dsh CLI 可用时自动执行。
 function autoInstallProfileBundles() {

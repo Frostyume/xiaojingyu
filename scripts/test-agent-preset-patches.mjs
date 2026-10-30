@@ -1,5 +1,5 @@
 // 钉住 DSH 0.1.7 preset 装配的「防漂移」契约（纯离线，不需要 DSH 在跑）：
-//   1. bundle patch（plugins/qq-agent-presets/presets/*.patch.yml）与仓库权威源
+//   1. bundle patch（plugins/agent-presets/presets/*.patch.yml）与仓库权威源
 //      （dsh/agent-presets/<preset>/{preset.yml,agent.cordis.yml}）逐字一致；
 //   2. patch 的形状符合新机制：insert 一条 @deepseek-ai/dsh-agent-preset 行，
 //      config 里带 id/name/description/order/plugins；
@@ -70,7 +70,7 @@ for (const name of PRESETS) {
   ok(guard?.name === GUARD_SPECIFIER, `${name}: 守卫行 name = ${GUARD_SPECIFIER}`);
   const bad = row.config.plugins.filter((r) => typeof r.name === 'string' && (r.name.startsWith('.') || path.isAbsolute(r.name)));
   ok(bad.length === 0, `${name}: 没有任何相对/绝对路径子行名（0.1.7 下会按 profile 目录解析而装不上）${bad.length ? `：${bad.map((r) => r.name).join(', ')}` : ''}`);
-  const guardFile = path.join(BUNDLE_DIR, GUARD_SPECIFIER.slice('qq-agent-presets/'.length));
+  const guardFile = path.join(BUNDLE_DIR, GUARD_SPECIFIER.slice('agent-presets/'.length));
   ok(fs.existsSync(guardFile), `${name}: 守卫实现存在（${path.relative(REPO_ROOT, guardFile)}）`);
 }
 
@@ -78,7 +78,7 @@ console.log('## 4. bundle 声明与安全边界');
 {
   const pkg = JSON.parse(read(path.join(BUNDLE_DIR, 'package.json')));
   const patches = pkg.dsh?.bundle?.patch;
-  ok(Array.isArray(patches), 'qq-agent-presets 的 dsh.bundle.patch 是数组（一个 bundle 可带多层 patch）');
+  ok(Array.isArray(patches), 'agent-presets 的 dsh.bundle.patch 是数组（一个 bundle 可带多层 patch）');
   for (const name of PRESETS) {
     const declared = `./presets/${name}.patch.yml`;
     ok(patches?.includes(declared), `bundle 列出了 ${declared}`);
@@ -94,7 +94,7 @@ console.log('## 4. bundle 声明与安全边界');
   const canonicalMod = await import(pathToFileURL(canonical).href);
   for (const name of PRESETS) {
     const shim = path.join(REPO_ROOT, 'dsh', 'agent-presets', name, 'qq-tool-restrict.mjs');
-    ok(/^export \* from '\.\.\/\.\.\/\.\.\/plugins\/qq-agent-presets\/qq-tool-restrict\.mjs'$/m.test(read(shim).trim()),
+    ok(/^export \* from '\.\.\/\.\.\/\.\.\/plugins\/agent-presets\/qq-tool-restrict\.mjs'$/m.test(read(shim).trim()),
       `${name}/qq-tool-restrict.mjs 是指向唯一实现的 re-export 壳`);
     const shimMod = await import(pathToFileURL(shim).href);
     assert.equal(shimMod.apply, canonicalMod.apply, `${name}: 壳与实现在同一模块实例上`);

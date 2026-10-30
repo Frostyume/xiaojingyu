@@ -13,7 +13,7 @@
 //        · 鉴权：本机签名密钥离线铸造 Cookie
 //        · settings/describe 可用，`qq-mode` 命名空间在列且可写
 //          （0.2.0 删除了 ctx.settings.register()，命名空间改由 entry id + Config 推导）
-//        · agentPresets/list 含 qq-chat / qq-chat-v2
+//        · agentPresets/list 含 qq-chat
 //        · session/create 挂 preset + selectModel(deepseek-flash)
 //        · session/projections 一元 RPC 可用（读队列的主路径）
 //        · session/control 开场 baseline 是 value.projections[<id>].values.inbox
@@ -60,7 +60,7 @@ let oldRejected = false;
 try { persona.Config({ text: 'x' }); } catch { oldRejected = true; }
 check('dsh-persona 仍拒绝旧字段 text（故障前提成立）', oldRejected);
 
-for (const p of ['qq-chat', 'qq-chat-v2']) {
+for (const p of ['qq-chat']) {
   const f = path.join(ROOT, 'dsh/agent-presets', p, 'agent.cordis.yml');
   const row = yaml.load(fs.readFileSync(f, 'utf8')).find((r) => r.id === 'persona');
   let schemaOk = false;
@@ -82,7 +82,7 @@ const presetPatches = await import(pathToFileURL(path.join(ROOT, 'scripts/build-
 for (const { file, changed } of presetPatches.buildPatches({ check: true, log: () => {} })) {
   check(`${path.relative(ROOT, file)} 与仓库源一致（未漂移）`, !changed);
 }
-for (const p of ['qq-chat', 'qq-chat-v2']) {
+for (const p of ['qq-chat']) {
   const doc = yaml.load(fs.readFileSync(presetPatches.patchFileFor(p), 'utf8'));
   const row = doc?.[0]?.insert?.[0];
   check(`patch ${p}: 是 @deepseek-ai/dsh-agent-preset 行`, row?.name === '@deepseek-ai/dsh-agent-preset');
@@ -96,7 +96,7 @@ for (const p of ['qq-chat', 'qq-chat-v2']) {
 }
 
 // 守卫脚本必须是 fail-closed 的：非法工具名要被拒绝，而不是放行（权威实现只有一份）。
-const canonicalGuardPath = path.join(ROOT, 'plugins', 'qq-agent-presets', 'qq-tool-restrict.mjs');
+const canonicalGuardPath = path.join(ROOT, 'plugins', 'agent-presets', 'qq-tool-restrict.mjs');
 const guard = fs.readFileSync(canonicalGuardPath, 'utf8');
 // 断言只看**可执行代码**：守卫的注释里会写「cordis_define/… 在 0.1.7 已被删除」做历史说明，
 // 直接扫原文会把这段说明误判成「还在使用旧工具名」（实测误报）。必须**先剥块注释**
@@ -111,7 +111,7 @@ check('守卫：不额外放行 web_search/web_fetch', !/'(?:web_search|web_fetc
 check('守卫：拒绝 0.1.7 已删除的 cordis 旧工具名（避免静默失效）', !/cordis_(?:define|undefine|run|stop)/.test(guardCode));
 
 // 0.2.0 工具面重新对账的结果（扫描器与守卫必须一致）。
-// 三类必须覆盖，来源见 plugins/qq-agent-presets/qq-tool-restrict.mjs 的长注释：
+// 三类必须覆盖，来源见 plugins/agent-presets/qq-tool-restrict.mjs 的长注释：
 //   ① 全局层默认启用、仿真会话真的会继承的 MCP 资源工具
 //   ② 派生 agent / 执行外部代码
 //   ③ 插件装载权（= 任意代码执行）与无人值守的自我调度
@@ -152,9 +152,9 @@ check('mcp 路径指向本仓库', mcpIds.every((id) => {
 }));
 
 const pkg = JSON.parse(fs.readFileSync(path.join(DSH_HOME, 'profiles/web/package.json'), 'utf8'));
-check('profile bundles 含 qq-mode-console', pkg.dsh.profile.bundles.includes('qq-mode-console'));
-check('qq-mode-console link 依赖已注册', String(pkg.dependencies['qq-mode-console'] ?? '').startsWith('link:'));
-check('qq-mode-console 已 link 进 node_modules', fs.existsSync(path.join(DSH_HOME, 'profiles/web/node_modules/qq-mode-console')));
+check('profile bundles 含 mode-console', pkg.dsh.profile.bundles.includes('mode-console'));
+check('mode-console link 依赖已注册', String(pkg.dependencies['mode-console'] ?? '').startsWith('link:'));
+check('mode-console 已 link 进 node_modules', fs.existsSync(path.join(DSH_HOME, 'profiles/web/node_modules/mode-console')));
 
 // ── 3. 仓库配置：模型 ───────────────────────────────────────────────────────
 const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
@@ -189,10 +189,10 @@ check('群聊模式不再重试「无 preset」建会话', /strictPreset \? \[tr
 // 复发，这里把「所有对外自称的版本号必须等于 package.json」固定下来。
 const pkgJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const lockJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package-lock.json'), 'utf8'));
-const pluginPkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'plugins/qq-mode-console/package.json'), 'utf8'));
+const pluginPkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'plugins/mode-console/package.json'), 'utf8'));
 check('package-lock.json 顶层 version 与 package.json 一致', lockJson.version === pkgJson.version, `lock=${lockJson.version} pkg=${pkgJson.version}`);
 check('package-lock.json packages[""] version 与 package.json 一致', lockJson.packages?.['']?.version === pkgJson.version, `lock=${lockJson.packages?.['']?.version}`);
-check('qq-mode-console 插件版本与主包一致', pluginPkg.version === pkgJson.version, `plugin=${pluginPkg.version}`);
+check('mode-console 插件版本与主包一致', pluginPkg.version === pkgJson.version, `plugin=${pluginPkg.version}`);
 for (const f of ['src/mcp-snowluma-safe.js', 'src/mcp-host-server.js', 'src/mcp-web-search-safe.js']) {
   const m = /new McpServer\(\{[^}]*version:\s*'([^']+)'/.exec(fs.readFileSync(path.join(ROOT, f), 'utf8'));
   check(`${f} 的 MCP serverInfo.version 与主包一致`, m?.[1] === pkgJson.version, `声明=${m?.[1]} 主包=${pkgJson.version}`);
@@ -233,7 +233,7 @@ const dm = st.value?.namespaces?.find((n) => n.ns === 'agent-default-model');
 check('DSH 全局默认模型 = deepseek-flash', dm?.value?.model === 'deepseek-flash', `当前 ${dm?.value?.model}`);
 const ap = await rpc('agentPresets/list', {});
 const presetIds = ap.value?.presets?.map((p) => p.id) ?? [];
-check('agentPresets/list 含 qq-chat 与 qq-chat-v2', presetIds.includes('qq-chat') && presetIds.includes('qq-chat-v2'), presetIds.join(', '));
+check('agentPresets/list 含 qq-chat', presetIds.includes('qq-chat'), presetIds.join(', '));
 // 0.1.7 把设置命名空间从 `agent-presets` 改名为 `agent-preset-registry`，而且「用户默认」
 // 是易失字段 selectedDefault，不会出现在 describe 的 value 里。部署默认由 registry 行的
 // config.default 决定（dsh-web-app 的 patch 写的是 standard）。桥接在 closedAgentPreset
@@ -274,9 +274,9 @@ await api.ensureAuth();
 
 let probeSessionId = null;
 try {
-  const created = unwrap(await api.sessions.create({ cwd: probeDir, agentPreset: 'qq-chat-v2' }), 'session.create');
+  const created = unwrap(await api.sessions.create({ cwd: probeDir, agentPreset: 'qq-chat' }), 'session.create');
   probeSessionId = created.sessionId;
-  check('session/create 挂 qq-chat-v2 preset 成功', typeof probeSessionId === 'string' && probeSessionId.length > 0, probeSessionId);
+  check('session/create 挂 qq-chat preset 成功', typeof probeSessionId === 'string' && probeSessionId.length > 0, probeSessionId);
   unwrap(await api.sessions.selectModel({
     sessionId: probeSessionId, provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'max'
   }), 'session.selectModel');

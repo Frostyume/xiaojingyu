@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import yaml from 'js-yaml';
 
 const preset = yaml.load(fs.readFileSync(
-  new URL('../dsh/agent-presets/qq-chat-v2/agent.cordis.yml', import.meta.url), 'utf8',
+  new URL('../dsh/agent-presets/qq-chat/agent.cordis.yml', import.meta.url), 'utf8',
 ));
 const persona = preset.find((row) => row.id === 'persona');
 const prefix = persona?.config?.prefix ?? '';

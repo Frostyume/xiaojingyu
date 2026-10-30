@@ -23,8 +23,8 @@ DSH/                         ← 工作区根（不是仓库根）
 | `src/core/` | **可靠性与共享内核**（2026-10-25 Stage 1–4）：`db.js`（SQLite 适配+迁移）、`outbox.js`、`jobs.js`、`inbox.js`、`config-schema.js`、`logger.js`、`health.js`（doctor helpers）、`prompt-budget.js`、`wake-score.js`、`model-routing.js`、`memory.js`、`session-map.js`、`relationships.js` + `relationship-model.js`（galgame 关系 v2）、`persona-pack.js`、`rich-card.js`、`daily-report.js`、`signature.js`、`speech.js`、`tts-emotion.js`、`event-bus.js`、`feature-loader.js`、`transport.js`、`budget.js`、`session-router.mjs` | 业务模块不要直接 import `node:sqlite`；换驱动只改 `db.js` |
 | `src/features/` | **可插拔功能**：每个子目录一个 `index.js` manifest（id/name/permissions/hooks/setup）。当前 `daily-report`、`rich-cards`；禁用用 `features.disabled` | 新功能优先放这里；不要直接改 bridge 主流程 |
 | `scripts/` | 测试 / 运维脚本（见第二节命名约定） | 测试脚本不能删；`patch-snowluma-sdk.mjs` 是 postinstall 依赖 |
-| `dsh/` | 要装进 DSH 的东西：`agent-presets/qq-chat-v2`（preset 的**权威源**，含工具白名单 `qq-tool-restrict.mjs` 的 re-export 壳）。DSH 0.1.7 起 preset 以 bundle patch 形式安装，patch 由 `scripts/build-agent-preset-patches.mjs` 从这里的源生成到 `plugins/qq-agent-presets/presets/` | 改 preset 会影响所有人设行为；改完必须重新生成 patch。**一代 `qq-chat/` 不随仓库发布**，桥接仍支持它（自备即可） |
-| `plugins/` | DSH 插件：`qq-mode-console`（暴露 `qq-mode` 设置命名空间；**只有 host 半**，浏览器 UI 卡片未实现）、`qq-agent-presets`（生成 `qq-chat-v2` preset 行 + 携带唯一的 `qq-tool-restrict` 权威实现） | 改了要重装/重启 DSH |
+| `dsh/` | 要装进 DSH 的东西：`agent-presets/qq-chat`（preset 的**权威源**，含工具白名单 `qq-tool-restrict.mjs` 的 re-export 壳）。DSH 0.1.7 起 preset 以 bundle patch 形式安装，patch 由 `scripts/build-agent-preset-patches.mjs` 从这里的源生成到 `plugins/agent-presets/presets/` | 改 preset 会影响所有人设行为；改完必须重新生成 patch。**旧版 `qq-chat-legacy/` 不随仓库发布**，桥接仍支持它（自备即可） |
+| `plugins/` | DSH 插件：`mode-console`（暴露 `qq-mode` 设置命名空间；**只有 host 半**，浏览器 UI 卡片未实现）、`agent-presets`（生成 `qq-chat` preset 行 + 携带唯一的 `qq-tool-restrict` 权威实现） | 改了要重装/重启 DSH |
 | `public/` | 浏览器静态资源：`console.html`（控制台，127.0.0.1:3100）、`live.html`（实时状态页）、`assets/`（鲸鱼像素图） | 只放静态资源；历史备份 `console.html.bak` 已移出仓库 |
 | `roles/` | 人格卡（当前 `小鲸鱼.md`；每个角色一个文件，另有 `README.md` 说明）：控制台「人格与角色」页可编辑，保存即生效 | 用户内容，别乱动 |
 | `assets/` | 仓库用资源：`deepseek娘.png`、`voice/`（两条示例语音 `proc-*.ogg`；`project-intro.mp4` 已改为 Release 附件、不入库） | 别加体积大的二进制 |
@@ -74,7 +74,7 @@ DSH/                         ← 工作区根（不是仓库根）
 docs/
 ├── README.md     # 文档索引（只登记随仓库发布的文档）  ← 先看这个
 ├── FOLDER_MAP.md # 本文件
-└── guides/       # 面向使用者/运维：DSH_SETUP / DSH_020_ADAPTATION / SECURITY_BASELINE / RELIABILITY / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING / PRIVACY
+└── guides/       # 面向使用者/运维：DSH_SETUP / DSH_ADAPTATION / SECURITY_BASELINE / RELIABILITY / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING / PRIVACY
 ```
 
 > ⚠️ **哪些文档会进公开仓库**：本仓库只发布 `docs/README.md`、`docs/FOLDER_MAP.md` 与 `docs/guides/` 下的文档。
@@ -96,7 +96,7 @@ docs/
 - `scripts/console-ui-*.json` / `console-ui-fixture.mjs` / `fixtures/`（控制台回归基线）
 - `scripts/audit-bridge-harness.mjs`、`scripts/dsh-modules.mjs`（被测试/工具引用）
 
-> 私有开发副本里的一次性工具（`cleanup-*`、`fix-*`、`diag-*`、`patch-qq-chat-v2-*`、
+> 私有开发副本里的一次性工具（`cleanup-*`、`fix-*`、`diag-*`、`patch-qq-chat-*`、
 > `patch-web-mcp-timeout`、`probe-015`、表情/图片库打标脚本等）依赖本机 `state/` 产物，
 > **不随本仓库发布**，仓库里看不到它们是正常的。
 

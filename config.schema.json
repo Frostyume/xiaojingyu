@@ -379,7 +379,7 @@
         "agentPreset": {
           "title": "二代 preset",
           "type": "string",
-          "default": "qq-chat-v2"
+          "default": "qq-chat"
         },
         "autoReplyCheckMs": {
           "title": "回复检查间隔（ms）",
@@ -2575,7 +2575,7 @@
     "agentPreset": {
       "title": "默认 agent preset",
       "type": "string",
-      "default": "qq-chat"
+      "default": "qq-chat-legacy"
     },
     "allowAllWhenEmpty": {
       "title": "白名单为空时放行所有",

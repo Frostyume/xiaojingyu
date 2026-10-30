@@ -67,26 +67,20 @@ const ALL_MODES = Object.freeze([...SIMULATION_MODES, 'simulation', 'closed-agen
  * closed preset; simulation allows the simulator presets. Anything else is
  * rejected so a typo or a stale config cannot attach an unexpected tool surface.
  *
- * **One generation per spelling, on purpose.** `simulation` is the canonical
- * rename of `reserved2` (QSH_PLAN.md §2.1), so it is the entry that carries the
- * QSH names the plan installs — `qsh-sim` / `qsh-sim-v2` (ADR 0003 §决定 point 4)
- * — and `[0]` is the preset this layer emits by default, exactly as
- * QSH_PLAN.md §3.1 writes `"defaults": { "mode": "simulation", "preset":
- * "qsh-sim" }`. The legacy spellings keep the presets that are actually
- * installed today (`qq-chat` / `qq-chat-v2`), so a config written before the P3
- * rename stays loadable *and* `reserved2 + qsh-sim` stays a detectable mismatch
- * instead of silently resolving to a preset that deployment never installed.
- * Deployments that install a different generation pass their own table through
- * the `modePresets` option — that is why both lists exist rather than one.
+ * **One preset per mode, on purpose.** `simulation` is the canonical
+ * user-facing spelling of `reserved2`; both resolve to the shipped
+ * `qq-chat` preset. `chat` / `reserved` are historical spellings kept only
+ * for config compatibility — they expect the old `qq-chat-legacy` preset,
+ * which this repository does not ship, so they fail closed instead of
+ * silently borrowing the simulation preset.
+ * Deployments that install different presets pass their own table through
+ * the `modePresets` option.
  */
 const DEFAULT_MODE_PRESETS = Object.freeze({
-  chat: Object.freeze(['qq-chat']),
-  reserved: Object.freeze(['qq-chat']),
-  reserved2: Object.freeze(['qq-chat-v2']),
-  // `simulation` is the canonical spelling of `reserved2`. It leads with the
-  // canonical preset names; `qq-chat-v2` stays accepted because that is the
-  // preset the still-legacy bridge actually installs for this mode.
-  simulation: Object.freeze(['qsh-sim', 'qsh-sim-v2', 'qq-chat-v2']),
+  chat: Object.freeze(['qq-chat-legacy']),
+  reserved: Object.freeze(['qq-chat-legacy']),
+  reserved2: Object.freeze(['qq-chat']),
+  simulation: Object.freeze(['qq-chat']),
   'closed-agent': Object.freeze(['qsh-closed']),
 });
 

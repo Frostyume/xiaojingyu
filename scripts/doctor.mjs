@@ -289,22 +289,22 @@ async function main() {
   } else {
     add('role.card', 'ok', '角色卡', '未设置角色');
   }
-  const presetName = cfg.socialV2?.agentPreset || cfg.agentPreset || 'qq-chat-v2';
+  const presetName = cfg.socialV2?.agentPreset || cfg.agentPreset || 'qq-chat';
   const presetSrc = path.join(ROOT, 'dsh', 'agent-presets', presetName, 'agent.cordis.yml');
-  const presetPatch = path.join(ROOT, 'plugins', 'qq-agent-presets', 'presets', `${presetName}.patch.yml`);
+  const presetPatch = path.join(ROOT, 'plugins', 'agent-presets', 'presets', `${presetName}.patch.yml`);
   function presetInstallState(name) {
     const home = os.homedir();
-    const bundle = path.join(home, '.dsh', 'plugins', 'qq-agent-presets');
+    const bundle = path.join(home, '.dsh', 'plugins', 'agent-presets');
     if (fs.existsSync(bundle)) {
       for (const profile of ['desktop', 'web', 'default']) {
         const pkg = readJson(path.join(home, '.dsh', 'profiles', profile, 'package.json'), null);
         const bundles = pkg?.dsh?.profile?.bundles ?? [];
-        if (Array.isArray(bundles) && bundles.includes('qq-agent-presets')) return { ok: true, detail: `profile=${profile}` };
+        if (Array.isArray(bundles) && bundles.includes('agent-presets')) return { ok: true, detail: `profile=${profile}` };
       }
     }
     // 0.1.5 旧机制（仅作兜底）
     if (fs.existsSync(path.join(home, '.dsh', '.agent-presets', name))) return { ok: true, detail: 'legacy 目录' };
-    return { ok: false, detail: 'qq-agent-presets bundle 未注册（运行 node scripts/setup-dsh.mjs）' };
+    return { ok: false, detail: 'agent-presets bundle 未注册（运行 node scripts/setup-dsh.mjs）' };
   }
   if (fs.existsSync(presetSrc)) {
     add('preset.source', 'ok', 'Preset 源文件', presetName);

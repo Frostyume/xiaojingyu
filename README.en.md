@@ -56,7 +56,7 @@ QQ messages ──► SnowLuma (OneBot v11 WS) ──► qq-bridge ──► DSH
 - Space-based message splitting for more natural multi-message replies.
 - Whitelist/blacklist access control, fail-closed by default.
 - Sensitive text audit prevents paths/credentials from being sent to QQ.
-- MCP tools for reading group history/members, sending messages, replying with quotes, and (in `reserved2`) full simulated-group-friend tooling.
+- MCP tools for reading group history/members, sending messages, replying with quotes, and (in `simulation`) full simulated-group-friend tooling.
 - Slang/network-expression learning with human confirmation.
 - Lightweight memory system for active topics, pending thoughts and member impressions.
 - Sticker library integration with AI-friendly sticker usage.
@@ -103,7 +103,7 @@ Or double-click `start.bat` on Windows (guard mode with auto-restart).
 
 ## DSH Setup on Another Device
 
-The bridge and console can run without extra DSH setup, but the two DSH chat presets (`qq-chat` and `qq-chat-v2`) and the MCP servers must be installed into DSH once per machine:
+The bridge and console can run without extra DSH setup, but the DSH chat preset (`qq-chat`) and the MCP servers must be installed into DSH once per machine:
 
 ```bash
 node scripts/setup-dsh.mjs
@@ -111,10 +111,10 @@ node scripts/setup-dsh.mjs
 
 This installs:
 
-- the `qq-agent-presets` bundle, which generates the two `@deepseek-ai/dsh-agent-preset` rows (`qq-chat`, `qq-chat-v2`) plus the shared `qq-tool-restrict` safety guard
+- the `agent-presets` bundle, which generates the `@deepseek-ai/dsh-agent-preset` row (`qq-chat`) plus the shared `qq-tool-restrict` safety guard
 - MCP entries in `~/.dsh/profiles/web/cordis.patch.yml`
-- `qq-mode-console` and `qq-agent-presets` in the profile `package.json` (`bundles` + `link:` dependencies)
-- Default DSH mode set to `reserved2` (second-generation simulation), with a local `state/mode.json` fallback
+- `mode-console` and `agent-presets` in the profile `package.json` (`bundles` + `link:` dependencies)
+- Default DSH mode set to `simulation`, with a local `state/mode.json` fallback
 
 Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for details.
 
@@ -130,16 +130,16 @@ Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for d
 ## Repository Layout
 
 ```
-qq-bridge/
+xiaojingyu/
   config.example.json   # sanitized config template (real config.json is not in repo)
   docs/
     README.md           # documentation index (published docs only)
     FOLDER_MAP.md       # folder layout and scripts/ naming conventions
-    guides/             # user/operator facing: DSH_SETUP, DSH_020_ADAPTATION, SECURITY_BASELINE,
+    guides/             # user/operator facing: DSH_SETUP, DSH_ADAPTATION, SECURITY_BASELINE,
                         # RELIABILITY, TOKEN_USAGE_CONSOLE, CONSOLE-UI-TESTING, PRIVACY
-  dsh/agent-presets/    # qq-chat-v2 DSH agent preset source (the legacy qq-chat preset is not shipped)
-  plugins/qq-agent-presets  # DSH bundle: generates the qq-chat-v2 preset patch row + the shared tool guard
-  plugins/qq-mode-console  # DSH plugin: exposes the qq-mode settings namespace (host half only; no UI card yet)
+  dsh/agent-presets/    # qq-chat DSH agent preset source (the legacy qq-chat-legacy preset is not shipped)
+  plugins/agent-presets  # DSH bundle: generates the qq-chat preset patch row + the shared tool guard
+  plugins/mode-console  # DSH plugin: exposes the qq-mode settings namespace (host half only; no UI card yet)
   src/                  # bridge core and MCP servers
   public/
     console.html        # local web console
@@ -173,6 +173,19 @@ npm run test-forward
 npm run test-slang
 npm run test-stickers
 ```
+
+## Upstream and License
+
+This project started from the MIT-licensed [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)
+(baseline `v0.2.0-r4`); thanks to its authors and contributors for the bridge skeleton. On top of that,
+this repository has been substantially rewritten and extended: the Xiaojingyu persona and group-chat
+simulation protocol, the local web console, the reliability kernel (SQLite/WAL, outbox/inbox, jobs,
+doctor), DSH 0.2.0 adaptation, and the safety boundaries (preset tool guards, send allowlists, reply
+auditing, voice-library limits).
+
+The upstream name, copyright lines and MIT license are preserved in [LICENSE](LICENSE); see
+[UPSTREAM.md](UPSTREAM.md) for the fork point and sync rules, and [NOTICE](NOTICE) for third-party
+components. This repository has no tags or releases yet and ships a `0.0.0` development snapshot.
 
 ## Compliance
 

@@ -36,7 +36,7 @@
 agent 的回复、提问和工具审批再回到 QQ。它不改变 QQ 的用法，也不接管你的账号——
 只是在「QQ ↔ SnowLuma」和「DSH」之间，补上那条一直缺的神经。
 
-在二代仿真模式（`reserved2`，默认）里，消息**不会**被逐条转给模型看：AI 自己调
+在群聊仿真模式（`simulation`，默认）里，消息**不会**被逐条转给模型看：AI 自己调
 `qq_get_unread_messages` 翻未读、用 `qq_send_message` 决定说什么、用 `qq_wait_for_messages`
 决定等一会儿还是潜水。像群友一样在场，而不是一个自动回复机器人。
 
@@ -51,7 +51,7 @@ agent 的回复、提问和工具审批再回到 QQ。它不改变 QQ 的用法�
 
 | | |
 | --- | --- |
-| **双向对话**<br>群聊 / 私聊消息进入 DSH 会话；引用回复会解析成「被引用人 + 原文」，AI 知道这句话在接谁的话。 | **自主收发**<br>二代仿真里 AI 通过 MCP 工具自己看未读、发言、引用、等人、潜水；分条发送由它自己决定。 |
+| **双向对话**<br>群聊 / 私聊消息进入 DSH 会话；引用回复会解析成「被引用人 + 原文」，AI 知道这句话在接谁的话。 | **自主收发**<br>群聊仿真里 AI 通过 MCP 工具自己看未读、发言、引用、等人、潜水；分条发送由它自己决定。 |
 | **人格两层**<br>「仿真提示词」管行为与协议，「人格提示词」管人设与语气；控制台可分别查看、修改、还原。 | **本地控制台**<br>13 个页面覆盖运行状态、会话审批、人格、群聊仿真、黑话、花费、安全与运维；浅色 / 深色双主题。 |
 | **多模态**<br>图片、表情、动图走 CDN 与安全下载进入上下文；IPv4 优先 + 逐地址切换，不再为 IPv6 白等。 | **可靠内核**<br>SQLite outbox / jobs / inbox，DSH 掉线时消息在内存排队，恢复后补投；每会话独立映射。 |
 | **安全默认值**<br>白名单空 = 不响应（fail-closed）；QQ 动作只暴露安全子集，发送强制白名单。 | **纯 JS 链路**<br>桥接没有任何原生 / 注入面，也不启动或控制 SnowLuma；出问题能一眼分清是谁的锅。 |
@@ -173,8 +173,8 @@ cp config.example.json config.json     # Windows CMD 用：copy config.example.j
 | `snowluma.accessToken` | OneBot 的 token，没配置就留空 |
 | `snowluma.followDiscoveredEndpoint` | 默认 `true`：换账号后自动发现并跟随新端口 / token，并写回 `config.json` |
 | `snowluma.launcherPath` / `homeDir` | SnowLuma 安装目录，用于 token 与端点自发现（桥接不会启动它） |
-| `agentPreset` | `chat` / `reserved` 模式使用的 preset，默认 `qq-chat` |
-| `socialV2.agentPreset` | 二代仿真 preset，默认 `qq-chat-v2` |
+| `agentPreset` | 旧版 `chat` / `reserved` 模式使用的 preset，默认 `qq-chat-legacy`（未随仓库发布） |
+| `socialV2.agentPreset` | 群聊仿真 preset，默认 `qq-chat` |
 | `allow.private` / `allow.groups` | 白名单（QQ 号 / 群号数组） |
 | `deny.*` | 黑名单，优先于白名单 |
 | `consolePort` / `consoleToken` | 控制台端口（默认 `3100`）与令牌（留空自动生成到 `state/console-token`） |
@@ -191,8 +191,8 @@ cp config.example.json config.json     # Windows CMD 用：copy config.example.j
 node scripts/setup-dsh.mjs
 ```
 
-脚本会把 `qq-chat-v2` preset 与三个 MCP server 写进 DSH 配置，并把全新环境的默认模式设为
-`reserved2`。**装完必须重启 DSH**——preset 与 MCP 只在 DSH 启动时加载。
+脚本会把 `qq-chat` preset 与三个 MCP server 写进 DSH 配置，并把全新环境的默认模式设为
+`simulation`。**装完必须重启 DSH**——preset 与 MCP 只在 DSH 启动时加载。
 
 > 跳过这一步桥接不会崩，但会话拿不到 preset，桥接会 **fail-closed 拒绝建会话**
 > （绝不回退到带 bash / 文件工具的默认 preset），表现同样是 QQ 上没反应。
@@ -239,14 +239,12 @@ npm run doctor     # 一条命令体检：配置、SQLite、DSH、SnowLuma、pre
 
 | 模式 | 谁在使用 | preset | 开箱可用 |
 | --- | --- | --- | --- |
-| `chat` | 白名单群 / 私聊日常对话 | `qq-chat`（一代） | 需自备 preset |
+| `simulation` | 白名单群 / 私聊：AI 自主看消息、发言、等待、潜水 | `qq-chat` | 是（默认） |
 | `closed-agent` | 仅 owner 私聊，完整本地工具 | DSH 默认 preset | 是 |
-| `reserved` | 一代仿真（观望 / 活跃 / 试探 / 退场） | `qq-chat`（一代） | 需自备 preset |
-| `reserved2` | 二代仿真：AI 自主收发 | `qq-chat-v2` | 是（推荐） |
 
-> [!IMPORTANT]
-> 本仓库只带二代预设 `qq-chat-v2`。`chat` / `reserved` 依赖的一代 `qq-chat` preset
-> **不随仓库发布**，缺它时桥接会 fail-closed 拒绝建会话。
+旧拼写 `reserved2` 等价于 `simulation`，仍会被接受。`chat` / `reserved` 是更早的历史模式，
+依赖的 `qq-chat-legacy` preset 不随仓库发布；要使用它们需自备该 preset，否则桥接会 fail-closed
+拒绝建会话。
 
 `closed-agent` 只放行 owner 私聊，agent 拥有完整本地工具（DSH 默认 preset）——这是为
 「在 QQ 上远程操控 DSH」有意保留的能力。切换模式、改预设都在控制台完成，即时生效。
@@ -261,7 +259,7 @@ npm run doctor     # 一条命令体检：配置、SQLite、DSH、SnowLuma、pre
 1. `npm run doctor` 有没有红灯；
 2. 第 3 步是否执行过，以及**DSH 是否重启过**（preset 未加载时桥接会拒绝建会话）；
 3. `config.json` 的白名单是否填了你的号，`allowAllWhenEmpty` 是否为 `false`；
-4. 当前模式是否是 `reserved2` / `closed-agent`（`chat` / `reserved` 需要一代 preset）；
+4. 当前模式是否是 `simulation` / `closed-agent`；
 5. 桥接日志里有没有「缺 preset」「白名单拒绝」「SnowLuma 未连接」。
 </details>
 
@@ -316,11 +314,11 @@ npm run doctor     # 一条命令体检：配置、SQLite、DSH、SnowLuma、pre
   先把音频放进 `audio/`，再到控制台打开开关。示例语音在 [`assets/voice/`](assets/voice/)；
 - agent 的 Markdown 回复会转成纯文本再发出（链接保留 `文字 (url)` 形式）；
 - 仅支持 Windows 10 / 11：QQ 与 SnowLuma 都是 Windows 程序；
-- 本仓库只带二代 preset，`chat` / `reserved` 模式需要自备一代 `qq-chat`。
+- 只提供 `simulation` / `closed-agent` 两种模式；更早的 `chat` / `reserved` 需自备 `qq-chat-legacy` preset。
 
 ## 安全与隐私
 
-- **群友没有本地权限**：`qq-chat-v2` 不挂载 bash / 文件读写 / 子代理 / 工作流，
+- **群友没有本地权限**：`qq-chat` 不挂载 bash / 文件读写 / 子代理 / 工作流，
   群友怎么诱导都无法操作本机；
 - **QQ 动作是安全子集**：只允许三个 MCP 命名空间 + `ask_user_question` / `todo_write`，
   发送类工具强制命中白名单；语音只能发语音库里的文件；
@@ -339,7 +337,7 @@ npm run doctor     # 一条命令体检：配置、SQLite、DSH、SnowLuma、pre
 | --- | --- |
 | [docs/README.md](docs/README.md) | 文档索引（每篇一句话） |
 | [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) | DSH 端安装：preset、MCP、重启 |
-| [docs/guides/DSH_020_ADAPTATION.md](docs/guides/DSH_020_ADAPTATION.md) | DSH 0.2.0-rc.2 适配与版本说明 |
+| [docs/guides/DSH_ADAPTATION.md](docs/guides/DSH_ADAPTATION.md) | DSH 0.2.0-rc.2 适配与版本说明 |
 | [docs/guides/SECURITY_BASELINE.md](docs/guides/SECURITY_BASELINE.md) | 安全基线与 Windows ACL |
 | [docs/guides/RELIABILITY.md](docs/guides/RELIABILITY.md) | outbox / 队列 / 重试机制 |
 | [docs/guides/TOKEN_USAGE_CONSOLE.md](docs/guides/TOKEN_USAGE_CONSOLE.md) | 花费看板的口径与价目表 |
@@ -368,14 +366,14 @@ npm run verify          # schema + 控制台契约 + 全部 core / stage / audit
 <summary>展开仓库目录</summary>
 
 ```
-qq-bridge/
+xiaojingyu/
   config.example.json   # 配置模板（脱敏占位符；真实 config.json 不入库）
   config.schema.json    # 由 config.example.json 生成（verify 会 --check）
   README.md / README.en.md / RULES.md / SECURITY.md / UPSTREAM.md
   docs/                 # 文档索引、目录地图与 guides/
-  dsh/agent-presets/qq-chat-v2/  # 二代 preset 的权威源（本仓库只带 v2）
-  plugins/qq-agent-presets       # DSH bundle：生成 preset patch + 共享工具守卫
-  plugins/qq-mode-console        # DSH 插件：qq-mode 设置命名空间（host 半）
+  dsh/agent-presets/qq-chat/  # 群聊仿真 preset 的权威源
+  plugins/agent-presets       # DSH bundle：生成 preset patch + 共享工具守卫
+  plugins/mode-console        # DSH 插件：qq-mode 设置命名空间（host 半）
   public/
     console.html        # 本地 Web 控制台
     live.html           # 只读实时状态页
@@ -397,19 +395,26 @@ qq-bridge/
 > `src/voice-core.js` / `src/snowluma-conn.js`，只依赖 SnowLuma；
 > 仓库内的语音能力（`qq_speak`、`/api/socialV2/send-voice` 等）不依赖它。
 
-## 版本与上游
+## 与上游的关系
 
-本仓库是上游 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) 的二次开发分支，
-当前基于上游 `v0.2.0-r4`，在此基础上做了人格、控制台、仿真与可靠性定制。
+本项目的起点是 MIT 许可的 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)（基线 `v0.2.0-r4`），
+感谢原作者与贡献者打下的桥接骨架。在此基础上，本项目按自己的需求做了大幅改写与扩展，主要包括：
+
+- **小鲸鱼人格与群聊仿真**：从「逐条自动回复」改为 AI 自主看消息、发言、等待、潜水的工具协议；
+- **本地 Web 控制台**：模式切换、人格与提示词编辑、活动日志、运行总览与安全页；
+- **可靠性内核**：SQLite/WAL、outbox 幂等与重放、inbox 去重、任务队列、doctor 诊断；
+- **DSH 0.2.0 适配**：slash RPC、`$events` 事件流、preset bundle patch、离线 Cookie 铸造；
+- **安全边界**：preset 工具守卫、发送白名单、回复审计、语音库限制。
+
+上游的名称、版权行与 MIT 许可完整保留；具体分叉点与跟进规则见 [UPSTREAM.md](UPSTREAM.md)。
 版本号停留在 `0.0.0` 开发快照，**不打 tag、不发 Release**；上游新增的 0.2.1 适配尚未合并。
-跟进上游的规则、许可证边界与禁止入库清单见 [UPSTREAM.md](UPSTREAM.md)。
 
 ## 许可与致谢
 
-- 本项目以 **MIT** 许可发布，保留上游版权行；第三方组件与 SnowLuma 合规说明见 [NOTICE](NOTICE)；
-- 感谢 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) 提供的上游基础；
+- 本仓库与上游均以 **MIT** 许可发布；[LICENSE](LICENSE) 保留上游版权行，不替换、不删除；
+- 感谢 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) —— 桥接骨架、OneBot/DSH 接入思路与大量基础代码来自上游；
 - 感谢 [SnowLuma](https://github.com/SnowLuma/SnowLuma) 提供 QQ ↔ OneBot 网关；
-- 感谢 DeepSeek Harness 提供的 agent 运行时。
+- 感谢 DeepSeek Harness 提供的 agent 运行时；第三方组件与许可说明见 [NOTICE](NOTICE)。
 
 SnowLuma 是独立第三方项目，与腾讯 / QQ 无隶属关系；本项目仅供学习与技术研究，
 使用前请阅读 SnowLuma 的 EULA 与《QQ 用户协议》。

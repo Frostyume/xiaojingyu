@@ -16,22 +16,22 @@ import {
   renderPresetPromptYaml,
 } from '../src/preset-prompt.js';
 
-const PRESET_PATH = new URL('../dsh/agent-presets/qq-chat-v2/agent.cordis.yml', import.meta.url);
+const PRESET_PATH = new URL('../dsh/agent-presets/qq-chat/agent.cordis.yml', import.meta.url);
 const source = fs.readFileSync(PRESET_PATH, 'utf8');
 const originalPrefix = extractPresetPrefix(source);
 
 // 回归：内置预设必须满足**它自己那一代**的硬性不变量。
 //
 // 背景：保存/还原的校验曾经对两代预设用同一份清单（那份清单是照二代写的），
-// 结果一代预设（qq-chat）在控制台里 100% 存不进去、也还原不了 ——
+// 结果旧版预设（qq-chat-legacy）在控制台里 100% 存不进去、也还原不了 ——
 // 报错还说它「缺少安全不变量」，而它从来就没打算有那些工具面表述。
 // 这条测试同时钉住两件事：① 每代预设都能通过自己的清单；② 清单本身没写错字。
 test('每代内置预设都满足自己那一代的安全不变量', () => {
-  for (const [name, gen] of [['qq-chat', 'v1'], ['qq-chat-v2', 'v2']]) {
+  for (const [name, gen] of [['qq-chat-legacy', 'v1'], ['qq-chat', 'v2']]) {
     const presetUrl = new URL(`../dsh/agent-presets/${name}/agent.cordis.yml`, import.meta.url);
     if (!fs.existsSync(presetUrl)) {
-      // 公开仓库只带二代预设；但**二代缺失**必须报错，否则这条用例会静默跳过。
-      assert.notEqual(name, 'qq-chat-v2', '二代预设必须存在（公开仓库唯一内置预设）');
+      // 公开仓库只带群聊仿真预设；但**它缺失**必须报错，否则这条用例会静默跳过。
+      assert.notEqual(name, 'qq-chat', '群聊仿真预设必须存在（公开仓库唯一内置预设）');
       continue;
     }
     const text = fs.readFileSync(presetUrl, 'utf8');

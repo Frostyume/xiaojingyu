@@ -30,9 +30,9 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PRESETS_DIR = path.join(ROOT, 'dsh', 'agent-presets');
 
 /** 仿真模式使用的 preset（不允许有任何本地执行能力）；只看磁盘上真实存在的源目录。 */
-const SIMULATION_PRESETS = ['qq-chat', 'qq-chat-v2'].filter((id) => fs.existsSync(path.join(PRESETS_DIR, id)));
-// 二代预设必须被真正检查；缺失时上面的过滤会得到空集，用例全部空转通过。
-assert.ok(SIMULATION_PRESETS.includes('qq-chat-v2'), '二代预设必须存在（公开仓库唯一内置预设）');
+const SIMULATION_PRESETS = ['qq-chat-legacy', 'qq-chat'].filter((id) => fs.existsSync(path.join(PRESETS_DIR, id)));
+// 群聊仿真预设必须被真正检查；缺失时上面的过滤会得到空集，用例全部空转通过。
+assert.ok(SIMULATION_PRESETS.includes('qq-chat'), '群聊仿真预设必须存在（公开仓库唯一内置预设）');
 
 /** 封闭 agent 的 preset：按设计**允许**完整本地工具面。 */
 const CLOSED_AGENT_PRESETS = ['qsh-closed'];
@@ -126,7 +126,7 @@ test('模拟会话的 preset 都挂了工具守卫（否则 L7 没有任何载�
     );
     // 源文件里仍是 preset 目录内的相对名；DSH 0.1.7 下真正装进 DSH 的是 bundle patch
     // （scripts/build-agent-preset-patches.mjs 生成），那里会把它改写成从 profile 目录
-    // 可解析的 `qq-agent-presets/qq-tool-restrict.mjs`——这条断言钉的是"源里必须有守卫行"，
+    // 可解析的 `agent-presets/qq-tool-restrict.mjs`——这条断言钉的是"源里必须有守卫行"，
     // 改写结果由 test-agent-preset-patches.mjs 钉住。
     assert.match(yml, /\.\/qq-tool-restrict\.mjs/, `${id} 的守卫要指向本目录的 .mjs`);
   }

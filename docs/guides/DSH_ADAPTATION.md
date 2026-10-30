@@ -32,10 +32,10 @@
 | # | 文件 | 改动 | 对治的问题 |
 | --- | --- | --- | --- |
 | 1 | `src/dsh-client.js` | 新增 `inboxItemsOfProjections` / `inboxItemIds` / `controlBaselineInboxItems`；`_readSessionQueue` 改为「`session/projections` 主路径 + `session/control` 回退」；`METHOD_ARG_WRAPPERS` 增加 `session/projections` | §2 队列读不出来 |
-| 2 | `plugins/qq-agent-presets/qq-tool-restrict.mjs` | restrict 名单 **52 → 67**，补 15 个名字 | §3 工具面漂移 |
+| 2 | `plugins/agent-presets/qq-tool-restrict.mjs` | restrict 名单 **52 → 67**，补 15 个名字 | §3 工具面漂移 |
 | 3 | `scripts/dsh-tool-names.mjs`（新增） | 工具名抽取的**唯一实现**（原测试里那份模糊抽取器误报真名） | §3 对账工具 |
 | 4 | `scripts/scan-dsh-tool-names.mjs`（新增） | 拿安装包与守卫名单双向求差的 CLI（`npm run scan:tool-names`） | §3 对账工具 |
-| 5 | `plugins/qq-mode-console/lib/index.js` | 删掉 0.2.0 已移除的 `ctx.settings.register()` 死路，`apply()` 改为显式空实现 | §4 设置命名空间 |
+| 5 | `plugins/mode-console/lib/index.js` | 删掉 0.2.0 已移除的 `ctx.settings.register()` 死路，`apply()` 改为显式空实现 | §4 设置命名空间 |
 | 6 | `scripts/test-qq-mode-plugin.mjs` | 重写为 6 项，钉住命名空间可用的三点前提 + 「不许把已删除的 API 加回来」 | §4 |
 | 7 | `scripts/probe-auth.mjs`（新增）+ 5 个探针 + 4 个运维脚本 | 鉴权统一走离线铸造 Cookie；夹具改到系统临时目录 | §5 遗留缺口 |
 | 8 | `scripts/probe-020-protocol.mjs`、`probe-020-settings.mjs`（新增） | 0.2.0 契约探针（帧结构 / settings 命名空间） | §2 §4 取证 |
@@ -232,7 +232,7 @@ schema 接受全部 mode 拼写、**不再出现 `settings.register`**（只看�
 ### 6.1 版本身份 0.1.7 → 0.2.0
 
 沿用项目约定（版本号与 DSH 对齐）。改动点：`package.json`、`package-lock.json`（顶层 + `packages[""]`）、
-`plugins/qq-mode-console/package.json`、`plugins/qq-agent-presets/package.json`、三个 MCP server 的
+`plugins/mode-console/package.json`、`plugins/agent-presets/package.json`、三个 MCP server 的
 `serverInfo.version`。全部由 `verify:adaptation` 的既有断言钉住（防止再次出现"自报版本与包版本不一致"）。
 
 ### 6.2 验证脚本改名与重写
@@ -284,7 +284,7 @@ HTTP transport 下起作用，而三个 MCP server 全是 stdio。清掉是为�
   **代价（沙箱里写不了 state/）已被接受**，项目的规矩随之明确：沙箱里跑的东西一律不写 `state/`（§5 已落实）。
 - ⛔ 因此**绝不能**用 `/inheritance:e` 去"修好" `state/`：实测确认恢复继承会把父目录的
   `Authenticated Users: Modify` 与 `BUILTIN\Users: ReadAndExecute` 一起带回来，等于把凭据重新开放。
-- 顺带发现 `plugins/qq-agent-presets/**` 与 `plugins/qq-mode-console/**` 的内容也被切断了继承，
+- 顺带发现 `plugins/agent-presets/**` 与 `plugins/mode-console/**` 的内容也被切断了继承，
   而**本仓库没有任何脚本这么做**（全历史 `-S` 搜索 + 已安装插件扫描都没有），来源不明。
   这两处不含凭据，是否恢复由使用者决定。
 
@@ -303,8 +303,8 @@ HTTP transport 下起作用，而三个 MCP server 全是 stdio。清掉是为�
 | **三个 MCP server** | DSH 客户端已升级到官方 SDK **v2**，而 server 用的是 v1.30.0：实测五个协议修订版本两侧完全一致，`server/discover` 探测失败会**干净回落**到 2025 握手；`toolCallTimeoutMs` / `serverName` / `mcp__<server>__<tool>` 命名规则 / `serverInfo` 形状均未变；MCP 输入 schema **原样透传**（harness 的 JSON Schema 子集只约束 output schema，因此 ~20 处 `z.union` 产生的 `anyOf` 不受影响）。活链路实测：`mcp__snowluma__qq_status` 返回真实账号信息，三个 server 共 **38** 个工具 |
 | **模型目录** | `deepseek-flash` 仍在（新增 `deepseek-v4-pro`），思考档位 `off/low/high/max`。控制台把 `off` 过滤掉是**有意的产品决策**（QQ 聊天助手依赖思考），与内置白名单自洽，未改；实测 `/api/dsh/model` 返回 `options:["low","high","max"]` 且 `labels` 里带 `off`，说明动态读取链路在 0.2.0 正常 |
 | **`settings/update` 参数形状** | 是平铺多参数（见 §4.2），桥接原本就对 |
-| **preset / bundle 机制** | `@deepseek-ai/dsh-agent-preset` 行 + `plugins/qq-agent-presets` bundle patch 仍有效；两个 preset 的 persona schema 仍通过；`id: qq-mode` 行 + 导出的 `Config` 仍能让命名空间可读写（§4.2） |
-| **`session/create` + preset** | 活 DSH 实测：挂 `qq-chat-v2` 成功，`agentPresets/list` 含 `qq-chat` 与 `qq-chat-v2` |
+| **preset / bundle 机制** | `@deepseek-ai/dsh-agent-preset` 行 + `plugins/agent-presets` bundle patch 仍有效；preset 的 persona schema 仍通过；`id: qq-mode` 行 + 导出的 `Config` 仍能让命名空间可读写（§4.2） |
+| **`session/create` + preset** | 活 DSH 实测：挂 `qq-chat` 成功，`agentPresets/list` 含 `qq-chat` |
 | **`session/modelCatalog`** | 仍可用，返回 `default` / `routableProviders` / `groups` / `failures`，桥接的思考强度下拉依赖它 |
 
 ---
@@ -336,7 +336,7 @@ HTTP transport 下起作用，而三个 MCP server 全是 stdio。清掉是为�
 | 时刻 | 发生的事 |
 | --- | --- |
 | 22:07:45 | 入站：`@小鲸鱼`（owner）→ 进未读队列 |
-| 22:07:54 | 桥接**新建 DSH 会话**、挂上 `qq-chat-v2` preset、模型固定 `deepseek-official/deepseek-flash (max)` |
+| 22:07:54 | 桥接**新建 DSH 会话**、挂上 `qq-chat` preset、模型固定 `deepseek-official/deepseek-flash (max)` |
 | 22:07:56 | agent 调 `qq_get_prompt` → 拿到会话令牌与人设 ✅ |
 | 22:08:02 | agent 调 `qq_send_message` → **成功 2/2 条** |
 | 22:08:15 | 入站：`没事` |
@@ -474,7 +474,7 @@ SnowLuma 同一账号的 **HTTP token（3000）与 WS token（3001）不同**，
 | `bot_status` 真的出现了 | 1.14.9：**0** 次；1.14.20：**3** 次（带 `sub_type`/`user_id`） |
 | 桥接连通 | 走完「首次 1006 → 自愈 WS token → 已连接」；`/api/status.snowluma` 给出 `good:true`、**`goodSource:"heartbeat"`** |
 | 收到 QQ 消息 | `lastPacketKind: message/group`；静默态下正确「仅入库不唤醒」 |
-| **完整往返** | 唤醒 → DSH 建会话并挂 `qq-chat-v2` → 工具发送 `成功 1/1 条` → 群里实际出现两条回复 |
+| **完整往返** | 唤醒 → DSH 建会话并挂 `qq-chat` → 工具发送 `成功 1/1 条` → 群里实际出现两条回复 |
 
 > ⚠️ **更正**：本附录 A 一度暗示「升级 SnowLuma 可能修注入（1.14.17 刷新过原生组件）」。
 > 字节级证据表明**原生组件根本没有变**，那条推断是错的。升级只换 JS 层

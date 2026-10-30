@@ -6,11 +6,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let failures = 0;
-for (const preset of ['qq-chat', 'qq-chat-v2']) {
+for (const preset of ['qq-chat']) {
   const guardPath = path.join(root, 'dsh/agent-presets', preset, 'qq-tool-restrict.mjs');
   if (!fs.existsSync(guardPath)) {
-    // 公开仓库只带二代预设；二代守卫缺失必须失败，不能静默跳过。
-    assert.notEqual(preset, 'qq-chat-v2', '二代预设守卫必须存在');
+    // 公开仓库只带群聊仿真预设；它缺失必须失败，不能静默跳过。
+    assert.notEqual(preset, 'qq-chat', '群聊仿真预设守卫必须存在');
     continue;
   }
   const { apply } = await import(pathToFileURL(guardPath).href);

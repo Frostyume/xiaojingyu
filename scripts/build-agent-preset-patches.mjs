@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // build-agent-preset-patches.mjs — 把 dsh/agent-presets/<preset>/ 的 preset 源文件
-// 渲染成 DSH 0.1.7 的 bundle patch 文件（plugins/qq-agent-presets/presets/<preset>.patch.yml）。
+// 渲染成 DSH 0.1.7 的 bundle patch 文件（plugins/agent-presets/presets/<preset>.patch.yml）。
 //
 // 背景（为什么需要「生成」这一步）：
 //   0.1.5：preset = ~/.dsh/.agent-presets/<preset>/{preset.yml,agent.cordis.yml} 目录，DSH 扫目录。
@@ -8,7 +8,7 @@
 //          （@deepseek-ai/dsh-agent-preset），它的 config.plugins 必须是**内联的行列表**，
 //          只能由 bundle 的 patch 文件插入。于是同一份行列表必然存在两种表示：
 //            源（人写/控制台改）：dsh/agent-presets/<preset>/{preset.yml,agent.cordis.yml}
-//            装（DSH 读）：      plugins/qq-agent-presets/presets/<preset>.patch.yml
+//            装（DSH 读）：      plugins/agent-presets/presets/<preset>.patch.yml
 //          本脚本是两者之间**唯一**的转换器：源是唯一权威，产物是纯生成物（文件头写明「请勿手工编辑」）。
 //          setup-dsh.mjs 在安装时会重新生成；test-agent-preset-patches.mjs 用 --check 钉住不漂移。
 //
@@ -24,12 +24,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(__dirname, '..');
 
 /** 由桥接托管的 preset 名（顺序即 patch 层顺序）；只保留磁盘上真实存在源目录的那些。 */
-const PRESET_NAMES = ['qq-chat', 'qq-chat-v2'];
+const PRESET_NAMES = ['qq-chat-legacy', 'qq-chat'];
 export const PRESETS = PRESET_NAMES.filter((name) => fs.existsSync(path.join(REPO_ROOT, 'dsh', 'agent-presets', name)));
-// 二代预设是公开仓库唯一的内置预设；它缺失时 PRESETS 会变成空集，
+// 群聊仿真预设是公开仓库唯一的内置预设；它缺失时 PRESETS 会变成空集，
 // 下游的 --check 与形状断言会**空集通过**，等于静默放行。这里直接失败。
-if (!PRESETS.includes('qq-chat-v2')) {
-  throw new Error('缺少 dsh/agent-presets/qq-chat-v2：预设校验会退化为空集，拒绝继续');
+if (!PRESETS.includes('qq-chat')) {
+  throw new Error('缺少 dsh/agent-presets/qq-chat：预设校验会退化为空集，拒绝继续');
 }
 
 /** preset 行 id：与 config.id（桥接解析的 preset 名）区分开，方便在 profile patch 里按行定位。 */
@@ -46,14 +46,14 @@ export function presetRowId(name) {
  * `<bundle 包名>/<子路径>`：profile package.json 以 link: 依赖声明该包，
  * node_modules junction 由 setup-dsh.mjs 或 dev_heal_links 维护。
  */
-export const GUARD_SPECIFIER = 'qq-agent-presets/qq-tool-restrict.mjs';
+export const GUARD_SPECIFIER = 'agent-presets/qq-tool-restrict.mjs';
 
 /** 源里允许出现的相对行名 → 新机制下的等价引用。其它相对名一律报错（避免静默装不上）。 */
 const RELATIVE_ROW_REWRITES = new Map([
   ['./qq-tool-restrict.mjs', GUARD_SPECIFIER],
 ]);
 
-export const BUNDLE_DIR = path.join(REPO_ROOT, 'plugins', 'qq-agent-presets');
+export const BUNDLE_DIR = path.join(REPO_ROOT, 'plugins', 'agent-presets');
 export function patchFileFor(name) {
   return path.join(BUNDLE_DIR, 'presets', `${name}.patch.yml`);
 }

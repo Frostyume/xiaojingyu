@@ -1,6 +1,6 @@
 // QQ 桥接安全硬边界：只允许 QQ MCP 工具与少量无害模型侧工具。
 //
-// 本文件是 qq-agent-presets bundle 里的**唯一权威实现**，由 qq-chat / qq-chat-v2 两个
+// 本文件是 agent-presets bundle 里的**唯一权威实现**，由 qq-chat（以及可选的 qq-chat-legacy）
 // agent preset 的 qq-tool-restrict 行共同引用（dsh/agent-presets/<preset>/qq-tool-restrict.mjs
 // 只是个 re-export 壳，避免出现两份会漂移的实现）。
 //
@@ -66,7 +66,7 @@ export const inject = ['tools']
  *   dsh-mode-boost（已装插件，当前未进 bundles）→ dev_mode_set / _status / _subagent
  *                                        （dev_mode_subagent 会派生 agent）
  *
- * ⚠️ 硬证据：2026-08-29 的一次 **qq-chat-v2 仿真会话**记录下来的工具清单里，
+ * ⚠️ 硬证据：2026-08-29 的一次 **qq-chat 仿真会话**记录下来的工具清单里，
  * 除了 MCP 工具就只有 `ask_user_question`、`todo_write`、`dev_mode_*`、
  * `dsh_rollback`、`dsh_snapshot`、`incident_resolved`。也就是说
  * **`dsh_snapshot`/`dsh_rollback` 真的进过仿真会话的 schema**——本名单初版漏了它们。

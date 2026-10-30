@@ -69,7 +69,7 @@ const tests = [
   //    这是唯一挡住"绕过桥接直连 OneBot HTTP"的东西（见 QSH_PLAN.md §0.1/§5.2），
   //    所以必须在每次回归里跑，而不是一次性验收。
   'test-preset-local-tools.mjs',
-  // qq-mode-console 的 settings 契约：0.2.0 删除了 ctx.settings.register()，
+  // mode-console 的 settings 契约：0.2.0 删除了 ctx.settings.register()，
   // 命名空间改为由 loader entry id + 导出的 Config 推导。断言三点前提都在，
   // 并且那条已删除的 API 不会被照旧注释加回来。
   'test-qq-mode-plugin.mjs',

@@ -1,4 +1,4 @@
-// qq-mode-console 插件的登记期静态检验。
+// mode-console 插件的登记期静态检验。
 //
 // 钉住的东西（这些是 `qq-mode` 命名空间**可读写**的全部前提，缺一即失败）：
 //   ① entry id 恰好等于命名空间名（在 cordis.patch.yml 里，不是插件模块里）；
@@ -21,7 +21,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const PLUGIN_DIR = path.join(ROOT, 'plugins', 'qq-mode-console');
+const PLUGIN_DIR = path.join(ROOT, 'plugins', 'mode-console');
 const NS = 'qq-mode';
 
 const mod = await import(pathToFileURL(path.join(PLUGIN_DIR, 'lib', 'index.js')).href);
@@ -29,18 +29,18 @@ const patchText = fs.readFileSync(path.join(PLUGIN_DIR, 'cordis.patch.yml'), 'ut
 const source = fs.readFileSync(path.join(PLUGIN_DIR, 'lib', 'index.js'), 'utf8');
 
 test('插件导出 name / inject / Config / apply', () => {
-  assert.equal(mod.name, 'qq-mode-console');
+  assert.equal(mod.name, 'mode-console');
   assert.deepEqual(mod.inject, ['settings'], 'inject 必须声明 settings，命名空间才随 settings seam 就绪');
   assert.ok(mod.Config, '必须导出 Config —— 0.2.0 里这就是命名空间的 schema 来源');
   assert.equal(typeof mod.apply, 'function');
 });
 
 test('cordis.patch.yml 的 entry id 恰好等于命名空间名', () => {
-  // ① 是三点契约里最容易写错的一条：id 写成插件包名（qq-mode-console）会让
+  // ① 是三点契约里最容易写错的一条：id 写成插件包名（mode-console）会让
   //    settings 定位失败并抛 No configurable plugin entry "qq-mode"。
   const ids = [...patchText.matchAll(/^\s*-\s*id:\s*(\S+)\s*$/gm)].map((m) => m[1]);
   assert.ok(ids.includes(NS), `patch 里应有 id: ${NS}，实际 ${ids.join(', ')}`);
-  assert.ok(!ids.includes('qq-mode-console'), 'entry id 不应是插件包名');
+  assert.ok(!ids.includes('mode-console'), 'entry id 不应是插件包名');
 });
 
 test('Config 是可用的 schemastery schema，且带 volatile 字段', () => {
