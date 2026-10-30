@@ -253,7 +253,7 @@ npm run self-test
 ```
 qq-bridge/
   config.example.json   # 配置模板（脱敏占位符；真实 config.json 不入库）
-  README.md / README.en.md / RULES.md / SECURITY.md   # 根目录只留这四个文档，其余全在 docs/
+  README.md / README.en.md / RULES.md / SECURITY.md / UPSTREAM.md   # 根目录只留这五个文档，其余全在 docs/
   docs/
     README.md           # 文档索引（每篇一句话 + 是否仍然有效）
     FOLDER_MAP.md       # 目录结构与 scripts/ 命名约定
