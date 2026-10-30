@@ -1,6 +1,6 @@
 # 仓库目录地图（FOLDER_MAP）
 
-> 一句话说明每个顶层目录干什么、`scripts/` 里的命名约定是什么、哪些脚本像是过期的一次性产物。
+> 一句话说明每个顶层目录干什么、`scripts/` 里的命名约定是什么。
 > 本文**只描述现状**，不构成改动指令。文档索引见 [README.md](README.md)。
 >
 > 最后核对：2026-10-30（v0.2.0 / DSH 0.2.0-rc.2 适配）。新增目录/脚本时请顺手补一行。
@@ -22,12 +22,12 @@ DSH/                         ← 工作区根（不是仓库根）
 | `src/` | **桥接内核**：主程序、DSH 客户端、三个 MCP server、黑话/表情/语音共享库 | 不能动。`bridge.js` 是主程序（约 1.4 万行，QSH 计划拆分）；`voice-core.js` 与 `snowluma-conn.js` 是**独立工具也在用的单一实现**。**`src/` 根目录只应有 `.js`**：曾经的 `bridge.js.bak-*` 会污染全局搜索并看起来像 module，2026-09-20 已移出（见下） |
 | `src/core/` | **可靠性与共享内核**（2026-10-25 Stage 1–4）：`db.js`（SQLite 适配+迁移）、`outbox.js`、`jobs.js`、`inbox.js`、`config-schema.js`、`logger.js`、`health.js`（doctor helpers）、`prompt-budget.js`、`wake-score.js`、`model-routing.js`、`memory.js`、`session-map.js`、`relationships.js` + `relationship-model.js`（galgame 关系 v2）、`persona-pack.js`、`rich-card.js`、`daily-report.js`、`signature.js`、`speech.js`、`tts-emotion.js`、`event-bus.js`、`feature-loader.js`、`transport.js`、`budget.js`、`session-router.mjs` | 业务模块不要直接 import `node:sqlite`；换驱动只改 `db.js` |
 | `src/features/` | **可插拔功能**：每个子目录一个 `index.js` manifest（id/name/permissions/hooks/setup）。当前 `daily-report`、`rich-cards`；禁用用 `features.disabled` | 新功能优先放这里；不要直接改 bridge 主流程 |
-| `scripts/` | 调试 / 测试 / 一次性运维脚本（见第二节命名约定） | 测试脚本不能删；`cleanup-*` / `fix-*` / `patch-*` / `diag-*` 多为历史遗留 |
+| `scripts/` | 测试 / 运维脚本（见第二节命名约定） | 测试脚本不能删；`patch-snowluma-sdk.mjs` 是 postinstall 依赖 |
 | `dsh/` | 要装进 DSH 的东西：`agent-presets/qq-chat-v2`（preset 的**权威源**，含工具白名单 `qq-tool-restrict.mjs` 的 re-export 壳）。DSH 0.1.7 起 preset 以 bundle patch 形式安装，patch 由 `scripts/build-agent-preset-patches.mjs` 从这里的源生成到 `plugins/qq-agent-presets/presets/` | 改 preset 会影响所有人设行为；改完必须重新生成 patch。**一代 `qq-chat/` 不随仓库发布**，桥接仍支持它（自备即可） |
 | `plugins/` | DSH 插件：`qq-mode-console`（暴露 `qq-mode` 设置命名空间；**只有 host 半**，浏览器 UI 卡片未实现）、`qq-agent-presets`（生成 `qq-chat-v2` preset 行 + 携带唯一的 `qq-tool-restrict` 权威实现） | 改了要重装/重启 DSH |
-| `public/` | 浏览器静态资源：`console.html`（桥接自带控制台，127.0.0.1:3100） | 目录里只应有这一个文件；历史备份 `console.html.bak` 已移出仓库 |
+| `public/` | 浏览器静态资源：`console.html`（控制台，127.0.0.1:3100）、`live.html`（实时状态页）、`assets/`（鲸鱼像素图） | 只放静态资源；历史备份 `console.html.bak` 已移出仓库 |
 | `roles/` | 人格卡（当前 `小鲸鱼.md`；每个角色一个文件，另有 `README.md` 说明）：控制台「人格与角色」页可编辑，保存即生效 | 用户内容，别乱动 |
-| `assets/` | 仓库用图片等资源（`deepseek娘.png`；`project-intro.mp4` 已改为 Release 附件、不入库） | 别加体积大的二进制 |
+| `assets/` | 仓库用资源：`deepseek娘.png`、`voice/`（两条示例语音 `proc-*.ogg`；`project-intro.mp4` 已改为 Release 附件、不入库） | 别加体积大的二进制 |
 | `audio/` | **语音库**（用户的真实音频）。桥接的 AI 语音工具只能发这里的文件；独立 `voice-tool` 默认也指向这里 | **用户文件，绝不删除/移动** |
 | `state/` | **运行时数据**（会话映射、模式、角色、黑话库、日志、锁、令牌）。`.gitignore` 排除 | **用户数据，绝不删除/移动** |
 | `docs/` | 全部文档，按用途分子目录（见第三节） | 见第三节 |
@@ -38,7 +38,7 @@ DSH/                         ← 工作区根（不是仓库根）
 
 ## 二、`scripts/` 命名约定
 
-脚本共 87 个文件（83 个 `.mjs` + 4 个 JSON 基线，另有 `fixtures/` 目录）。按前缀区分用途：
+脚本共 132 个文件（127 个 `.mjs` + 4 个 JSON 基线 + `fixtures/` 目录下的 1 个 HTML 基线）。按前缀区分用途：
 
 | 前缀 / 形态 | 含义 | 归宿 |
 | --- | --- | --- |
@@ -62,10 +62,7 @@ DSH/                         ← 工作区根（不是仓库根）
 | `diagnose-acl.mjs` | 只读盘点：列出仓库里所有被**切断 ACL 继承**的路径，分「有意收紧（`state/`、`config.json`）」与「非预期收紧」两类，并对后者打印恢复继承的命令。背景见 [guides/SECURITY_BASELINE.md](guides/SECURITY_BASELINE.md) §2.6：DSH 沙箱的写权限只靠继承下发能力 SID，切断继承 ⇒ 沙箱里写不进去。**必须在无沙箱终端跑**（沙箱禁止以管道 stdio 拉起 icacls） | 保留（`npm run diagnose:acl`） |
 | `dsh-modules.mjs` | 小工具：按路径加载 DSH 安装内的模块 | 保留 |
 | `check-onebot-status.mjs` | 手工排查：查 OneBot 连通性 | 保留（运维常用） |
-| `patch-*.mjs` | **补丁**（含 `postinstall` 的 `patch-snowluma-sdk.mjs`：修 `@snowluma/sdk` 的 ESM 打包 bug） | `patch-snowluma-sdk.mjs` **必须保留**（postinstall 依赖）；其余见第四节 |
-| `cleanup-*.mjs` | **清理一次性残留**（probe 会话/工作区、测试会话） | 见第四节 |
-| `fix-*.mjs` | **一次性修复**（针对某次运行产生的脏数据） | 见第四节 |
-| `diag-*.mjs` | **诊断**（如归档并清理日志） | 见第四节 |
+| `patch-*.mjs` | **补丁**（`postinstall` 的 `patch-snowluma-sdk.mjs`：修 `@snowluma/sdk` 的 ESM 打包 bug） | `patch-snowluma-sdk.mjs` **必须保留**（postinstall 依赖） |
 | `debug-*.mjs` | **调试**（如白名单逻辑对照） | 见第四节 |
 | `CONSOLE-UI-TESTING.md` | 已移到 [guides/CONSOLE-UI-TESTING.md](guides/CONSOLE-UI-TESTING.md) | — |
 
@@ -80,48 +77,28 @@ docs/
 └── guides/       # 面向使用者/运维：DSH_SETUP / DSH_020_ADAPTATION / SECURITY_BASELINE / RELIABILITY / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING / PRIVACY
 ```
 
-> ⚠️ **哪些文档会进公开仓库**：`.gitignore` 把 `docs/audits/`、`docs/design/`、`docs/legacy/`、
-> `docs/research/` 以及 `docs/guides/PROJECT_GUIDE.md`、`docs/guides/VOICE.md` **整体排除**了
-> （这批文档里扫出过多份含本机真实路径与真实账号的内容）。
-> 也就是说：**只有 `docs/README.md`、`docs/FOLDER_MAP.md` 与 `docs/guides/` 下的其余几篇会出现在 GitHub 上**。
-> 同理，内部编排/交接文档（`docs/orchestration/`）也不在仓库里，`scripts/handoff.mjs` 只适用于私有开发副本。
-> **要公开的新文档请放 `docs/guides/`**；放进被排除的目录 = 只在本机可见，`git add` 会直接被 .gitignore 挡下。
+> ⚠️ **哪些文档会进公开仓库**：本仓库只发布 `docs/README.md`、`docs/FOLDER_MAP.md` 与 `docs/guides/` 下的文档。
+> 设计规划、审计/优化报告、调研记录、历史归档、项目总说明书（PROJECT_GUIDE）、语音工具说明（VOICE）
+> 以及内部编排/交接文档都**不随仓库发布**（它们含本机路径与真实账号，只在私有开发副本保留）。
+> **要公开的新文档请放 `docs/guides/`。**
 
 规则：**根目录只留 `README.md` / `README.en.md` / `RULES.md` / `SECURITY.md` / `UPSTREAM.md` 五个文档**，其余一律进 `docs/` 对应子目录，
 并在 [README.md](README.md) 索引里登记一行。
 
 ---
 
-## 四、疑似过期的一次性脚本（未删除，待确认）
+## 四、`scripts/` 里哪些不能当"过期脚本"清掉
 
-> 判断依据：`.gitignore` 已把它们列为「Local one-off dev/debug/patch scripts（machine-specific paths/IDs,
-> or bound to artifacts of a single probe run under `state/`）」——也就是说作者当初就认为**它们不该进公开仓库**；
-> 加上脚本内容绑定某一次运行留下的 `state/` 残留。**本次整理没有移动或删除任何脚本**，仅列出待人工确认。
-
-| 脚本 | 像是过期的理由 |
-| --- | --- |
-| `scripts/cleanup-probe-sessions.mjs` | 清理某次 probe 在 DSH 里建的会话；probe 产物已不在（`state/` 下 `self-test*` 目录仍有余留），脚本本身是一次性的 |
-| `scripts/cleanup-probe-workspaces.mjs` | 同上，清理 probe 建的工作区 |
-| `scripts/cleanup-test-sessions.mjs` | 同上，清理自测会话 |
-| `scripts/fix-probe-workspace-title.mjs` | 修某次 probe 工作区标题的脏数据；一次性 |
-| `scripts/diag-archive.mjs` | 诊断 + 归档日志；日志归档已手动完成，属一次性运维 |
-| `scripts/debug-whitelist.mjs` | 白名单逻辑对照调试；与 `test-audit-*` 的白名单用例重复 |
-| `scripts/patch-qq-chat-v2-presleep.mjs` | 给 `qq-chat-v2` preset **打一次补丁**；目标内容现已直接在 `dsh/agent-presets/qq-chat-v2/agent.cordis.yml` 里，重跑会重复插入 |
-| `scripts/patch-qq-chat-v2-stickers.mjs` | 同上（表情包小节） |
-| `scripts/patch-qq-chat-v2-collect-memory.mjs` | 同上（收藏 + 记忆小节） |
-| `scripts/patch-web-mcp-timeout.mjs` | 给 DSH 的 web MCP 配置打超时补丁；属对**外部 DSH 安装**的一次性改动，重启/升级 DSH 后语义就变了 |
-| `scripts/probe-015.mjs` | **v0.2.0 已删除**：针对 DSH **0.1.5** 的探针，结论早已被 verifier 取代，且它走的是 0.1.5 的点号协议路径。同一用途改由 `scripts/probe-020-protocol.mjs`（`npm run probe:protocol`）承担 | 已删除 |
-| `scripts/probe-rpc-compat.mjs` / `probe-models.mjs` / `probe-workspace.mjs` / `probe-events.mjs` / `probe-tools.mjs` | 协议/能力探针：问完「DSH 现在长什么样」用处就小了。**v0.2.0 已修好**：它们的鉴权过去各自复制「从 guard 日志抓 launch token」，那条路在 DSH 0.1.7 起就死了（一律 401），现统一走 `probe-auth.mjs` 的离线铸造 Cookie；工作区也改到系统临时目录（`state/` 的 ACL 被收紧，沙箱里写不进去）。挂在 `npm run probe:*` 上，按需重跑 | 保留 |
-| `scripts/test-onebot-connection.mjs` / `test-mcp-*.mjs`（`test-mcp-exec` / `-host` / `-safe` / `-web-search`） | **不在** `test-audit.mjs` 的清单里，属手工排查脚本而非回归套件；功能上被 `check-onebot-status.mjs` / `test-audit-security-mcp.mjs` 覆盖 |
-
-处理建议（**没有执行**，等确认）：确认无用后整批移到一个不影响 `npm run test:audit` 的位置
-（例如 `scripts/legacy/`），或直接删除——它们都不在 `package.json` 脚本里，也没有被 `test-audit.mjs` 引用，
-移动不会影响任何自动化回归。反过来，**下面这些千万别当"过期脚本"清掉**：
+以下几类被自动化流程直接依赖，清理前必须先查引用：
 
 - `scripts/patch-snowluma-sdk.mjs`（`postinstall` 依赖，删了 `npm install` 就坏）
 - `scripts/test-audit.mjs` 清单里的每一个（完整清单见该文件 `tests[]` 数组）
 - `scripts/console-ui-*.json` / `console-ui-fixture.mjs` / `fixtures/`（控制台回归基线）
 - `scripts/audit-bridge-harness.mjs`、`scripts/dsh-modules.mjs`（被测试/工具引用）
+
+> 私有开发副本里的一次性工具（`cleanup-*`、`fix-*`、`diag-*`、`patch-qq-chat-v2-*`、
+> `patch-web-mcp-timeout`、`probe-015`、表情/图片库打标脚本等）依赖本机 `state/` 产物，
+> **不随本仓库发布**，仓库里看不到它们是正常的。
 
 ---
 

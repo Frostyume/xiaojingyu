@@ -253,18 +253,23 @@ npm run self-test
 ```
 qq-bridge/
   config.example.json   # 配置模板（脱敏占位符；真实 config.json 不入库）
+  config.schema.json    # 由 config.example.json 生成的结构清单（verify 会 --check）
   README.md / README.en.md / RULES.md / SECURITY.md / UPSTREAM.md   # 根目录只留这五个文档，其余全在 docs/
   docs/
     README.md           # 文档索引（每篇一句话 + 是否仍然有效）
     FOLDER_MAP.md       # 目录结构与 scripts/ 命名约定
-    guides/             # 面向使用者/运维：PROJECT_GUIDE / DSH_SETUP / VOICE / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING
-    design/             # 设计与规划：GEN2_SIMULATION_PLAN / SOCIAL_MODE_PLAN / DSH_QQ_TOOLS_PLAN / 真人语感策略
-    research/           # 调研：SnowLuma功能调研 / QQ消息免打扰 / 表情包能力 / 本地模型选型
-    audits/             # 审查与优化报告（体检、控制台、token）
-    legacy/             # 历史归档（已被取代或问题已全部修复的旧报告）
-  audio/                # 语音库：把准备好的音频放这里，可作 QQ 语音发出（用法见 docs/README.md 文档索引）
-  dsh/agent-presets/    # qq-chat / qq-chat-v2 的 DSH agent preset 模板
-  plugins/qq-mode-console  # DSH 插件：注册 qq-mode 设置命名空间（仅 host 半，UI 卡片未实现）
+    guides/             # 面向使用者/运维：DSH_SETUP / DSH_020_ADAPTATION / SECURITY_BASELINE / RELIABILITY / CONSOLE-UI-TESTING / TOKEN_USAGE_CONSOLE / PRIVACY
+  dsh/agent-presets/qq-chat-v2/  # 二代的 DSH agent preset 模板（本仓库只带 v2）
+  plugins/qq-agent-presets       # DSH bundle：生成 qq-chat-v2 的 preset patch + 共享工具守卫
+  plugins/qq-mode-console        # DSH 插件：注册 qq-mode 设置命名空间（仅 host 半，UI 卡片未实现）
+  public/
+    console.html        # 本地 Web 控制台
+    live.html           # 实时状态页
+    assets/             # 实时页的鲸鱼像素图
+  roles/                # 人格卡（小鲸鱼）与 roles/README.md
+  assets/
+    deepseek娘.png      # 仓库插图
+    voice/              # proc-happy.ogg / proc-dark.ogg：两条示例语音，复制到 audio/ 即可
   src/
     bridge.js           # 主程序
     dsh-client.js       # Node 版 DSH API 客户端（WS 下行）
@@ -272,6 +277,7 @@ qq-bridge/
     self-test.js        # DSH 侧自测
   scripts/              # 测试/运维脚本（含 postinstall 的 patch-snowluma-sdk.mjs）
     patch-snowluma-sdk.mjs  # 修补 SDK 的 ESM 打包 bug（postinstall 自动执行）
+  audio/                # 语音库：把准备好的音频放这里，可作 QQ 语音发出（不入库）
   state/                # 运行时数据（不入库）
 ```
 
