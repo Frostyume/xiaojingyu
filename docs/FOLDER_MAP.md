@@ -3,7 +3,7 @@
 > 一句话说明每个顶层目录干什么、`scripts/` 里的命名约定是什么、哪些脚本像是过期的一次性产物。
 > 本文**只描述现状**，不构成改动指令。文档索引见 [README.md](README.md)。
 >
-> 最后核对：2026-09-29（v0.2.0 / DSH 0.2.0-rc.2 适配）。新增目录/脚本时请顺手补一行。
+> 最后核对：2026-10-30（v0.2.0 / DSH 0.2.0-rc.2 适配）。新增目录/脚本时请顺手补一行。
 
 ---
 
@@ -12,9 +12,7 @@
 ```
 DSH/                         ← 工作区根（不是仓库根）
 ├── qq-bridge/               ← 本仓库（QQ ↔ DSH 桥接）
-├── voice-tool/              ← 独立「发语音」工具（从 qq-bridge 拆出；不依赖桥接运行）
-├── 发语音-图形界面.cmd      ← 工作区根的双击启动器 → 进 voice-tool/ 起图形界面
-└── 重启DSH-加载语音工具.cmd  ← 工作区根的运维启动器（重启 DSH 让 MCP 工具重新挂载）
+└── voice-tool/              ← 独立「发语音」工具（从 qq-bridge 拆出；**不在本仓库内**，需要时自行放置）
 ```
 
 `qq-bridge/` 内部：
@@ -25,8 +23,8 @@ DSH/                         ← 工作区根（不是仓库根）
 | `src/core/` | **可靠性与共享内核**（2026-10-25 Stage 1–4）：`db.js`（SQLite 适配+迁移）、`outbox.js`、`jobs.js`、`inbox.js`、`config-schema.js`、`logger.js`、`health.js`（doctor helpers）、`prompt-budget.js`、`wake-score.js`、`model-routing.js`、`memory.js`、`session-map.js`、`relationships.js` + `relationship-model.js`（galgame 关系 v2）、`persona-pack.js`、`rich-card.js`、`daily-report.js`、`signature.js`、`speech.js`、`tts-emotion.js`、`event-bus.js`、`feature-loader.js`、`transport.js`、`budget.js`、`session-router.mjs` | 业务模块不要直接 import `node:sqlite`；换驱动只改 `db.js` |
 | `src/features/` | **可插拔功能**：每个子目录一个 `index.js` manifest（id/name/permissions/hooks/setup）。当前 `daily-report`、`rich-cards`；禁用用 `features.disabled` | 新功能优先放这里；不要直接改 bridge 主流程 |
 | `scripts/` | 调试 / 测试 / 一次性运维脚本（见第二节命名约定） | 测试脚本不能删；`cleanup-*` / `fix-*` / `patch-*` / `diag-*` 多为历史遗留 |
-| `dsh/` | 要装进 DSH 的东西：`agent-presets/qq-chat`、`agent-presets/qq-chat-v2`（preset 的**权威源**，含工具白名单 `qq-tool-restrict.mjs` 的 re-export 壳）。DSH 0.1.7 起 preset 以 bundle patch 形式安装，patch 由 `scripts/build-agent-preset-patches.mjs` 从这里的源生成到 `plugins/qq-agent-presets/presets/` | 改 preset 会影响所有人设行为；改完必须重新生成 patch |
-| `plugins/` | DSH 插件：`qq-mode-console`（暴露 `qq-mode` 设置命名空间；**只有 host 半**，浏览器 UI 卡片未实现）、`qq-agent-presets`（生成两个 preset 行 + 携带唯一的 `qq-tool-restrict` 权威实现） | 改了要重装/重启 DSH |
+| `dsh/` | 要装进 DSH 的东西：`agent-presets/qq-chat-v2`（preset 的**权威源**，含工具白名单 `qq-tool-restrict.mjs` 的 re-export 壳）。DSH 0.1.7 起 preset 以 bundle patch 形式安装，patch 由 `scripts/build-agent-preset-patches.mjs` 从这里的源生成到 `plugins/qq-agent-presets/presets/` | 改 preset 会影响所有人设行为；改完必须重新生成 patch。**一代 `qq-chat/` 不随仓库发布**，桥接仍支持它（自备即可） |
+| `plugins/` | DSH 插件：`qq-mode-console`（暴露 `qq-mode` 设置命名空间；**只有 host 半**，浏览器 UI 卡片未实现）、`qq-agent-presets`（生成 `qq-chat-v2` preset 行 + 携带唯一的 `qq-tool-restrict` 权威实现） | 改了要重装/重启 DSH |
 | `public/` | 浏览器静态资源：`console.html`（桥接自带控制台，127.0.0.1:3100） | 目录里只应有这一个文件；历史备份 `console.html.bak` 已移出仓库 |
 | `roles/` | 人格卡（当前 `小鲸鱼.md`；每个角色一个文件，另有 `README.md` 说明）：控制台「人格与角色」页可编辑，保存即生效 | 用户内容，别乱动 |
 | `assets/` | 仓库用图片等资源（`deepseek娘.png`；`project-intro.mp4` 已改为 Release 附件、不入库） | 别加体积大的二进制 |
@@ -77,26 +75,20 @@ DSH/                         ← 工作区根（不是仓库根）
 
 ```
 docs/
-├── README.md     # 文档索引（每篇一句话 + 是否仍然有效）  ← 先看这个
+├── README.md     # 文档索引（只登记随仓库发布的文档）  ← 先看这个
 ├── FOLDER_MAP.md # 本文件
-├── guides/       # 面向使用者/运维：DSH_SETUP / DSH_020_ADAPTATION / SECURITY_BASELINE / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING / PRIVACY / PROJECT_GUIDE / VOICE
-├── design/       # 设计与规划：GEN2_SIMULATION_PLAN / SOCIAL_MODE_PLAN / DSH_QQ_TOOLS_PLAN / 真人语感策略
-├── research/     # 调研：SnowLuma功能调研 / 免打扰 / 表情包 / 本地模型选型
-├── audits/       # 审查与优化报告（最新的全项目体检是 AUDIT_REPORT_2026-09-20）
-└── legacy/       # 历史归档（已被取代 / 问题已全部修复的旧报告）
+└── guides/       # 面向使用者/运维：DSH_SETUP / DSH_020_ADAPTATION / SECURITY_BASELINE / RELIABILITY / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING / PRIVACY
 ```
 
-> ⚠️ **哪些文档真的会进公开仓库**：`.gitignore` 第 52–64 行把
-> `docs/audits/`、`docs/design/`、`docs/legacy/`、`docs/research/` 以及
-> `docs/guides/PROJECT_GUIDE.md`、`docs/guides/VOICE.md` **整体排除**了
-> （原因写在那里：这批文档里扫出过多份含本机真实路径的内容）。
-> 也就是说：**只有 `docs/README.md`、`docs/FOLDER_MAP.md` 与 `docs/guides/` 下的其余几篇会出现在 GitHub 上**，
-> 上面那份索引里指向 `audits/` `design/` `legacy/` `research/` 的链接**对公开读者是死链**，只在本机有效。
-> 因此：**要公开的新文档请放 `docs/guides/`**（新写的 `DSH_020_ADAPTATION.md` 就放这里）；
-> 放进那四个目录 = 只在本机可见，`git add` 会直接被 .gitignore 挡下。
+> ⚠️ **哪些文档会进公开仓库**：`.gitignore` 把 `docs/audits/`、`docs/design/`、`docs/legacy/`、
+> `docs/research/` 以及 `docs/guides/PROJECT_GUIDE.md`、`docs/guides/VOICE.md` **整体排除**了
+> （这批文档里扫出过多份含本机真实路径与真实账号的内容）。
+> 也就是说：**只有 `docs/README.md`、`docs/FOLDER_MAP.md` 与 `docs/guides/` 下的其余几篇会出现在 GitHub 上**。
+> 同理，内部编排/交接文档（`docs/orchestration/`）也不在仓库里，`scripts/handoff.mjs` 只适用于私有开发副本。
+> **要公开的新文档请放 `docs/guides/`**；放进被排除的目录 = 只在本机可见，`git add` 会直接被 .gitignore 挡下。
 
-规则：**根目录只留 `README.md` / `README.en.md` / `RULES.md` 三个文档**，其余一律进 `docs/` 对应子目录，
-并在 [README.md](README.md) 索引里登记一行（含「仍然有效 / 被谁取代」）。
+规则：**根目录只留 `README.md` / `README.en.md` / `RULES.md` / `SECURITY.md` 四个文档**，其余一律进 `docs/` 对应子目录，
+并在 [README.md](README.md) 索引里登记一行。
 
 ---
 

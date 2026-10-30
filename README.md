@@ -2,11 +2,11 @@
 
 **English**: [README.en.md](README.en.md) | **中文**: [README.md](README.md)
 
-> 🗂️ 文档索引（全部文档一句话说明 + 是否仍然有效）见 **[docs/README.md](docs/README.md)**；仓库目录/脚本命名约定见 **[docs/FOLDER_MAP.md](docs/FOLDER_MAP.md)**。
+> 🗂️ 文档索引见 **[docs/README.md](docs/README.md)**（只登记随仓库发布的文档；设计/审计/调研等内部文档不入库）；仓库目录/脚本命名约定见 **[docs/FOLDER_MAP.md](docs/FOLDER_MAP.md)**。
 >
 > 🔒 QQ 会话的权限边界与安全承诺见 **[RULES.md](RULES.md)**；发现安全问题请按 **[SECURITY.md](SECURITY.md)** 私密报告，不要开公开 issue。
 >
-> 🎤 独立的「发语音」工具已拆到仓库上一级的 **`../voice-tool/`**（命令行 `voice-cli.mjs` / 图形界面 `voice-gui.mjs`），不再依赖 qq-bridge 运行。
+> 🎤 「发语音」独立工具（`voice-tool/`）**不在本仓库内**：它复用本仓库的 `src/voice-core.js` / `src/snowluma-conn.js`，只依赖 SnowLuma，不随仓库发布。
 
 把 QQ 消息接入 DSH agent：QQ 好友/群发来的消息会变成 DSH 会话里的用户消息，agent 的回复（含提问、工具审批）会发回 QQ。
 
@@ -19,6 +19,7 @@
 > [`v0.1.0`](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.1.0)；**DSH 0.1.5-rc.1** 用
 > [`v0.1.5`](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.1.5)；**DSH 0.1.7-rc.2** 用
 > [`v0.1.7`](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.1.7)。
+> **这些 tag 都指向上游仓库**（[Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)）；本仓库目前是 `0.0.0` 开发快照，**不打 tag、不发 Release**。
 >
 > v0.2.0 修的主要是**会话待处理队列读不出来**：桥接退役/重置 QQ 会话时要先清掉 DSH 侧没跑的队列，
 > 而那段解析认的是一个**从来不存在的字段**（`session/control` baseline 的 `value.queues[<id>]`）——
@@ -274,17 +275,10 @@ qq-bridge/
   state/                # 运行时数据（不入库）
 ```
 
-> 🎤 **独立的「发语音」工具不在这里**：它是仓库上一级的 [`../voice-tool/`](../voice-tool/)（`voice-cli.mjs` /
-> `voice-gui.mjs` / `public/voice.html` / `发语音.cmd`）。图形界面双击上一级的「发语音-图形界面.cmd」。
-> 它只依赖 SnowLuma，共享内核仍由本仓库 `src/voice-core.js` / `src/snowluma-conn.js` 提供（单一实现）。
->
-> ```bash
-> cd ../voice-tool
-> node voice-cli.mjs status     # 账号/token 自动发现 + 连通性
-> node voice-cli.mjs list       # 可发的群聊/私聊 + 语音库
-> node voice-cli.mjs            # 交互菜单
-> node voice-gui.mjs            # 图形界面（本地小服务 + 浏览器 UI）
-> ```
+> 🎤 **「发语音」独立工具（`voice-tool/`）不随本仓库发布**：它是作者本地从 qq-bridge 拆出的姊妹目录
+> （命令行 `voice-cli.mjs` / 图形界面 `voice-gui.mjs` / `public/voice.html`），只依赖 SnowLuma，
+> 共享内核仍由本仓库的 `src/voice-core.js` / `src/snowluma-conn.js` 提供（单一实现）。
+> 仓库内的语音能力（`qq_speak`、`/api/socialV2/send-voice` 等）不依赖这个工具。
 
 ## SnowLuma 版本与上游健康（「连上了但收不到消息」）
 

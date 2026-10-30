@@ -15,6 +15,10 @@
 | `reserved`（一代仿真） | 暂同 chat | qq-chat | 仿真群友：观望/活跃/试探/退场状态机，选择性参与并主动收尾 |
 | `reserved2`（二代仿真，运行 `setup-dsh.mjs` 后默认） | 暂同 chat | qq-chat-v2 | 文本不自动转发，AI 通过工具自主看消息/发言/等待/设置唤醒与潜水 |
 
+> 📦 **本仓库只带二代预设 `qq-chat-v2`**。上表里的 `chat` / `reserved` 依赖一代 `qq-chat` preset，
+> 它**不随仓库发布**；没有它时桥接会按 fail-closed 拒绝建会话（QQ 上表现为「发消息没人回」，桥接日志会写明缺 preset）。
+> 想用这两个模式需自行按 [`dsh/agent-presets/qq-chat-v2/`](dsh/agent-presets/qq-chat-v2/) 的结构补一份，或直接用默认的 `reserved2`。
+
 > ⚠️ `closed-agent` 模式下 owner 私聊 agent 拥有**完整本地工具**（DSH 默认 preset，通常是 `standard`），
 > 这是有意为之（QQ 远程操控 DSH）。该模式只放行 owner 私聊，群友完全无法触达；
 > 切换回 `chat` 后，owner 私聊也回到 qq-chat 安全预设。
@@ -39,7 +43,7 @@
 3. **只读联网搜索**：`qq-chat` / `qq-chat-v2` 预设已关闭 DSH 内置 `tool-web` 的 `search` / `fetch`，联网统一走 `src/mcp-web-search-safe.js` 提供的 `mcp__web-search-safe__web_search/web_fetch`。不暴露本地文件、命令执行、写操作。
    - ✅ `mcp__web-search-safe__web_fetch` 已做 SSRF 加固：仅 http/https、禁止 localhost/私有 IP/链路本地/CGNAT/带凭据 URL、DNS 解析结果全量校验、每跳重定向重新校验、响应体限量读取。
 4. **发送强制白名单**：所有发送类工具（`qq_send_group_message` / `qq_send_private_message` / `qq_send_message` / `qq_send_burst` / `qq_reply` / `qq_send_poke` / `qq_send_sticker` / `qq_send_voice` 等）的目标必须命中 `config.json` 的 `allow.groups` / `allow.private`，否则拒绝执行。
-   - **语音额外收紧**：`qq_send_voice` 只能发**语音库**（`socialV2.voice.dir`，默认 `qq-bridge/audio/`）里的文件，不能发任意本地路径、URL 或 base64（防 prompt injection 拿本机文件当语音外发）；另有独立的时长/体积/频率上限（`socialV2.voice.*`），额度与文本发送分开计数。详见 [docs/guides/VOICE.md](docs/guides/VOICE.md)。
+   - **语音额外收紧**：`qq_send_voice` 只能发**语音库**（`socialV2.voice.dir`，默认 `qq-bridge/audio/`）里的文件，不能发任意本地路径、URL 或 base64（防 prompt injection 拿本机文件当语音外发）；另有独立的时长/体积/频率上限（`socialV2.voice.*`），额度与文本发送分开计数。
 5. **发送禁令（模型层）**：persona 明确规定只有「管理端明确指示」或「【管理员】标记的明确要求」才可使用发送工具；禁止写"我已回复/消息已发送（message_id）"类汇报。
 6. **回复审计（桥接层硬拦截）**：agent 回复文本若包含本机路径（`C:\`、`/home/` 等）或凭据特征（token/password/secret/api key 等）→ **整条拦截不发送**，并告知"被安全策略拦截"。
 7. **人格由桥接注入**：角色设定来自 `state/current-role.json` + `roles/<角色>.md`，桥接注入到消息；群友口头要求改角色无效（桥接直接拦截），agent 也无文件工具自行更改。
@@ -51,7 +55,7 @@
 
 | 层 | 位置 | 管什么 | 生效方式 |
 | --- | --- | --- | --- |
-| **仿真提示词**（两代各一份） | `dsh/agent-presets/qq-chat/agent.cordis.yml`（一代）与 `qq-chat-v2/agent.cordis.yml`（二代）的 `persona.prefix` | 怎么调工具、怎么参与群聊（行为与协议：安全规则、工具协议、唤醒/分条/记忆/黑话等） | 控制台可按代次分别编辑；保存会写仓库源文件并同步到 `~/.dsh/.agent-presets/<preset>/`；**新会话**自动用新版，**正在进行的 QQ 会话**需 `POST /api/session/reset` 或重启 DSH |
+| **仿真提示词**（两代各一份；本仓库只带二代） | `dsh/agent-presets/qq-chat-v2/agent.cordis.yml` 的 `persona.prefix`（一代对应 `qq-chat/`，未随仓库发布） | 怎么调工具、怎么参与群聊（行为与协议：安全规则、工具协议、唤醒/分条/记忆/黑话等） | 控制台可按代次分别编辑；保存会写仓库源文件并同步到 `~/.dsh/.agent-presets/<preset>/`；**新会话**自动用新版，**正在进行的 QQ 会话**需 `POST /api/session/reset` 或重启 DSH |
 | **人格提示词** | `roles/<人格名>.md` | AI 是谁、什么性格、怎么说话（人设与语气） | 桥接每条消息前注入，**保存即生效** |
 
 - 拼装顺序：`仿真提示词 → 人格提示词 → 本轮消息`。

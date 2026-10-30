@@ -4,12 +4,11 @@
 
 > ⚠️ **Development build (`0.0.0`, not released), targets DSH 0.2.0-rc.2** (verified item by item on that version; run `npm run verify:adaptation`). It uses the persistent local signing key to **mint the session Cookie offline**, slash RPC endpoints and the `/api/remote.mux` event stream — a protocol generation introduced in DSH `0.1.2-alpha.1`, incompatible with the older dot-endpoint protocol. Reading the launch token out of the old guard logs has not worked since DSH 0.1.7 (the token is generated per process and never written to disk). Agent presets are `@deepseek-ai/dsh-agent-preset` Cordis rows since DSH 0.1.7 (the `~/.dsh/.agent-presets/` directory mechanism is gone). On **DSH `0.1.1-rc.2` or earlier**, use tag [`v0.1.0`](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.1.0); for **DSH 0.1.5-rc.1** use [`v0.1.5`](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.1.5); for **DSH 0.1.7-rc.2** use [`v0.1.7`](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.1.7).
 >
-> **r4 highlights**: sticker/animated-emoji pipeline (CDN first, `emoji_id` fallback, multi-address DNS failover), web search now reuses DSH's own DeepSeek search backend (Bing only as fallback), `qq_wait_for_messages` long-polling past the 300 s undici timeout, plus fixes for the mode-switch rollback, permanent "busy" turns, missing self-identity injection and a full-project audit. Details: [Release v0.2.0-r4](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.2.0-r4).
+> The tags above are **upstream releases** ([Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)); this repository has no tags or releases yet and ships a `0.0.0` development snapshot.
 >
 > The default branch `main` **is** this version — a plain `git clone` gets it, no branch switching needed.
 
-For the detailed Chinese guide, see **[docs/guides/PROJECT_GUIDE.md](docs/guides/PROJECT_GUIDE.md)**.
-The documentation index (one line per doc, with "still current?" notes) is **[docs/README.md](docs/README.md)**;
+For the detailed documentation (all Chinese), start from **[docs/README.md](docs/README.md)**;
 the repository/folder and script-naming conventions are in **[docs/FOLDER_MAP.md](docs/FOLDER_MAP.md)**.
 
 ## Architecture
@@ -110,15 +109,12 @@ Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for d
 qq-bridge/
   config.example.json   # sanitized config template (real config.json is not in repo)
   docs/
-    README.md           # documentation index (one line per doc + "still current?" notes)
+    README.md           # documentation index (published docs only)
     FOLDER_MAP.md       # folder layout and scripts/ naming conventions
-    guides/             # user/operator facing: PROJECT_GUIDE, DSH_SETUP, VOICE, TOKEN_USAGE_CONSOLE, CONSOLE-UI-TESTING
-    design/             # design & planning docs
-    research/           # investigation notes
-    audits/             # review / optimisation reports
-    legacy/             # archived docs that were superseded
-  dsh/agent-presets/    # qq-chat / qq-chat-v2 DSH agent preset templates
-  plugins/qq-agent-presets  # DSH bundle: generates the qq-chat / qq-chat-v2 preset patch rows + the shared tool guard
+    guides/             # user/operator facing: DSH_SETUP, DSH_020_ADAPTATION, SECURITY_BASELINE,
+                        # RELIABILITY, TOKEN_USAGE_CONSOLE, CONSOLE-UI-TESTING, PRIVACY
+  dsh/agent-presets/    # qq-chat-v2 DSH agent preset source (the legacy qq-chat preset is not shipped)
+  plugins/qq-agent-presets  # DSH bundle: generates the qq-chat-v2 preset patch row + the shared tool guard
   plugins/qq-mode-console  # DSH plugin: exposes the qq-mode settings namespace (host half only; no UI card yet)
   src/                  # bridge core and MCP servers
   public/
@@ -129,13 +125,18 @@ qq-bridge/
   state/                # runtime data (not in repo)
 ```
 
-The standalone **voice sender tool** (`voice-cli.mjs`, `voice-gui.mjs`, `public/voice.html`, `发语音.cmd`)
-lives in the sibling folder **`../voice-tool/`** — it only needs SnowLuma, and reuses this repo's
-`src/voice-core.js` / `src/snowluma-conn.js` as the single shared implementation.
+Design/audit/research/legacy documents, the full project guide and the voice-tool notes are **not published** with this
+repository (they were written on a real machine and contain local paths and account identifiers); see
+[docs/README.md](docs/README.md) for what is included.
+
+The standalone **voice sender tool** (`voice-cli.mjs`, `voice-gui.mjs`, `public/voice.html`) is **not part of this
+repository**; it reuses this repo's `src/voice-core.js` / `src/snowluma-conn.js` as the shared implementation.
 
 ## Testing
 
-`npm run test:audit` runs isolated regression tests without production credentials, DSH, or QQ messages. The detailed audit is in [docs/audits/AUDIT_REPORT_2026-09-20.md](docs/audits/AUDIT_REPORT_2026-09-20.md) (Chinese); the 2026-09-18 one it superseded is archived in [docs/legacy/](docs/legacy/).
+`npm run test:audit` runs isolated regression tests without production credentials, DSH, or QQ messages. Security
+boundaries and the current threat model are documented in [docs/guides/SECURITY_BASELINE.md](docs/guides/SECURITY_BASELINE.md);
+reliability mechanics (SQLite/WAL, outbox, inbox, jobs, doctor) are in [docs/guides/RELIABILITY.md](docs/guides/RELIABILITY.md).
 
 After upgrading, legacy QQ session mappings without permission metadata are recreated once. Mode or preset changes also retire the old mapping and recreate the session on the next message; DSH history is retained.
 
