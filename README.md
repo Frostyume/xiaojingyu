@@ -312,7 +312,7 @@ npm run doctor     # 一条命令体检：配置、SQLite、DSH、SnowLuma、pre
 
 - agent 回复在回合结束时一次性发送，不做流式逐字转发；超长回复按句读 / URL 边界自动分段；
 - 图片和部分表情可以进入多模态上下文；**收到**的语音 / 视频目前只显示占位文本；
-- **发**语音默认关闭（`socialV2.voice.enabled` 与 `tools.sendVoice` 均为 `false`），
+- **AI 发语音默认关闭**（`socialV2.voice.enabled` 与 `tools.sendVoice` 均为 `false`），
   先把音频放进 `audio/`，再到控制台打开开关。示例语音在 [`assets/voice/`](assets/voice/)；
 - agent 的 Markdown 回复会转成纯文本再发出（链接保留 `文字 (url)` 形式）；
 - 仅支持 Windows 10 / 11：QQ 与 SnowLuma 都是 Windows 程序；
@@ -393,7 +393,7 @@ qq-bridge/
 
 </details>
 
-> **「发语音」独立工具（`voice-tool/`）不随本仓库发布。** 它复用本仓库的
+> **「发语音」独立工具（`voice-tool/`，入口 `voice-cli.mjs` / `voice-gui.mjs`）不随本仓库发布。** 它复用本仓库的
 > `src/voice-core.js` / `src/snowluma-conn.js`，只依赖 SnowLuma；
 > 仓库内的语音能力（`qq_speak`、`/api/socialV2/send-voice` 等）不依赖它。
 
