@@ -1,0 +1,2 @@
+# 人格卡按 LF 存储：桥接与测试按字符计长，CRLF 会把换行符也算进去
+roles/*.md text eol=lf
