@@ -102,6 +102,7 @@ Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for d
 - Local paths, credentials, tokens and other sensitive patterns are filtered by the audit layer.
 - Simulation sessions get **no local execution tools at all**: the preset's `qq-tool-restrict` row hides them from the tool schema at registration time and a runtime allowlist rejects anything outside the QQ MCP namespaces (`npm run scan:tool-names` re-checks that list against the installed DSH).
 - The console uses a generated token when none is configured.
+- Found a security issue? Report it privately per [SECURITY.md](SECURITY.md) — please do not open a public issue.
 
 ## Repository Layout
 

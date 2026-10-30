@@ -4,7 +4,7 @@
 
 > 🗂️ 文档索引（全部文档一句话说明 + 是否仍然有效）见 **[docs/README.md](docs/README.md)**；仓库目录/脚本命名约定见 **[docs/FOLDER_MAP.md](docs/FOLDER_MAP.md)**。
 >
-> 🔒 QQ 会话的权限边界与安全承诺见 **[RULES.md](RULES.md)**。
+> 🔒 QQ 会话的权限边界与安全承诺见 **[RULES.md](RULES.md)**；发现安全问题请按 **[SECURITY.md](SECURITY.md)** 私密报告，不要开公开 issue。
 >
 > 🎤 独立的「发语音」工具已拆到仓库上一级的 **`../voice-tool/`**（命令行 `voice-cli.mjs` / 图形界面 `voice-gui.mjs`），不再依赖 qq-bridge 运行。
 
@@ -252,7 +252,7 @@ npm run self-test
 ```
 qq-bridge/
   config.example.json   # 配置模板（脱敏占位符；真实 config.json 不入库）
-  README.md / README.en.md / RULES.md   # 根目录只留这三个文档，其余全在 docs/
+  README.md / README.en.md / RULES.md / SECURITY.md   # 根目录只留这四个文档，其余全在 docs/
   docs/
     README.md           # 文档索引（每篇一句话 + 是否仍然有效）
     FOLDER_MAP.md       # 目录结构与 scripts/ 命名约定
