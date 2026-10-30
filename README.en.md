@@ -1,4 +1,28 @@
-# QQ ↔ DeepSeek Harness Bridge (qq-bridge)
+<p align="center">
+  <img src="assets/banner.png" alt="xiaojingyu · qq-bridge" width="100%">
+</p>
+
+<h1 align="center">xiaojingyu · qq-bridge</h1>
+
+<p align="center"><b>Turn QQ into a chat entrance for DeepSeek Harness.</b><br>
+Your group chats stay exactly as they are — behind them is an agent that reads,
+waits, and decides for itself whether it is worth speaking up.</p>
+
+<p align="center">
+  <img alt="version" src="https://img.shields.io/badge/version-0.0.0%20dev-5B8DEF?style=flat-square">
+  <img alt="node" src="https://img.shields.io/badge/Node.js-%E2%89%A5%2022.13-339933?style=flat-square&logo=nodedotjs&logoColor=white">
+  <img alt="platform" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat-square&logo=windows&logoColor=white">
+  <img alt="dsh" src="https://img.shields.io/badge/DSH-0.2.0--rc.2-1B1F3B?style=flat-square">
+  <img alt="license" src="https://img.shields.io/badge/license-MIT-3DA639?style=flat-square">
+</p>
+
+<p align="center">
+  <a href="README.md">中文</a> ·
+  <a href="docs/README.md">Docs</a> ·
+  <a href="RULES.md">Rules</a> ·
+  <a href="SECURITY.md">Security</a> ·
+  <a href="UPSTREAM.md">Upstream</a>
+</p>
 
 > Connect QQ messages to DeepSeek Harness (DSH) agents: QQ friends/groups become DSH conversations, and agent replies (including questions and tool approvals) are sent back to QQ.
 
@@ -23,7 +47,7 @@ QQ messages ──► SnowLuma (OneBot v11 WS) ──► qq-bridge ──► DSH
 - **DSH side**: adapted for DSH 0.1.2+ and **re-verified on 0.2.0-rc.2** — session Cookie minted from the persistent local signing key, `/api/<namespace>/<method>` slash RPC, and `/api/remote.mux` + `session/follow` event stream (the pending queue is read from `value.projections[<id>].values.inbox`, with the unary `session/projections` RPC as the primary path). The per-session model is pinned by the bridge via `session.selectModel` from `config.json`'s `dsh.model` (default `deepseek-flash` = DeepSeek-V41-Flash, multimodal).
 - **Agent tools**: three bundled MCP servers expose a restricted QQ toolset (`qq_status`, `qq_list_groups`, `qq_get_group_history`, `qq_send_group_message`, `qq_reply`, etc.), a read-only host probe (`snowluma_status` only), and a read-only `web_search` / `web_fetch` pair with SSRF protection.
   ⚠️ **`start_snowluma` / `stop_snowluma` (and `snowluma.allowProcessControl`) were removed in v0.1.5**: SnowLuma EULA §5.4 requires prior written permission to deploy its proprietary native components through automated scripts. This program only probes, never deploys — installing, starting and scanning SnowLuma is always up to you. See [NOTICE](NOTICE) and [RULES.md](RULES.md).
-- **Console**: a local web console at `http://127.0.0.1:3100`, organised into ten task-based pages (Overview, Sessions & Approvals, Persona, Social v2, Social v1, Slang, Usage & Cost, Access & Security, Operations, Tool Reference) with cross-page feature search and a **light / dark theme** (one-click toggle in the header; follows the OS preference until you choose), for mode switching, role management, whitelist/admin settings, slang management, memory, stickers and more. The Persona page manages roles (view/edit/rename/duplicate/delete the prompt of each persona), shows and edits both prompt layers separately — the **simulation prompt** built into the preset (tool/behaviour protocol; synced to DSH, restart required) and the **persona prompt** (`roles/*.md`; applied immediately) — and sets the **DSH reasoning effort** (`max` by default, `high`/`low` selectable). The **Usage & Cost** page shows real-time token consumption and its price in CNY, broken down per group/friend and per conversation turn (see [docs/guides/TOKEN_USAGE_CONSOLE.md](docs/guides/TOKEN_USAGE_CONSOLE.md)).
+- **Console**: a local web console at `http://127.0.0.1:3100`, organised into 13 task-based pages (Overview, Features, Sessions & Approvals, Persona, Social Simulation, Group Insights, Library, Slang, Usage & Cost, Access & Security, Debug & Operations, Reliability & Config, Tool Reference) with cross-page feature search and a **light / dark theme** (one-click toggle in the header; follows the OS preference until you choose), for mode switching, role management, whitelist/admin settings, slang management, memory, stickers and more. The Persona page manages roles (view/edit/rename/duplicate/delete the prompt of each persona), shows and edits both prompt layers separately — the **simulation prompt** built into the preset (tool/behaviour protocol; synced to DSH, restart required) and the **persona prompt** (`roles/*.md`; applied immediately) — and sets the **DSH reasoning effort** (`max` by default, `high`/`low` selectable). The **Usage & Cost** page shows real-time token consumption and its price in CNY, broken down per group/friend and per conversation turn (see [docs/guides/TOKEN_USAGE_CONSOLE.md](docs/guides/TOKEN_USAGE_CONSOLE.md)).
 
 ## Features
 
@@ -120,7 +144,7 @@ qq-bridge/
   public/
     console.html        # local web console
   roles/                # persona cards
-  assets/               # images + voice/ (two sample voice clips); the intro video ships as a release asset
+  assets/               # README banner, console screenshot (offline demo data) and voice/ (two sample clips)
   scripts/              # tests and helper scripts
   state/                # runtime data (not in repo)
 ```
