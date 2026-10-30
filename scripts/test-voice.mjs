@@ -170,7 +170,8 @@ console.log('## 安全边界（AI 通道来源限制）');
   ok(/allowAbsolutePath/.test(fn), 'AI 通道检查 allowAbsolutePath');
   const sendRoute = bridge.slice(bridge.indexOf("url.pathname === '/api/socialV2/send-voice'"), bridge.indexOf("url.pathname === '/api/socialV2/send-sticker'"));
   ok(sendRoute.includes('v2SessionAllowed(key)'), '语音发送校验会话白名单');
-  ok(sendRoute.includes('agentTokenOk(key, token)'), '语音发送校验 agent token');
+  // 跨会话统一判定：本会话令牌 / 主人令牌 / 主人在本群刚下过指令（见 docs/CONTROL-TIERS-PLAN-2026-10-30.md §3.3）
+  ok(sendRoute.includes('canActOn(key, token, { crossSession: true'), '语音发送走 canActOn 跨会话校验');
   ok(sendRoute.includes('shouldBlockSilentReply(key)'), '语音发送尊重静默模式');
   ok(sendRoute.includes('voiceBudgetCheck'), '语音发送走语音限流');
 }

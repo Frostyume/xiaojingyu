@@ -1857,6 +1857,34 @@
             }
           }
         },
+        "controlTiers": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "控制面分层",
+              "type": "boolean",
+              "default": true,
+              "description": "关闭后恢复旧行为：群会话不能跨会话发消息/读上下文"
+            },
+            "groupEscalationNotify": {
+              "title": "群里高危被拒时私聊提醒主人",
+              "type": "boolean",
+              "default": true
+            },
+            "ownerDirectiveTtlMs": {
+              "title": "群内主人指令有效期（ms）",
+              "type": "number",
+              "default": 600000,
+              "minimum": 60000,
+              "maximum": 86400000
+            },
+            "requireConfirmForHighRisk": {
+              "title": "高危动作需私聊确认",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
         "relationships": {
           "type": "object",
           "properties": {
@@ -5779,6 +5807,40 @@
       "group": "扩展",
       "type": "array",
       "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.controlTiers.enabled",
+      "label": "控制面分层",
+      "group": "控制面分层",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.controlTiers.groupEscalationNotify",
+      "label": "群里高危被拒时私聊提醒主人",
+      "group": "控制面分层",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.controlTiers.ownerDirectiveTtlMs",
+      "label": "群内主人指令有效期（ms）",
+      "group": "控制面分层",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "socialV2.controlTiers.requireConfirmForHighRisk",
+      "label": "高危动作需私聊确认",
+      "group": "控制面分层",
+      "type": "boolean",
+      "restart": "none",
       "advanced": false
     },
     {

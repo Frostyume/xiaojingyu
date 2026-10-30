@@ -52,6 +52,8 @@ import * as coreEventBus from '../src/core/event-bus.js';
 import * as coreTransport from '../src/core/transport.js';
 import * as coreBudget from '../src/core/budget.js';
 import * as coreSignature from '../src/core/signature.js';
+import * as controlTiers from '../src/core/control-tiers.js';
+import * as ownerConfig from '../src/core/owner-config.js';
 import * as coreTimeAwareness from '../src/core/time-awareness.js';
 import * as esportsSchedule from '../src/esports-schedule.js';
 import * as esportsFeed from '../src/esports-feed.js';
@@ -188,6 +190,12 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
       selfNickname = selfDisplayName.toLowerCase() || 'deepseek';
     },
     flushQueue, retireSession, disposeConversation,
+    // 控制面分层（docs/CONTROL-TIERS-PLAN-2026-10-30.md）：授权判定与待确认动作，
+    // 集成测试既走 HTTP，也直接断言判定表与 /确认 回放。
+    canActOn, canReadAcrossSessions, ownerDirectiveFreshFor, controlTierCfg,
+    ownerChatKey, callerKeyOfToken, ownerHighRiskGuard,
+    confirmPendingActionByCode, pendingActionsNow,
+    hashActionArgs, createPendingAction, isHighRiskOwnerAction, describePendingAction,
     voiceCfg, voiceLibrary, resolveVoicePathForV2, resolveVoicePathForOperator,
     voiceBudgetCheck, sendVoiceV2, sendVoiceForV2, assertOutboundAuditOk,
     setMode(value) { currentMode = value; },
@@ -231,7 +239,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     relationshipStageLabel: coreRelationshipModel.stageLabel,
     relationshipAxisWords: coreRelationshipModel.axisWords,
     relationshipBond: coreRelationshipModel.computeBond,
-    ...coreTtsEmotion, ...coreSpeech, ...coreFeatureLoader, ...coreEventBus, ...coreTransport, ...coreBudget, ...coreSignature, ...coreTimeAwareness,
+    ...coreTtsEmotion, ...coreSpeech, ...coreFeatureLoader, ...coreEventBus, ...coreTransport, ...coreBudget, ...coreSignature, ...controlTiers, ...ownerConfig, ...coreTimeAwareness,
     ...esportsSchedule,
     ...esportsFeed,
     deepMergeConfig: coreHealth.deepMerge,

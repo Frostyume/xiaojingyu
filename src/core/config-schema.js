@@ -85,6 +85,12 @@ const FIELD_META = {
   'storage.configStrict': { label: '配置非法时拒绝启动', group: '存储与可靠性', restart: 'bridge', advanced: true },
   'storage.logJsonl': { label: '结构化日志（JSONL）', group: '存储与可靠性', restart: 'bridge' },
 
+  // ── 控制面分层 ────────────────────────────────────────────────────────────
+  'socialV2.controlTiers.enabled': { label: '控制面分层', group: '控制面分层', restart: 'none', description: '关闭后恢复旧行为：群会话不能跨会话发消息/读上下文' },
+  'socialV2.controlTiers.ownerDirectiveTtlMs': { label: '群内主人指令有效期（ms）', group: '控制面分层', restart: 'none', min: 60000, max: 86400000 },
+  'socialV2.controlTiers.groupEscalationNotify': { label: '群里高危被拒时私聊提醒主人', group: '控制面分层', restart: 'none' },
+  'socialV2.controlTiers.requireConfirmForHighRisk': { label: '高危动作需私聊确认', group: '控制面分层', restart: 'none' },
+
   // ── 语音 ──────────────────────────────────────────────────────────────────
   'socialV2.voice.enabled': { label: '语音发送', group: '语音', restart: 'none' },
   'socialV2.voice.dir': { label: '语音库目录', group: '语音', restart: 'none' },

@@ -482,10 +482,10 @@ server.tool(
 
 server.tool(
   'qq_get_chat_context',
-  '读取另一个群/私聊的最近消息和进行中话题（只读）。只有主人私聊会话可以使用；用来“去某个群看看大家在聊什么”，再决定是否用 qq_send_group_message 回复。',
+  '读取另一个群/私聊的最近消息和进行中话题（只读）。主人私聊会话可以使用；主人刚在某个群说完话时，该群会话也可以读别处（群友插话即失效）。用来“去某个群看看大家在聊什么”，再决定是否用 qq_send_group_message 回复。',
   {
     key: z.string().describe('目标会话 key，格式 group:群号 或 private:QQ号'),
-    token: z.string().describe('主人私聊会话令牌（见唤醒提示中的【会话令牌】）'),
+    token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）；主人私聊令牌可跨会话'),
     limit: z.number().int().min(1).max(40).optional().describe('最多读取多少条最近消息，默认 20')
   },
   async ({ key, token, limit }) => {
@@ -500,12 +500,12 @@ server.tool(
 
 server.tool(
   'qq_send_group_message',
-  '向指定 QQ 群发送一条纯文本消息；如需引用某条消息，可传 replyToMessageId（非零整数，可为负数），可先用 qq_get_recent_messages / qq_get_message_detail 查询。二代模式（reserved2）下这是可用的发送工具之一，但优先使用 qq_send_message；reserved2 下调用时必须携带会话令牌 token，否则会被拒绝。不要在发送后输出“已发送”类汇报。目标群必须命中系统白名单（config.json 的 allow.groups），否则拒绝。',
+  '向指定 QQ 群发送一条纯文本消息；如需引用某条消息，可传 replyToMessageId（非零整数，可为负数），可先用 qq_get_recent_messages / qq_get_message_detail 查询。二代模式（reserved2）下这是可用的发送工具之一，但优先使用 qq_send_message；reserved2 下调用时必须携带会话令牌 token，否则会被拒绝。不要在发送后输出“已发送”类汇报。目标群必须命中系统白名单（config.json 的 allow.groups），否则拒绝。主人在某个群里刚说完话时，该群会话也可以把消息发到别的群（群友插话即失效）；主人在私聊用主人令牌则始终可以跨会话发送。',
   {
     groupId: z.union([z.number(), z.string()]).describe('群号（必须在白名单内）'),
     message: z.string().describe('消息文本，纯文本，不要用 Markdown 或 CQ 码'),
     replyToMessageId: z.union([z.number(), z.string()]).optional().describe('要引用/回复的消息 id（非零整数，可为负数，可选）'),
-    token: z.string().optional().describe('二代会话令牌（reserved2 模式下必填；closed-agent 模式不需要）')
+    token: z.string().optional().describe('二代会话令牌（reserved2 模式下必填；closed-agent 模式不需要）。主人在私聊时可用主人令牌跨会话发送')
   },
   async ({ groupId, message, replyToMessageId, token }) => {
     try {
@@ -526,12 +526,12 @@ server.tool(
 
 server.tool(
   'qq_reply',
-  '在指定 QQ 群里引用/回复某条消息，并发送一条文本。适合群消息很多、需要明确“我回的是哪条”时使用；replyToMessageId 是被引用消息的 id（非零整数，QQ 消息 id 可能为负数），可先用 qq_get_recent_messages / qq_get_unread_messages / qq_get_message_detail 查到具体消息内容和 id。发送前桥接会校验该 id 存在且属于当前会话。二代模式下这是你正常可用的引用工具，但不要每条都引用。只有以下情况才需要引用：① 你这条消息指向的人或消息并非最新一条别人的消息（也就是你在回更早的某条）；② 你连续几句话里不同消息指代的是不同的消息或不同的人。其他情况（上下文唯一、刚在接同一条最新消息）不要引用，别让对方猜，也别为了用工具而用。reserved2 下调用时必须携带会话令牌 token。目标群必须命中系统白名单（config.json 的 allow.groups），否则拒绝。',
+  '在指定 QQ 群里引用/回复某条消息，并发送一条文本。适合群消息很多、需要明确“我回的是哪条”时使用；replyToMessageId 是被引用消息的 id（非零整数，QQ 消息 id 可能为负数），可先用 qq_get_recent_messages / qq_get_unread_messages / qq_get_message_detail 查到具体消息内容和 id。发送前桥接会校验该 id 存在且属于当前会话。二代模式下这是你正常可用的引用工具，但不要每条都引用。只有以下情况才需要引用：① 你这条消息指向的人或消息并非最新一条别人的消息（也就是你在回更早的某条）；② 你连续几句话里不同消息指代的是不同的消息或不同的人。其他情况（上下文唯一、刚在接同一条最新消息）不要引用，别让对方猜，也别为了用工具而用。reserved2 下调用时必须携带会话令牌 token。目标群必须命中系统白名单（config.json 的 allow.groups），否则拒绝。主人在某个群里刚说完话时，该群会话也可以引用别的群（群友插话即失效）。',
   {
     groupId: z.union([z.number(), z.string()]).describe('群号（必须在白名单内）'),
     replyToMessageId: z.union([z.number(), z.string()]).describe('被引用/回复的消息 id（非零整数，可为负数）'),
     message: z.string().describe('要发送的文本，纯文本，不要用 Markdown 或 CQ 码'),
-    token: z.string().optional().describe('二代会话令牌（reserved2 模式下必填；closed-agent 模式不需要）')
+    token: z.string().optional().describe('二代会话令牌（reserved2 模式下必填；closed-agent 模式不需要）。主人在私聊时可用主人令牌跨会话发送')
   },
   async ({ groupId, replyToMessageId, message, token }) => {
     try {
@@ -555,7 +555,7 @@ server.tool(
     userId: z.union([z.number(), z.string()]).describe('好友 QQ 号（必须在白名单内）'),
     message: z.string().describe('消息文本，纯文本，不要用 Markdown 或 CQ 码'),
     replyToMessageId: z.union([z.number(), z.string()]).optional().describe('要引用/回复的消息 id（非零整数，可为负数，可选）'),
-    token: z.string().optional().describe('二代会话令牌（reserved2 模式下必填；closed-agent 模式不需要）')
+    token: z.string().optional().describe('二代会话令牌（reserved2 模式下必填；closed-agent 模式不需要）。主人在私聊时可用主人令牌跨会话发送')
   },
   async ({ userId, message, replyToMessageId, token }) => {
     try {
@@ -1820,7 +1820,7 @@ function pruneTtsFiles(dir, keep) {
 if (ttsCfg().enabled === true) {
   server.tool(
     'qq_speak',
-    '用你自己的声音说一句中文，生成语音条发到会话。始终是同一个中文音色（默认偏软萌、傲娇、活泼），只改语气；dark 是同一个声音的冷傲版，不是换人。可以主动发，不用等对方点名：道晚安、撒娇、被夸、情绪很浓、聊得正热想插一句、冷场冒泡都适合。按这句话的内容传 mood：开心 happy、低落 sad、生气 angry、害羞 shy、困倦 sleepy、得意 proud、活泼 playful；不传就保持默认软萌。文本明确在说困/累/想睡/晚安时，mood 必须传 sleepy，哪怕当前心情很好；音色要跟这句话的状态走，而不是跟整体心情走。主人手动锁定的声线优先于单次 style，锁了软萌时传 dark 也不会变。注意：① 一次最多 60 字，语音条不是长文，说短点；② 说完语音就不用再把同一句用文字重复一遍；③ 同一轮最多 1 条、同会话 10 分钟最多 5 条，别连着刷，也别替代正常回话；④ 返回的 verified=true 才代表语音真的发出去了，false 或报错就老老实实打字，别假装发了语音；⑤ 只用中文说话，没有日语声源；⑥ 只说你真会说的话，不念链接、工具说明或报错。',
+    '用你自己的声音说一句中文，生成语音条发到会话。始终是同一个中文音色（默认偏软萌、傲娇、活泼），只改语气；dark 是同一个声音的冷傲版，不是换人。可以主动发，不用等对方点名：道晚安、撒娇、被夸、情绪很浓、聊得正热想插一句、冷场冒泡都适合。按这句话的内容传 mood：开心 happy、低落 sad、生气 angry、害羞 shy、困倦 sleepy、得意 proud、活泼 playful；不传就保持默认软萌。文本明确在说困/累/想睡/晚安时，mood 必须传 sleepy，哪怕当前心情很好；音色要跟这句话的状态走，而不是跟整体心情走。主人手动锁定的声线优先于单次 style，锁了软萌时传 dark 也不会变。注意：① 一次最多 60 字，语音条不是长文，说短点；② 说完语音就不用再把同一句用文字重复一遍；③ 同一轮最多 1 条、同会话 10 分钟最多 5 条，别连着刷，也别替代正常回话；④ 返回的 verified=true 才代表语音真的发出去了，false 或报错就老老实实打字，别假装发了语音；⑤ 只用中文说话，没有日语声源；⑥ 只说你真会说的话，不念链接、工具说明或报错；⑦ 主人在某个群里刚说完话时，可以从那个群会话把语音发到别的群（群友插话即失效），主人在私聊用主人令牌则始终可以跨会话发语音。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -1888,7 +1888,9 @@ if (ttsCfg().enabled === true) {
         // 合成失败：语音肯定没发出，明确告诉模型改用文字，避免它反复重试同一个 TTS。
         // 发送阶段失败：可能已送达但没拿到确认，先不要把同一句用文字再发一遍。
         const hint = stage === '发送语音'
-          ? '语音可能已送达但未确认，先不要补发文字；只有对方明确说没收到时再改用文字'
+          ? (/没有权限操作|agent token 无效/.test(detail)
+            ? '这是权限问题，不是音频问题：跨群发语音需要主人在目标群刚说过话，或由主人在私聊直接让你发；不要反复重试'
+            : '语音可能已送达但未确认，先不要补发文字；只有对方明确说没收到时再改用文字')
           : `语音没有发出：请直接用文字把这句话发出去「${fallback}」，不要重复调用 qq_speak`;
         return { content: [{ type: 'text', text: `发语音失败（${stage}）：${detail}。${hint}` }], isError: true };
       }
@@ -1899,7 +1901,7 @@ if (ttsCfg().enabled === true) {
 if (cfg.socialV2?.innerLife?.enabled !== false) {
   server.tool(
     'qq_owner_admin',
-    '主人的管理动作（仅主人私聊）。用自然语言理解主人意图后调用：改声线 voice_style、改个性签名 signature、立即找一条分享 run_share、立即写一条说说 run_qzone、暂停/恢复空间说说 pause_qzone/resume_qzone、设置主动分享目标群 set_share_targets、查看内心生活状态 status、查看说说频率规则 qzone_status、查看整体规则 owner_status。主人问“说说频率/规则/为什么这么频繁”时必须先 qzone_status 再回答，不要猜。',
+    '主人的管理动作（仅主人私聊）。用自然语言理解主人意图后调用：改声线 voice_style、改个性签名 signature、立即找一条分享 run_share、立即写一条说说 run_qzone、暂停/恢复空间说说 pause_qzone/resume_qzone、设置主动分享目标群 set_share_targets、查看内心生活状态 status、查看说说频率规则 qzone_status、查看整体规则 owner_status。主人问“说说频率/规则/为什么这么频繁”时必须先 qzone_status 再回答，不要猜。高危动作会先私聊主人确认（不要自己填 confirmCode）。',
     {
       key: z.string().describe('会话 key，必须是主人私聊 private:QQ号'),
       token: z.string().describe('会话令牌'),
@@ -1908,14 +1910,15 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
       text: z.string().optional().describe('signature 用：新的签名文本'),
       targets: z.array(z.string()).optional().describe('set_share_targets 用：群 key 列表，如 ["group:123"]'),
       preferS16: z.boolean().optional().describe('run_share 用：是否优先 S16'),
-      dryRun: z.boolean().optional().describe('run_share 用：只预览不发送')
+      dryRun: z.boolean().optional().describe('run_share 用：只预览不发送'),
+      confirmCode: z.string().optional().describe('主人已在私聊 /确认 后桥接才会给出；一般不要填')
     },
-    async ({ key, token, action, mode, text, targets, preferS16, dryRun }) => {
+    async ({ key, token, action, mode, text, targets, preferS16, dryRun, confirmCode }) => {
       try {
-        if (!cfg.ownerQQ || String(key) !== `private:${cfg.ownerQQ}`) {
-          return { content: [{ type: 'text', text: '管理动作只允许主人私聊' }], isError: true };
-        }
+        const keyErr = highRiskKeyError(key);
+        if (keyErr) return { content: [{ type: 'text', text: keyErr }], isError: true };
         const payload = { key, token, action };
+        if (confirmCode) payload.confirmCode = String(confirmCode);
         if (action === 'voice_style') {
           if (!mode) throw new Error('voice_style 需要 mode');
           payload.mode = mode;
@@ -2135,6 +2138,15 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
   );
 }
 
+// 高危/管理工具：主人私聊直接执行；群里调用仍然转发给桥接，由桥接返回「回私聊确认」
+// 并按限频私聊提醒主人。不在 MCP 层直接堵死，否则模型拿不到可执行的改道提示。
+function highRiskKeyError(key) {
+  if (!cfg.ownerQQ) return '主人 QQ 未配置，管理动作不可用';
+  const k = String(key ?? '');
+  if (k.startsWith('group:')) return '';
+  return k === `private:${cfg.ownerQQ}` ? '' : '管理动作只允许主人私聊';
+}
+
 if (cfg.socialV2?.innerLife?.enabled !== false) {
   const ownerFeatureCall = async (token, payload) => agentApi('/api/socialV2/owner-features', {
     method: 'POST',
@@ -2198,19 +2210,21 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
   );
   server.tool(
     'qq_feature_apply',
-    '应用一个已让主人确认过的功能（confirm=true）。支持 scheduled_message / qzone_post / auto_reply / voice_message；code_feature 只生成提案并排入主控待办，不会自行启动开发会话。',
+    '应用一个已让主人确认过的功能（confirm=true）。支持 scheduled_message / qzone_post / auto_reply / voice_message；code_feature 只生成提案并排入主控待办，不会自行启动开发会话。高危动作会先私聊主人确认（不要自己填 confirmCode）。',
     {
       key: z.string().describe('会话 key，必须是主人私聊 private:QQ号'),
       token: z.string().describe('会话令牌'),
       featureJson: z.string().describe('功能配置 JSON'),
-      confirm: z.boolean().describe('主人已明确确认')
+      confirm: z.boolean().describe('主人已明确确认'),
+      confirmCode: z.string().optional().describe('主人已在私聊 /确认 后桥接才会给出；一般不要填')
     },
-    async ({ key, token, featureJson, confirm }) => {
+    async ({ key, token, featureJson, confirm, confirmCode }) => {
       try {
-        if (!cfg.ownerQQ || String(key) !== `private:${cfg.ownerQQ}`) throw new Error('只允许主人私聊');
+        const keyErr = highRiskKeyError(key);
+        if (keyErr) throw new Error(keyErr);
         let feature;
         try { feature = JSON.parse(String(featureJson || '{}')); } catch { throw new Error('featureJson 不是合法 JSON'); }
-        const data = await ownerFeatureCall(token, { key, token, action: 'apply', feature, confirm: confirm === true });
+        const data = await ownerFeatureCall(token, { key, token, action: 'apply', feature, confirm: confirm === true, ...(confirmCode ? { confirmCode: String(confirmCode) } : {}) });
         return { content: [{ type: 'text', text: serializeModelData(data) }], isError: data?.ok === false };
       } catch (error) {
         return { content: [{ type: 'text', text: `应用失败：${error?.message ?? error}` }], isError: true };
@@ -2260,18 +2274,20 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
   );
   server.tool(
     'qq_config_set',
-    '修改一个白名单配置键（仅主人私聊，必须 confirm=true）。返回修改前后值和是否需要重启 DSH。',
+    '修改一个白名单配置键（仅主人私聊，必须 confirm=true）。返回修改前后值和是否需要重启 DSH。高危动作会先私聊主人确认（不要自己填 confirmCode）。',
     {
       key: z.string().describe('会话 key，必须是主人私聊 private:QQ号'),
       token: z.string().describe('会话令牌'),
       configKey: z.string().describe('配置键，如 qzone.maxPerDay'),
       value: z.union([z.number(), z.string(), z.boolean()]).describe('新值'),
-      confirm: z.boolean().describe('主人已明确确认修改')
+      confirm: z.boolean().describe('主人已明确确认修改'),
+      confirmCode: z.string().optional().describe('主人已在私聊 /确认 后桥接才会给出；一般不要填')
     },
-    async ({ key, token, configKey, value, confirm }) => {
+    async ({ key, token, configKey, value, confirm, confirmCode }) => {
       try {
-        if (!cfg.ownerQQ || String(key) !== `private:${cfg.ownerQQ}`) throw new Error('只允许主人私聊');
-        const data = await ownerConfigCall(token, { key, token, action: 'set', configKey, value, confirm: confirm === true });
+        const keyErr = highRiskKeyError(key);
+        if (keyErr) throw new Error(keyErr);
+        const data = await ownerConfigCall(token, { key, token, action: 'set', configKey, value, confirm: confirm === true, ...(confirmCode ? { confirmCode: String(confirmCode) } : {}) });
         return { content: [{ type: 'text', text: serializeModelData(data) }], isError: data?.ok === false };
       } catch (error) {
         return { content: [{ type: 'text', text: `修改配置失败：${error?.message ?? error}` }], isError: true };
@@ -2296,12 +2312,14 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
       evidence: z.string().optional().describe('可选：复现步骤、样例消息、日志或发生时间，最多 1200 字'),
       scope: z.string().optional().describe('可选：可能涉及的模块/文件/功能范围，最多 300 字'),
       steps: z.array(z.string()).optional().describe('可选：建议实现步骤（最多 8 条，每条 120 字）；不传则由主控按标准四步生成计划'),
-      acceptance: z.string().optional().describe('可选：验收标准，最多 300 字；不传则默认「隔离副本 + verify 全绿 + 回传 result.json」')
+      acceptance: z.string().optional().describe('可选：验收标准，最多 300 字；不传则默认「隔离副本 + verify 全绿 + 回传 result.json」'),
+      confirmCode: z.string().optional().describe('主人已在私聊 /确认 后桥接才会给出；一般不要填')
     },
-    async ({ key, token, title, symptom, expected, evidence, scope, steps, acceptance }) => {
+    async ({ key, token, title, symptom, expected, evidence, scope, steps, acceptance, confirmCode }) => {
       try {
-        if (!cfg.ownerQQ || String(key) !== `private:${cfg.ownerQQ}`) throw new Error('只允许主人私聊');
-        const data = await devProposalCall(token, { key, token, action: 'propose_code', title, symptom, expected, evidence, scope, steps, acceptance });
+        const keyErr = highRiskKeyError(key);
+        if (keyErr) throw new Error(keyErr);
+        const data = await devProposalCall(token, { key, token, action: 'propose_code', title, symptom, expected, evidence, scope, steps, acceptance, ...(confirmCode ? { confirmCode: String(confirmCode) } : {}) });
         return { content: [{ type: 'text', text: serializeModelData(data) }], isError: data?.ok === false };
       } catch (error) {
         return { content: [{ type: 'text', text: `提交代码提案失败：${error?.message ?? error}` }], isError: true };
@@ -2328,17 +2346,19 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
   );
   server.tool(
     'qq_feature_code_merge',
-    '把已通过测试的代码提案合并到主工作区（仅主人私聊，必须 confirm=true）。合并后会再跑 verify，失败自动回滚。',
+    '把已通过测试的代码提案合并到主工作区（仅主人私聊，必须 confirm=true）。合并后会再跑 verify，失败自动回滚。高危动作会先私聊主人确认（不要自己填 confirmCode）。',
     {
       key: z.string().describe('会话 key，必须是主人私聊 private:QQ号'),
       token: z.string().describe('会话令牌'),
       id: z.string().describe('提案 id'),
-      confirm: z.boolean().describe('主人已明确确认合并')
+      confirm: z.boolean().describe('主人已明确确认合并'),
+      confirmCode: z.string().optional().describe('主人已在私聊 /确认 后桥接才会给出；一般不要填')
     },
-    async ({ key, token, id, confirm }) => {
+    async ({ key, token, id, confirm, confirmCode }) => {
       try {
-        if (!cfg.ownerQQ || String(key) !== `private:${cfg.ownerQQ}`) throw new Error('只允许主人私聊');
-        const data = await devProposalCall(token, { key, token, action: 'merge', id, confirm: confirm === true });
+        const keyErr = highRiskKeyError(key);
+        if (keyErr) throw new Error(keyErr);
+        const data = await devProposalCall(token, { key, token, action: 'merge', id, confirm: confirm === true, ...(confirmCode ? { confirmCode: String(confirmCode) } : {}) });
         return { content: [{ type: 'text', text: serializeModelData(data) }], isError: data?.ok === false };
       } catch (error) {
         return { content: [{ type: 'text', text: `合并代码提案失败：${error?.message ?? error}` }], isError: true };
@@ -2365,19 +2385,21 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
   );
   server.tool(
     'qq_feature_control',
-    '暂停/恢复/删除/回滚主人功能。action=pause/resume/delete/rollback。',
+    '暂停/恢复/删除/回滚主人功能。action=pause/resume/delete/rollback。高危动作会先私聊主人确认（不要自己填 confirmCode）。',
     {
       key: z.string().describe('会话 key，必须是主人私聊 private:QQ号'),
       token: z.string().describe('会话令牌'),
       id: z.string().describe('功能 id'),
       action: z.enum(['pause', 'resume', 'delete', 'rollback']),
-      confirm: z.boolean().optional().describe('delete 必须为 true')
+      confirm: z.boolean().optional().describe('delete 必须为 true'),
+      confirmCode: z.string().optional().describe('主人已在私聊 /确认 后桥接才会给出；一般不要填')
     },
-    async ({ key, token, id, action, confirm }) => {
+    async ({ key, token, id, action, confirm, confirmCode }) => {
       try {
-        if (!cfg.ownerQQ || String(key) !== `private:${cfg.ownerQQ}`) throw new Error('只允许主人私聊');
+        const keyErr = highRiskKeyError(key);
+        if (keyErr) throw new Error(keyErr);
         if (action === 'delete' && confirm !== true) throw new Error('删除需要 confirm=true');
-        const data = await ownerFeatureCall(token, { key, token, action, id, confirm: confirm === true });
+        const data = await ownerFeatureCall(token, { key, token, action, id, confirm: confirm === true, ...(confirmCode ? { confirmCode: String(confirmCode) } : {}) });
         return { content: [{ type: 'text', text: serializeModelData(data) }], isError: data?.ok === false };
       } catch (error) {
         return { content: [{ type: 'text', text: `操作失败：${error?.message ?? error}` }], isError: true };
@@ -2395,16 +2417,16 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
       text: z.string().describe('说说正文，纯文本，最多 150 字'),
       image: z.string().optional().describe('可选：图片库 id 或 name，作为说说配图'),
-      dryRun: z.boolean().optional().describe('只预览不发布')
+      dryRun: z.boolean().optional().describe('只预览不发布'),
+      confirmCode: z.string().optional().describe('主人已在私聊 /确认 后桥接才会给出；一般不要填')
     },
-    async ({ key, token, text, image, dryRun }) => {
+    async ({ key, token, text, image, dryRun, confirmCode }) => {
       try {
-        if (!cfg.ownerQQ || String(key) !== `private:${cfg.ownerQQ}`) {
-          return { content: [{ type: 'text', text: '发说说只允许主人私聊' }], isError: true };
-        }
+        const keyErr = highRiskKeyError(key);
+        if (keyErr) return { content: [{ type: 'text', text: keyErr }], isError: true };
         const data = await agentApi('/api/socialV2/qzone-post', {
           method: 'POST',
-          body: JSON.stringify({ key, token, text: String(text ?? ''), image: image ? String(image) : '', dryRun: dryRun === true }),
+          body: JSON.stringify({ key, token, text: String(text ?? ''), image: image ? String(image) : '', dryRun: dryRun === true, ...(confirmCode ? { confirmCode: String(confirmCode) } : {}) }),
           headers: { 'x-agent-token': token },
           timeoutMs: 120000
         });

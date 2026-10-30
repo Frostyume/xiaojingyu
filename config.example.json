@@ -338,6 +338,12 @@
       "maxPixels": 64000000,
       "maxCount": 5
     },
+    "controlTiers": {
+      "enabled": true,
+      "ownerDirectiveTtlMs": 600000,
+      "groupEscalationNotify": true,
+      "requireConfirmForHighRisk": true
+    },
     "nightQuiet": {
       "enabled": true,
       "start": "23:30",

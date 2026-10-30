@@ -28,6 +28,12 @@
 | [design/DSH_QQ_TOOLS_PLAN.md](design/DSH_QQ_TOOLS_PLAN.md) | 「一切皆工具」总路线与交接文档：当前能力盘点、安全性设计、分阶段计划 | ⚠️ 阶段计划大部分已完成，作为路线/安全设计参考仍有效 |
 | [design/真人语感策略.md](design/真人语感策略.md) | 拟人化策略：短句碎片、接梗、错别字、话题漂移、选择性沉默、括号用法 | ⚠️ 文首已自注：部分「现状」写于旧版随机分句时期，最新行为以 PROJECT_GUIDE / 代码为准 |
 
+## 根目录规划文档（本地）
+
+| 文档 | 一句话说明 | 状态 |
+| --- | --- | --- |
+| [CONTROL-TIERS-PLAN-2026-10-30.md](CONTROL-TIERS-PLAN-2026-10-30.md) | **控制面分层**：主人在群里刚下过指令时，群会话可执行低风险跨会话动作（发文字/语音/图片/表情/戳一戳、读其他会话）；高危动作（功能变更、配置、代码提案/合并、Qzone 发布）在群里只回「去私聊」并提醒主人，私聊里需 6 位确认码二次确认；`socialV2.controlTiers.enabled` 可整体回退旧行为 | ✅ 已实施（2026-10-30）；⚠️ **本文件只在本机仓库**，不进公开仓库 |
+
 ## research/ —— 调研记录（结论可直接引用，过程可能过时）
 
 | 文档 | 一句话说明 | 状态 |
@@ -71,6 +77,7 @@
 | 改控制台界面并做离线回归 | [guides/CONSOLE-UI-TESTING.md](guides/CONSOLE-UI-TESTING.md)、[audits/CONSOLE_UI_REDESIGN_REPORT.md](audits/CONSOLE_UI_REDESIGN_REPORT.md) |
 | 改代码前先知道有哪些坑 | [guides/DSH_020_ADAPTATION.md](guides/DSH_020_ADAPTATION.md)（最新，DSH 适配）、[audits/AUDIT_FIXES_2026-09-20.md](audits/AUDIT_FIXES_2026-09-20.md)、[audits/AUDIT_REPORT_2026-09-20.md](audits/AUDIT_REPORT_2026-09-20.md) |
 | 动安全相关代码 / 做发布前检查 | [guides/SECURITY_BASELINE.md](guides/SECURITY_BASELINE.md) |
+| 搞清楚「群里能做什么、私聊能做什么」 | [CONTROL-TIERS-PLAN-2026-10-30.md](CONTROL-TIERS-PLAN-2026-10-30.md)（控制面分层，本地文档）、[guides/SECURITY_BASELINE.md](guides/SECURITY_BASELINE.md) |
 | 知道某个目录/脚本是干什么的 | [FOLDER_MAP.md](FOLDER_MAP.md) |
 | 权限边界与安全承诺 | [../RULES.md](../RULES.md) |
 | 这个项目要往哪走（QSH） | 上位目录的 `../../QSH-plan/`（总索引 `README.md`；另有工具面/技能/云部署/新仓库与官网四份专项） |

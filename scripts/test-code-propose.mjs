@@ -207,7 +207,9 @@ test('qq_code_propose 工具面覆盖修复/改进/新功能，并透传 steps/a
   assert.match(block, /新功能/);
   assert.match(block, /steps: z\.array\(z\.string\(\)\)/);
   assert.match(block, /acceptance: z\.string\(\)/);
-  assert.match(block, /steps, acceptance \}\)/);
+  // 控制面分层后高危工具多一个可选 confirmCode（主人 /确认 后桥接才给出）。
+  assert.match(block, /steps, acceptance, confirmCode \}\)/);
+  assert.match(block, /confirmCode: z\.string\(\)\.optional\(\)/);
 });
 
 test('上一次只写了提案没入队时，补入队而不是重复建任务', () => {
