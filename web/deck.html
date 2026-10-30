@@ -818,13 +818,13 @@ summary {
 .save-bar .meta {
   font-size:11px
 }
-.simulation-tool-list {
+.sim-tool-list {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(min(265px,100%),1fr));
   gap:10px;
   margin-top:12px
 }
-.simulation-tool-item {
+.sim-tool-item {
   display:flex;
   align-items:flex-start;
   gap:9px;
@@ -836,15 +836,15 @@ summary {
   font-size:12px;
   min-width:0
 }
-.simulation-tool-item input {
+.sim-tool-item input {
   margin-top:4px
 }
-.simulation-tool-item .meta {
+.sim-tool-item .meta {
   display:block;
   font-size:11px;
   margin-top:3px
 }
-.simulation-tool-item b {
+.sim-tool-item b {
   font-family:Consolas,monospace;
   font-size:12px;
   font-weight:500;
@@ -1722,10 +1722,10 @@ tr:last-child td {
 .settings-group[open] summary {
   background:var(--surface-open)
 }
-.simulation-tool-item {
+.sim-tool-item {
   transition:background .18s ease,border-color .18s ease
 }
-.simulation-tool-item:hover {
+.sim-tool-item:hover {
   background:var(--surface-hover)
 }
 
@@ -1852,7 +1852,6 @@ button:active:not(:disabled) {
 .content-controls input,.content-controls select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:inherit;font:inherit}
 .content-controls input[type=checkbox]{align-self:flex-start;width:16px;height:16px}
 .content-history{border-top:1px solid var(--border);margin-top:10px;padding-top:8px}
-
 /* =====================================================================
    潮汐主题 · Tidepool
    深海侧栏 + 海玻璃卡片 + 浅海渐变。所有颜色仍走原有设计变量，
@@ -3464,7 +3463,7 @@ button.active,.primary {
       <button data-view="reliability" data-label="可靠性与配置" title="可靠性与配置" class="nav-item"><span class="nav-icon" aria-hidden="true">⛁</span>可靠性与配置</button>
       <button data-view="reference" data-label="工具参考" title="工具参考" class="nav-item"><span class="nav-icon" aria-hidden="true">ⓘ</span>工具参考</button>
     </nav>
-    <div class="sidebar-bottom"><span class="local-dot"></span><span class="rail-status">在线</span><small>QQ ↔ DSH</small></div>
+    <div class="sidebar-bottom"><span class="local-dot"></span>本地控制台<small>QQ ↔ DeepSeek Harness</small></div>
   </aside>
   <div class="workspace">
     <header class="topbar">
@@ -3473,6 +3472,7 @@ button.active,.primary {
     </header>
     <section class="status-ribbon" aria-label="实时链路状态">
       <div class="ribbon-label"><span class="ribbon-led" aria-hidden="true"></span><strong>LIVE</strong><small>实时读板</small></div>
+
       <div id="overviewSummary" class="overview-summary">
         <div class="metric"><span>DSH 连接</span><strong id="metricDsh">连接中</strong><small id="metricDshHint">等待服务响应</small></div>
         <div class="metric"><span>SnowLuma 上游</span><strong id="metricSnowluma">读取中</strong><small id="metricSnowlumaHint">等待网关健康上报</small></div>
