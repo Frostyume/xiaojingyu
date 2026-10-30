@@ -4,7 +4,7 @@
 // 这里存的是任意图片：网上找的图、视频/帖子截图、群里别人发的图、二创表情等。
 // 图片可以在群里当图片发（qq_send_image），也可以作为空间说说的配图。
 //
-// 文件本体放在库目录（默认 D:/qq-bridge-images，避免占 C 盘），
+// 文件本体放在库目录（默认 D:/xiaojingyu-images，避免占 C 盘），
 // 元数据（名称/备注/标签/来源/许可）放在 state/images.json。
 
 import fs from 'node:fs';

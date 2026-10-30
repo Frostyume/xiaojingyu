@@ -19,7 +19,7 @@ export const BLOCKED_OUTCOMES = Object.freeze(['login', 'quota', 'sdk-env']);
 
 export const DEFAULT_PROMPT = [
   '你是主控的事件处理回合（由桥接事件唤醒的临时会话，不留痕）。',
-  '1. 读 qq-bridge/state/orchestrator/wake.request.json 的 pending 列表和 coordinator-inbox.json 的 items；两者都为空才只回复 NOOP 并结束。',
+  '1. 读 state/orchestrator/wake.request.json 的 pending 列表和 coordinator-inbox.json 的 items；两者都为空才只回复 NOOP 并结束。',
   '2. 逐个任务读 state/orchestrator/tasks/<id>.json、state/orchestrator/plans/<id>.md、state/dev-proposals/<id>.json。',
   '3. 计划缺项（步骤、验收、边界不完整）或与提案不符时，直接补写 plans/<id>.md，并在任务 history 记一条；计划完整就不要改。',
   '4. 不要写业务代码、不要建隔离副本、不要合并/提交/推送/部署、不要改人格资产、不要向 QQ 或群发任何消息——执行由 Qoder Desktop 会话负责，通知由桥接负责。',

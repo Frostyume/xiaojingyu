@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>小鲸鱼 · 一条消息的一生</title>
+<style>
+  :root {
+    --ink: #eaf7f8;
+    --muted: #93b6bd;
+    --faint: #5f858d;
+    --teal: #2dd4bf;
+    --teal-deep: #0d9488;
+    --line: rgba(45, 212, 191, .26);
+    --panel: rgba(10, 42, 52, .74);
+    --panel-2: rgba(6, 28, 36, .82);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    width: 1600px;
+    min-height: 700px;
+    padding: 54px 64px 48px;
+    font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1100px 520px at 18% -10%, rgba(14, 116, 108, .34), transparent 62%),
+      radial-gradient(900px 460px at 92% 8%, rgba(56, 189, 248, .14), transparent 60%),
+      linear-gradient(180deg, #04161f 0%, #061f29 48%, #04141c 100%);
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 233, 222, .045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 233, 222, .045) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.7), rgba(0,0,0,.12));
+    pointer-events: none;
+  }
+  .canvas { position: relative; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 34px; }
+  .kicker {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 13px; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--teal); margin: 0 0 10px;
+  }
+  h1 { font-size: 44px; line-height: 1.1; margin: 0 0 8px; letter-spacing: .01em; }
+  .sub { margin: 0; color: var(--muted); font-size: 18px; }
+  .whale {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--muted); font-size: 13px; letter-spacing: .16em;
+    font-family: "Cascadia Mono", Consolas, monospace;
+  }
+  .whale svg { display: block; }
+  .flow { display: grid; grid-template-columns: 1fr 1.18fr 1.06fr; gap: 26px; align-items: stretch; }
+  .stage {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    padding: 22px 22px 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .04);
+  }
+  .stage::after {
+    content: "";
+    position: absolute; top: 50%; right: -20px;
+    width: 14px; height: 2px;
+    background: linear-gradient(90deg, var(--teal), transparent);
+    box-shadow: 0 0 12px var(--teal);
+  }
+  .stage:last-child::after { display: none; }
+  .stage-no {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 12px; letter-spacing: .22em; color: var(--teal);
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  }
+  .stage-no i {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1px solid var(--line);
+    display: grid; place-items: center; font-style: normal; font-size: 11px;
+    background: rgba(45, 212, 191, .08);
+  }
+  .stage h2 { font-size: 21px; margin: 0 0 4px; font-weight: 600; }
+  .stage .hint { margin: 0 0 16px; color: var(--faint); font-size: 13px; }
+  .row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; margin-bottom: 8px;
+    border-radius: 11px;
+    background: rgba(148, 233, 222, .05);
+    border: 1px solid rgba(148, 233, 222, .09);
+    font-size: 14px;
+  }
+  .row b { font-weight: 600; }
+  .row .dim { color: var(--muted); margin-left: auto; font-size: 12.5px; }
+  .arrow-down { text-align: center; color: var(--teal); font-size: 12px; margin: 2px 0 8px; letter-spacing: .2em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; }
+  .chip {
+    font-size: 12.5px; padding: 5px 10px; border-radius: 999px;
+    border: 1px solid rgba(45, 212, 191, .24);
+    background: rgba(45, 212, 191, .07);
+    color: #c8f3ee;
+  }
+  .decide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .branch {
+    border-radius: 13px; padding: 12px 12px 11px;
+    border: 1px solid rgba(148, 233, 222, .12);
+    background: rgba(4, 22, 29, .6);
+  }
+  .branch .tag { font-size: 13px; font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .branch p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+  .branch.speak { border-color: rgba(45, 212, 191, .4); box-shadow: 0 0 0 1px rgba(45, 212, 191, .12) inset, 0 8px 24px rgba(13, 148, 136, .18); }
+  .branch.speak .tag { color: var(--teal); }
+  .gate {
+    margin-top: 10px; padding: 10px 12px;
+    border-radius: 11px;
+    background: rgba(13, 148, 136, .12);
+    border: 1px dashed rgba(45, 212, 191, .35);
+    font-size: 12.5px; color: #d8fbf6;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .gate b { color: var(--teal); font-weight: 600; }
+  .foot {
+    margin-top: 26px; padding-top: 18px;
+    border-top: 1px solid rgba(148, 233, 222, .1);
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--muted); font-size: 13.5px;
+  }
+  .foot .mark { color: var(--faint); font-family: "Cascadia Mono", Consolas, monospace; letter-spacing: .18em; font-size: 11.5px; }
+  .pulse { animation: none; }
+</style>
+</head>
+<body data-lang="zh">
+<div class="canvas">
+  <header class="head">
+    <div>
+      <p class="kicker" data-en="MESSAGE LIFECYCLE">消息的一生</p>
+      <h1 data-en="The life of a message">一条消息的一生</h1>
+      <p class="sub" data-en="From a friend hitting send to the moment she decides whether to answer.">从群友按下发送，到她决定要不要接话。</p>
+    </div>
+    <div class="whale">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+        <circle cx="17" cy="17" r="16" stroke="rgba(45,212,191,.45)"/>
+        <path d="M9 18c0-4 3.6-6.4 7.4-6.4 3.4 0 5.6 1.9 6.4 4.1l2.8-1.6.2 2.4 1.9-1.1c-.4 3.6-3 6.9-7.2 7.5-4.6.7-8.2-1.4-9.1-4.4-.4-1.4-.1-3.3 1.6-3.9-.1 1.4.4 2.4 1.4 2.8 1 .4 2.2.1 2.9-.7" stroke="#2dd4bf" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="22.6" cy="14.6" r=".95" fill="#2dd4bf"/>
+      </svg>
+      <span>XIAOJINGYU</span>
+    </div>
+  </header>
+
+  <main class="flow">
+    <section class="stage">
+      <div class="stage-no"><i>01</i><span data-en="TRIGGER">触发</span></div>
+      <h2 data-en="Someone speaks in QQ">群里有人说话</h2>
+      <p class="hint" data-en="She is just an ordinary member of the group.">她的账号只是一个普通群友。</p>
+      <div class="row"><b data-en="Group / DM message">群消息 / 私聊消息</b><span class="dim">QQ</span></div>
+      <div class="arrow-down">↓</div>
+      <div class="row"><b data-en="OneBot event">OneBot 事件</b><span class="dim">SnowLuma</span></div>
+      <div class="arrow-down">↓</div>
+      <div class="row"><b data-en="Dedupe &amp; enqueue">去重、入队</b><span class="dim" data-en="never lost">不丢、不重</span></div>
+    </section>
+
+    <section class="stage">
+      <div class="stage-no"><i>02</i><span data-en="THINK">判断</span></div>
+      <h2 data-en="First: is it worth looking?">先决定要不要看</h2>
+      <p class="hint" data-en="Not every message deserves her attention.">不是每条消息都值得她抬头。</p>
+      <div class="chips">
+        <span class="chip" data-en="@ me">@ 我</span>
+        <span class="chip" data-en="called by name">叫名字</span>
+        <span class="chip" data-en="keyword">关键词</span>
+        <span class="chip" data-en="someone asks">有人在问</span>
+        <span class="chip" data-en="poke">拍一拍</span>
+        <span class="chip" data-en="probability">概率</span>
+      </div>
+      <div class="row"><b data-en="Read the unread queue">翻未读队列</b><span class="dim" data-en="context">先看上下文</span></div>
+      <div class="row"><b data-en="Recent messages, images, quotes">最近消息、图片、引用</b></div>
+      <div class="row"><b data-en="Group profile &amp; member vibes">这个群是谁、在聊什么</b><span class="dim" data-en="memory">群画像</span></div>
+    </section>
+
+    <section class="stage">
+      <div class="stage-no"><i>03</i><span data-en="ACT">行动</span></div>
+      <h2 data-en="Then she chooses">然后，她选择</h2>
+      <p class="hint" data-en="Silence, waiting and diving are real choices too.">沉默、等待、潜水，也都是回答。</p>
+      <div class="decide">
+        <div class="branch speak">
+          <div class="tag" data-en="Speak">说</div>
+          <p data-en="One line, burst, quote, poke, sticker or voice.">写一句、分条、引用、拍一拍、表情或语音。</p>
+        </div>
+        <div class="branch">
+          <div class="tag" data-en="Stay silent">不说</div>
+          <p data-en="Seen, counted as unread, keeps diving.">看过，记下未读，继续潜水。</p>
+        </div>
+        <div class="branch">
+          <div class="tag" data-en="Wait">等等</div>
+          <p data-en="Wait for the next wave, then decide again.">等下一波消息，再判断一次。</p>
+        </div>
+      </div>
+      <div class="gate"><b data-en="Gate">发出前</b><span data-en="Whitelist · rate · night silence · sensitive-text audit">白名单 · 频率 · 夜间静默 · 敏感信息审计</span></div>
+      <div class="row" style="margin-top:10px"><b data-en="Delivered in QQ, at a human pace">以真人的节奏出现在 QQ</b><span class="dim">QQ</span></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span data-en="She will not turn every message into a reply — being present is not the same as talking non-stop.">她不会把每条消息都变成一次回复——在场，不等于不停说话。</span>
+    <span class="mark">03 STAGES · 1 DECISION · 0 AUTO-REPLY</span>
+  </footer>
+</div>
+<script>
+  if (new URLSearchParams(location.search).get('lang') === 'en') {
+    document.body.dataset.lang = 'en';
+    document.documentElement.lang = 'en';
+    document.querySelectorAll('[data-en]').forEach(el => { el.textContent = el.dataset.en; });
+  }
+</script>
+</body>
+</html>

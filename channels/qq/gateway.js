@@ -4,7 +4,7 @@
 //   SnowLuma 的 OneBot 配置是**按账号分文件**的：<SnowLuma>/config/onebot_<QQ号>.json，
 //   每个账号有各自的 httpServers[].accessToken（**HTTP 与 WebSocket 的 token 还是不同的**）。
 //   换账号登录后，旧的 accessToken 直接 401（retcode 1401），
-//   于是任何把它硬编码在 config.json 里的工具（独立工具、图形界面、甚至 qq-bridge）全部失效。
+//   于是任何把它硬编码在 config.json 里的工具（独立工具、图形界面、甚至本程序）全部失效。
 //
 // 本模块的做法：**不猜**，而是拿候选 token 真去问一次 get_login_info，谁通就用谁，
 // 并把"当前是哪个账号"一并回报出来。候选来源：
@@ -173,7 +173,7 @@ export async function discoverSnowLumaConnection({
 }
 
 /**
- * 把当前有效的 token 写回 config.json（可选动作，供 qq-bridge 这类"必须持久化 token"的组件用）。
+ * 把当前有效的 token 写回 config.json（可选动作，供"必须持久化 token"的组件用）。
  * 只在真的换过账号时才写，避免无谓改动。
  * 返回 { updated, from, to }。
  */

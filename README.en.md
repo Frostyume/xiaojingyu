@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="assets/banner.png" alt="xiaojingyu · qq-bridge" width="100%">
+  <img src="assets/banner.png" alt="Xiaojingyu · a companion AI that lives in QQ" width="100%">
 </p>
 
-<h1 align="center">xiaojingyu · qq-bridge</h1>
+<h1 align="center">Xiaojingyu</h1>
 
-<p align="center"><b>Turn QQ into a chat entrance for DeepSeek Harness.</b><br>
-Your group chats stay exactly as they are — behind them is an agent that reads,
-waits, and decides for itself whether it is worth speaking up.</p>
+<p align="center"><b>A companion AI that lives in your QQ.</b><br>
+She is present the way a friend is: she reads the room, picks her moment, remembers what you told her,
+and actually does things when you ask.</p>
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-0.0.0%20dev-5B8DEF?style=flat-square">
@@ -24,79 +24,94 @@ waits, and decides for itself whether it is worth speaking up.</p>
   <a href="UPSTREAM.md">Upstream</a>
 </p>
 
-> Connect QQ messages to DeepSeek Harness (DSH) agents: QQ friends/groups become DSH conversations, and agent replies (including questions and tool approvals) are sent back to QQ.
-
 > ⚠️ **Development build (`0.0.0`, not released), targets DSH 0.2.0-rc.2** (verified item by item on that version; run `npm run verify:adaptation`). It uses the persistent local signing key to **mint the session Cookie offline**, slash RPC endpoints and the `/api/remote.mux` event stream — a protocol generation introduced in DSH `0.1.2-alpha.1`, incompatible with the older dot-endpoint protocol. Reading the launch token out of the old guard logs has not worked since DSH 0.1.7 (the token is generated per process and never written to disk). Agent presets are `@deepseek-ai/dsh-agent-preset` Cordis rows since DSH 0.1.7 (the `~/.dsh/.agent-presets/` directory mechanism is gone). On **DSH `0.1.1-rc.2` or earlier**, use tag [`v0.1.0`](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.1.0); for **DSH 0.1.5-rc.1** use [`v0.1.5`](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.1.5); for **DSH 0.1.7-rc.2** use [`v0.1.7`](https://github.com/Derpyu520/qq-bridge/releases/tag/v0.1.7).
 >
 > The tags above are **upstream releases** ([Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)); this repository has no tags or releases yet and ships a `0.0.0` development snapshot.
 >
 > The default branch `main` **is** this version — a plain `git clone` gets it, no branch switching needed.
 
-For the detailed documentation (all Chinese), start from **[docs/README.md](docs/README.md)**;
-the repository/folder and script-naming conventions are in **[docs/FOLDER_MAP.md](docs/FOLDER_MAP.md)**.
+**Contents**: [Who she is](#who-she-is) · [Scenes](#scenes) · [Life of a message](#life-of-a-message) · [Capabilities](#capabilities) · [Live page](#live-status-page-live) · [Local console](#local-console) · [Architecture](#architecture) · [Requirements](#requirements) · [Quick start](#quick-start) · [Limitations](#limitations) · [Security](#security-notes) · [Layout](#repository-layout) · [Upstream](#upstream-and-license)
 
-## Architecture
+## Who she is
 
-```mermaid
-flowchart LR
-  U["QQ friends / groups"] <-->|"QQ messages"| SL["SnowLuma<br/>OneBot v11"]
-  SL <-->|"WebSocket + HTTP API"| BR["qq-bridge<br/>Node 24"]
-  BR <-->|"Cookie auth / slash RPC / event stream"| DSH["DeepSeek Harness<br/>Web API + MCP"]
-  BR -.->|"state / control"| WEB["Local console<br/>127.0.0.1:3100"]
-  BR -.->|"read-only snapshot"| LIVE["Live status<br/>/live · SSE"]
-```
+Xiaojingyu is not a support bot and not a "message in, reply out" script. She is an AI companion
+that stays in your QQ with her own name, voice, mood and memory. She dives, she picks up jokes, and
+when you say "kind of falling apart today" she asks whether the project is still due Friday.
 
-- **QQ side**: `@snowluma/sdk` provides the OneBot v11 WebSocket client.
-- **DSH side**: adapted for DSH 0.1.2+ and **re-verified on 0.2.0-rc.2** — session Cookie minted from the persistent local signing key, `/api/<namespace>/<method>` slash RPC, and `/api/remote.mux` + `session/follow` event stream (the pending queue is read from `value.projections[<id>].values.inbox`, with the unary `session/projections` RPC as the primary path). The per-session model is pinned by the bridge via `session.selectModel` from `config.json`'s `dsh.model` (default `deepseek-flash` = DeepSeek-V41-Flash, multimodal).
-- **Agent tools**: three bundled MCP servers expose a restricted QQ toolset (`qq_status`, `qq_list_groups`, `qq_get_group_history`, `qq_send_group_message`, `qq_reply`, etc.), a read-only host probe (`snowluma_status` only), and a read-only `web_search` / `web_fetch` pair with SSRF protection.
-  ⚠️ **`start_snowluma` / `stop_snowluma` (and `snowluma.allowProcessControl`) were removed in v0.1.5**: SnowLuma EULA §5.4 requires prior written permission to deploy its proprietary native components through automated scripts. This program only probes, never deploys — installing, starting and scanning SnowLuma is always up to you. See [NOTICE](NOTICE) and [RULES.md](RULES.md).
-- **Console and live view**: a local web console at `http://127.0.0.1:3100` (13 task pages, a live status ribbon for DSH / SnowLuma / mode / sessions / pending approvals, an icon rail, cross-page search and a light / dark theme) plus the read-only `/live` SSE page.
+She lives where you already are — group chats and DMs. No new app, no new habit: your friends keep
+chatting as usual, and she is simply the member who occasionally says something that sounds human.
 
-## What it does
-
-| Area | Concrete behaviour |
+| She has | She does not |
 | --- | --- |
-| **Group-chat simulation** | The agent reads unread messages, decides whether to speak, waits for the next wave, or keeps diving. 35 per-tool switches; wake triggers on @ / name / keyword / question / poke / probability; hard limits for sleep, rate, night silence and clingy follow-ups; per-group initial prompt and group profile. |
-| **Live status page** | `/live` is a single-page SSE view: pixel whale and mood bubble, bonds, mood / energy with a 7-day curve, interests and growth, inner life, current activity, sessions, recent events, service health, cumulative tokens, long-term memory and libraries. Read-only; suited to a second monitor. |
-| **Local console** | 13 task pages for mode switching, sessions and approvals, persona editing, tool switches, slang, libraries, cost, security, operations, reliability and tool reference; light / dark themes, responsive layout, cross-page search. |
-| **Two prompt layers** | The **simulation prompt** owns the tool protocol and behaviour boundaries; the **persona prompt** owns character and voice. Role cards can be created, edited, renamed, duplicated and deleted, with per-mode filtering and an injection character cap. |
-| **Memory and relationships** | Active topics, pending thoughts, member impressions and cross-session personal memory; relationship axes per member, daily-report preview, mood / energy / interest and inner-life timelines. |
-| **Slang learning** | Candidates are extracted from group history; a human confirms meaning, usage, examples, risk and source before an entry enters the vocabulary. Confirmed entries are injected into the prompt and exposed through query / submit tools; thresholds and injection size are configurable. |
-| **Multimodal expression** | Images, emoji and animated images enter the context; sticker notes, tags and image understanding; quote replies, pokes and burst sends; voice library with TTS emotion; inbound voice ASR transcription (off by default). |
-| **Group insight** | Member relationship table with editable values, daily-report preview, active members and group profile; the daily report stays off until enabled. |
-| **Reliability core** | SQLite/WAL; idempotent outbox with replay, inbox dedupe, job queue; messages queue per conversation while DSH is down and are replayed on recovery; `npm run doctor` health check. |
-| **Cost dashboard** | Priced with DeepSeek's official peak / off-peak table; drill-down per group, friend and turn; cache-hit vs miss split; 24-hour / 3-day / 7-day / 30-day trend. |
-| **Secure defaults** | An empty whitelist means no responses; simulation sessions have no local execution tools; sends require a whitelist hit plus sensitive-text audit; cross-session instructions require a confirmation code; internal errors never reach the group; `state/` can be ACL-hardened. |
-| **DSH adaptation** | Session Cookie minted offline from the persistent `~/.dsh` signing key; slash RPC plus `/api/remote.mux` event stream; preset bundle patch; three restricted MCP servers; one-command `install-dsh.mjs` install. |
+| **A persona**: two prompt layers, one for behaviour boundaries and one for character and tone, both editable in the console | **Take over the account**: she is an ordinary member with no admin powers |
+| **Memory**: topics, pending thoughts, member impressions, cross-session personal memory — all viewable and deletable | **Flood the chat**: wake rate, night silence and clingy follow-ups all have hard caps |
+| **Pacing**: she decides whether to look, wait, speak or keep diving | **Reach your machine**: no amount of prompting gives group members local tools |
+| **A toolbox**: read, speak, stickers, search, reminders — each switchable | **Ship data out**: the whole link runs on `127.0.0.1` |
 
-## Group-chat simulation
+**What she deliberately does not do:**
 
-In `simulation` mode an incoming message **does not** trigger one automatic reply per message. The
-bridge only delivers QQ events into DSH reliably; the agent then decides whether to look, whether to
-speak, how many messages to send, or whether to keep diving.
+- she does not inject into QQ or deploy SnowLuma — native hooks are SnowLuma's job, she only talks to
+  its OneBot endpoints;
+- she never messages outside the whitelist, and has no mute / kick / upload / download group actions;
+- she never drops raw DSH / SnowLuma errors into a group, only one plain sentence;
+- she does not send voice by default (AI voice has to be enabled by hand).
 
-```mermaid
-flowchart LR
-  A["Group message"] --> B["OneBot event<br/>inbox dedupe"]
-  B --> C{"Wake condition met?"}
-  C -- "No" --> D["Keep diving<br/>count unread"]
-  C -- "Yes" --> E["Agent calls qq_get_unread_messages"]
-  E --> F{"What to do"}
-  F -- "Speak" --> G["qq_send_message / burst / reply / poke / sticker"]
-  F -- "Stay silent" --> H["qq_mark_read<br/>or qq_set_wake_config"]
-  F -- "Wait" --> I["qq_wait_for_messages"]
-  G --> J["Whitelist / rate / audit"]
-  J --> K["Sent through SnowLuma"]
-```
+## Scenes
+
+<p align="center">
+  <img src="assets/diagrams/scenes.en.png" width="100%" alt="Three scenes: in a group, in a DM, and when something actually needs doing">
+  <br>
+  <sub>Three everyday scenes (illustrative dialogue): picking her moment, remembering you, getting things done</sub>
+</p>
+
+**① In a group, she does not steal the floor.**
+Out of a few hundred messages a day she only looks up when she is called, asked, or when the topic
+lands somewhere she knows. Seven unread, one line back is enough; if she has nothing to add she keeps
+diving — silence is also a way of being present. She knows who jokes around in this group and who is
+busy this week, so her reply does not read like a weather report.
+
+**② In a DM, she remembers you.**
+"Kind of falling apart today" needs no recap. She knows the project is due Friday and that you wanted
+two days by the sea afterwards. That is not re-asked every time — it is memory kept across sessions,
+and you can browse, edit or delete any of it in the console.
+
+**③ When asked, she actually does it.**
+Duty rosters, research, reminders, tidying up chat logs — she reads group history, checks members,
+searches when needed, then sends the result as a few short messages. Anything private or out of bounds
+gets a question first, not an action.
+
+More everyday jobs:
+
+| Everyday need | What she does |
+| --- | --- |
+| A wake-up call | A scheduled reminder in her own voice, not a system notification |
+| The group goes quiet | After a long idle period a probability decides whether to start a topic, not a fixed push |
+| Someone posts an image or sticker | Images enter the multimodal context; the sticker library has notes and tags |
+| You want to hear her | Voice library + TTS emotion; she can only speak clips in `audio/` (off by default) |
+| New slang appears | Candidates are extracted; she only uses an entry after you confirm meaning, usage and risk |
+| You want to see what she is up to | `/live` on a second monitor: mood, energy, bonds, inner life, current activity |
+| You want her to remember something | Say it once — it goes into cross-session memory, and you can delete it any time |
+
+## Life of a message
+
+In `simulation` mode (the default) a message **does not** trigger one automatic reply. She only stores
+the QQ event reliably, then decides for herself whether to look, whether to speak, how many messages to
+send, or whether to keep diving.
+
+<p align="center">
+  <img src="assets/diagrams/message-flow.en.png" width="100%" alt="The life of a message: trigger, think, act">
+  <br>
+  <sub>Trigger → think → act: before deciding what to say, she decides whether to speak at all</sub>
+</p>
 
 ### Tools the agent holds
 
 - **Read**: unread queue, recent messages, one message in detail, message images, merged forwards,
-  active members and its own recent sends (to avoid repeating itself);
+  active members and her own recent sends (to avoid repeating herself);
 - **Speak**: unified send, burst send, quote reply, poke, collect sticker, voice clip — intervals are
   spread out to feel human;
 - **Wait**: `qq_wait_for_messages` waits briefly for new messages, returns immediately when one arrives,
-  and returns on timeout so the agent can decide again;
+  and returns on timeout so she can decide again;
 - **Pacing**: `qq_set_wake_config` sets the next wake trigger (indefinite / at a time / @ / name / keyword /
   question / poke / probability), `qq_mark_read` means "seen but staying silent", and `qq_social_state`
   shows unread and wake state;
@@ -129,6 +144,24 @@ it from the DSH tool list; voice, sticker, collection and send tools can each be
   is allowed;
 - **Send boundary**: every send hits the whitelist; sensitive paths, tokens and cookies are blocked by
   the audit layer; QQ / SnowLuma / DSH internal errors go to logs, never to the group.
+
+## Capabilities
+
+| Area | Concrete behaviour |
+| --- | --- |
+| **Presence in group chats** | She reads unread messages, decides whether to speak, waits for the next wave, or keeps diving. 35 per-tool switches; wake triggers on @ / name / keyword / question / poke / probability; per-group initial prompt and group profile. |
+| **Human pacing** | Hard limits for sleep, rate, night silence and clingy follow-ups; sends are spread out at a human rhythm; after a long idle period a probability decides whether to start a topic. |
+| **Two prompt layers** | The **simulation prompt** owns the tool protocol and behaviour boundaries; the **persona prompt** owns character and voice. Role cards can be created, edited, renamed, duplicated and deleted, with per-mode filtering and an injection character cap. |
+| **Memory and relationships** | Active topics, pending thoughts, member impressions and cross-session personal memory; relationship axes per member, daily-report preview, mood / energy / interest and inner-life timelines. |
+| **Slang learning** | Candidates are extracted from group history; a human confirms meaning, usage, examples, risk and source before an entry enters the vocabulary. Confirmed entries are injected into the prompt and exposed through query / submit tools; thresholds and injection size are configurable. |
+| **Multimodal expression** | Images, emoji and animated images enter the context; sticker notes, tags and image understanding; quote replies, pokes and burst sends; voice library with TTS emotion; inbound voice ASR transcription (off by default). |
+| **Group insight** | Member relationship table with editable values, daily-report preview, active members and group profile; the daily report stays off until enabled. |
+| **Live status page** | `/live` is a single-page SSE view: pixel whale and mood bubble, bonds, mood / energy with a 7-day curve, interests and growth, inner life, current activity, sessions, recent events, service health, cumulative tokens, long-term memory and libraries. Read-only; suited to a second monitor. |
+| **Local console** | 13 task pages for mode switching, sessions and approvals, persona editing, tool switches, slang, libraries, cost, security, operations, reliability and tool reference; light / dark themes, responsive layout, cross-page search. |
+| **Reliability core** | SQLite/WAL; idempotent outbox with replay, inbox dedupe, job queue; messages queue per conversation while DSH is down and are replayed on recovery; `npm run doctor` health check. |
+| **Cost dashboard** | Priced with DeepSeek's official peak / off-peak table; drill-down per group, friend and turn; cache-hit vs miss split; 24-hour / 3-day / 7-day / 30-day trend. |
+| **Secure defaults** | An empty whitelist means no responses; simulation sessions have no local execution tools; sends require a whitelist hit plus sensitive-text audit; cross-session instructions require a confirmation code; internal errors never reach the group; `state/` can be ACL-hardened. |
+| **DSH adaptation** | Session Cookie minted offline from the persistent `~/.dsh` signing key; slash RPC plus `/api/remote.mux` event stream; preset bundle patch; three restricted MCP servers; one-command `install-dsh.mjs` install. |
 
 ## Live status page `/live`
 
@@ -196,28 +229,68 @@ Interface details:
 - **Fully offline**: no external fonts, CDN or analytics; `npm run preview:console` browses every page
   with synthetic data without DSH or QQ.
 
-## Limitations
+## Architecture
 
-- Agent replies are sent once at the end of a turn, not streamed token by token; long replies are split
-  at sentence / URL boundaries;
-- Images, stickers and merged forwards enter the multimodal context; inbound voice is transcribed only
-  when `simulation.speech.asr.enabled` is on (off by default, otherwise a placeholder is shown); video
-  messages currently show a placeholder;
-- **AI voice is off by default** (`simulation.voice.enabled` and `tools.sendVoice` are both `false`):
-  put audio into `audio/`, then enable it in the console. Sample clips live in
-  [`assets/voice/`](assets/voice/);
-- Agent Markdown replies are converted to plain text before sending (links keep the `text (url)` form);
-- Windows 10 / 11 only: both QQ and SnowLuma are Windows programs;
-- Only `simulation` / `closed-agent` are first-class modes; earlier `chat` / `reserved` need a
-  `qq-chat-legacy` preset that is not shipped.
+<p align="center">
+  <img src="assets/diagrams/architecture.en.png" width="100%" alt="Xiaojingyu architecture: QQ ↔ SnowLuma ↔ local bridge ↔ DeepSeek Harness">
+  <br>
+  <sub>Where she lives: every hop stays on your own machine</sub>
+</p>
+
+A conversation runs roughly like this:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as Group member
+  participant S as SnowLuma
+  participant B as Xiaojingyu bridge
+  participant D as DSH agent
+
+  U->>S: speaks in the group
+  S->>B: OneBot v11 event
+  B->>D: delivered to that group's DSH session
+  D->>B: calls qq_get_unread_messages / qq_send_message
+  B->>S: whitelist check + audit, then send
+  S->>U: reply appears in QQ
+```
+
+- **One QQ conversation = one DSH session**, grouped into a "QQ 聊天" workspace, with the mapping
+  persisted in `state/sessions.json`;
+- **All three MCP servers expose only a safe subset**: `snowluma` (QQ actions), `snowluma-host`
+  (read-only probe) and `web-search-safe` (search / fetch with SSRF protection);
+- **Auth never touches process memory**: the session cookie is minted offline from the persistent
+  signing key in `~/.dsh`, so no DSH launch token is needed (it has lived only in memory since DSH 0.1.7);
+- **Persona and memory are local files**: who she is lives in `personas/`, what she remembers lives in
+  `state/` — both can be backed up, moved or deleted.
+
+### DSH-side details (DSH 0.2.0-rc.2)
+
+- **QQ side**: `@snowluma/sdk` provides the OneBot v11 WebSocket client.
+- **DSH side**: session Cookie minted from the persistent local signing key, `/api/<namespace>/<method>`
+  slash RPC, and `/api/remote.mux` + `session/follow` event stream (the pending queue is read from
+  `value.projections[<id>].values.inbox`, with the unary `session/projections` RPC as the primary path).
+  The per-session model is pinned by the bridge via `session.selectModel` from `config.json`'s `dsh.model`
+  (default `deepseek-flash` = DeepSeek-V41-Flash, multimodal).
+- **Agent tools**: three bundled MCP servers expose a restricted QQ toolset (`qq_status`, `qq_list_groups`,
+  `qq_get_group_history`, `qq_send_group_message`, `qq_reply`, etc.), a read-only host probe
+  (`snowluma_status` only), and a read-only `web_search` / `web_fetch` pair with SSRF protection.
+  ⚠️ **`start_snowluma` / `stop_snowluma` (and `snowluma.allowProcessControl`) were removed in v0.1.5**:
+  SnowLuma EULA §5.4 requires prior written permission to deploy its proprietary native components
+  through automated scripts. This program only probes, never deploys — installing, starting and scanning
+  SnowLuma is always up to you. See [NOTICE](NOTICE) and [RULES.md](RULES.md).
+- **Console and live view**: a local web console at `http://127.0.0.1:3100` (13 task pages, a live status
+  ribbon for DSH / SnowLuma / mode / sessions / pending approvals, an icon rail, cross-page search and a
+  light / dark theme) plus the read-only `/live` SSE page.
 
 ## Requirements
 
 - Node.js >= 22.13
+- Windows 10 / 11 (both QQ and SnowLuma are Windows programs)
 - Running DeepSeek Harness Web (default `http://127.0.0.1:3080`)
 - Running SnowLuma with OneBot v11 WebSocket and HTTP API enabled
 
-## Quick Start
+## Quick start
 
 ```bash
 npm install        # postinstall automatically patches the @snowluma/sdk ESM packaging bug
@@ -243,6 +316,9 @@ Key settings:
 | `allow.private` / `allow.groups` | Whitelist of QQ/group IDs |
 | `consolePort` | Local console port, default `3100` |
 
+An empty whitelist with `allowAllWhenEmpty: false` means she **answers nothing** — a deliberate
+fail-closed default.
+
 Start:
 
 ```bash
@@ -251,7 +327,7 @@ npm start
 
 Or double-click `bin/boot.cmd` on Windows (guard mode with auto-restart).
 
-## DSH Setup on Another Device
+### DSH setup, once per machine
 
 The bridge and console can run without extra DSH setup, but the DSH chat preset (`qq-chat`) and the MCP servers must be installed into DSH once per machine:
 
@@ -268,7 +344,22 @@ This installs:
 
 Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for details.
 
-## Security Notes
+## Limitations
+
+- Agent replies are sent once at the end of a turn, not streamed token by token; long replies are split
+  at sentence / URL boundaries;
+- Images, stickers and merged forwards enter the multimodal context; inbound voice is transcribed only
+  when `simulation.speech.asr.enabled` is on (off by default, otherwise a placeholder is shown); video
+  messages currently show a placeholder;
+- **AI voice is off by default** (`simulation.voice.enabled` and `tools.sendVoice` are both `false`):
+  put audio into `audio/`, then enable it in the console. Sample clips live in
+  [`assets/voice/`](assets/voice/);
+- Agent Markdown replies are converted to plain text before sending (links keep the `text (url)` form);
+- Windows 10 / 11 only: both QQ and SnowLuma are Windows programs;
+- Only `simulation` / `closed-agent` are first-class modes; earlier `chat` / `reserved` need a
+  `qq-chat-legacy` preset that is not shipped.
+
+## Security notes
 
 - `config.json` and `state/` are **never committed**; the repository only ships `config.example.json`. Both are ACL-hardened to the owner / SYSTEM / Administrators (`npm run harden-acl`).
 - MCP send tools enforce whitelist checks and reject CQ-code injection.
@@ -277,7 +368,25 @@ Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for d
 - The console uses a generated token when none is configured.
 - Found a security issue? Report it privately per [SECURITY.md](SECURITY.md) — please do not open a public issue.
 
-## Repository Layout
+## Documentation
+
+| Doc | What it covers |
+| --- | --- |
+| [docs/README.md](docs/README.md) | Documentation index (one line per page) |
+| [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) | DSH-side install: preset, MCP, restart |
+| [docs/guides/DSH_ADAPTATION.md](docs/guides/DSH_ADAPTATION.md) | DSH 0.2.0-rc.2 adaptation notes |
+| [docs/guides/SECURITY_BASELINE.md](docs/guides/SECURITY_BASELINE.md) | Security baseline and Windows ACL |
+| [docs/guides/RELIABILITY.md](docs/guides/RELIABILITY.md) | outbox / queue / retry mechanics |
+| [docs/guides/TOKEN_USAGE_CONSOLE.md](docs/guides/TOKEN_USAGE_CONSOLE.md) | Cost dashboard pricing and method |
+| [docs/guides/CONSOLE-UI-TESTING.md](docs/guides/CONSOLE-UI-TESTING.md) | Console offline regression and preview |
+| [docs/guides/PRIVACY.md](docs/guides/PRIVACY.md) | What leaves the machine, privacy switches |
+| [RULES.md](RULES.md) | Permission boundaries for QQ sessions |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting |
+| [UPSTREAM.md](UPSTREAM.md) | Fork point and sync rules |
+| [docs/FOLDER_MAP.md](docs/FOLDER_MAP.md) | Folder layout and script naming conventions |
+| [NOTICE](NOTICE) | Third-party components and licenses |
+
+## Repository layout
 
 ```
 xiaojingyu/
@@ -300,7 +409,11 @@ xiaojingyu/
   tools/                # operations, build and test helper scripts
   tests/                # automated tests and baseline fixtures
   bin/                  # Windows launchers (boot.cmd / reboot.cmd)
-  assets/               # README banner, screenshots (offline demo data) and voice/ (two sample clips)
+  assets/
+    banner.png          # README banner
+    diagrams/           # README diagrams (HTML sources + rendered PNGs)
+    screenshots/        # console screenshots (offline demo data)
+    voice/              # two sample clips, copy into audio/ to use
   state/                # runtime data (not in repo)
 ```
 
@@ -332,7 +445,7 @@ npm run test-slang
 npm run test-stickers
 ```
 
-## Upstream and License
+## Upstream and license
 
 This project started from the MIT-licensed [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)
 (baseline `v0.2.0-r4`); thanks to its authors and contributors for the bridge skeleton. On top of that,

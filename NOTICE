@@ -3,13 +3,13 @@
 本文件**不是许可证的一部分**（LICENSE 只包含 MIT 正文），但它记录了与本项目一起使用/分发的
 第三方组件各自的许可，以及使用者需要知道的风险边界。请与 [LICENSE](LICENSE) 一并阅读。
 
-本项目（qq-bridge，将来的 QSH）采用 MIT 许可。**它不覆盖下列第三方组件**，这些组件各自
+本项目（小鲸鱼 Xiaojingyu）采用 MIT 许可。**它不覆盖下列第三方组件**，这些组件各自
 适用其原始许可，使用前请自行阅读并遵守：
 
 | 组件 | 许可 | 说明 |
 | --- | --- | --- |
 | [`@deepseek-ai/dsh`](https://github.com/deepseek-ai/deepseek-harness) 及其 `@deepseek-ai/*` 包 | MIT | DeepSeek Harness 本体与官方 API 客户端 |
-| [`@snowluma/sdk`](https://www.npmjs.com/package/@snowluma/sdk) / [`@snowluma/mcp`](https://www.npmjs.com/package/@snowluma/mcp) | ⚠️ **声明为 `SEE LICENSE IN LICENSE`，但包里没有 LICENSE 文件**（见下） | 本项目通过 npm 依赖使用；计划在 QSH 里**移除这两个依赖**（见下） |
+| [`@snowluma/sdk`](https://www.npmjs.com/package/@snowluma/sdk) / [`@snowluma/mcp`](https://www.npmjs.com/package/@snowluma/mcp) | ⚠️ **声明为 `SEE LICENSE IN LICENSE`，但包里没有 LICENSE 文件**（见下） | 本项目通过 npm 依赖使用；计划在后续版本里**移除这两个依赖**（见下） |
 | [SnowLuma](https://github.com/SnowLuma/SnowLuma) 本体 | SnowLuma 源码可见非商业许可（非 OSI 开源） | **本项目不在仓库内包含、也不分发 SnowLuma 的源码或二进制**，只通过 OneBot v11 协议与它通信（另只读其 `config/onebot_*.json` 以发现 token）。⚠️ 例外见下：`npm install` 会对两个 `@snowluma/*` **npm 包**的本地安装副本做一次机械修补（不触碰 SnowLuma 本体，也不触碰任何原生组件） |
 | `@modelcontextprotocol/sdk`、`js-yaml`、`zod` 等 | MIT / ISC | 见各自包内 LICENSE |
 
@@ -37,7 +37,7 @@
    扩展名，绕开这两个包自身的 ESM 打包问题）。许可 §2(c) 允许"为自己的非商业使用而修改"，
    且**只作用于本机安装副本、不进入本仓库**；**所以"不修改 SnowLuma 的源码或二进制"这种说法是不准确的**，
    本项目文档已统一改为上述据实描述；
-3. **在 QSH 里移除这两个依赖**（已列入 `QSH-plan` 的 M2 里程碑）——
+3. **在后续版本里移除这两个依赖**——
    - `@snowluma/sdk` 在本项目里只用到两样东西：**1 处 WebSocket 客户端构造**（`bridge.js` 末尾）
      + **3 个 `text()` 调用点**（共 6 次调用；实测裸 `text(` 匹配数为 6；另有 3 个 `tools/` 诊断脚本也 import 它）。
      OneBot v11 是公开协议规范，自己实现一个最小客户端即可（约 150 行 + 回归）；
@@ -72,7 +72,7 @@
 > 可能被当作搜索关键词发往搜索后端。默认后端是**已经在处理这段对话的同一个 DeepSeek 搜索接口**
 > （不额外多一个第三方）；只有它不可用时才回退 Bing。若你在意，请在群里启用前告知群成员、
 > 关闭黑话自动研究，或把 `webSearch.provider` 设为 `bing` 明确只用 Bing（也可用 `deepseek` 只走 DeepSeek）。
-> QSH 计划里有一条**"不引入遥测"的设计不变式**：本程序不上报任何遥测/统计/phone-home 数据
+> 本项目有一条**"不引入遥测"的设计不变式**：本程序不上报任何遥测/统计/phone-home 数据
 > （已实测确认：源码中没有 telemetry/analytics 类调用，外部目的地只有上面这五个）。
 
 ### ⚠️ 关于 SnowLuma 许可的说明（读这段可以省掉你自己研究的一小时）
@@ -94,7 +94,7 @@ SnowLuma 采用「源码可见非商业许可」（[LICENSE](https://github.com/
 - **较严格的读法（更站得住）**：§4(a) 已经写的是「Commercial Use of the Software **in any form** is
   PROHIBITED」——「**任何形式**」本就涵盖伪装的商业使用。于是宽松读法会让 §4(b) **没有任何独立适用范围**，
   这反而违背了"同一份许可内部应作一致解释"的准则。**能给 §4(b) 赋予独立含义的，恰恰是字面读法**：
-  它是一条**不带商业限定语**的独立禁止，而 QSH 确实是"另一个项目"。
+  它是一条**不带商业限定语**的独立禁止，而本项目确实是"另一个项目"。
 - 另有两个加重因素：§2 授予的权利是**可撤销（revocable）**的；EULA §8 允许著作权人**单方面更新条款**。
 
 **⇒ 因此本项目的实际立场是：风险不高且大概率不会被追究，但"无需申请"是过于自信的说法。**

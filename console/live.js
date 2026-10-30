@@ -16,7 +16,7 @@ export function handleLiveRequest({ req, res, url, root, headers, snapshot, send
     try {
       res.end(fs.readFileSync(path.join(root, 'web', 'live.html'), 'utf8'));
     } catch {
-      res.end('实时状态页缺失：qq-bridge/web/live.html');
+      res.end('实时状态页缺失：web/live.html');
     }
     return true;
   }

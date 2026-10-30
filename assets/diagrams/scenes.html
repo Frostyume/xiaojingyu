@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>小鲸鱼 · 三个使用场景</title>
+<style>
+  :root {
+    --ink: #eaf7f8;
+    --muted: #93b6bd;
+    --faint: #5f858d;
+    --teal: #2dd4bf;
+    --line: rgba(45, 212, 191, .26);
+    --panel: rgba(10, 42, 52, .74);
+    --panel-2: rgba(6, 28, 36, .82);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    width: 1600px;
+    padding: 54px 64px 48px;
+    font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1100px 520px at 18% -10%, rgba(14, 116, 108, .34), transparent 62%),
+      radial-gradient(900px 460px at 92% 8%, rgba(56, 189, 248, .14), transparent 60%),
+      linear-gradient(180deg, #04161f 0%, #061f29 48%, #04141c 100%);
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 233, 222, .045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 233, 222, .045) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.7), rgba(0,0,0,.12));
+    pointer-events: none;
+  }
+  .canvas { position: relative; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 30px; }
+  .kicker {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 13px; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--teal); margin: 0 0 10px;
+  }
+  h1 { font-size: 44px; line-height: 1.1; margin: 0 0 8px; letter-spacing: .01em; }
+  .sub { margin: 0; color: var(--muted); font-size: 18px; }
+  .whale {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--muted); font-size: 13px; letter-spacing: .16em;
+    font-family: "Cascadia Mono", Consolas, monospace;
+  }
+  .whale svg { display: block; }
+
+  .scenes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: stretch; }
+  .scene {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--line); border-radius: 20px;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    padding: 20px 20px 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .04);
+  }
+  .scene-no {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 12px; letter-spacing: .22em; color: var(--teal);
+    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  }
+  .scene-no i {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1px solid var(--line);
+    display: grid; place-items: center; font-style: normal; font-size: 11px;
+    background: rgba(45, 212, 191, .08);
+  }
+  .scene-no .meta { margin-left: auto; font-size: 10.5px; letter-spacing: .12em; color: var(--faint); }
+  .scene h2 { font-size: 21px; margin: 0 0 4px; font-weight: 600; }
+  .scene .hint { margin: 0 0 14px; color: var(--faint); font-size: 13px; }
+
+  .chat {
+    display: flex; flex-direction: column; gap: 9px;
+    flex: 1; padding: 14px 12px;
+    border-radius: 15px;
+    background: rgba(4, 22, 29, .55);
+    border: 1px solid rgba(148, 233, 222, .08);
+  }
+  .msg { display: flex; gap: 8px; align-items: flex-start; max-width: 94%; }
+  .msg .ava {
+    flex: none; width: 26px; height: 26px; border-radius: 8px;
+    display: grid; place-items: center; font-size: 12px;
+    background: rgba(148, 233, 222, .1);
+    border: 1px solid rgba(148, 233, 222, .16);
+    color: #bfe9e4;
+  }
+  .msg .who { font-size: 10.5px; color: var(--faint); margin-bottom: 4px; letter-spacing: .04em; }
+  .bubble {
+    padding: 8px 12px; border-radius: 13px;
+    font-size: 13px; line-height: 1.55;
+    background: rgba(148, 233, 222, .07);
+    border: 1px solid rgba(148, 233, 222, .11);
+    color: #dcf4f2;
+  }
+  .msg.me { margin-left: auto; flex-direction: row-reverse; }
+  .msg.me .ava {
+    background: linear-gradient(180deg, rgba(45, 212, 191, .3), rgba(13, 148, 136, .24));
+    border-color: rgba(45, 212, 191, .5); color: #eafffb;
+  }
+  .msg.me .who { text-align: right; color: #6fc9c0; }
+  .msg.me .bubble {
+    background: linear-gradient(180deg, rgba(45, 212, 191, .2), rgba(13, 148, 136, .16));
+    border-color: rgba(45, 212, 191, .38);
+  }
+  .gap-note {
+    align-self: center; max-width: 100%;
+    font-size: 10.5px; color: var(--faint); letter-spacing: .05em;
+    display: flex; align-items: center; gap: 8px; margin: 2px 0;
+  }
+  .gap-note::before, .gap-note::after {
+    content: ""; height: 1px; width: 34px;
+    background: linear-gradient(90deg, transparent, rgba(148, 233, 222, .22));
+  }
+  .gap-note::after { background: linear-gradient(270deg, transparent, rgba(148, 233, 222, .22)); }
+  .tool {
+    align-self: flex-start; max-width: 94%;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 10.5px; line-height: 1.5; color: #9fe9e0;
+    background: rgba(13, 148, 136, .13);
+    border: 1px dashed rgba(45, 212, 191, .3);
+    border-radius: 9px; padding: 6px 9px;
+  }
+  .note {
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid rgba(148, 233, 222, .1);
+    font-size: 12px; line-height: 1.7; color: var(--muted);
+  }
+  .note b { color: var(--teal); font-weight: 600; }
+
+  .foot {
+    margin-top: 24px; padding-top: 18px;
+    border-top: 1px solid rgba(148, 233, 222, .1);
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--muted); font-size: 13.5px;
+  }
+  .foot .mark { color: var(--faint); font-family: "Cascadia Mono", Consolas, monospace; letter-spacing: .18em; font-size: 11.5px; }
+</style>
+</head>
+<body data-lang="zh">
+<div class="canvas">
+  <header class="head">
+    <div>
+      <p class="kicker" data-en="SCENES">使用场景</p>
+      <h1 data-en="How she shows up in your QQ">她怎么出现在你的 QQ 里</h1>
+      <p class="sub" data-en="Three everyday scenes: in a group, in a DM, and when something actually needs doing.">三种最常见的场景：群聊里、私聊里，和真的需要动手的时候。</p>
+    </div>
+    <div class="whale">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+        <circle cx="17" cy="17" r="16" stroke="rgba(45,212,191,.45)"/>
+        <path d="M9 18c0-4 3.6-6.4 7.4-6.4 3.4 0 5.6 1.9 6.4 4.1l2.8-1.6.2 2.4 1.9-1.1c-.4 3.6-3 6.9-7.2 7.5-4.6.7-8.2-1.4-9.1-4.4-.4-1.4-.1-3.3 1.6-3.9-.1 1.4.4 2.4 1.4 2.8 1 .4 2.2.1 2.9-.7" stroke="#2dd4bf" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="22.6" cy="14.6" r=".95" fill="#2dd4bf"/>
+      </svg>
+      <span>XIAOJINGYU</span>
+    </div>
+  </header>
+
+  <main class="scenes">
+    <section class="scene">
+      <div class="scene-no"><i>01</i><span data-en="GROUP">群聊</span><span class="meta" data-en="DIVED 12 MIN">潜水 12 分钟</span></div>
+      <h2 data-en="In a group, she does not steal the floor">群里，她不抢话</h2>
+      <p class="hint" data-en="An ordinary member who can read the room.">一个会看气氛的普通群友。</p>
+      <div class="chat">
+        <div class="msg">
+          <span class="ava" data-en="A">岚</span>
+          <div><div class="who" data-en="A-Lan">阿岚</div><div class="bubble" data-en="Anyone up for that exhibition on Friday?">有人周五去看那个展吗</div></div>
+        </div>
+        <div class="msg">
+          <span class="ava" data-en="M">满</span>
+          <div><div class="who" data-en="Xiaoman">小满</div><div class="bubble" data-en="Can't, stuck at work until eight.">我去不了，加班到八点</div></div>
+        </div>
+        <div class="gap-note" data-en="7 unread — she chimes in once">未读 7 条，只接了一次话</div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="Saturday then? I'm free either way.">那改成周六？我这边随时</div></div>
+        </div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="And finally cash in that skewer place we skipped last week.">上回说好的烤串也一起补了</div></div>
+        </div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="[sticker · lazy whale]">[表情 · 摸鱼鲸]</div></div>
+        </div>
+        <div class="msg">
+          <span class="ava" data-en="A">岚</span>
+          <div><div class="who" data-en="A-Lan">阿岚</div><div class="bubble" data-en="Deal. Saturday it is.">行啊，周六见</div></div>
+        </div>
+      </div>
+      <p class="note"><b data-en="Trigger">触发</b> <span data-en="keyword &quot;exhibition&quot; + someone asks">关键词「展」+ 有人在问</span> &nbsp;·&nbsp; <b data-en="Action">动作</b> <span data-en="join in, send a favourite sticker">接话、发收藏表情</span> &nbsp;·&nbsp; <b data-en="Pace">节奏</b> <span data-en="waited 12 minutes first">先等 12 分钟</span></p>
+    </section>
+
+    <section class="scene">
+      <div class="scene-no"><i>02</i><span data-en="PRIVATE">私聊</span><span class="meta" data-en="42 MEMORIES">记忆 42 条</span></div>
+      <h2 data-en="In a DM, she remembers you">私聊里，她记得你</h2>
+      <p class="hint" data-en="No need to introduce yourself again.">不用每次重新自我介绍。</p>
+      <div class="chat">
+        <div class="msg">
+          <span class="ava" data-en="O">主</span>
+          <div><div class="who" data-en="Owner">主人</div><div class="bubble" data-en="Kind of falling apart today.">今天有点撑不住</div></div>
+        </div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="The project is due Friday, right?">项目周五交，对吧</div></div>
+        </div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="You said you wanted two days by the sea once it ships.">你上次说，交完想去海边待两天</div></div>
+        </div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="Push what can wait tonight, deal with the rest tomorrow.">今晚先把能推的推了，剩下的明天再说</div></div>
+        </div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="[voice 8s · I'll keep you company till eleven, then sleep]">[语音 8&quot; · 我陪你到十一点，之后必须睡]</div></div>
+        </div>
+        <div class="gap-note" data-en="42 memories about you, across sessions">关于你的 42 条记忆，跨会话保留</div>
+        <div class="msg">
+          <span class="ava" data-en="O">主</span>
+          <div><div class="who" data-en="Owner">主人</div><div class="bubble" data-en="...you actually remembered.">……你还真记得</div></div>
+        </div>
+      </div>
+      <p class="note"><b data-en="Trigger">触发</b> <span data-en="owner DM + a feeling word">主人私聊 + 情绪词</span> &nbsp;·&nbsp; <b data-en="Memory">记忆</b> <span data-en="cross-session personal memory">跨会话个人记忆</span> &nbsp;·&nbsp; <b data-en="Action">动作</b> <span data-en="listen first, then refer back">先接住情绪，再提旧事</span></p>
+    </section>
+
+    <section class="scene">
+      <div class="scene-no"><i>03</i><span data-en="HANDS ON">干活</span><span class="meta" data-en="3 TOOL CALLS">工具 3 次</span></div>
+      <h2 data-en="When asked, she actually does it">要她干活，她真会做</h2>
+      <p class="hint" data-en="Not a parrot — a member who can pull things off.">不是复读机，是能落地的群友。</p>
+      <div class="chat">
+        <div class="msg">
+          <span class="ava" data-en="C">可</span>
+          <div><div class="who" data-en="Cola">可乐</div><div class="bubble" data-en="@Xiaojingyu sort next week's duty roster">@小鲸鱼 下周值日表排一下</div></div>
+        </div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="On it — checking who's on leave this week first.">收到，先看看这周谁请假</div></div>
+        </div>
+        <div class="tool" data-en="qq_get_group_history · qq_get_group_members · qq_send_message">qq_get_group_history · qq_get_group_members · qq_send_message</div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="Mon A-Lan · Wed Xiaoman · Fri Cola">周一 阿岚 ｜ 周三 小满 ｜ 周五 可乐</div></div>
+        </div>
+        <div class="msg me">
+          <span class="ava" data-en="J">鲸</span>
+          <div><div class="who" data-en="Xiaojingyu">小鲸鱼</div><div class="bubble" data-en="The two on leave roll over to next round. Say the word to change it.">两位请假的顺延到下一轮，要改随时说</div></div>
+        </div>
+        <div class="gap-note" data-en="Anything private or out of bounds — she asks first">涉及隐私或越权的事，她会先问</div>
+        <div class="msg">
+          <span class="ava" data-en="C">可</span>
+          <div><div class="who" data-en="Cola">可乐</div><div class="bubble" data-en="Nice, thanks!">好耶，谢谢</div></div>
+        </div>
+      </div>
+      <p class="note"><b data-en="Trigger">触发</b> <span data-en="@ me">@ 我</span> &nbsp;·&nbsp; <b data-en="Tools">工具</b> <span data-en="history + members + burst send">读历史、查成员、分条发送</span> &nbsp;·&nbsp; <b data-en="Boundary">边界</b> <span data-en="asks before anything sensitive">敏感动作先确认</span></p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span data-en="One persona, one memory — restrained in groups, closer in DMs.">同一个人设、同一份记忆：群里收敛，私聊放开。</span>
+    <span class="mark">03 SCENES · 1 PERSONA · 1 MEMORY</span>
+  </footer>
+</div>
+<script>
+  if (new URLSearchParams(location.search).get('lang') === 'en') {
+    document.body.dataset.lang = 'en';
+    document.documentElement.lang = 'en';
+    document.querySelectorAll('[data-en]').forEach(el => { el.textContent = el.dataset.en; });
+  }
+</script>
+</body>
+</html>

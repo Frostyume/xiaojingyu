@@ -1,7 +1,7 @@
 /**
  * Per-conversation policy routing for the QQ bridge.
  *
- * Why this module exists (P2 of QSH_PLAN.md §3):
+ * Why this module exists:
  *   The bridge historically kept ONE process-global `currentMode`. That makes
  *   "this group runs simulation, but the admin's private chat runs closed-agent"
  *   impossible, and it means every mode decision in a 10k-line file reads the
@@ -99,7 +99,7 @@ function buildModePresets(overrides = {}) {
   return Object.freeze(out);
 }
 
-/** Legacy mode -> canonical QSH mode (ADR 0003 / QSH_PLAN.md §2.1). */
+/** Legacy mode -> canonical mode. */
 export const LEGACY_TO_CANONICAL = Object.freeze({
   chat: 'simulation',
   reserved: 'simulation',
@@ -321,7 +321,7 @@ export function createInitialConversationState(ownerQQ, {
   // closed-agent may never be a *default*: it is a per-conversation privilege,
   // never a blanket applied to every channel. Every other accepted spelling is a
   // simulation mode, and they are collapsed onto the canonical one here so this
-  // layer never *emits* the legacy vocabulary (QSH_PLAN.md §3.1 writes
+  // layer never *emits* the legacy vocabulary (the design notes write
   // `"defaults": { "mode": "simulation" }`). `defaultMode` is still validated:
   // an unrecognised spelling is a config error, not a silent fallback.
   const requested = (defaultMode === null || defaultMode === undefined || defaultMode === '')
@@ -333,7 +333,7 @@ export function createInitialConversationState(ownerQQ, {
 
   const conversations = {};
   // Owner-private starts as closed-agent when the owner is known and the caller
-  // has not opted out — the documented first-run default (QSH_PLAN.md §6.2 step 3,
+  // has not opted out — the documented first-run default (step 3 of the setup flow,
   // "管理员模式开关，默认开启"). Pre-populating the owner's OWN conversation is
   // not the same as initialising the global mode to closed-agent: it grants
   // nothing to any other channel.

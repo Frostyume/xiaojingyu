@@ -33,7 +33,7 @@ function num(value, digits = 1) {
 
 async function fetchJson(url, timeoutMs) {
   const res = await fetch(url, {
-    headers: { 'user-agent': 'qq-bridge-weather/1.0' },
+    headers: { 'user-agent': 'xiaojingyu-weather/1.0' },
     signal: AbortSignal.timeout(timeoutMs)
   });
   if (!res.ok) throw new Error(`天气服务 HTTP ${res.status}`);

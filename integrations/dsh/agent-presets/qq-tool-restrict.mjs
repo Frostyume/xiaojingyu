@@ -207,6 +207,6 @@ export function apply(ctx) {
     if (typeof name !== 'string' || name.length === 0) return '工具名无效，已拒绝'
     if (SAFE_EXACT.has(name)) return
     if (SAFE_PREFIXES.some((prefix) => name.startsWith(prefix))) return
-    return `工具 "${name}" 不在 QQ 桥接白名单内，已拒绝（仅允许 QQ MCP 工具与无害模型侧工具）`
+    return `工具 "${name}" 不在小鲸鱼工具白名单内，已拒绝（仅允许 QQ MCP 工具与无害模型侧工具）`
   })
 }

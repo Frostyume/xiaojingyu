@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | `enabled` | `true` | 总开关。关掉后完全回到旧的 JSON/内存路径 |
 | `dbPath` | `state/db/bridge.db` | 数据库位置（相对仓库根或绝对路径） |
-| `backupDir` | `D:/qq-bridge-backups`（Windows） | 迁移前在线备份；盘符不存在会自动回退 `state/backups` |
+| `backupDir` | `D:/xiaojingyu-backups`（Windows） | 迁移前在线备份；盘符不存在会自动回退 `state/backups` |
 | `backupKeepDays` | `7` | 备份保留天数 |
 | `retentionDays` | `30` | 已结束记录（sent/dead/done）保留天数 |
 | `outboxEnabled` | `true` | 出站消息先落盘 |

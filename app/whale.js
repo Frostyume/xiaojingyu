@@ -249,7 +249,7 @@ const SIGNATURE_FILE = path.join(STATE_DIR, 'signature.json');
 const VOICE_STYLE_FILE = path.join(STATE_DIR, 'voice-style.json');
 const ACTIVITY_LOG = path.join(STATE_DIR, 'qq-activity.log');
 const BRIDGE_LOG = path.join(STATE_DIR, 'bridge.log');
-// 通用图片库元数据（图片本体在 config 的 simulation.imageLibrary.dir，默认 D:/qq-bridge-images）。
+// 通用图片库元数据（图片本体在 config 的 simulation.imageLibrary.dir，默认 D:/xiaojingyu-images）。
 const IMAGE_FILE = path.join(STATE_DIR, 'images.json');
 
 /**
@@ -1176,7 +1176,7 @@ function loadConfig() {
   // 本体默认放 D 盘避免占 C 盘；元数据在 state/images.json。
   cfg.simulation.imageLibrary = {
     enabled: true,
-    dir: 'D:/qq-bridge-images',
+    dir: 'D:/xiaojingyu-images',
     maxBytes: 20 * 1024 * 1024,
     allowUrlSave: true,
     includeInPrompt: true,
@@ -1365,7 +1365,7 @@ function loadConfig() {
     enabled: true,
     dbPath: 'state/db/bridge.db',
     // 备份属于大文件，默认放 D 盘；D 盘不存在时由 main() 回退到 state/backups。
-    backupDir: process.platform === 'win32' ? 'D:/qq-bridge-backups' : 'state/backups',
+    backupDir: process.platform === 'win32' ? 'D:/xiaojingyu-backups' : 'state/backups',
     backupKeepDays: 7,
     retentionDays: 30,
     outboxEnabled: true,
@@ -5873,7 +5873,7 @@ async function main() {
   // 而 **SnowLuma 进程与它的 OneBot WebSocket 都还活着**。于是桥接这边一切正常：
   // WebSocket 是通的、`bot.on('open')` 打过「SnowLuma 已连接」，控制台没有任何异常，
   // 但群里一条消息都不来 —— 运维看到的现象是「接了但没反应」，而**没有任何证据指向
-  // SnowLuma 的 hook**，于是被报成「qq-bridge 注入失败」。
+  // SnowLuma 的 hook**，于是被报成「桥接注入失败」。
   //
   // 桥接本身**不可能**造成这种失败：它没有任何原生/注入面（依赖全纯 JS，源码里
   // 没有 .dll/.node/FFI/进程注入），也不启动、不控制 SnowLuma 与 QQ。它能做、也应该做的
@@ -6436,7 +6436,7 @@ async function main() {
           try {
             res.end(fs.readFileSync(path.join(ROOT, 'public', 'console.html'), 'utf8'));
           } catch {
-            res.end('控制台页面缺失：qq-bridge/web/deck.html');
+            res.end('控制台页面缺失：web/deck.html');
           }
           return;
         }
@@ -12113,7 +12113,7 @@ async function main() {
           let stoppedCount = 0;
           try {
             // 新版 DSH 不再提供 workspace.list；改为扫描本桥接创建的会话目录并归档。
-            // 只处理 cwd 位于 qq-bridge state/ 下的根会话；子代理会话由父会话管理，不能误归档。
+            // 只处理 cwd 位于 state/ 下的根会话；子代理会话由父会话管理，不能误归档。
             const list = unwrap(await withTimeout(api.sessions.list({}), DSH_CONTROL_TIMEOUT_MS, 'sessions.list'), 'session.list');
             const stateDir = path.resolve(STATE_DIR);
             const statePrefix = path.normalize(stateDir + path.sep);

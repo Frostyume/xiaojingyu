@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>小鲸鱼 · QQ 桥接控制台</title>
+<title>小鲸鱼 · 本地控制台</title>
 <script>
 // 主题引导：须在样式表之前执行，避免首屏闪一下浅色。
 (function () {
@@ -3669,7 +3669,7 @@ button.active,.primary {
       </div></details>
 <details class="settings-group"><summary>语音库与语音发送（调试）</summary><div class="settings-content">
       <div class="meta" style="margin-bottom:8px">
-        语音库目录：<code>qq-bridge/audio/</code>（改 <code>simulation.voice.dir</code> 可换）。把音频文件丢进去即可被 AI 用 <code>qq_send_voice</code> 发出；
+        语音库目录：<code>audio/</code>（改 <code>simulation.voice.dir</code> 可换）。把音频文件丢进去即可被 AI 用 <code>qq_send_voice</code> 发出；
         本面板用于调试与试发 —— 试发走的是与 AI 通道相同的解析/校验/限流路径（<code>/api/voice/send</code>），只是由你在控制台触发。
       </div>
       <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center">
@@ -4058,7 +4058,7 @@ button.active,.primary {
     </section>
 <section id="section-reference" data-page="reference" class="card span-all">
       <h2>DSH 侧 MCP 工具</h2>
-      <div class="meta">由 qq-bridge 的 MCP server 提供给 DSH agent；修改后需重启 DSH 才会刷新工具 schema。</div>
+      <div class="meta">由本仓库的 MCP server 提供给 DSH agent；修改后需重启 DSH 才会刷新工具 schema。</div>
       <table>
         <tr><th>工具</th><th>说明</th></tr>
         <tr><td>qq_status</td><td>登录状态（只读）</td></tr>
@@ -6551,7 +6551,7 @@ async function loadVoiceLibrary(force) {
     voiceEntries = Array.isArray(r.voices) ? r.voices : [];
     voiceLibraryLoaded = true;
     if (!voiceEntries.length) {
-      box.innerHTML = '语音库是空的：把音频文件放进 <code>qq-bridge/audio/</code> 后点「刷新语音库」。';
+      box.innerHTML = '语音库是空的：把音频文件放进 <code>audio/</code> 后点「刷新语音库」。';
       return;
     }
     const limits = r.limits || {};
@@ -7783,7 +7783,7 @@ function setConsolePage(page, { updateHash = true, focus = false, target = '' } 
   document.getElementById('breadcrumbPage').textContent = consolePages[page][0];
   document.getElementById('pageTitle').textContent = consolePages[page][1];
   document.getElementById('pageDescription').textContent = consolePages[page][2];
-  document.title = consolePages[page][0] + ' · QQ 桥接控制台';
+  document.title = consolePages[page][0] + ' · 本地控制台';
   if (updateHash && location.hash !== '#' + page) history.pushState({}, '', '#' + page);
   closeConsoleSearch();
   // 语音库按需加载：进入群聊仿真页时才探测（避免每次开控制台都压网关）。

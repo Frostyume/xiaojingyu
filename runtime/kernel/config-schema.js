@@ -410,7 +410,7 @@ export function migrateConfigObject(input, { now = Date.now() } = {}) {
     cfg.storage = {
       enabled: true,
       dbPath: 'state/db/bridge.db',
-      backupDir: process.platform === 'win32' ? 'D:/qq-bridge-backups' : 'state/backups',
+      backupDir: process.platform === 'win32' ? 'D:/xiaojingyu-backups' : 'state/backups',
       backupKeepDays: 7,
       retentionDays: 30,
       outboxEnabled: true,

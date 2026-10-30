@@ -46,7 +46,7 @@
   "storage": {
     "enabled": true,
     "dbPath": "state/db/bridge.db",
-    "backupDir": "D:/qq-bridge-backups",
+    "backupDir": "D:/xiaojingyu-backups",
     "backupKeepDays": 7,
     "retentionDays": 30,
     "outboxEnabled": true,
@@ -478,7 +478,7 @@
     },
     "imageLibrary": {
       "enabled": true,
-      "dir": "D:/qq-bridge-images",
+      "dir": "D:/xiaojingyu-images",
       "maxBytes": 20971520,
       "allowUrlSave": true,
       "includeInPrompt": true,

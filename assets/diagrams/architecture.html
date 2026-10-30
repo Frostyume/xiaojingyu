@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>小鲸鱼 · 她住在哪里</title>
+<style>
+  :root {
+    --ink: #eaf7f8;
+    --muted: #93b6bd;
+    --faint: #5f858d;
+    --teal: #2dd4bf;
+    --line: rgba(45, 212, 191, .24);
+    --panel: rgba(9, 38, 48, .78);
+    --panel-2: rgba(5, 25, 33, .86);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    width: 1600px;
+    min-height: 760px;
+    padding: 52px 64px 44px;
+    font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1000px 500px at 12% -8%, rgba(14, 116, 108, .32), transparent 60%),
+      radial-gradient(820px 460px at 95% 0%, rgba(59, 130, 246, .16), transparent 58%),
+      linear-gradient(180deg, #04161f 0%, #061f29 52%, #04141c 100%);
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 233, 222, .04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 233, 222, .04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,.1));
+    pointer-events: none;
+  }
+  .canvas { position: relative; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 28px; }
+  .kicker {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 13px; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--teal); margin: 0 0 10px;
+  }
+  h1 { font-size: 42px; margin: 0 0 8px; line-height: 1.1; }
+  .sub { margin: 0; color: var(--muted); font-size: 17px; }
+  .local {
+    display: flex; align-items: center; gap: 9px;
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 8px 15px; font-size: 12.5px; color: #c8f3ee;
+    background: rgba(45, 212, 191, .07);
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 10px var(--teal); }
+  .row { display: grid; gap: 22px; }
+  .row-top { grid-template-columns: 1fr 1fr; }
+  .card {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    padding: 18px 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255, 255, 255, .04);
+  }
+  .card .tag {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 11px; letter-spacing: .2em; color: var(--teal); margin-bottom: 6px;
+  }
+  .card h2 { font-size: 19px; margin: 0 0 4px; font-weight: 600; }
+  .card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.55; }
+  .link {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    color: var(--faint); font-size: 12px; letter-spacing: .06em;
+    padding: 9px 0;
+  }
+  .link::before, .link::after {
+    content: ""; height: 1px; width: 90px;
+    background: linear-gradient(90deg, transparent, rgba(45, 212, 191, .5));
+  }
+  .link::after { background: linear-gradient(90deg, rgba(45, 212, 191, .5), transparent); }
+  .core {
+    border: 1px solid rgba(45, 212, 191, .42);
+    background:
+      radial-gradient(520px 200px at 50% -20%, rgba(45, 212, 191, .16), transparent 70%),
+      linear-gradient(180deg, rgba(10, 46, 56, .92), rgba(4, 24, 31, .94));
+    box-shadow: 0 0 0 1px rgba(45, 212, 191, .08) inset, 0 24px 60px rgba(13, 148, 136, .14);
+    padding: 20px 22px;
+  }
+  .core-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .core-head .tag { margin: 0; }
+  .core-head h2 { font-size: 21px; margin: 0; }
+  .core-head .badge {
+    margin-left: auto; font-size: 12px; color: #bff3ec;
+    border: 1px solid rgba(45, 212, 191, .3); border-radius: 999px;
+    padding: 4px 11px; background: rgba(45, 212, 191, .08);
+  }
+  .modules { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .module {
+    border: 1px solid rgba(148, 233, 222, .14);
+    background: rgba(4, 24, 31, .55);
+    border-radius: 12px; padding: 11px 12px;
+  }
+  .module b { display: block; font-size: 13.5px; margin-bottom: 4px; }
+  .module span { font-size: 11.5px; color: var(--muted); line-height: 1.45; display: block; }
+  .kernel {
+    margin-top: 12px; display: flex; align-items: center; gap: 10px;
+    font-size: 11.5px; color: var(--faint);
+    border-top: 1px solid rgba(148, 233, 222, .1); padding-top: 11px;
+    font-family: "Cascadia Mono", Consolas, monospace; letter-spacing: .04em;
+  }
+  .kernel b { color: #a9d9d4; font-weight: 500; }
+  .row-bottom { grid-template-columns: 1.35fr 1fr 1fr; }
+  .mini { padding: 16px 18px; }
+  .mini h3 { font-size: 15.5px; margin: 0 0 4px; font-weight: 600; }
+  .mini p { font-size: 12px; }
+  .mini .tag { font-size: 10px; }
+  .foot {
+    margin-top: 24px; display: flex; align-items: center; justify-content: space-between;
+    color: var(--muted); font-size: 13px;
+    border-top: 1px solid rgba(148, 233, 222, .1); padding-top: 16px;
+  }
+  .mark { font-family: "Cascadia Mono", Consolas, monospace; font-size: 11px; letter-spacing: .18em; color: var(--faint); }
+</style>
+</head>
+<body data-lang="zh">
+<div class="canvas">
+  <header class="head">
+    <div>
+      <p class="kicker" data-en="SYSTEM MAP">她住在哪里</p>
+      <h1 data-en="Where she lives">她住在哪里</h1>
+      <p class="sub" data-en="A companion that runs entirely on your own machine — no account, no data leaves home.">整条链路都跑在你自己本机，不接管账号，数据不出门。</p>
+    </div>
+    <div class="local"><span class="dot"></span><span data-en="LOCAL FIRST · 127.0.0.1">LOCAL FIRST · 127.0.0.1</span></div>
+  </header>
+
+  <div class="row row-top">
+    <div class="card">
+      <div class="tag" data-en="CHAT">聊天</div>
+      <h2 data-en="QQ · friends &amp; groups">QQ · 群友与好友</h2>
+      <p data-en="Nothing changes on the QQ side. She is an ordinary member with no admin powers.">QQ 这边什么都不会变：她只是一个没有管理权限的普通成员。</p>
+    </div>
+    <div class="card">
+      <div class="tag" data-en="GATEWAY">网关</div>
+      <h2>SnowLuma · OneBot v11</h2>
+      <p data-en="Receives QQ events and exposes the OneBot WebSocket + HTTP API. Install and run it yourself.">接收 QQ 事件，对外提供 OneBot WebSocket 与 HTTP API；安装与启动始终由你完成。</p>
+    </div>
+  </div>
+
+  <div class="link" data-en="QQ messages · WebSocket + HTTP">QQ 消息 · WebSocket + HTTP</div>
+
+  <section class="card core">
+    <div class="core-head">
+      <div>
+        <div class="tag" data-en="CORE">核心</div>
+        <h2 data-en="Xiaojingyu · Node.js, on your machine">小鲸鱼 · 跑在你本机的 Node 进程</h2>
+      </div>
+      <span class="badge" data-en="AGENT-SIDE, NOT A BOT">不是自动回复机器人</span>
+    </div>
+    <div class="modules">
+      <div class="module"><b data-en="Message routing">消息路由</b><span data-en="One QQ conversation = one agent session; the mapping survives restarts.">每个 QQ 会话对应一个 agent 会话，映射持久化。</span></div>
+      <div class="module"><b data-en="Wake &amp; pacing">唤醒与节奏</b><span data-en="Wake triggers, sleep windows, rate limits and clingy follow-ups.">唤醒条件、睡眠窗、频率上限与黏人追发。</span></div>
+      <div class="module"><b data-en="Safety gate">安全审计</b><span data-en="Whitelist, sensitive-text audit, confirmation codes, error shielding.">白名单、敏感信息审计、确认码、错误隔离。</span></div>
+      <div class="module"><b data-en="Memory &amp; bonds">记忆与关系</b><span data-en="Topics, pending thoughts, member impressions, mood and energy.">话题、挂念、群友印象、心情与精力。</span></div>
+      <div class="module"><b data-en="Tool layer">工具层</b><span data-en="Read, speak, wait, remember, slang and life skills — each switchable.">读、说、等、记、黑话与生活技能，逐项可关。</span></div>
+    </div>
+    <div class="kernel">
+      <b data-en="KERNEL">内核</b>
+      <span>SQLite / WAL · outbox · inbox · job queue · <span data-en="replays after DSH comes back">DSH 掉线后补投</span></span>
+    </div>
+  </section>
+
+  <div class="link" data-en="Cookie auth · slash RPC · event stream　　　state &amp; control　　　read-only snapshot">Cookie 鉴权 · 斜杠 RPC · 事件流　　　状态与控制　　　只读快照</div>
+
+  <div class="row row-bottom">
+    <div class="card mini">
+      <div class="tag" data-en="AGENT RUNTIME">智能体运行时</div>
+      <h3>DeepSeek Harness</h3>
+      <p data-en="Model + persona + tool protocol. The persona is injected here, so group members cannot talk her into changing who she is.">模型、人格与工具协议都在这里；人格由本机注入，群友口头要求改人设无效。</p>
+    </div>
+    <div class="card mini">
+      <div class="tag" data-en="CONTROL">控制台</div>
+      <h3 data-en="127.0.0.1:3100">127.0.0.1:3100</h3>
+      <p data-en="13 task pages: persona, pacing, tools, slang, cost, safety.">13 个任务页：人格、节奏、工具、黑话、花费与安全。</p>
+    </div>
+    <div class="card mini">
+      <div class="tag" data-en="OBSERVE">观察窗</div>
+      <h3 data-en="/live · SSE">/live · SSE</h3>
+      <p data-en="A read-only page: mood, energy, bonds, inner life, what she is doing right now.">只读实时页：心情、精力、羁绊、内心生活与此刻动向。</p>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span data-en="Your QQ account stays yours. Her personality and memory live in files you can read, back up and delete.">QQ 账号始终是你的；她的人格与记忆都是你可以查看、备份、删除的本地文件。</span>
+    <span class="mark">ONE MACHINE · LOCAL FIRST</span>
+  </footer>
+</div>
+<script>
+  if (new URLSearchParams(location.search).get('lang') === 'en') {
+    document.body.dataset.lang = 'en';
+    document.documentElement.lang = 'en';
+    document.querySelectorAll('[data-en]').forEach(el => { el.textContent = el.dataset.en; });
+  }
+</script>
+</body>
+</html>

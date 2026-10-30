@@ -65,9 +65,9 @@ node tools/privacy-scan.mjs --json         # 机读输出（给 CI 用）
 | --- | --- |
 | 还没 push | `git reset --soft` 回退提交、清掉敏感内容、重新提交 |
 | 已 push，但**没有被 fork / 没人拉过** | `git filter-repo --replace-text` 清历史，再 `git push --force`。要提前通知协作者 |
-| 已 push 且可能被 fork / 已公开一段时间 | **当作已泄露**：① 立刻**轮换**所有涉及的凭据（控制台令牌、SnowLuma token、DSH launch token 都是本地生成，轮换成本低）；② 再清历史；③ 新仓库（QSH）从干净起点开始，不带旧历史 |
+| 已 push 且可能被 fork / 已公开一段时间 | **当作已泄露**：① 立刻**轮换**所有涉及的凭据（控制台令牌、SnowLuma token、DSH launch token 都是本地生成，轮换成本低）；② 再清历史；③ 新仓库从干净起点开始，不带旧历史 |
 
-> 这也是 `QSH_FORK_AND_SITE_PLAN.md` 建议**新建仓库、不带 qq-bridge 历史**的原因之一：
+> 这也是本项目选择**新建仓库、不带旧历史**的原因之一：
 > 旧历史里既有 11 MB 演示视频，也有难以逐条确认的本地痕迹。新起点一次扫干净，成本最低。
 
 ## 五、CI 里怎么用
@@ -86,9 +86,9 @@ CI 上只扫**已跟踪**文件（未跟踪文件在干净 checkout 里不存在
 
 | 文件 | 命中 | 处理建议 |
 | --- | --- | --- |
-| `web/deck.html` | 真实群号 `100012` × 2 | **必须替换为占位符**（这是会随 QSH 一起发布的文件） |
+| `web/deck.html` | 真实群号 `100012` × 2 | **必须替换为占位符**（这是会随仓库一起发布的文件） |
 | `app/whale.js` | `accessToken` 键名（配置读取处，无真实值） | 误报：键名不是值；已在规则里区分"有实际值" |
-| `docs/guides/PROJECT_GUIDE.md`、`docs/guides/VOICE.md` | 真实 QQ 号/群号、`C:\Users\<名字>`、`D:\<工作盘>` | **不带进新仓库**（旧项目的实现说明，已被 `QSH_PLAN.md` 取代） |
+| `docs/guides/PROJECT_GUIDE.md`、`docs/guides/VOICE.md` | 真实 QQ 号/群号、`C:\Users\<名字>`、`D:\<工作盘>` | **不带进新仓库**（旧项目的实现说明，已不再维护） |
 | `docs/audits/*`、`docs/design/*`、`docs/research/*`、`docs/legacy/*` | 本机路径、真实 QQ 号 | 同上：**不带进新仓库**；只把 `AUDIT_FIXES` 与 `SECURITY_BASELINE` 带走（这两份已确认只含占位符） |
 | `tests/*.test.mjs`、`tests/console-ui-*`、`runtime/kernel/sensitive.js`、`config.example.json` | 刻意构造的假 ID / 假凭据 / 占位符 | 误报：已在 `allowPaths` 白名单里 |
 

@@ -1,4 +1,4 @@
-// QQ 桥接模式控制台（host 插件，只暴露一个 settings 命名空间）。
+// 小鲸鱼模式控制台（host 插件，只暴露一个 settings 命名空间）。
 //
 // 这个插件**没有 browser/client 半**，不会生成 WebUI 设置卡片；用户通过桥接控制台
 // 切换模式，桥接进程通过 DSH settings API 读写。本插件不修改任何 WebUI 内核。

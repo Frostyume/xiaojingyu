@@ -57,7 +57,7 @@ async function main() {
   // state/ 被 tools/harden-acl.mjs 收紧了 ACL（去掉继承 ACE，只留当前用户 /
   // SYSTEM / Administrators），DSH 沙箱的能力 SID 不在 ACL 里 ⇒ 在沙箱内跑自检
   // 会直接 EPERM 建目录。自检是一次性探针，产物本来也不该落进仓库状态目录。
-  const cwd = path.join(os.tmpdir(), 'qq-bridge-self-test');
+  const cwd = path.join(os.tmpdir(), 'xiaojingyu-self-test');
   fs.mkdirSync(cwd, { recursive: true });
   const created = unwrap(await api.sessions.create({ cwd }), 'session.create');
   const sessionId = created.sessionId;

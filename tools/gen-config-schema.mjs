@@ -64,9 +64,9 @@ for (const field of fields.filter((f) => f.secret)) {
 
 const doc = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  $id: 'https://example.invalid/qq-bridge/config.schema.json',
-  title: 'qq-bridge config',
-  description: 'qq-bridge 运行配置。真实 config.json 不入库；本文件只描述结构、类型与范围。',
+  $id: 'https://example.invalid/xiaojingyu/config.schema.json',
+  title: 'xiaojingyu config',
+  description: 'xiaojingyu 运行配置。真实 config.json 不入库；本文件只描述结构、类型与范围。',
   type: 'object',
   additionalProperties: true,
   'x-config-version': CONFIG_VERSION,
