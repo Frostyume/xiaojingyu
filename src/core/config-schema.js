@@ -27,6 +27,13 @@ const GROUP_LABELS = {
   core: '基础'
 };
 
+// 排序必须与环境无关：默认 localeCompare 跟随机器 locale，CI（en-US）与本地（zh-CN）
+// 会得到不同顺序，生成物因此被 --check 判成"不是最新"。组顺序取 GROUP_LABELS 的声明顺序，
+// 其余组（FIELD_META 里直接写中文名的）排在后面按码位；组内按字段名码位。
+const GROUP_RANK = new Map(Object.keys(GROUP_LABELS).map((key, index) => [GROUP_LABELS[key], index]));
+const byCodeUnit = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const groupRank = (group) => GROUP_RANK.get(group) ?? GROUP_RANK.size;
+
 const FIELD_META = {
   // ── 基础 / 连接 ────────────────────────────────────────────────────────────
   'dsh.baseUrl': { label: 'DSH 地址', group: 'DSH 连接与模型', restart: 'bridge', description: 'DSH 重启后端口会变，需要同步更新' },
@@ -253,7 +260,7 @@ export function buildConfigSchema(cfg, { includeSecrets = false } = {}) {
   const fields = flattenConfig(cfg)
     .filter(({ key }) => key && !/\.authTokenExplicit$/.test(key) && !String(key).startsWith('configValidation.'))
     .map(({ key, value }) => fieldFrom(key, value))
-    .sort((a, b) => (a.group === b.group ? a.key.localeCompare(b.key) : a.group.localeCompare(b.group)));
+    .sort((a, b) => groupRank(a.group) - groupRank(b.group) || byCodeUnit(a.group, b.group) || byCodeUnit(a.key, b.key));
   return {
     version: CONFIG_VERSION,
     generatedAt: new Date().toISOString(),

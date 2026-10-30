@@ -8,6 +8,145 @@
   "x-config-version": 2,
   "x-generated-from": "config.example.json",
   "properties": {
+    "dsh": {
+      "type": "object",
+      "properties": {
+        "allowRemote": {
+          "title": "允许把 launch token 发往非回环地址",
+          "type": "boolean",
+          "default": false
+        },
+        "authHeader": {
+          "title": "鉴权 header",
+          "type": "string",
+          "default": "authorization"
+        },
+        "authPrefix": {
+          "title": "鉴权前缀",
+          "type": "string",
+          "default": "Bearer"
+        },
+        "baseUrl": {
+          "title": "DSH 地址",
+          "type": "string",
+          "default": "http://127.0.0.1:3080",
+          "description": "DSH 重启后端口会变，需要同步更新"
+        },
+        "model": {
+          "title": "模型",
+          "type": "string",
+          "default": "deepseek-flash"
+        },
+        "provider": {
+          "title": "模型 provider",
+          "type": "string",
+          "default": "deepseek-official"
+        },
+        "reasoningEffort": {
+          "title": "思考强度",
+          "type": "string",
+          "default": "max",
+          "enum": [
+            "off",
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        },
+        "authToken": {
+          "title": "DSH auth token",
+          "type": "string",
+          "x-secret": true,
+          "description": "密钥/标识：只存本地，控制台只显示是否已配置"
+        }
+      }
+    },
+    "snowluma": {
+      "type": "object",
+      "properties": {
+        "followDiscoveredEndpoint": {
+          "title": "跟随自动发现的端点",
+          "type": "boolean",
+          "default": true
+        },
+        "homeDir": {
+          "title": "SnowLuma 安装目录",
+          "type": "string",
+          "default": ""
+        },
+        "httpUrl": {
+          "title": "SnowLuma HTTP 地址",
+          "type": "string",
+          "default": "http://127.0.0.1:3000"
+        },
+        "launcherPath": {
+          "title": "SnowLuma 启动器路径",
+          "type": "string",
+          "default": ""
+        },
+        "silenceWarnMs": {
+          "title": "静默告警阈值（ms）",
+          "type": "number",
+          "default": 600000,
+          "minimum": 60000,
+          "maximum": 86400000
+        },
+        "wsUrl": {
+          "title": "SnowLuma WS 地址",
+          "type": "string",
+          "default": "ws://127.0.0.1:3001"
+        },
+        "accessToken": {
+          "title": "SnowLuma access token",
+          "type": "string",
+          "x-secret": true,
+          "description": "密钥/标识：只存本地，控制台只显示是否已配置"
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "properties": {
+        "maxInjectChars": {
+          "title": "人格注入上限（字符）",
+          "type": "number",
+          "default": 6000,
+          "minimum": 1000,
+          "maximum": 20000
+        }
+      }
+    },
+    "allow": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "default": []
+        },
+        "private": {
+          "title": "Private",
+          "type": "array",
+          "default": []
+        }
+      }
+    },
+    "deny": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "default": []
+        },
+        "private": {
+          "title": "Private",
+          "type": "array",
+          "default": []
+        }
+      }
+    },
     "security": {
       "type": "object",
       "properties": {
@@ -18,99 +157,225 @@
         }
       }
     },
+    "slang": {
+      "type": "object",
+      "properties": {
+        "autoResearch": {
+          "title": "Auto Research",
+          "type": "boolean",
+          "default": true
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "extractCooldownMs": {
+          "title": "Extract Cooldown Ms",
+          "type": "number",
+          "default": 300000
+        },
+        "extractMinMessages": {
+          "title": "Extract Min Messages",
+          "type": "number",
+          "default": 10
+        },
+        "inferenceThresholds": {
+          "title": "Inference Thresholds",
+          "type": "array",
+          "default": [
+            2,
+            4,
+            8
+          ]
+        },
+        "injectMax": {
+          "title": "Inject Max",
+          "type": "number",
+          "default": 8
+        },
+        "learnerPreset": {
+          "title": "Learner Preset",
+          "type": "string",
+          "default": "qq-chat"
+        },
+        "researchBatchSize": {
+          "title": "Research Batch Size",
+          "type": "number",
+          "default": 2
+        },
+        "researchMaxPerRun": {
+          "title": "Research Max Per Run",
+          "type": "number",
+          "default": 6
+        },
+        "researchTimeoutMs": {
+          "title": "Research Timeout Ms",
+          "type": "number",
+          "default": 240000
+        },
+        "workspaceTitle": {
+          "title": "Workspace Title",
+          "type": "string",
+          "default": "QQ 黑话学习"
+        }
+      }
+    },
+    "social": {
+      "type": "object",
+      "properties": {
+        "activeCheckMaxMs": {
+          "title": "Active Check Max Ms",
+          "type": "number",
+          "default": 30000
+        },
+        "activeCheckMinMs": {
+          "title": "Active Check Min Ms",
+          "type": "number",
+          "default": 8000
+        },
+        "activeDurationEnabled": {
+          "title": "Active Duration Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "activeDurationMaxMs": {
+          "title": "Active Duration Max Ms",
+          "type": "number",
+          "default": 3000000
+        },
+        "activeDurationMinMs": {
+          "title": "Active Duration Min Ms",
+          "type": "number",
+          "default": 1200000
+        },
+        "activeReplyDelayMaxMs": {
+          "title": "Active Reply Delay Max Ms",
+          "type": "number",
+          "default": 5000
+        },
+        "activeReplyDelayMinMs": {
+          "title": "Active Reply Delay Min Ms",
+          "type": "number",
+          "default": 1000
+        },
+        "burstEnabled": {
+          "title": "Burst Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "burstIntervalMaxMs": {
+          "title": "Burst Interval Max Ms",
+          "type": "number",
+          "default": 3000
+        },
+        "burstIntervalMinMs": {
+          "title": "Burst Interval Min Ms",
+          "type": "number",
+          "default": 1000
+        },
+        "contextWindow": {
+          "title": "Context Window",
+          "type": "number",
+          "default": 20
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "idleRetryProbability": {
+          "title": "Idle Retry Probability",
+          "type": "number",
+          "default": 0.4
+        },
+        "idleRetryWaitMs": {
+          "title": "Idle Retry Wait Ms",
+          "type": "number",
+          "default": 120000
+        },
+        "idleWindowMs": {
+          "title": "Idle Window Ms",
+          "type": "number",
+          "default": 360000
+        },
+        "longGapMaxMs": {
+          "title": "Long Gap Max Ms",
+          "type": "number",
+          "default": 10000
+        },
+        "longGapMinMs": {
+          "title": "Long Gap Min Ms",
+          "type": "number",
+          "default": 5000
+        },
+        "longGapProbability": {
+          "title": "Long Gap Probability",
+          "type": "number",
+          "default": 0.2
+        },
+        "maxReplyChars": {
+          "title": "Max Reply Chars",
+          "type": "number",
+          "default": 500
+        },
+        "mustReplyKeywords": {
+          "title": "Must Reply Keywords",
+          "type": "array",
+          "default": [
+            "deepseek",
+            "小鲸鱼",
+            "大肥鱼",
+            "鲸鱼",
+            "d指导",
+            "在吗"
+          ]
+        },
+        "proactiveCheckMaxMs": {
+          "title": "Proactive Check Max Ms",
+          "type": "number",
+          "default": 5400000
+        },
+        "proactiveCheckMinMs": {
+          "title": "Proactive Check Min Ms",
+          "type": "number",
+          "default": 2700000
+        },
+        "proactiveEnabled": {
+          "title": "Proactive Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "proactiveIdleThresholdMs": {
+          "title": "Proactive Idle Threshold Ms",
+          "type": "number",
+          "default": 1800000
+        },
+        "proactiveProbability": {
+          "title": "Proactive Probability",
+          "type": "number",
+          "default": 0.2
+        },
+        "skipProbability": {
+          "title": "Skip Probability",
+          "type": "number",
+          "default": 0.05
+        },
+        "surrenderProbability": {
+          "title": "Surrender Probability",
+          "type": "number",
+          "default": 0
+        },
+        "triggerProbability": {
+          "title": "Trigger Probability",
+          "type": "number",
+          "default": 0.1
+        }
+      }
+    },
     "socialV2": {
       "type": "object",
       "properties": {
-        "imageLibrary": {
-          "type": "object",
-          "properties": {
-            "dir": {
-              "title": "图片库目录",
-              "type": "string",
-              "default": "D:/qq-bridge-images"
-            },
-            "enabled": {
-              "title": "通用图片库",
-              "type": "boolean",
-              "default": true
-            },
-            "allowUrlSave": {
-              "title": "Allow Url Save",
-              "type": "boolean",
-              "default": true
-            },
-            "includeInPrompt": {
-              "title": "Include In Prompt",
-              "type": "boolean",
-              "default": true
-            },
-            "maxBytes": {
-              "title": "Max Bytes",
-              "type": "number",
-              "default": 20971520
-            },
-            "promptMaxImages": {
-              "title": "Prompt Max Images",
-              "type": "number",
-              "default": 8
-            }
-          }
-        },
-        "sticker": {
-          "type": "object",
-          "properties": {
-            "collect": {
-              "type": "object",
-              "properties": {
-                "enabled": {
-                  "title": "允许收藏表情",
-                  "type": "boolean",
-                  "default": true
-                },
-                "maxPerHour": {
-                  "title": "Max Per Hour",
-                  "type": "number",
-                  "default": 60
-                },
-                "maxPerMinute": {
-                  "title": "Max Per Minute",
-                  "type": "number",
-                  "default": 10
-                },
-                "maxRemarkChars": {
-                  "title": "Max Remark Chars",
-                  "type": "number",
-                  "default": 20
-                }
-              }
-            },
-            "enabled": {
-              "title": "表情包体系",
-              "type": "boolean",
-              "default": true
-            },
-            "includeInPrompt": {
-              "title": "Include In Prompt",
-              "type": "boolean",
-              "default": true
-            },
-            "maxListCount": {
-              "title": "Max List Count",
-              "type": "number",
-              "default": 100
-            },
-            "promptMaxStickers": {
-              "title": "Prompt Max Stickers",
-              "type": "number",
-              "default": 8
-            },
-            "syncTtlMs": {
-              "title": "Sync Ttl Ms",
-              "type": "number",
-              "default": 60000
-            }
-          }
-        },
         "agentPreset": {
           "title": "二代 preset",
           "type": "string",
@@ -258,6 +523,41 @@
               "title": "Notify Owner On Error",
               "type": "boolean",
               "default": false
+            }
+          }
+        },
+        "imageLibrary": {
+          "type": "object",
+          "properties": {
+            "allowUrlSave": {
+              "title": "Allow Url Save",
+              "type": "boolean",
+              "default": true
+            },
+            "includeInPrompt": {
+              "title": "Include In Prompt",
+              "type": "boolean",
+              "default": true
+            },
+            "maxBytes": {
+              "title": "Max Bytes",
+              "type": "number",
+              "default": 20971520
+            },
+            "promptMaxImages": {
+              "title": "Prompt Max Images",
+              "type": "number",
+              "default": 8
+            },
+            "dir": {
+              "title": "图片库目录",
+              "type": "string",
+              "default": "D:/qq-bridge-images"
+            },
+            "enabled": {
+              "title": "通用图片库",
+              "type": "boolean",
+              "default": true
             }
           }
         },
@@ -1116,6 +1416,61 @@
             }
           }
         },
+        "sticker": {
+          "type": "object",
+          "properties": {
+            "collect": {
+              "type": "object",
+              "properties": {
+                "maxPerHour": {
+                  "title": "Max Per Hour",
+                  "type": "number",
+                  "default": 60
+                },
+                "maxPerMinute": {
+                  "title": "Max Per Minute",
+                  "type": "number",
+                  "default": 10
+                },
+                "maxRemarkChars": {
+                  "title": "Max Remark Chars",
+                  "type": "number",
+                  "default": 20
+                },
+                "enabled": {
+                  "title": "允许收藏表情",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "includeInPrompt": {
+              "title": "Include In Prompt",
+              "type": "boolean",
+              "default": true
+            },
+            "maxListCount": {
+              "title": "Max List Count",
+              "type": "number",
+              "default": 100
+            },
+            "promptMaxStickers": {
+              "title": "Prompt Max Stickers",
+              "type": "number",
+              "default": 8
+            },
+            "syncTtlMs": {
+              "title": "Sync Ttl Ms",
+              "type": "number",
+              "default": 60000
+            },
+            "enabled": {
+              "title": "表情包体系",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
         "subscriptions": {
           "title": "Subscriptions",
           "type": "array",
@@ -1477,6 +1832,66 @@
             }
           }
         },
+        "valueScore": {
+          "type": "object",
+          "properties": {
+            "deferThreshold": {
+              "title": "延后阈值",
+              "type": "number",
+              "default": 0.32,
+              "minimum": 0,
+              "maximum": 1
+            },
+            "enabled": {
+              "title": "价值评分",
+              "type": "boolean",
+              "default": true,
+              "description": "只影响泛监听（任意消息/概率），@/引用/私聊/提问永不降级"
+            },
+            "wakeThreshold": {
+              "title": "唤醒阈值",
+              "type": "number",
+              "default": 0.55,
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "relationships": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "群友关系（galgame）",
+              "type": "boolean",
+              "default": true,
+              "description": "默认开启；家人群自动排除；可按群开关"
+            },
+            "excludeFamily": {
+              "title": "自动排除家人群",
+              "type": "boolean",
+              "default": true
+            },
+            "excludedGroups": {
+              "title": "额外排除的群",
+              "type": "array",
+              "default": []
+            },
+            "liveLimit": {
+              "title": "实时页展示人数",
+              "type": "number",
+              "default": 6,
+              "minimum": 1,
+              "maximum": 12
+            },
+            "promptLimit": {
+              "title": "prompt 关系卡人数",
+              "type": "number",
+              "default": 5,
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
+        },
         "dailyReport": {
           "type": "object",
           "properties": {
@@ -1502,66 +1917,6 @@
               "default": 8,
               "minimum": 1,
               "maximum": 20
-            }
-          }
-        },
-        "relationships": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "title": "群友关系（galgame）",
-              "type": "boolean",
-              "default": true,
-              "description": "默认开启；家人群自动排除；可按群开关"
-            },
-            "excludedGroups": {
-              "title": "额外排除的群",
-              "type": "array",
-              "default": []
-            },
-            "excludeFamily": {
-              "title": "自动排除家人群",
-              "type": "boolean",
-              "default": true
-            },
-            "liveLimit": {
-              "title": "实时页展示人数",
-              "type": "number",
-              "default": 6,
-              "minimum": 1,
-              "maximum": 12
-            },
-            "promptLimit": {
-              "title": "prompt 关系卡人数",
-              "type": "number",
-              "default": 5,
-              "minimum": 1,
-              "maximum": 12
-            }
-          }
-        },
-        "valueScore": {
-          "type": "object",
-          "properties": {
-            "deferThreshold": {
-              "title": "延后阈值",
-              "type": "number",
-              "default": 0.32,
-              "minimum": 0,
-              "maximum": 1
-            },
-            "enabled": {
-              "title": "价值评分",
-              "type": "boolean",
-              "default": true,
-              "description": "只影响泛监听（任意消息/概率），@/引用/私聊/提问永不降级"
-            },
-            "wakeThreshold": {
-              "title": "唤醒阈值",
-              "type": "number",
-              "default": 0.55,
-              "minimum": 0,
-              "maximum": 1
             }
           }
         },
@@ -1678,314 +2033,6 @@
         }
       }
     },
-    "transport": {
-      "type": "object",
-      "properties": {
-        "kind": {
-          "title": "传输类型",
-          "type": "string",
-          "default": "snowluma",
-          "enum": [
-            "snowluma",
-            "onebot"
-          ],
-          "description": "onebot = 通用 OneBot v11 HTTP（NapCat 等）；入站仍按 SnowLuma WS"
-        }
-      }
-    },
-    "storage": {
-      "type": "object",
-      "properties": {
-        "backupDir": {
-          "title": "备份目录",
-          "type": "string",
-          "default": "D:/qq-bridge-backups"
-        },
-        "backupKeepDays": {
-          "title": "备份保留天数",
-          "type": "number",
-          "default": 7,
-          "minimum": 1,
-          "maximum": 90
-        },
-        "configStrict": {
-          "title": "配置非法时拒绝启动",
-          "type": "boolean",
-          "default": false
-        },
-        "dbPath": {
-          "title": "数据库路径",
-          "type": "string",
-          "default": "state/db/bridge.db"
-        },
-        "enabled": {
-          "title": "启用 SQLite 可靠性层",
-          "type": "boolean",
-          "default": true
-        },
-        "inboxEnabled": {
-          "title": "入站消息去重与恢复",
-          "type": "boolean",
-          "default": true
-        },
-        "inboxReplayMaxAgeMs": {
-          "title": "入站重放窗口（ms）",
-          "type": "number",
-          "default": 120000,
-          "minimum": 1000,
-          "maximum": 3600000
-        },
-        "jobsEnabled": {
-          "title": "统一任务队列",
-          "type": "boolean",
-          "default": true
-        },
-        "logJsonl": {
-          "title": "结构化日志（JSONL）",
-          "type": "boolean",
-          "default": true
-        },
-        "outboxEnabled": {
-          "title": "出站消息先落盘",
-          "type": "boolean",
-          "default": true
-        },
-        "outboxMaxAttempts": {
-          "title": "出站重试次数",
-          "type": "number",
-          "default": 5,
-          "minimum": 1,
-          "maximum": 20
-        },
-        "outboxRetryBaseMs": {
-          "title": "出站重试基数（ms）",
-          "type": "number",
-          "default": 5000,
-          "minimum": 500,
-          "maximum": 300000
-        },
-        "outboxRetryMaxMs": {
-          "title": "出站重试上限（ms）",
-          "type": "number",
-          "default": 600000,
-          "minimum": 1000,
-          "maximum": 3600000
-        },
-        "retentionDays": {
-          "title": "数据保留天数",
-          "type": "number",
-          "default": 30,
-          "minimum": 1,
-          "maximum": 365
-        }
-      }
-    },
-    "allow": {
-      "type": "object",
-      "properties": {
-        "groups": {
-          "title": "Groups",
-          "type": "array",
-          "default": []
-        },
-        "private": {
-          "title": "Private",
-          "type": "array",
-          "default": []
-        }
-      }
-    },
-    "deny": {
-      "type": "object",
-      "properties": {
-        "groups": {
-          "title": "Groups",
-          "type": "array",
-          "default": []
-        },
-        "private": {
-          "title": "Private",
-          "type": "array",
-          "default": []
-        }
-      }
-    },
-    "slang": {
-      "type": "object",
-      "properties": {
-        "autoResearch": {
-          "title": "Auto Research",
-          "type": "boolean",
-          "default": true
-        },
-        "enabled": {
-          "title": "Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "extractCooldownMs": {
-          "title": "Extract Cooldown Ms",
-          "type": "number",
-          "default": 300000
-        },
-        "extractMinMessages": {
-          "title": "Extract Min Messages",
-          "type": "number",
-          "default": 10
-        },
-        "inferenceThresholds": {
-          "title": "Inference Thresholds",
-          "type": "array",
-          "default": [
-            2,
-            4,
-            8
-          ]
-        },
-        "injectMax": {
-          "title": "Inject Max",
-          "type": "number",
-          "default": 8
-        },
-        "learnerPreset": {
-          "title": "Learner Preset",
-          "type": "string",
-          "default": "qq-chat"
-        },
-        "researchBatchSize": {
-          "title": "Research Batch Size",
-          "type": "number",
-          "default": 2
-        },
-        "researchMaxPerRun": {
-          "title": "Research Max Per Run",
-          "type": "number",
-          "default": 6
-        },
-        "researchTimeoutMs": {
-          "title": "Research Timeout Ms",
-          "type": "number",
-          "default": 240000
-        },
-        "workspaceTitle": {
-          "title": "Workspace Title",
-          "type": "string",
-          "default": "QQ 黑话学习"
-        }
-      }
-    },
-    "ackMessage": {
-      "title": "思考中回执",
-      "type": "string",
-      "default": ""
-    },
-    "agentPreset": {
-      "title": "默认 agent preset",
-      "type": "string",
-      "default": "qq-chat"
-    },
-    "allowAllWhenEmpty": {
-      "title": "白名单为空时放行所有",
-      "type": "boolean",
-      "default": false
-    },
-    "configVersion": {
-      "title": "Config Version",
-      "type": "number",
-      "default": 2
-    },
-    "consoleAuth": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "title": "控制台要求访问令牌",
-          "type": "boolean",
-          "default": false,
-          "description": "默认关闭：仅本机回环 + Host/CSRF 防护；开启后浏览器需输入令牌"
-        }
-      }
-    },
-    "consolePort": {
-      "title": "控制台端口",
-      "type": "number",
-      "default": 3100,
-      "minimum": 1,
-      "maximum": 65535
-    },
-    "questionTimeoutMs": {
-      "title": "提问超时（ms）",
-      "type": "number",
-      "default": 300000,
-      "minimum": 5000,
-      "maximum": 3600000
-    },
-    "sendDelayMs": {
-      "title": "发送间隔（ms）",
-      "type": "number",
-      "default": 300,
-      "minimum": 0,
-      "maximum": 10000
-    },
-    "sessionCwd": {
-      "title": "会话工作目录",
-      "type": "string",
-      "default": ""
-    },
-    "workspaceTitle": {
-      "title": "工作区标题",
-      "type": "string",
-      "default": "QQ 聊天"
-    },
-    "pricing": {
-      "type": "object",
-      "properties": {
-        "models": {
-          "type": "object",
-          "properties": {
-            "my-relay-model": {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "title": "Label",
-                  "type": "string",
-                  "default": "我的中转模型"
-                },
-                "off": {
-                  "type": "object",
-                  "properties": {
-                    "cacheHit": {
-                      "title": "Cache Hit",
-                      "type": "number",
-                      "default": 0.5
-                    },
-                    "cacheMiss": {
-                      "title": "Cache Miss",
-                      "type": "number",
-                      "default": 3
-                    },
-                    "output": {
-                      "title": "Output",
-                      "type": "number",
-                      "default": 9
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "features": {
-      "type": "object",
-      "properties": {
-        "disabled": {
-          "title": "禁用的 feature",
-          "type": "array",
-          "default": []
-        }
-      }
-    },
     "webSearch": {
       "type": "object",
       "properties": {
@@ -2044,282 +2091,6 @@
         },
         "apiKey": {
           "title": "搜索 API Key",
-          "type": "string",
-          "x-secret": true,
-          "description": "密钥/标识：只存本地，控制台只显示是否已配置"
-        }
-      }
-    },
-    "routing": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "title": "模型/effort 路由",
-          "type": "boolean",
-          "default": true
-        },
-        "fallback": {
-          "title": "Fallback",
-          "type": "array",
-          "default": []
-        }
-      }
-    },
-    "role": {
-      "type": "object",
-      "properties": {
-        "maxInjectChars": {
-          "title": "人格注入上限（字符）",
-          "type": "number",
-          "default": 6000,
-          "minimum": 1000,
-          "maximum": 20000
-        }
-      }
-    },
-    "social": {
-      "type": "object",
-      "properties": {
-        "activeCheckMaxMs": {
-          "title": "Active Check Max Ms",
-          "type": "number",
-          "default": 30000
-        },
-        "activeCheckMinMs": {
-          "title": "Active Check Min Ms",
-          "type": "number",
-          "default": 8000
-        },
-        "activeDurationEnabled": {
-          "title": "Active Duration Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "activeDurationMaxMs": {
-          "title": "Active Duration Max Ms",
-          "type": "number",
-          "default": 3000000
-        },
-        "activeDurationMinMs": {
-          "title": "Active Duration Min Ms",
-          "type": "number",
-          "default": 1200000
-        },
-        "activeReplyDelayMaxMs": {
-          "title": "Active Reply Delay Max Ms",
-          "type": "number",
-          "default": 5000
-        },
-        "activeReplyDelayMinMs": {
-          "title": "Active Reply Delay Min Ms",
-          "type": "number",
-          "default": 1000
-        },
-        "burstEnabled": {
-          "title": "Burst Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "burstIntervalMaxMs": {
-          "title": "Burst Interval Max Ms",
-          "type": "number",
-          "default": 3000
-        },
-        "burstIntervalMinMs": {
-          "title": "Burst Interval Min Ms",
-          "type": "number",
-          "default": 1000
-        },
-        "contextWindow": {
-          "title": "Context Window",
-          "type": "number",
-          "default": 20
-        },
-        "enabled": {
-          "title": "Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "idleRetryProbability": {
-          "title": "Idle Retry Probability",
-          "type": "number",
-          "default": 0.4
-        },
-        "idleRetryWaitMs": {
-          "title": "Idle Retry Wait Ms",
-          "type": "number",
-          "default": 120000
-        },
-        "idleWindowMs": {
-          "title": "Idle Window Ms",
-          "type": "number",
-          "default": 360000
-        },
-        "longGapMaxMs": {
-          "title": "Long Gap Max Ms",
-          "type": "number",
-          "default": 10000
-        },
-        "longGapMinMs": {
-          "title": "Long Gap Min Ms",
-          "type": "number",
-          "default": 5000
-        },
-        "longGapProbability": {
-          "title": "Long Gap Probability",
-          "type": "number",
-          "default": 0.2
-        },
-        "maxReplyChars": {
-          "title": "Max Reply Chars",
-          "type": "number",
-          "default": 500
-        },
-        "mustReplyKeywords": {
-          "title": "Must Reply Keywords",
-          "type": "array",
-          "default": [
-            "deepseek",
-            "小鲸鱼",
-            "大肥鱼",
-            "鲸鱼",
-            "d指导",
-            "在吗"
-          ]
-        },
-        "proactiveCheckMaxMs": {
-          "title": "Proactive Check Max Ms",
-          "type": "number",
-          "default": 5400000
-        },
-        "proactiveCheckMinMs": {
-          "title": "Proactive Check Min Ms",
-          "type": "number",
-          "default": 2700000
-        },
-        "proactiveEnabled": {
-          "title": "Proactive Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "proactiveIdleThresholdMs": {
-          "title": "Proactive Idle Threshold Ms",
-          "type": "number",
-          "default": 1800000
-        },
-        "proactiveProbability": {
-          "title": "Proactive Probability",
-          "type": "number",
-          "default": 0.2
-        },
-        "skipProbability": {
-          "title": "Skip Probability",
-          "type": "number",
-          "default": 0.05
-        },
-        "surrenderProbability": {
-          "title": "Surrender Probability",
-          "type": "number",
-          "default": 0
-        },
-        "triggerProbability": {
-          "title": "Trigger Probability",
-          "type": "number",
-          "default": 0.1
-        }
-      }
-    },
-    "dsh": {
-      "type": "object",
-      "properties": {
-        "allowRemote": {
-          "title": "允许把 launch token 发往非回环地址",
-          "type": "boolean",
-          "default": false
-        },
-        "authHeader": {
-          "title": "鉴权 header",
-          "type": "string",
-          "default": "authorization"
-        },
-        "authPrefix": {
-          "title": "鉴权前缀",
-          "type": "string",
-          "default": "Bearer"
-        },
-        "baseUrl": {
-          "title": "DSH 地址",
-          "type": "string",
-          "default": "http://127.0.0.1:3080",
-          "description": "DSH 重启后端口会变，需要同步更新"
-        },
-        "model": {
-          "title": "模型",
-          "type": "string",
-          "default": "deepseek-flash"
-        },
-        "provider": {
-          "title": "模型 provider",
-          "type": "string",
-          "default": "deepseek-official"
-        },
-        "reasoningEffort": {
-          "title": "思考强度",
-          "type": "string",
-          "default": "max",
-          "enum": [
-            "off",
-            "low",
-            "medium",
-            "high",
-            "max"
-          ]
-        },
-        "authToken": {
-          "title": "DSH auth token",
-          "type": "string",
-          "x-secret": true,
-          "description": "密钥/标识：只存本地，控制台只显示是否已配置"
-        }
-      }
-    },
-    "snowluma": {
-      "type": "object",
-      "properties": {
-        "followDiscoveredEndpoint": {
-          "title": "跟随自动发现的端点",
-          "type": "boolean",
-          "default": true
-        },
-        "homeDir": {
-          "title": "SnowLuma 安装目录",
-          "type": "string",
-          "default": ""
-        },
-        "httpUrl": {
-          "title": "SnowLuma HTTP 地址",
-          "type": "string",
-          "default": "http://127.0.0.1:3000"
-        },
-        "launcherPath": {
-          "title": "SnowLuma 启动器路径",
-          "type": "string",
-          "default": ""
-        },
-        "silenceWarnMs": {
-          "title": "静默告警阈值（ms）",
-          "type": "number",
-          "default": 600000,
-          "minimum": 60000,
-          "maximum": 86400000
-        },
-        "wsUrl": {
-          "title": "SnowLuma WS 地址",
-          "type": "string",
-          "default": "ws://127.0.0.1:3001"
-        },
-        "accessToken": {
-          "title": "SnowLuma access token",
           "type": "string",
           "x-secret": true,
           "description": "密钥/标识：只存本地，控制台只显示是否已配置"
@@ -2626,6 +2397,235 @@
         }
       }
     },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "backupDir": {
+          "title": "备份目录",
+          "type": "string",
+          "default": "D:/qq-bridge-backups"
+        },
+        "backupKeepDays": {
+          "title": "备份保留天数",
+          "type": "number",
+          "default": 7,
+          "minimum": 1,
+          "maximum": 90
+        },
+        "configStrict": {
+          "title": "配置非法时拒绝启动",
+          "type": "boolean",
+          "default": false
+        },
+        "dbPath": {
+          "title": "数据库路径",
+          "type": "string",
+          "default": "state/db/bridge.db"
+        },
+        "enabled": {
+          "title": "启用 SQLite 可靠性层",
+          "type": "boolean",
+          "default": true
+        },
+        "inboxEnabled": {
+          "title": "入站消息去重与恢复",
+          "type": "boolean",
+          "default": true
+        },
+        "inboxReplayMaxAgeMs": {
+          "title": "入站重放窗口（ms）",
+          "type": "number",
+          "default": 120000,
+          "minimum": 1000,
+          "maximum": 3600000
+        },
+        "jobsEnabled": {
+          "title": "统一任务队列",
+          "type": "boolean",
+          "default": true
+        },
+        "logJsonl": {
+          "title": "结构化日志（JSONL）",
+          "type": "boolean",
+          "default": true
+        },
+        "outboxEnabled": {
+          "title": "出站消息先落盘",
+          "type": "boolean",
+          "default": true
+        },
+        "outboxMaxAttempts": {
+          "title": "出站重试次数",
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20
+        },
+        "outboxRetryBaseMs": {
+          "title": "出站重试基数（ms）",
+          "type": "number",
+          "default": 5000,
+          "minimum": 500,
+          "maximum": 300000
+        },
+        "outboxRetryMaxMs": {
+          "title": "出站重试上限（ms）",
+          "type": "number",
+          "default": 600000,
+          "minimum": 1000,
+          "maximum": 3600000
+        },
+        "retentionDays": {
+          "title": "数据保留天数",
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 365
+        }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "模型/effort 路由",
+          "type": "boolean",
+          "default": true
+        },
+        "fallback": {
+          "title": "Fallback",
+          "type": "array",
+          "default": []
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "properties": {
+        "models": {
+          "type": "object",
+          "properties": {
+            "my-relay-model": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "title": "Label",
+                  "type": "string",
+                  "default": "我的中转模型"
+                },
+                "off": {
+                  "type": "object",
+                  "properties": {
+                    "cacheHit": {
+                      "title": "Cache Hit",
+                      "type": "number",
+                      "default": 0.5
+                    },
+                    "cacheMiss": {
+                      "title": "Cache Miss",
+                      "type": "number",
+                      "default": 3
+                    },
+                    "output": {
+                      "title": "Output",
+                      "type": "number",
+                      "default": 9
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ackMessage": {
+      "title": "思考中回执",
+      "type": "string",
+      "default": ""
+    },
+    "agentPreset": {
+      "title": "默认 agent preset",
+      "type": "string",
+      "default": "qq-chat"
+    },
+    "allowAllWhenEmpty": {
+      "title": "白名单为空时放行所有",
+      "type": "boolean",
+      "default": false
+    },
+    "configVersion": {
+      "title": "Config Version",
+      "type": "number",
+      "default": 2
+    },
+    "consoleAuth": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "控制台要求访问令牌",
+          "type": "boolean",
+          "default": false,
+          "description": "默认关闭：仅本机回环 + Host/CSRF 防护；开启后浏览器需输入令牌"
+        }
+      }
+    },
+    "consolePort": {
+      "title": "控制台端口",
+      "type": "number",
+      "default": 3100,
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "questionTimeoutMs": {
+      "title": "提问超时（ms）",
+      "type": "number",
+      "default": 300000,
+      "minimum": 5000,
+      "maximum": 3600000
+    },
+    "sendDelayMs": {
+      "title": "发送间隔（ms）",
+      "type": "number",
+      "default": 300,
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "sessionCwd": {
+      "title": "会话工作目录",
+      "type": "string",
+      "default": ""
+    },
+    "workspaceTitle": {
+      "title": "工作区标题",
+      "type": "string",
+      "default": "QQ 聊天"
+    },
+    "transport": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "title": "传输类型",
+          "type": "string",
+          "default": "snowluma",
+          "enum": [
+            "snowluma",
+            "onebot"
+          ],
+          "description": "onebot = 通用 OneBot v11 HTTP（NapCat 等）；入站仍按 SnowLuma WS"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "disabled": {
+          "title": "禁用的 feature",
+          "type": "array",
+          "default": []
+        }
+      }
+    },
     "consoleToken": {
       "title": "控制台令牌",
       "type": "string",
@@ -2641,6 +2641,161 @@
   },
   "x-fields": [
     {
+      "key": "dsh.allowRemote",
+      "label": "允许把 launch token 发往非回环地址",
+      "group": "DSH 连接与模型",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "dsh.authHeader",
+      "label": "鉴权 header",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "dsh.authPrefix",
+      "label": "鉴权前缀",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "dsh.baseUrl",
+      "label": "DSH 地址",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "dsh.model",
+      "label": "模型",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "dsh.provider",
+      "label": "模型 provider",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "dsh.reasoningEffort",
+      "label": "思考强度",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "none",
+      "advanced": false,
+      "enum": [
+        "off",
+        "low",
+        "medium",
+        "high",
+        "max"
+      ]
+    },
+    {
+      "key": "snowluma.followDiscoveredEndpoint",
+      "label": "跟随自动发现的端点",
+      "group": "SnowLuma / QQ",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "snowluma.homeDir",
+      "label": "SnowLuma 安装目录",
+      "group": "SnowLuma / QQ",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "snowluma.httpUrl",
+      "label": "SnowLuma HTTP 地址",
+      "group": "SnowLuma / QQ",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "snowluma.launcherPath",
+      "label": "SnowLuma 启动器路径",
+      "group": "SnowLuma / QQ",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "snowluma.silenceWarnMs",
+      "label": "静默告警阈值（ms）",
+      "group": "SnowLuma / QQ",
+      "type": "number",
+      "restart": "bridge",
+      "advanced": true,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "snowluma.wsUrl",
+      "label": "SnowLuma WS 地址",
+      "group": "SnowLuma / QQ",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "role.maxInjectChars",
+      "label": "人格注入上限（字符）",
+      "group": "人格注入",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1000,
+      "max": 20000
+    },
+    {
+      "key": "allow.groups",
+      "label": "Groups",
+      "group": "发送白名单",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "allow.private",
+      "label": "Private",
+      "group": "发送白名单",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "deny.groups",
+      "label": "Groups",
+      "group": "发送黑名单",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "deny.private",
+      "label": "Private",
+      "group": "发送黑名单",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "security.interceptNotify",
       "label": "敏感回复拦截时通知管理员",
       "group": "安全",
@@ -2649,172 +2804,316 @@
       "advanced": false
     },
     {
-      "key": "socialV2.imageLibrary.dir",
-      "label": "图片库目录",
-      "group": "表情与图片",
-      "type": "string",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.imageLibrary.enabled",
-      "label": "通用图片库",
-      "group": "表情与图片",
+      "key": "slang.autoResearch",
+      "label": "Auto Research",
+      "group": "黑话学习",
       "type": "boolean",
       "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.sticker.collect.enabled",
-      "label": "允许收藏表情",
-      "group": "表情与图片",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.sticker.enabled",
-      "label": "表情包体系",
-      "group": "表情与图片",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "transport.kind",
-      "label": "传输类型",
-      "group": "传输",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": false,
-      "enum": [
-        "snowluma",
-        "onebot"
-      ]
-    },
-    {
-      "key": "storage.backupDir",
-      "label": "备份目录",
-      "group": "存储与可靠性",
-      "type": "string",
-      "restart": "bridge",
       "advanced": true
     },
     {
-      "key": "storage.backupKeepDays",
-      "label": "备份保留天数",
-      "group": "存储与可靠性",
-      "type": "number",
-      "restart": "none",
-      "advanced": true,
-      "min": 1,
-      "max": 90
-    },
-    {
-      "key": "storage.configStrict",
-      "label": "配置非法时拒绝启动",
-      "group": "存储与可靠性",
+      "key": "slang.enabled",
+      "label": "Enabled",
+      "group": "黑话学习",
       "type": "boolean",
-      "restart": "bridge",
+      "restart": "none",
       "advanced": true
     },
     {
-      "key": "storage.dbPath",
-      "label": "数据库路径",
-      "group": "存储与可靠性",
+      "key": "slang.extractCooldownMs",
+      "label": "Extract Cooldown Ms",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.extractMinMessages",
+      "label": "Extract Min Messages",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.inferenceThresholds",
+      "label": "Inference Thresholds",
+      "group": "黑话学习",
+      "type": "array",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.injectMax",
+      "label": "Inject Max",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.learnerPreset",
+      "label": "Learner Preset",
+      "group": "黑话学习",
       "type": "string",
-      "restart": "bridge",
+      "restart": "none",
       "advanced": true
     },
     {
-      "key": "storage.enabled",
-      "label": "启用 SQLite 可靠性层",
-      "group": "存储与可靠性",
-      "type": "boolean",
-      "restart": "bridge",
-      "advanced": false
-    },
-    {
-      "key": "storage.inboxEnabled",
-      "label": "入站消息去重与恢复",
-      "group": "存储与可靠性",
-      "type": "boolean",
-      "restart": "bridge",
-      "advanced": false
-    },
-    {
-      "key": "storage.inboxReplayMaxAgeMs",
-      "label": "入站重放窗口（ms）",
-      "group": "存储与可靠性",
+      "key": "slang.researchBatchSize",
+      "label": "Research Batch Size",
+      "group": "黑话学习",
       "type": "number",
       "restart": "none",
-      "advanced": true,
-      "min": 1000,
-      "max": 3600000
+      "advanced": true
     },
     {
-      "key": "storage.jobsEnabled",
-      "label": "统一任务队列",
-      "group": "存储与可靠性",
+      "key": "slang.researchMaxPerRun",
+      "label": "Research Max Per Run",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.researchTimeoutMs",
+      "label": "Research Timeout Ms",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.workspaceTitle",
+      "label": "Workspace Title",
+      "group": "黑话学习",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeCheckMaxMs",
+      "label": "Active Check Max Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeCheckMinMs",
+      "label": "Active Check Min Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeDurationEnabled",
+      "label": "Active Duration Enabled",
+      "group": "一代仿真（reserved）",
       "type": "boolean",
-      "restart": "bridge",
-      "advanced": false
+      "restart": "none",
+      "advanced": true
     },
     {
-      "key": "storage.logJsonl",
-      "label": "结构化日志（JSONL）",
-      "group": "存储与可靠性",
+      "key": "social.activeDurationMaxMs",
+      "label": "Active Duration Max Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeDurationMinMs",
+      "label": "Active Duration Min Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeReplyDelayMaxMs",
+      "label": "Active Reply Delay Max Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeReplyDelayMinMs",
+      "label": "Active Reply Delay Min Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.burstEnabled",
+      "label": "Burst Enabled",
+      "group": "一代仿真（reserved）",
       "type": "boolean",
-      "restart": "bridge",
-      "advanced": false
+      "restart": "none",
+      "advanced": true
     },
     {
-      "key": "storage.outboxEnabled",
-      "label": "出站消息先落盘",
-      "group": "存储与可靠性",
+      "key": "social.burstIntervalMaxMs",
+      "label": "Burst Interval Max Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.burstIntervalMinMs",
+      "label": "Burst Interval Min Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.contextWindow",
+      "label": "Context Window",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.enabled",
+      "label": "Enabled",
+      "group": "一代仿真（reserved）",
       "type": "boolean",
-      "restart": "bridge",
-      "advanced": false
+      "restart": "none",
+      "advanced": true
     },
     {
-      "key": "storage.outboxMaxAttempts",
-      "label": "出站重试次数",
-      "group": "存储与可靠性",
+      "key": "social.idleRetryProbability",
+      "label": "Idle Retry Probability",
+      "group": "一代仿真（reserved）",
       "type": "number",
       "restart": "none",
-      "advanced": true,
-      "min": 1,
-      "max": 20
+      "advanced": true
     },
     {
-      "key": "storage.outboxRetryBaseMs",
-      "label": "出站重试基数（ms）",
-      "group": "存储与可靠性",
+      "key": "social.idleRetryWaitMs",
+      "label": "Idle Retry Wait Ms",
+      "group": "一代仿真（reserved）",
       "type": "number",
       "restart": "none",
-      "advanced": true,
-      "min": 500,
-      "max": 300000
+      "advanced": true
     },
     {
-      "key": "storage.outboxRetryMaxMs",
-      "label": "出站重试上限（ms）",
-      "group": "存储与可靠性",
+      "key": "social.idleWindowMs",
+      "label": "Idle Window Ms",
+      "group": "一代仿真（reserved）",
       "type": "number",
       "restart": "none",
-      "advanced": true,
-      "min": 1000,
-      "max": 3600000
+      "advanced": true
     },
     {
-      "key": "storage.retentionDays",
-      "label": "数据保留天数",
-      "group": "存储与可靠性",
+      "key": "social.longGapMaxMs",
+      "label": "Long Gap Max Ms",
+      "group": "一代仿真（reserved）",
       "type": "number",
       "restart": "none",
-      "advanced": true,
-      "min": 1,
-      "max": 365
+      "advanced": true
+    },
+    {
+      "key": "social.longGapMinMs",
+      "label": "Long Gap Min Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.longGapProbability",
+      "label": "Long Gap Probability",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.maxReplyChars",
+      "label": "Max Reply Chars",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.mustReplyKeywords",
+      "label": "Must Reply Keywords",
+      "group": "一代仿真（reserved）",
+      "type": "array",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveCheckMaxMs",
+      "label": "Proactive Check Max Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveCheckMinMs",
+      "label": "Proactive Check Min Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveEnabled",
+      "label": "Proactive Enabled",
+      "group": "一代仿真（reserved）",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveIdleThresholdMs",
+      "label": "Proactive Idle Threshold Ms",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveProbability",
+      "label": "Proactive Probability",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.skipProbability",
+      "label": "Skip Probability",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.surrenderProbability",
+      "label": "Surrender Probability",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.triggerProbability",
+      "label": "Trigger Probability",
+      "group": "一代仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
     },
     {
       "key": "socialV2.agentPreset",
@@ -4503,308 +4802,6 @@
       "advanced": false
     },
     {
-      "key": "allow.groups",
-      "label": "Groups",
-      "group": "发送白名单",
-      "type": "array",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "allow.private",
-      "label": "Private",
-      "group": "发送白名单",
-      "type": "array",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "deny.groups",
-      "label": "Groups",
-      "group": "发送黑名单",
-      "type": "array",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "deny.private",
-      "label": "Private",
-      "group": "发送黑名单",
-      "type": "array",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.signature.dryRun",
-      "label": "只预览不更新",
-      "group": "个性签名",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.signature.enabled",
-      "label": "自动个性签名",
-      "group": "个性签名",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.signature.firstDelayMs",
-      "label": "首次延迟（ms）",
-      "group": "个性签名",
-      "type": "number",
-      "restart": "none",
-      "advanced": true,
-      "min": 60000,
-      "max": 86400000
-    },
-    {
-      "key": "socialV2.signature.maxChars",
-      "label": "签名最大字数",
-      "group": "个性签名",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 8,
-      "max": 60
-    },
-    {
-      "key": "socialV2.signature.maxIntervalHours",
-      "label": "最长间隔（小时）",
-      "group": "个性签名",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 1,
-      "max": 720
-    },
-    {
-      "key": "socialV2.signature.minIntervalHours",
-      "label": "最短间隔（小时）",
-      "group": "个性签名",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 1,
-      "max": 720
-    },
-    {
-      "key": "slang.autoResearch",
-      "label": "Auto Research",
-      "group": "黑话学习",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.enabled",
-      "label": "Enabled",
-      "group": "黑话学习",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.extractCooldownMs",
-      "label": "Extract Cooldown Ms",
-      "group": "黑话学习",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.extractMinMessages",
-      "label": "Extract Min Messages",
-      "group": "黑话学习",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.inferenceThresholds",
-      "label": "Inference Thresholds",
-      "group": "黑话学习",
-      "type": "array",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.injectMax",
-      "label": "Inject Max",
-      "group": "黑话学习",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.learnerPreset",
-      "label": "Learner Preset",
-      "group": "黑话学习",
-      "type": "string",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.researchBatchSize",
-      "label": "Research Batch Size",
-      "group": "黑话学习",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.researchMaxPerRun",
-      "label": "Research Max Per Run",
-      "group": "黑话学习",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.researchTimeoutMs",
-      "label": "Research Timeout Ms",
-      "group": "黑话学习",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "slang.workspaceTitle",
-      "label": "Workspace Title",
-      "group": "黑话学习",
-      "type": "string",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "ackMessage",
-      "label": "思考中回执",
-      "group": "基础",
-      "type": "string",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "agentPreset",
-      "label": "默认 agent preset",
-      "group": "基础",
-      "type": "string",
-      "restart": "dsh",
-      "advanced": false
-    },
-    {
-      "key": "allowAllWhenEmpty",
-      "label": "白名单为空时放行所有",
-      "group": "基础",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "configVersion",
-      "label": "Config Version",
-      "group": "基础",
-      "type": "number",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "consoleAuth.enabled",
-      "label": "控制台要求访问令牌",
-      "group": "基础",
-      "type": "boolean",
-      "restart": "bridge",
-      "advanced": false
-    },
-    {
-      "key": "consolePort",
-      "label": "控制台端口",
-      "group": "基础",
-      "type": "number",
-      "restart": "bridge",
-      "advanced": false,
-      "min": 1,
-      "max": 65535
-    },
-    {
-      "key": "questionTimeoutMs",
-      "label": "提问超时（ms）",
-      "group": "基础",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 5000,
-      "max": 3600000
-    },
-    {
-      "key": "sendDelayMs",
-      "label": "发送间隔（ms）",
-      "group": "基础",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 0,
-      "max": 10000
-    },
-    {
-      "key": "sessionCwd",
-      "label": "会话工作目录",
-      "group": "基础",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": true
-    },
-    {
-      "key": "workspaceTitle",
-      "label": "工作区标题",
-      "group": "基础",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": false
-    },
-    {
-      "key": "pricing.models.my-relay-model.label",
-      "label": "Label",
-      "group": "价目表",
-      "type": "string",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "pricing.models.my-relay-model.off.cacheHit",
-      "label": "Cache Hit",
-      "group": "价目表",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "pricing.models.my-relay-model.off.cacheMiss",
-      "label": "Cache Miss",
-      "group": "价目表",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "pricing.models.my-relay-model.off.output",
-      "label": "Output",
-      "group": "价目表",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "features.disabled",
-      "label": "禁用的 feature",
-      "group": "扩展",
-      "type": "array",
-      "restart": "bridge",
-      "advanced": false
-    },
-    {
       "key": "webSearch.apiKeyEnv",
       "label": "API Key 环境变量名",
       "group": "联网搜索",
@@ -4879,790 +4876,6 @@
       "advanced": false,
       "min": 1000,
       "max": 120000
-    },
-    {
-      "key": "routing.enabled",
-      "label": "模型/effort 路由",
-      "group": "模型路由",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "routing.fallback",
-      "label": "Fallback",
-      "group": "模型路由",
-      "type": "array",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.innerLife.groupShare.targets",
-      "label": "主动分享目标群",
-      "group": "内容引擎",
-      "type": "array",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.innerLife.dryRun",
-      "label": "内心生活演练模式",
-      "group": "内心生活",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.innerLife.enabled",
-      "label": "内心生活",
-      "group": "内心生活",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.innerLife.groupShare.enabled",
-      "label": "群内分享",
-      "group": "内心生活",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.innerLife.qzone.enabled",
-      "label": "QQ 空间",
-      "group": "内心生活",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.dailyReport.at",
-      "label": "发送时间（HH:MM）",
-      "group": "群日报",
-      "type": "string",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.dailyReport.enabled",
-      "label": "群日报",
-      "group": "群日报",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.dailyReport.groups",
-      "label": "开启日报的群",
-      "group": "群日报",
-      "type": "array",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.dailyReport.maxItems",
-      "label": "摘录条数",
-      "group": "群日报",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 1,
-      "max": 20
-    },
-    {
-      "key": "socialV2.relationships.enabled",
-      "label": "群友关系（galgame）",
-      "group": "群友关系",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.relationships.excludedGroups",
-      "label": "额外排除的群",
-      "group": "群友关系",
-      "type": "array",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.relationships.excludeFamily",
-      "label": "自动排除家人群",
-      "group": "群友关系",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.relationships.liveLimit",
-      "label": "实时页展示人数",
-      "group": "群友关系",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 1,
-      "max": 12
-    },
-    {
-      "key": "socialV2.relationships.promptLimit",
-      "label": "prompt 关系卡人数",
-      "group": "群友关系",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 1,
-      "max": 12
-    },
-    {
-      "key": "role.maxInjectChars",
-      "label": "人格注入上限（字符）",
-      "group": "人格注入",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 1000,
-      "max": 20000
-    },
-    {
-      "key": "socialV2.context.digestMaxChars",
-      "label": "衔接摘要上限（字符）",
-      "group": "上下文与成本",
-      "type": "number",
-      "restart": "none",
-      "advanced": true,
-      "min": 300,
-      "max": 4000
-    },
-    {
-      "key": "socialV2.context.rotateAtTokens",
-      "label": "会话旋转阈值（tokens）",
-      "group": "上下文与成本",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 0,
-      "max": 500000
-    },
-    {
-      "key": "socialV2.context.wakeBudgetTokens",
-      "label": "唤醒 prompt token 预算",
-      "group": "上下文与成本",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 300,
-      "max": 20000
-    },
-    {
-      "key": "socialV2.memory.enabled",
-      "label": "分层长期记忆",
-      "group": "上下文与成本",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.memory.maxChars",
-      "label": "记忆注入上限（字符）",
-      "group": "上下文与成本",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 100,
-      "max": 4000
-    },
-    {
-      "key": "socialV2.memory.minConfidence",
-      "label": "记忆最低置信度",
-      "group": "上下文与成本",
-      "type": "number",
-      "restart": "none",
-      "advanced": true,
-      "min": 0,
-      "max": 1
-    },
-    {
-      "key": "socialV2.memory.topK",
-      "label": "记忆检索条数",
-      "group": "上下文与成本",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 1,
-      "max": 30
-    },
-    {
-      "key": "socialV2.valueScore.deferThreshold",
-      "label": "延后阈值",
-      "group": "上下文与成本",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 0,
-      "max": 1
-    },
-    {
-      "key": "socialV2.valueScore.enabled",
-      "label": "价值评分",
-      "group": "上下文与成本",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.valueScore.wakeThreshold",
-      "label": "唤醒阈值",
-      "group": "上下文与成本",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 0,
-      "max": 1
-    },
-    {
-      "key": "socialV2.esportsFeed.enabled",
-      "label": "电竞资讯",
-      "group": "提醒 / 天气 / 订阅",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.reminders.enabled",
-      "label": "提醒",
-      "group": "提醒 / 天气 / 订阅",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.reminders.overdueGraceMs",
-      "label": "过期容忍（ms）",
-      "group": "提醒 / 天气 / 订阅",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 60000,
-      "max": 86400000
-    },
-    {
-      "key": "socialV2.weather.defaultCity",
-      "label": "默认城市",
-      "group": "提醒 / 天气 / 订阅",
-      "type": "string",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.weather.enabled",
-      "label": "天气",
-      "group": "提醒 / 天气 / 订阅",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "social.activeCheckMaxMs",
-      "label": "Active Check Max Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.activeCheckMinMs",
-      "label": "Active Check Min Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.activeDurationEnabled",
-      "label": "Active Duration Enabled",
-      "group": "一代仿真（reserved）",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.activeDurationMaxMs",
-      "label": "Active Duration Max Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.activeDurationMinMs",
-      "label": "Active Duration Min Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.activeReplyDelayMaxMs",
-      "label": "Active Reply Delay Max Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.activeReplyDelayMinMs",
-      "label": "Active Reply Delay Min Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.burstEnabled",
-      "label": "Burst Enabled",
-      "group": "一代仿真（reserved）",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.burstIntervalMaxMs",
-      "label": "Burst Interval Max Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.burstIntervalMinMs",
-      "label": "Burst Interval Min Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.contextWindow",
-      "label": "Context Window",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.enabled",
-      "label": "Enabled",
-      "group": "一代仿真（reserved）",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.idleRetryProbability",
-      "label": "Idle Retry Probability",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.idleRetryWaitMs",
-      "label": "Idle Retry Wait Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.idleWindowMs",
-      "label": "Idle Window Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.longGapMaxMs",
-      "label": "Long Gap Max Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.longGapMinMs",
-      "label": "Long Gap Min Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.longGapProbability",
-      "label": "Long Gap Probability",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.maxReplyChars",
-      "label": "Max Reply Chars",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.mustReplyKeywords",
-      "label": "Must Reply Keywords",
-      "group": "一代仿真（reserved）",
-      "type": "array",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.proactiveCheckMaxMs",
-      "label": "Proactive Check Max Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.proactiveCheckMinMs",
-      "label": "Proactive Check Min Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.proactiveEnabled",
-      "label": "Proactive Enabled",
-      "group": "一代仿真（reserved）",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.proactiveIdleThresholdMs",
-      "label": "Proactive Idle Threshold Ms",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.proactiveProbability",
-      "label": "Proactive Probability",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.skipProbability",
-      "label": "Skip Probability",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.surrenderProbability",
-      "label": "Surrender Probability",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "social.triggerProbability",
-      "label": "Trigger Probability",
-      "group": "一代仿真（reserved）",
-      "type": "number",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "socialV2.speech.asr.enabled",
-      "label": "语音转写（ASR）",
-      "group": "语音",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.speech.asr.timeoutMs",
-      "label": "转写超时（ms）",
-      "group": "语音",
-      "type": "number",
-      "restart": "none",
-      "advanced": true,
-      "min": 1000,
-      "max": 120000
-    },
-    {
-      "key": "socialV2.voice.allowAbsolutePath",
-      "label": "允许绝对路径",
-      "group": "语音",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "socialV2.voice.autoReadback",
-      "label": "语音后自动朗读",
-      "group": "语音",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "socialV2.voice.defaultVolume",
-      "label": "默认音量倍数",
-      "group": "语音",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 0.1,
-      "max": 4
-    },
-    {
-      "key": "socialV2.voice.dir",
-      "label": "语音库目录",
-      "group": "语音",
-      "type": "string",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.voice.enabled",
-      "label": "语音发送",
-      "group": "语音",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.voice.ffmpegPath",
-      "label": "ffmpeg 路径",
-      "group": "语音",
-      "type": "string",
-      "restart": "none",
-      "advanced": true
-    },
-    {
-      "key": "socialV2.voice.loudness",
-      "label": "智能音量",
-      "group": "语音",
-      "type": "string",
-      "restart": "none",
-      "advanced": false,
-      "enum": [
-        "quiet",
-        "normal",
-        "loud"
-      ]
-    },
-    {
-      "key": "socialV2.voice.maxBytes",
-      "label": "单条最大字节",
-      "group": "语音",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 1024,
-      "max": 104857600
-    },
-    {
-      "key": "socialV2.voice.maxPerHour",
-      "label": "每小时上限",
-      "group": "语音",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 0,
-      "max": 600
-    },
-    {
-      "key": "socialV2.voice.maxPerMinute",
-      "label": "每分钟上限",
-      "group": "语音",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 0,
-      "max": 60
-    },
-    {
-      "key": "socialV2.voice.maxSeconds",
-      "label": "单条最长（秒）",
-      "group": "语音",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 1,
-      "max": 600
-    },
-    {
-      "key": "socialV2.voice.normalize",
-      "label": "响度归一",
-      "group": "语音",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.budget.blockNonExplicitOnly",
-      "label": "只压制非显式唤醒",
-      "group": "预算",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "socialV2.budget.dailyTokensGlobal",
-      "label": "全局每日 token",
-      "group": "预算",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 0,
-      "max": 1000000000
-    },
-    {
-      "key": "socialV2.budget.dailyTokensPerKey",
-      "label": "每会话每日 token",
-      "group": "预算",
-      "type": "number",
-      "restart": "none",
-      "advanced": false,
-      "min": 0,
-      "max": 100000000
-    },
-    {
-      "key": "socialV2.budget.enabled",
-      "label": "token 预算",
-      "group": "预算",
-      "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "dsh.allowRemote",
-      "label": "允许把 launch token 发往非回环地址",
-      "group": "DSH 连接与模型",
-      "type": "boolean",
-      "restart": "bridge",
-      "advanced": true
-    },
-    {
-      "key": "dsh.authHeader",
-      "label": "鉴权 header",
-      "group": "DSH 连接与模型",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": true
-    },
-    {
-      "key": "dsh.authPrefix",
-      "label": "鉴权前缀",
-      "group": "DSH 连接与模型",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": true
-    },
-    {
-      "key": "dsh.baseUrl",
-      "label": "DSH 地址",
-      "group": "DSH 连接与模型",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": false
-    },
-    {
-      "key": "dsh.model",
-      "label": "模型",
-      "group": "DSH 连接与模型",
-      "type": "string",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "dsh.provider",
-      "label": "模型 provider",
-      "group": "DSH 连接与模型",
-      "type": "string",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "dsh.reasoningEffort",
-      "label": "思考强度",
-      "group": "DSH 连接与模型",
-      "type": "string",
-      "restart": "none",
-      "advanced": false,
-      "enum": [
-        "off",
-        "low",
-        "medium",
-        "high",
-        "max"
-      ]
-    },
-    {
-      "key": "snowluma.followDiscoveredEndpoint",
-      "label": "跟随自动发现的端点",
-      "group": "SnowLuma / QQ",
-      "type": "boolean",
-      "restart": "bridge",
-      "advanced": true
-    },
-    {
-      "key": "snowluma.homeDir",
-      "label": "SnowLuma 安装目录",
-      "group": "SnowLuma / QQ",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": true
-    },
-    {
-      "key": "snowluma.httpUrl",
-      "label": "SnowLuma HTTP 地址",
-      "group": "SnowLuma / QQ",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": false
-    },
-    {
-      "key": "snowluma.launcherPath",
-      "label": "SnowLuma 启动器路径",
-      "group": "SnowLuma / QQ",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": true
-    },
-    {
-      "key": "snowluma.silenceWarnMs",
-      "label": "静默告警阈值（ms）",
-      "group": "SnowLuma / QQ",
-      "type": "number",
-      "restart": "bridge",
-      "advanced": true,
-      "min": 60000,
-      "max": 86400000
-    },
-    {
-      "key": "snowluma.wsUrl",
-      "label": "SnowLuma WS 地址",
-      "group": "SnowLuma / QQ",
-      "type": "string",
-      "restart": "bridge",
-      "advanced": false
     },
     {
       "key": "tts.autoStart",
@@ -6095,6 +5308,793 @@
       "label": "Top P",
       "group": "TTS 语音合成",
       "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "storage.backupDir",
+      "label": "备份目录",
+      "group": "存储与可靠性",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "storage.backupKeepDays",
+      "label": "备份保留天数",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 90
+    },
+    {
+      "key": "storage.configStrict",
+      "label": "配置非法时拒绝启动",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "storage.dbPath",
+      "label": "数据库路径",
+      "group": "存储与可靠性",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "storage.enabled",
+      "label": "启用 SQLite 可靠性层",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.inboxEnabled",
+      "label": "入站消息去重与恢复",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.inboxReplayMaxAgeMs",
+      "label": "入站重放窗口（ms）",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1000,
+      "max": 3600000
+    },
+    {
+      "key": "storage.jobsEnabled",
+      "label": "统一任务队列",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.logJsonl",
+      "label": "结构化日志（JSONL）",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.outboxEnabled",
+      "label": "出站消息先落盘",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.outboxMaxAttempts",
+      "label": "出站重试次数",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 20
+    },
+    {
+      "key": "storage.outboxRetryBaseMs",
+      "label": "出站重试基数（ms）",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 500,
+      "max": 300000
+    },
+    {
+      "key": "storage.outboxRetryMaxMs",
+      "label": "出站重试上限（ms）",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1000,
+      "max": 3600000
+    },
+    {
+      "key": "storage.retentionDays",
+      "label": "数据保留天数",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 365
+    },
+    {
+      "key": "routing.enabled",
+      "label": "模型/effort 路由",
+      "group": "模型路由",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "routing.fallback",
+      "label": "Fallback",
+      "group": "模型路由",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "pricing.models.my-relay-model.label",
+      "label": "Label",
+      "group": "价目表",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "pricing.models.my-relay-model.off.cacheHit",
+      "label": "Cache Hit",
+      "group": "价目表",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "pricing.models.my-relay-model.off.cacheMiss",
+      "label": "Cache Miss",
+      "group": "价目表",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "pricing.models.my-relay-model.off.output",
+      "label": "Output",
+      "group": "价目表",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "ackMessage",
+      "label": "思考中回执",
+      "group": "基础",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "agentPreset",
+      "label": "默认 agent preset",
+      "group": "基础",
+      "type": "string",
+      "restart": "dsh",
+      "advanced": false
+    },
+    {
+      "key": "allowAllWhenEmpty",
+      "label": "白名单为空时放行所有",
+      "group": "基础",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "configVersion",
+      "label": "Config Version",
+      "group": "基础",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "consoleAuth.enabled",
+      "label": "控制台要求访问令牌",
+      "group": "基础",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "consolePort",
+      "label": "控制台端口",
+      "group": "基础",
+      "type": "number",
+      "restart": "bridge",
+      "advanced": false,
+      "min": 1,
+      "max": 65535
+    },
+    {
+      "key": "questionTimeoutMs",
+      "label": "提问超时（ms）",
+      "group": "基础",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 5000,
+      "max": 3600000
+    },
+    {
+      "key": "sendDelayMs",
+      "label": "发送间隔（ms）",
+      "group": "基础",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "key": "sessionCwd",
+      "label": "会话工作目录",
+      "group": "基础",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "workspaceTitle",
+      "label": "工作区标题",
+      "group": "基础",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.context.digestMaxChars",
+      "label": "衔接摘要上限（字符）",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 300,
+      "max": 4000
+    },
+    {
+      "key": "socialV2.context.rotateAtTokens",
+      "label": "会话旋转阈值（tokens）",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 500000
+    },
+    {
+      "key": "socialV2.context.wakeBudgetTokens",
+      "label": "唤醒 prompt token 预算",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 300,
+      "max": 20000
+    },
+    {
+      "key": "socialV2.memory.enabled",
+      "label": "分层长期记忆",
+      "group": "上下文与成本",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.memory.maxChars",
+      "label": "记忆注入上限（字符）",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 100,
+      "max": 4000
+    },
+    {
+      "key": "socialV2.memory.minConfidence",
+      "label": "记忆最低置信度",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "socialV2.memory.topK",
+      "label": "记忆检索条数",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 30
+    },
+    {
+      "key": "socialV2.valueScore.deferThreshold",
+      "label": "延后阈值",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "socialV2.valueScore.enabled",
+      "label": "价值评分",
+      "group": "上下文与成本",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.valueScore.wakeThreshold",
+      "label": "唤醒阈值",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "socialV2.signature.dryRun",
+      "label": "只预览不更新",
+      "group": "个性签名",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.signature.enabled",
+      "label": "自动个性签名",
+      "group": "个性签名",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.signature.firstDelayMs",
+      "label": "首次延迟（ms）",
+      "group": "个性签名",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "socialV2.signature.maxChars",
+      "label": "签名最大字数",
+      "group": "个性签名",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 8,
+      "max": 60
+    },
+    {
+      "key": "socialV2.signature.maxIntervalHours",
+      "label": "最长间隔（小时）",
+      "group": "个性签名",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 720
+    },
+    {
+      "key": "socialV2.signature.minIntervalHours",
+      "label": "最短间隔（小时）",
+      "group": "个性签名",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 720
+    },
+    {
+      "key": "transport.kind",
+      "label": "传输类型",
+      "group": "传输",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false,
+      "enum": [
+        "snowluma",
+        "onebot"
+      ]
+    },
+    {
+      "key": "socialV2.innerLife.groupShare.targets",
+      "label": "主动分享目标群",
+      "group": "内容引擎",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.innerLife.dryRun",
+      "label": "内心生活演练模式",
+      "group": "内心生活",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.innerLife.enabled",
+      "label": "内心生活",
+      "group": "内心生活",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.innerLife.groupShare.enabled",
+      "label": "群内分享",
+      "group": "内心生活",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.innerLife.qzone.enabled",
+      "label": "QQ 空间",
+      "group": "内心生活",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.disabled",
+      "label": "禁用的 feature",
+      "group": "扩展",
+      "type": "array",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.esportsFeed.enabled",
+      "label": "电竞资讯",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.reminders.enabled",
+      "label": "提醒",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.reminders.overdueGraceMs",
+      "label": "过期容忍（ms）",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "socialV2.weather.defaultCity",
+      "label": "默认城市",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.weather.enabled",
+      "label": "天气",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.relationships.enabled",
+      "label": "群友关系（galgame）",
+      "group": "群友关系",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.relationships.excludeFamily",
+      "label": "自动排除家人群",
+      "group": "群友关系",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.relationships.excludedGroups",
+      "label": "额外排除的群",
+      "group": "群友关系",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.relationships.liveLimit",
+      "label": "实时页展示人数",
+      "group": "群友关系",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 12
+    },
+    {
+      "key": "socialV2.relationships.promptLimit",
+      "label": "prompt 关系卡人数",
+      "group": "群友关系",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 12
+    },
+    {
+      "key": "socialV2.dailyReport.at",
+      "label": "发送时间（HH:MM）",
+      "group": "群日报",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.dailyReport.enabled",
+      "label": "群日报",
+      "group": "群日报",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.dailyReport.groups",
+      "label": "开启日报的群",
+      "group": "群日报",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.dailyReport.maxItems",
+      "label": "摘录条数",
+      "group": "群日报",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 20
+    },
+    {
+      "key": "socialV2.imageLibrary.dir",
+      "label": "图片库目录",
+      "group": "表情与图片",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.imageLibrary.enabled",
+      "label": "通用图片库",
+      "group": "表情与图片",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.sticker.collect.enabled",
+      "label": "允许收藏表情",
+      "group": "表情与图片",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.sticker.enabled",
+      "label": "表情包体系",
+      "group": "表情与图片",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.speech.asr.enabled",
+      "label": "语音转写（ASR）",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.speech.asr.timeoutMs",
+      "label": "转写超时（ms）",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1000,
+      "max": 120000
+    },
+    {
+      "key": "socialV2.voice.allowAbsolutePath",
+      "label": "允许绝对路径",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "socialV2.voice.autoReadback",
+      "label": "语音后自动朗读",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "socialV2.voice.defaultVolume",
+      "label": "默认音量倍数",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0.1,
+      "max": 4
+    },
+    {
+      "key": "socialV2.voice.dir",
+      "label": "语音库目录",
+      "group": "语音",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.voice.enabled",
+      "label": "语音发送",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.voice.ffmpegPath",
+      "label": "ffmpeg 路径",
+      "group": "语音",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "socialV2.voice.loudness",
+      "label": "智能音量",
+      "group": "语音",
+      "type": "string",
+      "restart": "none",
+      "advanced": false,
+      "enum": [
+        "quiet",
+        "normal",
+        "loud"
+      ]
+    },
+    {
+      "key": "socialV2.voice.maxBytes",
+      "label": "单条最大字节",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1024,
+      "max": 104857600
+    },
+    {
+      "key": "socialV2.voice.maxPerHour",
+      "label": "每小时上限",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 600
+    },
+    {
+      "key": "socialV2.voice.maxPerMinute",
+      "label": "每分钟上限",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 60
+    },
+    {
+      "key": "socialV2.voice.maxSeconds",
+      "label": "单条最长（秒）",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 600
+    },
+    {
+      "key": "socialV2.voice.normalize",
+      "label": "响度归一",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.budget.blockNonExplicitOnly",
+      "label": "只压制非显式唤醒",
+      "group": "预算",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "socialV2.budget.dailyTokensGlobal",
+      "label": "全局每日 token",
+      "group": "预算",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 1000000000
+    },
+    {
+      "key": "socialV2.budget.dailyTokensPerKey",
+      "label": "每会话每日 token",
+      "group": "预算",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 100000000
+    },
+    {
+      "key": "socialV2.budget.enabled",
+      "label": "token 预算",
+      "group": "预算",
+      "type": "boolean",
       "restart": "none",
       "advanced": false
     }
