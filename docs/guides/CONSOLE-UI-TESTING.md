@@ -7,7 +7,7 @@
 在项目根目录执行：
 
 ```sh
-npm run preview:console          # 等价于 node scripts/console-ui-fixture.mjs
+npm run preview:console          # 等价于 node tools/demo-console.mjs
 ```
 
 浏览器访问 `http://127.0.0.1:4173`。写请求会打印到终端，也可以访问 `/__fixture/requests` 查看记录。服务只监听 loopback 地址。按 `Ctrl+C` 退出，演示数据随之丢弃。
@@ -15,18 +15,18 @@ npm run preview:console          # 等价于 node scripts/console-ui-fixture.mjs
 可用选项：
 
 ```sh
-node scripts/console-ui-fixture.mjs --port=4174
-node scripts/console-ui-fixture.mjs --original --port=4174
-node scripts/console-ui-fixture.mjs --html=path/to/console.html
+node tools/demo-console.mjs --port=4174
+node tools/demo-console.mjs --original --port=4174
+node tools/demo-console.mjs --html=path/to/console.html
 ```
 
-`--original` 读取 `scripts/fixtures/console.before.html`（改造前的原版，随仓库保留），仅用于对照预览；正常预览读取 `public/console.html`。
+`--original` 读取 `tests/fixtures/console.before.html`（改造前的原版，随仓库保留），仅用于对照预览；正常预览读取 `web/deck.html`。
 
 ## 浏览器回归
 
 ```sh
-npm run test:console-ui          # 等价于 node scripts/test-console-ui.mjs
-node scripts/test-console-ui.mjs --artifacts=docs/ui-verification
+npm run test:console-ui          # 等价于 node tests/console-ui.test.mjs
+node tests/console-ui.test.mjs --artifacts=docs/ui-verification
 ```
 
 脚本使用 Playwright 和 Chromium。优先使用项目内安装的 `playwright`；Windows 上若未安装 Playwright，会自动改用本机 Chrome / Edge，无需下载浏览器。其他环境可安装 Playwright 及其浏览器，或通过以下环境变量指定：
@@ -55,7 +55,7 @@ node scripts/test-console-ui.mjs --artifacts=docs/ui-verification
 - 思考强度：档位来自 DSH 公布的能力（low/high/max）、默认 max、可切换保存，并断言页面明示会连带修改 DSH 全局默认。
 - 无 JavaScript 错误、未知 API 或外部网络请求。
 
-新增的控制台 API 都已在 `console-ui-fixture.mjs` 里 mock；**改动控制台时若加了新接口，必须同步补 mock**，否则本套件会在「未知 API」这一项失败。
+新增的控制台 API 都已在 `tools/demo-console.mjs` 里 mock；**改动控制台时若加了新接口，必须同步补 mock**，否则本套件会在「未知 API」这一项失败。
 
 `--artifacts` 会保存检查结果 JSON、模拟写请求记录和桌面 / 手机截图（浅色与深色各一组），截图时会静止动画以保证可复现。默认不生成额外文件。
 
@@ -63,10 +63,10 @@ node scripts/test-console-ui.mjs --artifacts=docs/ui-verification
 
 `console-ui-legacy-ids.json` 保存改造前的 225 个元素 ID。`console-ui-contracts.json` 来自原控制台在相同 fixture 中执行相同操作后的 24 次写请求，包含仿真配置的完整嵌套参数。
 
-只有后端契约经过明确调整时才更新基线。`scripts/fixtures/console.before.html` 是改造前的原版控制台（通常无需改动），重录时运行：
+只有后端契约经过明确调整时才更新基线。`tests/fixtures/console.before.html` 是改造前的原版控制台（通常无需改动），重录时运行：
 
 ```sh
-node scripts/test-console-ui.mjs --original --record-baseline
+node tests/console-ui.test.mjs --original --record-baseline
 ```
 
 普通回归不依赖 `console.before.html`。不要用真实的 `test-console.mjs` 替代本脚本：那个脚本可能向真实 QQ 发送消息。

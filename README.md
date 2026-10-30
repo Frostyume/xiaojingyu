@@ -62,7 +62,7 @@ agent 的回复、提问和工具审批再回到 QQ。它不改变 QQ 的用法�
 | **可靠内核** | SQLite/WAL；outbox 幂等与重放、inbox 去重、任务队列；DSH 掉线时按会话排队，恢复后补投；`npm run doctor` 一键体检。 |
 | **成本看板** | 按 DeepSeek 官方峰谷价目折算，支持按群 / 好友 / 轮次下钻、缓存命中与未命中拆分、24 小时 / 3 天 / 7 天 / 30 天走势。 |
 | **安全默认值** | 白名单为空就不响应；仿真会话没有本地执行工具；发送强制白名单 + 敏感信息审计；跨会话指令要确认码；内部报错不进群；`state/` 可收紧 ACL。 |
-| **DSH 适配** | 用 `~/.dsh` 持久签名密钥离线铸造会话 Cookie；slash RPC + `/api/remote.mux` 事件流；preset bundle patch；三个受限 MCP server；`setup-dsh.mjs` 一键安装。 |
+| **DSH 适配** | 用 `~/.dsh` 持久签名密钥离线铸造会话 Cookie；slash RPC + `/api/remote.mux` 事件流；preset bundle patch；三个受限 MCP server；`install-dsh.mjs` 一键安装。 |
 
 ## 群聊仿真
 
@@ -283,7 +283,7 @@ cp config.example.json config.json     # Windows CMD 用：copy config.example.j
 ### 3. 装 DSH 端（preset + MCP），然后重启 DSH
 
 ```bash
-node scripts/setup-dsh.mjs
+node tools/install-dsh.mjs
 ```
 
 脚本会把 `qq-chat` preset 与三个 MCP server 写进 DSH 配置，并把全新环境的默认模式设为
@@ -323,7 +323,7 @@ node scripts/setup-dsh.mjs
 npm start          # 前台运行，崩溃不自动重启
 ```
 
-Windows 想要「崩溃自动重启」，改用 `start.bat`（守护窗口，关窗即停）。
+Windows 想要「崩溃自动重启」，改用 `bin/boot.cmd`（守护窗口，关窗即停）。
 看到 `SnowLuma 已连接` 就成功了；接着在 QQ 上给机器人账号发条消息试试。
 
 ```bash
@@ -418,7 +418,7 @@ preset 不随仓库发布；要使用它们需自备该 preset，否则桥接会
 - **QQ 动作是安全子集**：只允许三个 MCP 命名空间 + `ask_user_question` / `todo_write`，
   发送类工具强制命中白名单；语音只能发语音库里的文件；
 - **高风险动作要确认**：跨会话指令、敏感操作会在 owner 私聊里要求 `/确认 <6 位码>`；
-- **人格由桥接注入**：角色来自 `roles/` 与控制台，群友口头要求改角色无效；
+- **人格由桥接注入**：角色来自 `personas/` 与控制台，群友口头要求改角色无效；
 - **不把内部错误发进群**：DSH / SnowLuma / QQ 的原始报错只留在日志和 `GET /api/status`；
 - **仓库不含密钥**：真实 `config.json`、`state/`、`audio/` 都不会进入仓库，只提供脱敏模板。
 
@@ -465,21 +465,24 @@ xiaojingyu/
   config.example.json   # 配置模板（脱敏占位符；真实 config.json 不入库）
   config.schema.json    # 由 config.example.json 生成（verify 会 --check）
   README.md / README.en.md / RULES.md / SECURITY.md / UPSTREAM.md
+  app/                  # 进程入口（whale.js 主程序、self-check.js）
+  runtime/              # 内核 / 人格 / 分享 / 控制 / 编排
+  services/             # 人格、媒体、社交能力
+  channels/             # QQ（SnowLuma OneBot）与 DSH 适配
+  mcp/                  # 三个 MCP server
+  console/              # 控制台服务端（鉴权、/live、策略）
+  features/             # 可插拔功能（日报、卡片）
+  web/                  # deck.html 控制台、live.html 状态页、assets/ 鲸鱼像素图
+  personas/             # 人格卡（小鲸鱼）
+  integrations/dsh/     # preset 权威源、agent-presets bundle、mode-console 插件
   docs/                 # 文档索引、目录地图与 guides/
-  dsh/agent-presets/qq-chat/  # 群聊仿真 preset 的权威源
-  plugins/agent-presets       # DSH bundle：生成 preset patch + 共享工具守卫
-  plugins/mode-console        # DSH 插件：qq-mode 设置命名空间（host 半）
-  public/
-    console.html        # 本地 Web 控制台
-    live.html           # 只读实时状态页
-    assets/             # 鲸鱼像素图
-  roles/                # 人格卡（小鲸鱼）
+  tools/                # 运维 / 构建 / 测试辅助脚本
+  tests/                # 自动化测试与基线夹具
+  bin/                  # Windows 启动器（boot.cmd / reboot.cmd）
   assets/
     banner.png          # README 横幅
     screenshots/        # 控制台截图（离线示例数据）
     voice/              # 两条示例语音，复制到 audio/ 即可
-  src/                  # 桥接内核、DSH 客户端、三个 MCP server
-  scripts/              # 测试 / 运维脚本（含 postinstall 补丁）
   audio/                # 语音库（不入库）
   state/                # 运行时数据（不入库）
 ```
@@ -487,7 +490,7 @@ xiaojingyu/
 </details>
 
 > **「发语音」独立工具（`voice-tool/`，入口 `voice-cli.mjs` / `voice-gui.mjs`）不随本仓库发布。** 它复用本仓库的
-> `src/voice-core.js` / `src/snowluma-conn.js`，只依赖 SnowLuma；
+> `services/media/voice-core.js` / `channels/qq/gateway.js`，只依赖 SnowLuma；
 > 仓库内的语音能力（`qq_speak`、`/api/simulation/send-voice` 等）不依赖它。
 
 ## 与上游的关系

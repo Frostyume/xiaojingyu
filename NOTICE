@@ -32,18 +32,18 @@
 
 1. **仓库内不含、不分发**它们的代码：`node_modules/` 在 `.gitignore` 里，已跟踪文件中
    没有任何原生二进制（`.node/.dll/.so`）或 `@snowluma` 路径下的文件；
-2. **但 `npm install` 会改本地安装副本**：`postinstall` 运行 `scripts/patch-snowluma-sdk.mjs`，
+2. **但 `npm install` 会改本地安装副本**：`postinstall` 运行 `tools/patch-snowluma-sdk.mjs`，
    对 `node_modules/@snowluma/{sdk,mcp}` 的 `dist/**/*.js` 做**一次机械修补**（只给相对导入补 `.js`
    扩展名，绕开这两个包自身的 ESM 打包问题）。许可 §2(c) 允许"为自己的非商业使用而修改"，
    且**只作用于本机安装副本、不进入本仓库**；**所以"不修改 SnowLuma 的源码或二进制"这种说法是不准确的**，
    本项目文档已统一改为上述据实描述；
 3. **在 QSH 里移除这两个依赖**（已列入 `QSH-plan` 的 M2 里程碑）——
    - `@snowluma/sdk` 在本项目里只用到两样东西：**1 处 WebSocket 客户端构造**（`bridge.js` 末尾）
-     + **3 个 `text()` 调用点**（共 6 次调用；实测裸 `text(` 匹配数为 6；另有 3 个 `scripts/` 诊断脚本也 import 它）。
+     + **3 个 `text()` 调用点**（共 6 次调用；实测裸 `text(` 匹配数为 6；另有 3 个 `tools/` 诊断脚本也 import 它）。
      OneBot v11 是公开协议规范，自己实现一个最小客户端即可（约 150 行 + 回归）；
      顺带可去掉 `postinstall` 补丁 —— ⚠️ **删依赖与换客户端必须同批落地**（补丁是 `postinstall` 载荷路径，
      只删依赖会让 `npm install` 或启动直接失败）；
-   - `@snowluma/mcp` 在本项目里**运行时完全不用**（`src/` 里零引用，仅 `scripts/test-mcp-exec.mjs` 用到）
+   - `@snowluma/mcp` 在本项目里**运行时完全不用**（`app/`、`runtime/`、`services/` 里零引用，仅 `tests/mcp-exec.test.mjs` 用到）
      ——改成**自建能力矩阵**（只取动作名与参数名这类接口事实，措辞自己写；
      ⚠️ **不要提交它的 `catalog.js` 快照**，那本身就是再分发其内容，会触发 §3(b)(c)）。
 4. 若你要更彻底地消除不确定性，可以在给 SnowLumaDevs 的邮件里**顺带问一句**

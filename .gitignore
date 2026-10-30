@@ -33,20 +33,20 @@ config.json
 
 # Local one-off dev/debug/patch scripts
 # (machine-specific paths/IDs, or bound to artifacts of a single probe run under state/)
-/scripts/cleanup-probe-sessions.mjs
-/scripts/cleanup-probe-workspaces.mjs
-/scripts/cleanup-test-sessions.mjs
-/scripts/debug-whitelist.mjs
-/scripts/diag-archive.mjs
-/scripts/fix-probe-workspace-title.mjs
-/scripts/patch-qq-chat-collect-memory.mjs
-/scripts/patch-qq-chat-presleep.mjs
-/scripts/patch-qq-chat-stickers.mjs
-/scripts/patch-web-mcp-timeout.mjs
+/tools/cleanup-probe-sessions.mjs
+/tools/cleanup-probe-workspaces.mjs
+/tools/cleanup-test-sessions.mjs
+/tools/debug-whitelist.mjs
+/tools/diag-archive.mjs
+/tools/fix-probe-workspace-title.mjs
+/tools/patch-qq-chat-collect-memory.mjs
+/tools/patch-qq-chat-presleep.mjs
+/tools/patch-qq-chat-stickers.mjs
+/tools/patch-web-mcp-timeout.mjs
 
 
 # 本机专用的隐私扫描规则（含真实 QQ 号/路径，不入库）
-/scripts/privacy-rules.json
+/tools/privacy-rules.json
 
 # ── 内部文档保护（修复：忽略规则仍指向旧的根目录路径）──────────────────────
 # 上面那批 `/XXX.md` 规则是按**仓库根目录**写的，但这些文档后来整体挪进了 docs/，

@@ -1,7 +1,7 @@
 # 文档索引（docs/README.md）
 
 > 根目录只留 `README.md` / `README.en.md` / `RULES.md` / `SECURITY.md` / `UPSTREAM.md` 五个文档，其余都在本目录下。
-> 仓库目录结构与 `scripts/` 命名约定见 **[FOLDER_MAP.md](FOLDER_MAP.md)**。
+> 仓库目录结构与 `tools/`、`tests/` 命名约定见 **[FOLDER_MAP.md](FOLDER_MAP.md)**。
 
 ## 随仓库发布的文档
 
@@ -14,7 +14,7 @@
 | [guides/CONSOLE-UI-TESTING.md](guides/CONSOLE-UI-TESTING.md) | 控制台离线预览（`npm run preview:console`）与离线浏览器回归（`npm run test:console-ui`） |
 | [guides/TOKEN_USAGE_CONSOLE.md](guides/TOKEN_USAGE_CONSOLE.md) | 控制台「令牌与花费」看板：数据来源、计价口径（峰谷分时）、API |
 | [guides/PRIVACY.md](guides/PRIVACY.md) | 发布前隐私检查：哪些东西绝不能进 git、扫描器怎么用、豁免怎么收紧 |
-| [FOLDER_MAP.md](FOLDER_MAP.md) | 目录结构与 `scripts/` 脚本命名约定 |
+| [FOLDER_MAP.md](FOLDER_MAP.md) | 目录结构与 `tools/`、`tests/` 命名约定 |
 
 ## 想找什么 → 去哪看
 
@@ -36,5 +36,5 @@
 以及内部编排/交接文档**不随仓库发布**——它们是在一台真实机器上写成的，含有本机绝对路径、真实账号与群号。
 仓库根的 `.gitignore` 也会直接挡下这些路径。
 
-因此 `scripts/handoff.mjs` 只适用于维护者的私有开发副本（它依赖 `docs/orchestration/`），
+因此 `tools/handoff.mjs` 只适用于维护者的私有开发副本（它依赖 `docs/orchestration/`），
 在这里运行不会报错，但生成的交接快照只对本机有意义。

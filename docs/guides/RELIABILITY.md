@@ -1,8 +1,8 @@
 # 可靠性与诊断（SQLite / Outbox / Jobs / Doctor）
 
 > 适用版本：2026-10-25 Stage 1 起。本文只描述机制与操作，不含任何真实 QQ 号/群号/令牌。
-> 相关代码：`src/core/db.js`、`src/core/outbox.js`、`src/core/jobs.js`、`src/core/inbox.js`、
-> `src/core/config-schema.js`、`src/core/logger.js`、`scripts/doctor.mjs`。
+> 相关代码：`runtime/kernel/db.js`、`runtime/kernel/outbox.js`、`runtime/kernel/jobs.js`、`runtime/kernel/inbox.js`、
+> `runtime/kernel/config-schema.js`、`runtime/kernel/logger.js`、`tools/healthcheck.mjs`。
 
 ## 1. 一句话
 
@@ -34,7 +34,7 @@
 
 ## 3. SQLite
 
-- 驱动：Node 内置 `node:sqlite`（实验 API），封装在 `src/core/db.js`；业务不直接依赖驱动。
+- 驱动：Node 内置 `node:sqlite`（实验 API），封装在 `runtime/kernel/db.js`；业务不直接依赖驱动。
   将来若要换 `better-sqlite3`，只改适配层。
 - `journal_mode=WAL`、`synchronous=NORMAL`、`busy_timeout=5000`。
 - 迁移：`schema_migrations` 表，单向递增；迁移前若有旧库会 `VACUUM INTO` 在线备份。
@@ -203,7 +203,7 @@ npm run test:audit    # 全量离线回归（不含真 QQ/DSH）
 
 ## 15. 结构化人格包（Stage 3）
 
-- 位置：`roles/<角色名>.persona.json`，与角色卡同名；**角色卡仍是权威**，冲突时以卡为准。
+- 位置：`personas/<角色名>.persona.json`，与角色卡同名；**角色卡仍是权威**，冲突时以卡为准。
 - 字段：identity / tone（warmth, verbosity, humor, clinginess）/ examples / boundaries /
   emotions / voice（emotionRefs, emotionSpeed）。
 - 缺失或损坏时静默回退 Markdown（只告警一次）；保存前校验、限长、拒绝危险键。
@@ -219,7 +219,7 @@ npm run test:audit    # 全量离线回归（不含真 QQ/DSH）
 
 ## 17. 语音（Stage 3）
 
-- TTS 情绪音色：`src/core/tts-emotion.js` 从要说的文本推断情绪（shy/happy/sad/excited/soft/neutral），
+- TTS 情绪音色：`runtime/persona/tts-emotion.js` 从要说的文本推断情绪（shy/happy/sad/excited/soft/neutral），
   按「人格包 voice 映射 → config.tts.emotionRefs/emotionSpeed → 默认」选择参考音频与语速；
   **显式传入的 speed 永远优先**。
 - ASR（语音转写）：默认关闭。开启后，带 `record` 段的入站消息调用 SnowLuma `fetch_ptt_text`，
@@ -236,7 +236,7 @@ npm run test:audit    # 全量离线回归（不含真 QQ/DSH）
 
 ## 19. Feature API 与事件总线（Stage 4）
 
-新功能放 `src/features/<id>/index.js`，默认无权限，加载时按白名单授予：
+新功能放 `features/<id>/index.js`，默认无权限，加载时按白名单授予：
 
 ```js
 export default {
@@ -261,7 +261,7 @@ export default {
 
 ## 20. 传输适配层（Stage 4）
 
-- `src/core/transport.js`：核心只调用 `sendText/getMember/getForward`。
+- `runtime/kernel/transport.js`：核心只调用 `sendText/getMember/getForward`。
 - `transport.kind = "snowluma"`（默认）：纯文本走 WS（沿用现网），引用/@/媒体走 OneBot HTTP；
 - `transport.kind = "onebot"`：通用 OneBot v11 HTTP（NapCat 等），所有发送走 HTTP。
 - 能力矩阵：OneBot 的 `voice=false`，调用前明确报「不支持」，而不是发到一半才失败。

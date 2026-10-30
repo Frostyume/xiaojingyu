@@ -67,7 +67,7 @@ flowchart LR
 | **Reliability core** | SQLite/WAL; idempotent outbox with replay, inbox dedupe, job queue; messages queue per conversation while DSH is down and are replayed on recovery; `npm run doctor` health check. |
 | **Cost dashboard** | Priced with DeepSeek's official peak / off-peak table; drill-down per group, friend and turn; cache-hit vs miss split; 24-hour / 3-day / 7-day / 30-day trend. |
 | **Secure defaults** | An empty whitelist means no responses; simulation sessions have no local execution tools; sends require a whitelist hit plus sensitive-text audit; cross-session instructions require a confirmation code; internal errors never reach the group; `state/` can be ACL-hardened. |
-| **DSH adaptation** | Session Cookie minted offline from the persistent `~/.dsh` signing key; slash RPC plus `/api/remote.mux` event stream; preset bundle patch; three restricted MCP servers; one-command `setup-dsh.mjs` install. |
+| **DSH adaptation** | Session Cookie minted offline from the persistent `~/.dsh` signing key; slash RPC plus `/api/remote.mux` event stream; preset bundle patch; three restricted MCP servers; one-command `install-dsh.mjs` install. |
 
 ## Group-chat simulation
 
@@ -249,14 +249,14 @@ Start:
 npm start
 ```
 
-Or double-click `start.bat` on Windows (guard mode with auto-restart).
+Or double-click `bin/boot.cmd` on Windows (guard mode with auto-restart).
 
 ## DSH Setup on Another Device
 
 The bridge and console can run without extra DSH setup, but the DSH chat preset (`qq-chat`) and the MCP servers must be installed into DSH once per machine:
 
 ```bash
-node scripts/setup-dsh.mjs
+node tools/install-dsh.mjs
 ```
 
 This installs:
@@ -282,21 +282,25 @@ Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for d
 ```
 xiaojingyu/
   config.example.json   # sanitized config template (real config.json is not in repo)
+  app/                  # process entry points (whale.js, self-check.js)
+  runtime/              # kernel / persona / sharing / control / orchestration
+  services/             # persona, media and social capabilities
+  channels/             # QQ (SnowLuma OneBot) and DSH adapters
+  mcp/                  # the three MCP servers
+  console/              # console server side (auth, /live, policy)
+  features/             # pluggable features (daily report, rich cards)
+  web/                  # deck.html console, live.html status page, assets/
+  personas/             # persona cards
+  integrations/dsh/     # preset source, agent-presets bundle, mode-console plugin
   docs/
     README.md           # documentation index (published docs only)
-    FOLDER_MAP.md       # folder layout and scripts/ naming conventions
+    FOLDER_MAP.md       # folder layout and tools/tests naming conventions
     guides/             # user/operator facing: DSH_SETUP, DSH_ADAPTATION, SECURITY_BASELINE,
                         # RELIABILITY, TOKEN_USAGE_CONSOLE, CONSOLE-UI-TESTING, PRIVACY
-  dsh/agent-presets/    # qq-chat DSH agent preset source (the legacy qq-chat-legacy preset is not shipped)
-  plugins/agent-presets  # DSH bundle: generates the qq-chat preset patch row + the shared tool guard
-  plugins/mode-console  # DSH plugin: exposes the qq-mode settings namespace (host half only; no UI card yet)
-  src/                  # bridge core and MCP servers
-  public/
-    console.html        # local web console
-    live.html           # read-only live status page
-  roles/                # persona cards
+  tools/                # operations, build and test helper scripts
+  tests/                # automated tests and baseline fixtures
+  bin/                  # Windows launchers (boot.cmd / reboot.cmd)
   assets/               # README banner, screenshots (offline demo data) and voice/ (two sample clips)
-  scripts/              # tests and helper scripts
   state/                # runtime data (not in repo)
 ```
 
@@ -305,7 +309,7 @@ repository (they were written on a real machine and contain local paths and acco
 [docs/README.md](docs/README.md) for what is included.
 
 The standalone **voice sender tool** (`voice-cli.mjs`, `voice-gui.mjs`, `public/voice.html`) is **not part of this
-repository**; it reuses this repo's `src/voice-core.js` / `src/snowluma-conn.js` as the shared implementation.
+repository**; it reuses this repo's `services/media/voice-core.js` / `channels/qq/gateway.js` as the shared implementation.
 
 ## Testing
 

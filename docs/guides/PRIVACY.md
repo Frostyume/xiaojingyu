@@ -11,9 +11,9 @@
 ## 一、跑扫描
 
 ```bash
-node scripts/privacy-scan.mjs                # 扫"将要提交的内容"（推荐）
-node scripts/privacy-scan.mjs --tracked-only # 只扫 git 已跟踪文件
-node scripts/privacy-scan.mjs --json         # 机读输出（给 CI 用）
+node tools/privacy-scan.mjs                # 扫"将要提交的内容"（推荐）
+node tools/privacy-scan.mjs --tracked-only # 只扫 git 已跟踪文件
+node tools/privacy-scan.mjs --json         # 机读输出（给 CI 用）
 ```
 
 退出码：`0` = 干净，`1` = 有命中（**必须逐个判读**），`2` = 规则文件坏了或目录扫不动。
@@ -38,9 +38,9 @@ node scripts/privacy-scan.mjs --json         # 机读输出（给 CI 用）
 | --- | --- |
 | **真实数据**（你的 QQ 号、群号、本机路径、令牌） | 换成占位符（`123456789` / `C:\path\to\…`），或把该文件移出版本控制 |
 | **该文件本来就不该入库** | 加进 `.gitignore`；若已提交过，见下面第四节 |
-| **误报**（脱敏模板、测试夹具、文档示例） | 加进白名单 —— 两种方式：<br>① 文件级：`scripts/privacy-rules.json` 的 `allowPaths`；<br>② 规则级：在同一文件里加一条更精确的 `deny` 规则覆盖默认规则 |
+| **误报**（脱敏模板、测试夹具、文档示例） | 加进白名单 —— 两种方式：<br>① 文件级：`tools/privacy-rules.json` 的 `allowPaths`；<br>② 规则级：在同一文件里加一条更精确的 `deny` 规则覆盖默认规则 |
 
-### `scripts/privacy-rules.json`（可选的本地规则文件）
+### `tools/privacy-rules.json`（可选的本地规则文件）
 
 - **它含你机器上的真实标识，必须加进 `.gitignore`**（模板见 `privacy-rules.example.json`）。
 - 结构：
@@ -52,7 +52,7 @@ node scripts/privacy-scan.mjs --json         # 机读输出（给 CI 用）
     { "name": "我的真实群号", "pattern": "1001[0-9]{6}", "flags": "" }
   ],
   "denyFiles": ["notes/", "*.private.md"],
-  "allowPaths": ["docs/guides/VOICE.md", "scripts/console-ui-"]
+  "allowPaths": ["docs/guides/VOICE.md", "tests/console-ui-"]
 }
 ```
 
@@ -75,7 +75,7 @@ node scripts/privacy-scan.mjs --json         # 机读输出（给 CI 用）
 ```yaml
 # .github/workflows/ci.yml 片段
 - name: Privacy scan
-  run: node scripts/privacy-scan.mjs --tracked-only
+  run: node tools/privacy-scan.mjs --tracked-only
 ```
 
 CI 上只扫**已跟踪**文件（未跟踪文件在干净 checkout 里不存在），命中即失败。
@@ -86,10 +86,10 @@ CI 上只扫**已跟踪**文件（未跟踪文件在干净 checkout 里不存在
 
 | 文件 | 命中 | 处理建议 |
 | --- | --- | --- |
-| `public/console.html` | 真实群号 `100012` × 2 | **必须替换为占位符**（这是会随 QSH 一起发布的文件） |
-| `src/bridge.js` | `accessToken` 键名（配置读取处，无真实值） | 误报：键名不是值；已在规则里区分"有实际值" |
+| `web/deck.html` | 真实群号 `100012` × 2 | **必须替换为占位符**（这是会随 QSH 一起发布的文件） |
+| `app/whale.js` | `accessToken` 键名（配置读取处，无真实值） | 误报：键名不是值；已在规则里区分"有实际值" |
 | `docs/guides/PROJECT_GUIDE.md`、`docs/guides/VOICE.md` | 真实 QQ 号/群号、`C:\Users\<名字>`、`D:\<工作盘>` | **不带进新仓库**（旧项目的实现说明，已被 `QSH_PLAN.md` 取代） |
 | `docs/audits/*`、`docs/design/*`、`docs/research/*`、`docs/legacy/*` | 本机路径、真实 QQ 号 | 同上：**不带进新仓库**；只把 `AUDIT_FIXES` 与 `SECURITY_BASELINE` 带走（这两份已确认只含占位符） |
-| `scripts/test-*`、`scripts/console-ui-*`、`src/sensitive.js`、`config.example.json` | 刻意构造的假 ID / 假凭据 / 占位符 | 误报：已在 `allowPaths` 白名单里 |
+| `tests/*.test.mjs`、`tests/console-ui-*`、`runtime/kernel/sensitive.js`、`config.example.json` | 刻意构造的假 ID / 假凭据 / 占位符 | 误报：已在 `allowPaths` 白名单里 |
 
-**结论**：真正必须在**代码**里改掉的只有 `public/console.html` 的群号；其余全部靠"不带进新仓库"解决。
+**结论**：真正必须在**代码**里改掉的只有 `web/deck.html` 的群号；其余全部靠"不带进新仓库"解决。

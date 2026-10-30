@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Config schema is up to date
-        run: node scripts/build-config-schema.mjs --check
+        run: node tools/gen-config-schema.mjs --check
       - name: Core reliability tests
         run: npm run test:core
       - name: Stage 2 tests
@@ -41,7 +41,7 @@ jobs:
         env:
           QQ_BRIDGE_TEST_LIVE: '0'
       - name: Privacy scan
-        run: node scripts/privacy-scan.mjs
+        run: node tools/privacy-scan.mjs
 
   node22:
     name: compatibility (Windows / Node 22, advisory)
