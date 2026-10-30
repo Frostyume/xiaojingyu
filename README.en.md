@@ -50,7 +50,7 @@ flowchart LR
 - **DSH side**: adapted for DSH 0.1.2+ and **re-verified on 0.2.0-rc.2** — session Cookie minted from the persistent local signing key, `/api/<namespace>/<method>` slash RPC, and `/api/remote.mux` + `session/follow` event stream (the pending queue is read from `value.projections[<id>].values.inbox`, with the unary `session/projections` RPC as the primary path). The per-session model is pinned by the bridge via `session.selectModel` from `config.json`'s `dsh.model` (default `deepseek-flash` = DeepSeek-V41-Flash, multimodal).
 - **Agent tools**: three bundled MCP servers expose a restricted QQ toolset (`qq_status`, `qq_list_groups`, `qq_get_group_history`, `qq_send_group_message`, `qq_reply`, etc.), a read-only host probe (`snowluma_status` only), and a read-only `web_search` / `web_fetch` pair with SSRF protection.
   ⚠️ **`start_snowluma` / `stop_snowluma` (and `snowluma.allowProcessControl`) were removed in v0.1.5**: SnowLuma EULA §5.4 requires prior written permission to deploy its proprietary native components through automated scripts. This program only probes, never deploys — installing, starting and scanning SnowLuma is always up to you. See [NOTICE](NOTICE) and [RULES.md](RULES.md).
-- **Console and live view**: a local web console at `http://127.0.0.1:3100` (13 task pages, cross-page search and a light / dark theme) plus the read-only `/live` SSE page.
+- **Console and live view**: a local web console at `http://127.0.0.1:3100` (13 task pages, a live status ribbon for DSH / SnowLuma / mode / sessions / pending approvals, an icon rail, cross-page search and a light / dark theme) plus the read-only `/live` SSE page.
 
 ## What it does
 
