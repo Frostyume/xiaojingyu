@@ -14,14 +14,14 @@ let tests = 0;
 
 async function test(name, run, { observe = false } = {}) {
   tests++;
-  const h = await bridgeHarness({ config: { socialV2: {
+  const h = await bridgeHarness({ config: { simulation: {
     wake: { preSleepWaitEnabled: observe, preSleepWaitMs: 1000 },
     wait: { minMs: 100, maxMs: 2000, minQuietAfterNewMs: 0 },
     proactive: { enabled: false },
     sticker: { enabled: false },
   } } });
-  h.setMode('reserved2');
-  const st = h.getSocialV2State(KEY);
+  h.setMode('simulation');
+  const st = h.getSimulationState(KEY);
   const server = h.startConsoleServer();
   if (!server.listening) await new Promise((resolve) => server.once('listening', resolve));
   const request = (route, { body, token = st.agentToken, key = KEY, admin = false, query = '' } = {}) => new Promise((resolve, reject) => {
@@ -29,7 +29,7 @@ async function test(name, run, { observe = false } = {}) {
     if (!admin) headers['x-agent-token'] = token;
     if (body !== undefined) headers['content-type'] = 'application/json';
     const req = http.request({ hostname: '127.0.0.1', port: server.address().port,
-      path: `${route.startsWith('/') ? route : `/api/socialV2/${route}`}?key=${encodeURIComponent(key)}${query}`,
+      path: `${route.startsWith('/') ? route : `/api/simulation/${route}`}?key=${encodeURIComponent(key)}${query}`,
       method: body === undefined ? 'GET' : 'POST', headers,
     }, (res) => {
       let data = '';
@@ -44,9 +44,9 @@ async function test(name, run, { observe = false } = {}) {
     req.setTimeout(4000, () => req.destroy(new Error('fixture HTTP request timed out')));
     req.end(body === undefined ? undefined : JSON.stringify({ key, ...body }));
   });
-  const append = (text, { key = KEY, id = `fixture-${h.getSocialV2State(key).lastUnreadSeq + 1}`, media = [], forwards = [] } = {}) => {
-    h.appendSocialV2Message(key, 'fixture-person', text, text, false, false, id, media, '789', forwards);
-    return h.getSocialV2State(key).lastUnreadSeq;
+  const append = (text, { key = KEY, id = `fixture-${h.getSimulationState(key).lastUnreadSeq + 1}`, media = [], forwards = [] } = {}) => {
+    h.appendSimulationMessage(key, 'fixture-person', text, text, false, false, id, media, '789', forwards);
+    return h.getSimulationState(key).lastUnreadSeq;
   };
   try { await run({ h, st, request, append }); console.log('PASS', name); }
   catch (error) { failures++; console.error('FAIL', name, error.stack); }
@@ -123,7 +123,7 @@ await test('console browsing does not authorize the agent to acknowledge unseen 
 
 await test('my-recent returns an existing safe cursor without authorizing unrelated unread', async ({ h, st, request, append }) => {
   append('not yet seen');
-  h.recordSentMessagesV2(KEY, ['my own earlier reply']);
+  h.recordSentMessages(KEY, ['my own earlier reply']);
   const mine = await request('my-recent');
   assert.equal(mine.status, 200);
   assert.equal(mine.data.messages.length, 1);
@@ -148,7 +148,7 @@ await test('combined close cannot bypass the pre-sleep observation guard', async
 }, { observe: true });
 
 await test('a full quiet observation allows a single combined close', async ({ h, st, request, append }) => {
-  h.cfg.socialV2.wake.preSleepWaitMs = 100;
+  h.cfg.simulation.wake.preSleepWaitMs = 100;
   append('ordinary topic');
   const read = await request('unread');
   const waited = await request('wait', { body: { timeoutMs: 100, quietMs: 0 } });
@@ -182,15 +182,15 @@ await test('wait exposes new messages and grants only their actually observed cu
 await test('another conversation token, pause, mode and allowlist guards still reject combined close', async ({ h, st, request, append }) => {
   append('protected conversation');
   await request('unread');
-  const otherToken = h.getSocialV2State('private:123').agentToken;
+  const otherToken = h.getSimulationState('private:123').agentToken;
   const body = { config: ACTIVE, throughSeq: 1 };
   assert.equal((await request('wake-config', { body, token: otherToken })).status, 403);
-  h.socialV2.paused = true;
+  h.simulation.paused = true;
   assert.equal((await request('wake-config', { body })).status, 403);
-  h.socialV2.paused = false;
+  h.simulation.paused = false;
   h.setMode('chat');
   assert.equal((await request('wake-config', { body })).status, 403);
-  h.setMode('reserved2');
+  h.setMode('simulation');
   h.cfg.allow.groups = [];
   assert.equal((await request('wake-config', { body })).status, 403);
   assert.deepEqual(seqs(st.unread), [1]);
@@ -236,7 +236,7 @@ await test('zero and repeated watermarks never acknowledge a later unseen arriva
 await test('combined close respects the separate mark-read and wake-config tool flags', async ({ h, st, request, append }) => {
   append('protected by tool flags');
   await request('unread');
-  h.cfg.socialV2.tools.markRead = false;
+  h.cfg.simulation.tools.markRead = false;
   // Closing is one action: with markRead off the watermark is ignored, not fatal, so
   // the wake config still lands and the unread messages stay pending.
   const ignoredCursor = await request('wake-config', { body: { throughSeq: 1, config: ACTIVE } });
@@ -245,8 +245,8 @@ await test('combined close respects the separate mark-read and wake-config tool 
   assert.equal((await request('mark-read', { body: { throughSeq: 1 } })).status, 403);
   assert.deepEqual(seqs(st.unread), [1], 'no unread may be cleared while markRead is off');
   assert.equal((await request('wake-config', { body: { config: ACTIVE } })).status, 200);
-  h.cfg.socialV2.tools.markRead = true;
-  h.cfg.socialV2.tools.setWakeConfig = false;
+  h.cfg.simulation.tools.markRead = true;
+  h.cfg.simulation.tools.setWakeConfig = false;
   assert.equal((await request('wake-config', { body: { throughSeq: 1, config: ACTIVE } })).status, 403);
   assert.deepEqual(seqs(st.unread), [1]);
 });
@@ -269,14 +269,14 @@ await test('an in-flight wait cannot write observation into a replaced conversat
   append('old state');
   const waiting = request('wait', { body: { timeoutMs: 100, quietMs: 0 } });
   const timer = setTimeout(() => {
-    h.socialV2.conversations.delete(KEY);
+    h.simulation.conversations.delete(KEY);
     append('new conversation state');
   }, 60);
   let result;
   try { result = await waiting; } finally { clearTimeout(timer); }
   assert.equal(result.status, 403);
   assert.equal(st.preSleepWaitSatisfiedAt, 0);
-  const replacement = h.getSocialV2State(KEY);
+  const replacement = h.getSimulationState(KEY);
   assert.equal(replacement.preSleepWaitSatisfiedAt, 0);
   assert.equal((await request('mark-read', { body: { throughSeq: 1 }, token: replacement.agentToken })).status, 400);
 }, { observe: true });
@@ -292,16 +292,16 @@ await test('an in-flight wait rechecks mode permission before exposing a new arr
 });
 
 await test('building a budgeted snapshot preserves whole oldest messages without granting a receipt', async ({ h, st, request, append }) => {
-  h.cfg.socialV2.context.wakeMessageLimit = 2;
-  h.cfg.socialV2.context.wakeRecentLimit = 0;
+  h.cfg.simulation.context.wakeMessageLimit = 2;
+  h.cfg.simulation.context.wakeRecentLimit = 0;
   append('first'); append('second'); append('third');
-  const snapshot = h.buildWakeSnapshotV2(KEY);
+  const snapshot = h.buildWakeSnapshot(KEY);
   assert.deepEqual(seqs(snapshot.messages), [1, 2]);
   assert.equal(snapshot.includedUnreadCount, 2);
   assert.equal(snapshot.unreadCount, 3);
   assert.equal(snapshot.partial, true);
   assert.equal(snapshot.readThroughSeq, 2);
-  assert.ok(JSON.stringify(snapshot).length <= h.cfg.socialV2.context.wakeMaxChars);
+  assert.ok(JSON.stringify(snapshot).length <= h.cfg.simulation.context.wakeMaxChars);
   assert.equal((await request('mark-read', { body: { throughSeq: 2 } })).status, 400);
   assert.deepEqual(seqs(st.unread), [1, 2, 3]);
 });
@@ -309,9 +309,9 @@ await test('building a budgeted snapshot preserves whole oldest messages without
 await test('an in-flight wait rechecks paused, feature, tool and allowlist permissions without granting observation', async ({ h, st, request, append }) => {
   append('unread before policy changes');
   const cases = [
-    ['pause', () => { h.socialV2.paused = true; }, () => { h.socialV2.paused = false; }],
-    ['feature disable', () => { h.cfg.socialV2.enabled = false; }, () => { h.cfg.socialV2.enabled = true; }],
-    ['tool disable', () => { h.cfg.socialV2.tools.waitMessages = false; }, () => { h.cfg.socialV2.tools.waitMessages = true; }],
+    ['pause', () => { h.simulation.paused = true; }, () => { h.simulation.paused = false; }],
+    ['feature disable', () => { h.cfg.simulation.enabled = false; }, () => { h.cfg.simulation.enabled = true; }],
+    ['tool disable', () => { h.cfg.simulation.tools.waitMessages = false; }, () => { h.cfg.simulation.tools.waitMessages = true; }],
     ['allowlist removal', () => { h.cfg.allow.groups = []; }, () => { h.cfg.allow.groups = ['456']; }],
   ];
   const before = () => plain({ unread: st.unread, wakeConfig: st.wakeConfig, lastReadThroughSeq: st.lastReadThroughSeq,
@@ -329,13 +329,13 @@ await test('an in-flight wait rechecks paused, feature, tool and allowlist permi
 }, { observe: true });
 
 await test('oversized first stored unread remains intact and cannot be skipped by the snapshot', async ({ h, st, request, append }) => {
-  h.cfg.socialV2.context.wakeMaxChars = 500;
+  h.cfg.simulation.context.wakeMaxChars = 500;
   // Existing bridge storage keeps head/tail excerpts. Distinct long excerpts
   // exceed this snapshot budget and must not be truncated a second time.
   const long = '消息前半部分'.repeat(100) + '消息后半部分'.repeat(100);
   append(long); append('small but newer');
   const storedBefore = plain(st.unread[0]);
-  const snapshot = h.buildWakeSnapshotV2(KEY);
+  const snapshot = h.buildWakeSnapshot(KEY);
   assert.equal(snapshot.messages.length, 0);
   assert.equal(snapshot.partial, true);
   assert.equal(snapshot.readThroughSeq, 0);
@@ -349,8 +349,8 @@ await test('snapshot recent history stays chronological and does not duplicate u
   append('history 1'); append('history 2'); append('history 3');
   await request('mark-read', { body: {} });
   append('current unread');
-  h.cfg.socialV2.context.wakeRecentLimit = 2;
-  const snapshot = h.buildWakeSnapshotV2(KEY);
+  h.cfg.simulation.context.wakeRecentLimit = 2;
+  const snapshot = h.buildWakeSnapshot(KEY);
   assert.deepEqual(seqs(snapshot.messages), [4]);
   assert.deepEqual(seqs(snapshot.recent), [2, 3]);
   assert.equal(snapshot.partial, false);
@@ -361,29 +361,29 @@ await test('snapshot feature and tool flags cannot be bypassed through inline re
   append('authorized old history');
   await request('mark-read', { body: {} });
   append('unread requiring getUnread');
-  h.cfg.socialV2.tools.getUnread = false;
-  let snapshot = h.buildWakeSnapshotV2(KEY);
+  h.cfg.simulation.tools.getUnread = false;
+  let snapshot = h.buildWakeSnapshot(KEY);
   assert.equal(snapshot.messages.length, 0);
   assert.deepEqual(seqs(snapshot.recent), [1]);
   assert.equal(snapshot.partial, true);
   assert.equal(snapshot.readThroughSeq, 1);
-  h.cfg.socialV2.tools.getRecent = false;
-  assert.equal(h.buildWakeSnapshotV2(KEY), null);
-  h.cfg.socialV2.tools.getUnread = true;
-  snapshot = h.buildWakeSnapshotV2(KEY);
+  h.cfg.simulation.tools.getRecent = false;
+  assert.equal(h.buildWakeSnapshot(KEY), null);
+  h.cfg.simulation.tools.getUnread = true;
+  snapshot = h.buildWakeSnapshot(KEY);
   assert.deepEqual(seqs(snapshot.messages), [2]);
   assert.equal(snapshot.recent.length, 0);
-  h.cfg.socialV2.context.inlineWakeMessages = false;
-  assert.equal(h.buildWakeSnapshotV2(KEY), null);
+  h.cfg.simulation.context.inlineWakeMessages = false;
+  assert.equal(h.buildWakeSnapshot(KEY), null);
 });
 
 await test('a compact image handle still resolves after unread outlives the recent buffer', async ({ h, st, request, append }) => {
-  h.cfg.socialV2.context.recentLimit = 1;
+  h.cfg.simulation.context.recentLimit = 1;
   append('old unread image', { id: '900719925474099312345', media: [{ kind: 'image', file: 'fixture-kept-image' }] });
   append('newer text');
   assert.deepEqual(seqs(st.recentMessages), [2]);
   assert.deepEqual(seqs(st.unread), [1, 2]);
-  const snapshot = h.buildWakeSnapshotV2(KEY);
+  const snapshot = h.buildWakeSnapshot(KEY);
   assert.equal(snapshot.messages[0].media[0].index, 1);
   assert.equal(snapshot.messages[0].media[0].file, undefined);
   for (const messageId of ['1', '900719925474099312345']) {
@@ -402,12 +402,12 @@ await test('busy and rate-limited wake attempts preserve the current observation
   const checkObservation = () => assert.deepEqual([st.preSleepWaitObservedAt, st.preSleepWaitSatisfiedAt, st.preSleepWaitAccumMs], [123, 456, 789]);
   setObservation();
   h.promptQueues.set(KEY, { running: true, queue: [] });
-  await h.sendWakePromptV2(KEY, 'question');
+  await h.sendWakePrompt(KEY, 'question');
   checkObservation();
   h.promptQueues.delete(KEY);
-  h.cfg.socialV2.wake.maxWakePerMinute = 1;
+  h.cfg.simulation.wake.maxWakePerMinute = 1;
   st.wakeTimes = [Date.now()];
-  await h.sendWakePromptV2(KEY, 'question');
+  await h.sendWakePrompt(KEY, 'question');
   checkObservation();
   assert.equal(h.calls.prompts.length, 0);
 });
@@ -418,7 +418,7 @@ await test('a rejected prompt does not authorize the undelivered snapshot', asyn
     h.calls.prompts.push(params);
     return { result: { ok: false, error: { code: 'FIXTURE_REJECT', message: 'fixture rejection' } } };
   };
-  await h.sendWakePromptV2(KEY, 'question');
+  await h.sendWakePrompt(KEY, 'question');
   assert.equal(h.calls.prompts.length, 1);
   assert.equal((await request('mark-read', { body: { throughSeq: 1 } })).status, 400);
   assert.deepEqual(seqs(st.unread), [1]);
@@ -431,7 +431,7 @@ await test('a new arrival during prompt acceptance is not implicitly part of the
     append('arrived after snapshot construction');
     return { result: { ok: true, value: {} } };
   };
-  await h.sendWakePromptV2(KEY, 'question');
+  await h.sendWakePrompt(KEY, 'question');
   assert.equal((await request('mark-read', { body: { throughSeq: 2 } })).status, 400);
   assert.equal((await request('wake-config', { body: { throughSeq: 1, config: ACTIVE } })).status, 200);
   assert.deepEqual(seqs(st.unread), [2]);
@@ -444,7 +444,7 @@ await test('a retired prompt session cannot grant a receipt when its old accepta
     h.retireSession(KEY);
     return { result: { ok: true, value: {} } };
   };
-  await h.sendWakePromptV2(KEY, 'question');
+  await h.sendWakePrompt(KEY, 'question');
   assert.equal((await request('mark-read', { body: { throughSeq: 1 }, token: st.agentToken })).status, 400);
   assert.deepEqual(seqs(st.unread), [1]);
 });
@@ -454,7 +454,7 @@ await test('offline wake replay builds a fresh snapshot with the current session
   const originalToken = st.agentToken;
   append('queued initial message');
   h.setReady(false);
-  await h.sendWakePromptV2(KEY, 'question');
+  await h.sendWakePrompt(KEY, 'question');
   assert.equal(h.calls.prompts.length, 0);
   assert.equal((await request('mark-read', { body: { throughSeq: 1 } })).status, 400);
   h.retireSession(KEY);
@@ -470,10 +470,10 @@ await test('offline wake replay builds a fresh snapshot with the current session
   assert.equal((await request('mark-read', { body: { throughSeq: 2 }, token: st.agentToken })).status, 200);
 });
 
-await test('offline reserved2 wake replay cannot leak into an ordinary chat session', async ({ h, append }) => {
-  append('reserved2 queue message');
+await test('offline simulation wake replay cannot leak into an ordinary chat session', async ({ h, append }) => {
+  append('simulation queue message');
   h.setReady(false);
-  await h.sendWakePromptV2(KEY, 'question');
+  await h.sendWakePrompt(KEY, 'question');
   h.setMode('chat');
   h.setReady(true);
   await h.flushQueue();
@@ -485,7 +485,7 @@ await test('real wake delivery inlines compact messages with exact quote and med
     media: [{ kind: 'image', file: 'fixture-local-image', url: 'https://images.invalid/fixture-secret' }],
     forwards: ['fixture-forward-123'],
   });
-  await h.sendWakePromptV2(KEY, 'question');
+  await h.sendWakePrompt(KEY, 'question');
   assert.equal(h.calls.prompts.length, 1);
   const text = h.calls.prompts[0].content.filter((part) => part.type === 'text').map((part) => part.text).join('\n');
   assert.ok(text.includes('fixture-inline-content'));
@@ -499,9 +499,9 @@ await test('real wake delivery inlines compact messages with exact quote and med
 });
 
 await test('oldest-first unread paging can drain a backlog beyond both recent and response limits', async ({ h, st, request, append }) => {
-  h.cfg.socialV2.context.unreadLimit = 150;
-  h.cfg.socialV2.context.recentLimit = 100;
-  h.cfg.socialV2.context.inlineWakeMessages = false;
+  h.cfg.simulation.context.unreadLimit = 150;
+  h.cfg.simulation.context.recentLimit = 100;
+  h.cfg.simulation.context.inlineWakeMessages = false;
   for (let i = 1; i <= 150; i++) append(`backlog ${i}`);
   const tail = await request('unread', { query: '&limit=100' });
   assert.equal(tail.data.messages[0].seq, 51, 'legacy tail ordering stays unchanged');
@@ -524,23 +524,23 @@ await test('offline queued wakes respect pause and disable at dispatch without e
   append('queued while active');
   for (const policy of ['paused', 'disabled']) {
     h.setReady(false);
-    await h.sendWakePromptV2(KEY, 'question');
-    if (policy === 'paused') h.socialV2.paused = true;
-    else h.cfg.socialV2.enabled = false;
+    await h.sendWakePrompt(KEY, 'question');
+    if (policy === 'paused') h.simulation.paused = true;
+    else h.cfg.simulation.enabled = false;
     h.setReady(true);
     await h.flushQueue();
     assert.equal(h.calls.prompts.length, 0);
     assert.equal(st.modelSeenSeqs.size, 0);
     assert.deepEqual(seqs(st.unread), [1]);
-    h.socialV2.paused = false;
-    h.cfg.socialV2.enabled = true;
+    h.simulation.paused = false;
+    h.cfg.simulation.enabled = true;
   }
 });
 
 await test('an evicted unread window cannot drag the acknowledged watermark back to zero', async ({ h, st, request, append }) => {
-  h.cfg.socialV2.context.unreadLimit = 5;
-  h.cfg.socialV2.context.recentLimit = 100;
-  h.cfg.socialV2.context.inlineWakeMessages = false;
+  h.cfg.simulation.context.unreadLimit = 5;
+  h.cfg.simulation.context.recentLimit = 100;
+  h.cfg.simulation.context.inlineWakeMessages = false;
   for (let i = 1; i <= 5; i++) append(`seen ${i}`);
   const read = await request('unread', { query: '&limit=5&afterSeq=0' });
   assert.equal(read.data.readThroughSeq, 5);
@@ -561,9 +561,9 @@ await test('an evicted unread window cannot drag the acknowledged watermark back
 });
 
 await test('a plain query cannot lower the persisted watermark below what was already acknowledged', async ({ h, st, request, append }) => {
-  h.cfg.socialV2.context.unreadLimit = 3;
-  h.cfg.socialV2.context.inlineWakeMessages = false;
-  h.cfg.socialV2.wake.preSleepWaitEnabled = false; // isolate the cursor from the sleep gate
+  h.cfg.simulation.context.unreadLimit = 3;
+  h.cfg.simulation.context.inlineWakeMessages = false;
+  h.cfg.simulation.wake.preSleepWaitEnabled = false; // isolate the cursor from the sleep gate
   for (let i = 1; i <= 3; i++) append(`seen ${i}`);
   const first = await request('unread', { query: '&limit=3&afterSeq=0' });
   assert.equal(first.data.readThroughSeq, 3);
@@ -573,7 +573,7 @@ await test('a plain query cannot lower the persisted watermark below what was al
   // every later report must still start from 3 -- never from 0.
   for (let i = 4; i <= 6; i++) append(`burst ${i}`);
   assert.deepEqual(seqs(st.unread), [4, 5, 6]);
-  const state = h.getSocialV2State(KEY);
+  const state = h.getSimulationState(KEY);
   const cached = await request('my-recent');
   assert.equal(cached.data.readThroughSeq, 3, `my-recent reported ${cached.data.readThroughSeq}, expected the floor 3`);
   const wake = await request('wake-config', { body: { config: ACTIVE } });
@@ -583,10 +583,10 @@ await test('a plain query cannot lower the persisted watermark below what was al
 });
 
 await test('a displayed page extends the watermark across an eviction gap it can never show again', async ({ h, st, request, append }) => {
-  h.cfg.socialV2.context.unreadLimit = 4;
-  h.cfg.socialV2.context.recentLimit = 100;
-  h.cfg.socialV2.context.inlineWakeMessages = false;
-  h.cfg.socialV2.wake.preSleepWaitEnabled = false;
+  h.cfg.simulation.context.unreadLimit = 4;
+  h.cfg.simulation.context.recentLimit = 100;
+  h.cfg.simulation.context.inlineWakeMessages = false;
+  h.cfg.simulation.wake.preSleepWaitEnabled = false;
   for (let i = 1; i <= 2; i++) append(`early ${i}`);
   const early = await request('unread', { query: '&limit=2&afterSeq=0' });
   assert.equal(early.data.readThroughSeq, 2);

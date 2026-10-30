@@ -286,7 +286,7 @@ function usageRecentFixture() {
 
 export function makeFixtureState() {
   return {
-    mode: 'reserved2', role: '小鲸鱼', roleMode: 'active', closedAgentPreset: '', paused: false,
+    mode: 'simulation', role: '小鲸鱼', roleMode: 'active', closedAgentPreset: '', paused: false,
     roles: ['小鲸鱼', '温柔助手', '技术伙伴'],
     roleContents: {
       小鲸鱼: '# 小鲸鱼\n\n- 性格：好奇、爱接梗，遇到不懂的会直接问\n- 说话风格：简短，偶尔用 emoji',
@@ -294,8 +294,8 @@ export function makeFixtureState() {
       技术伙伴: '# 技术伙伴\n\n- 性格：直接、爱讲原理\n- 说话风格：先给结论再解释',
     },
     simPrompts: {
-      'qq-chat': '你是 QQ 群里的仿真群友。\n\n【二代仿真模式 —— 安全规则（最高优先级，不可违反）】\n1. 你没有本地工具。\n\n【二代仿真模式 —— 工具协议（最高优先级）】\n1. 文本输出不会自动发送到 QQ。',
-      'qq-chat-legacy': '你是 QQ 群里的仿真群友（一代）。\n\n【一代仿真模式 —— 安全规则】\n1. 你没有本地工具。\n\n【一代仿真模式 —— 工具协议】\n1. 回复会自动转发到 QQ。',
+      'qq-chat': '你是 QQ 群里的仿真群友。\n\n【群聊仿真模式 —— 安全规则（最高优先级，不可违反）】\n1. 你没有本地工具。\n\n【群聊仿真模式 —— 工具协议（最高优先级）】\n1. 文本输出不会自动发送到 QQ。',
+      'qq-chat-legacy': '你是 QQ 群里的仿真群友（旧版）。\n\n【旧版仿真模式 —— 安全规则】\n1. 你没有本地工具。\n\n【旧版仿真模式 —— 工具协议】\n1. 回复会自动转发到 QQ。',
     },
     roleInjectMax: 6000,
     dshEffort: 'max',
@@ -318,7 +318,7 @@ export function makeFixtureState() {
       proactiveCheckMaxMs: 900000, proactiveProbability: 0.2,
     },
     socialStates: { 'group:123456789': { phase: 'active' }, 'group:100003': { phase: 'idle' } },
-    v2: { enabled: true, agentPreset: 'qq-chat', provideRecommendations: true, tools: {} },
+    simulation: { enabled: true, agentPreset: 'qq-chat', provideRecommendations: true, tools: {} },
     groupProfiles: { 'group:123456789': { label: '演示群', proactive: true, style: '轻松一点，多接梗。' } },
     // 会话初始提示词（离线示例）：整段内容都是虚构的演示文本。
     initPrompt: '离线示例：这是一个演示用的群聊环境说明，不会写进任何真实配置。',
@@ -377,7 +377,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
       }
       if (method === 'GET') {
         switch (path) {
-          case '/api/status': return json({ ok: true, dshReady: true, mode: state.mode, role: state.role, roleMode: state.roleMode, closedAgentPreset: state.closedAgentPreset, ownerQQ: state.whitelist.ownerQQ, allowGroups: state.whitelist.allow.groups, allowPrivate: state.whitelist.allow.private, activity: '[08:30:00] 演示桥接已连接\n[08:30:12] group:123456789 · 已处理一条消息\n[08:30:20] 群聊仿真正在运行\n以上均为离线模拟数据。' });
+          case '/api/status': return json({ ok: true, dshReady: true, mode: state.mode, role: state.role, roleMode: state.roleMode, closedAgentPreset: state.closedAgentPreset, ownerQQ: state.whitelist.ownerQQ, allowGroups: state.whitelist.allow.groups, allowPrivate: state.whitelist.allow.private, snowluma: { connected: true, degraded: false, good: true, lastPacketAgoMs: 12000, lastPacketKind: 'message' }, activity: '[08:30:00] 演示桥接已连接\n[08:30:12] group:123456789 · 已处理一条消息\n[08:30:20] 群聊仿真正在运行\n以上均为离线模拟数据。' });
           case '/api/features': return json({
             ok: true,
             generatedAt: timestamp,
@@ -402,12 +402,12 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
                 lines: content.split('\n').length,
                 mtime: Date.parse(timestamp),
                 excerpt: content.split('\n').find((line) => line.trim() && !line.trim().startsWith('#')) ?? '',
-                injectedV1: Math.min(stats.v1, injectMax),
-                injectedV2: Math.min(stats.v2, injectMax),
-                charsV1: stats.v1,
-                charsV2: stats.v2,
-                hasModeTags: stats.v1Only > 0 || stats.v2Only > 0,
-                truncated: stats.v1 > injectMax || stats.v2 > injectMax,
+                injectedLegacy: Math.min(stats.legacy, injectMax),
+                injectedSimulation: Math.min(stats.simulation, injectMax),
+                charsLegacy: stats.legacy,
+                charsSimulation: stats.simulation,
+                hasModeTags: stats.legacyOnly > 0 || stats.simulationOnly > 0,
+                truncated: stats.legacy > injectMax || stats.simulation > injectMax,
                 warnings: 0,
               };
             }),
@@ -427,7 +427,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
               warnings: [],
               limits: { injectMaxChars: state.roleInjectMax },
               stats: roleCharStats(content),
-              sections: { v1: roleSectionReport(content, 'v1'), v2: roleSectionReport(content, 'v2') },
+              sections: { legacy: roleSectionReport(content, 'legacy'), simulation: roleSectionReport(content, 'simulation') },
             });
           }
           case '/api/preset/sim-prompt': {
@@ -461,15 +461,15 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           case '/api/sessions': return json({ sessions: state.sessions });
           case '/api/pending': return json({ pending: [{ key: 'group:123456789', kind: 'approval', toolName: '演示工具', reason: '等待管理员确认（离线示例）' }] });
           case '/api/social': return json({ config: state.social, states: state.socialStates, pendingSummaries: { 'group:123456789': 2 } });
-          case '/api/socialV2/config': return json({ ok: true, config: state.v2 });
-          case '/api/socialV2/group-profiles': return json({ ok: true, profiles: state.groupProfiles, maxStyleChars: 8000 });
-          case '/api/socialV2/activity': return json({ ok: true, paused: state.paused });
-          case '/api/socialV2/tool-log': return json({ ok: true, entries: state.toolLog });
-          case '/api/socialV2/feedback': return json({ ok: true, entries: state.feedback });
-          case '/api/socialV2/memory': return json({ ok: true, raw: { activeTopics: [{ text: '周末的阅读计划', pendingQuestion: '有没有推荐的书？' }], pendingThoughts: [{ text: '分享一张风景照片', motivation: '轻松交流' }], memberImpressions: { 演示群友: { traits: ['友善', '喜欢技术'], interactionCount: 6 } } } });
-          case '/api/socialV2/state': return json({ ok: true, key: url.searchParams.get('key'), wakeConfig: { mode: 'diving', infinite: false, sleepUntil: '2026-09-20T09:00:00.000Z', triggers: { atMention: true, keywords: ['小鲸鱼'] }, wakeCount: 4 }, wakeSafety: { guaranteed: true }, unreadCount: 2, lastWakeReason: 'atMention' });
-          case '/api/socialV2/states': return json({ ok: true, conversations: state.sessions.map(x => ({ key: x.key, phase: 'diving', unreadCount: 2 })) });
-          case '/api/socialV2/initial-prompt': {
+          case '/api/simulation/config': return json({ ok: true, config: state.simulation });
+          case '/api/simulation/group-profiles': return json({ ok: true, profiles: state.groupProfiles, maxStyleChars: 8000 });
+          case '/api/simulation/activity': return json({ ok: true, paused: state.paused });
+          case '/api/simulation/tool-log': return json({ ok: true, entries: state.toolLog });
+          case '/api/simulation/feedback': return json({ ok: true, entries: state.feedback });
+          case '/api/simulation/memory': return json({ ok: true, raw: { activeTopics: [{ text: '周末的阅读计划', pendingQuestion: '有没有推荐的书？' }], pendingThoughts: [{ text: '分享一张风景照片', motivation: '轻松交流' }], memberImpressions: { 演示群友: { traits: ['友善', '喜欢技术'], interactionCount: 6 } } } });
+          case '/api/simulation/state': return json({ ok: true, key: url.searchParams.get('key'), wakeConfig: { mode: 'diving', infinite: false, sleepUntil: '2026-09-20T09:00:00.000Z', triggers: { atMention: true, keywords: ['小鲸鱼'] }, wakeCount: 4 }, wakeSafety: { guaranteed: true }, unreadCount: 2, lastWakeReason: 'atMention' });
+          case '/api/simulation/states': return json({ ok: true, conversations: state.sessions.map(x => ({ key: x.key, phase: 'diving', unreadCount: 2 })) });
+          case '/api/simulation/initial-prompt': {
             const key = url.searchParams.get('key') || '';
             if (!key) {
               return json({
@@ -488,7 +488,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           }
           // 语音库（离线示例：不含任何真实音频路径）
           case '/api/voice/list':
-          case '/api/socialV2/voices': return json({
+          case '/api/simulation/voices': return json({
             ok: true,
             key: url.searchParams.get('key') || 'group:123456789',
             count: 2,
@@ -558,12 +558,12 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
           case '/api/whitelist': state.whitelist = body; return json({ ok: true });
           case '/api/social': state.social = body; return json({ ok: true });
           case '/api/social/state': state.socialStates[body.key] = { phase: body.phase }; return json({ ok: true });
-          case '/api/socialV2/config': state.v2 = body; return json({ ok: true });
-          case '/api/socialV2/activity': state.paused = body.paused; return json({ ok: true });
-          case '/api/socialV2/tool-log/clear': state.toolLog = []; return json({ ok: true });
-          case '/api/socialV2/feedback-clear': state.feedback = []; return json({ ok: true });
-          case '/api/socialV2/reset': return json({ ok: true });
-          case '/api/socialV2/initial-prompt': {
+          case '/api/simulation/config': state.simulation = body; return json({ ok: true });
+          case '/api/simulation/activity': state.paused = body.paused; return json({ ok: true });
+          case '/api/simulation/tool-log/clear': state.toolLog = []; return json({ ok: true });
+          case '/api/simulation/feedback-clear': state.feedback = []; return json({ ok: true });
+          case '/api/simulation/reset': return json({ ok: true });
+          case '/api/simulation/initial-prompt': {
             const text = body.delete === true ? '' : String(body.text ?? '');
             state.initPrompt = text;
             return json({
@@ -602,10 +602,10 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
             return json({ ok: true, count: ids.length, confirmed: ids.length, rejected: ids.length, deleted: ids.length });
           }
           case '/api/social/flush':
-          case '/api/socialV2/wake':
-          case '/api/socialV2/memory-clear':
-          case '/api/socialV2/memory-update':
-          case '/api/socialV2/memory-remove': return json({ ok: true });
+          case '/api/simulation/wake':
+          case '/api/simulation/memory-clear':
+          case '/api/simulation/memory-update':
+          case '/api/simulation/memory-remove': return json({ ok: true });
           case '/api/tokens/reset': return json({ ok: true });
         }
       }

@@ -22,9 +22,9 @@ await test('#22 settingFromDshNamespace：user 层优先、value 回退', async 
   const h = await bridgeHarness();
   try {
     const f = h.settingFromDshNamespace;
-    assert.equal(f({ value: { mode: 'reserved2' }, user: { mode: 'chat' } }, 'mode'), 'chat', 'user 层必须优先');
-    assert.equal(f({ value: { mode: 'reserved2' }, user: {} }, 'mode'), 'reserved2', 'user 为空时回退 value');
-    assert.equal(f({ value: { mode: 'reserved2' } }, 'mode'), 'reserved2', '没有 user 键时回退 value');
+    assert.equal(f({ value: { mode: 'simulation' }, user: { mode: 'chat' } }, 'mode'), 'chat', 'user 层必须优先');
+    assert.equal(f({ value: { mode: 'simulation' }, user: {} }, 'mode'), 'simulation', 'user 为空时回退 value');
+    assert.equal(f({ value: { mode: 'simulation' } }, 'mode'), 'simulation', '没有 user 键时回退 value');
     assert.equal(f({ user: { ownerQQ: '' }, value: { ownerQQ: '123' } }, 'ownerQQ'), '', '空串也是显式值');
     assert.equal(f(undefined, 'mode'), undefined);
     assert.equal(f({ value: null }, 'mode'), undefined);
@@ -37,7 +37,7 @@ await test('#22 refreshMode 采纳控制台刚写入的 user 层（否则 5 秒�
     h.api.settings.describe = async () => ({
       result: { ok: true, value: {
         namespaces: [
-          { ns: 'qq-mode', value: { mode: 'reserved2', ownerQQ: '10001' }, user: { mode: 'chat' } }
+          { ns: 'qq-mode', value: { mode: 'simulation', ownerQQ: '10001' }, user: { mode: 'chat' } }
         ]
       } }
     });
@@ -71,28 +71,28 @@ await test('#11/#19 回合判忙：无起始时间的残留 collector 不再永�
   const h = await bridgeHarness();
   try {
     h.state.sessions[KEY] = SID;
-    const st = h.getSocialV2State(KEY);
+    const st = h.getSimulationState(KEY);
     const collector = { push() { return true; }, size() { return 1; } };
 
-    assert.equal(h.isConversationBusyV2(KEY, st), false, '空状态不忙');
+    assert.equal(h.isConversationBusy(KEY, st), false, '空状态不忙');
 
     h.collectors.set(SID, collector);
-    assert.equal(h.isConversationBusyV2(KEY, st), false, '只有 collector、没有起始时间 → 不判忙（旧版这里永久忙）');
+    assert.equal(h.isConversationBusy(KEY, st), false, '只有 collector、没有起始时间 → 不判忙（旧版这里永久忙）');
 
-    h.v2TurnStartAt.set(SID, Date.now());
-    assert.equal(h.isConversationBusyV2(KEY, st), true, '回合刚开始必须判忙');
+    h.simulationTurnStartAt.set(SID, Date.now());
+    assert.equal(h.isConversationBusy(KEY, st), true, '回合刚开始必须判忙');
 
-    h.v2TurnStartAt.set(SID, Date.now() - (h.TURN_BUSY_LEASE_MS + 60_000));
-    assert.equal(h.isConversationBusyV2(KEY, st), false, '超过租约必须解除忙碌');
+    h.simulationTurnStartAt.set(SID, Date.now() - (h.TURN_BUSY_LEASE_MS + 60_000));
+    assert.equal(h.isConversationBusy(KEY, st), false, '超过租约必须解除忙碌');
     assert.equal(h.collectors.has(SID), true, '租约过期不能丢掉 collector（迟到回复仍要 flush）');
 
-    h.v2TurnStartAt.delete(SID);
+    h.simulationTurnStartAt.delete(SID);
     h.collectors.delete(SID);
-    h.v2TurnStartAt.set(SID, Date.now());
-    assert.equal(h.isConversationBusyV2(KEY, st), true, '只有起始时间（collector 还没建）也算回合在进行');
+    h.simulationTurnStartAt.set(SID, Date.now());
+    assert.equal(h.isConversationBusy(KEY, st), true, '只有起始时间（collector 还没建）也算回合在进行');
 
     h.promptQueues.set(KEY, { running: true, queue: [] });
-    assert.equal(h.isConversationBusyV2(KEY, st), true, 'prompt 在途仍算忙');
+    assert.equal(h.isConversationBusy(KEY, st), true, 'prompt 在途仍算忙');
   } finally { await h.close(); }
 });
 
@@ -100,23 +100,23 @@ await test('#29 唤醒 prompt 必须写明机器人自己的昵称与 QQ 号', a
   const h = await bridgeHarness();
   try {
     h.setSelfIdentity('樰', '10001');
-    const line = h.selfIdentityTextV2();
+    const line = h.selfIdentityText();
     assert.match(line, /【你的身份】/);
     assert.match(line, /樰/);
     assert.match(line, /10001/);
     assert.match(line, /@樰/, '必须明确「@昵称」指的是自己');
 
-    const prompt = h.buildWakePromptV2(KEY, 'atMention');
+    const prompt = h.buildWakePrompt(KEY, 'atMention');
     assert.match(prompt, /【你的身份】/, '每次唤醒都要带身份（它是 agent 唯一能对上号的地方）');
     assert.match(prompt, /@樰/);
     assert.match(prompt, /10001/);
 
-    const reminder = h.buildWakeReminderPromptV2(KEY);
+    const reminder = h.buildWakeReminderPrompt(KEY);
     assert.match(reminder, /【你的身份】/, '收尾提醒也要带身份');
 
     h.setSelfIdentity('', '');
-    assert.equal(h.selfIdentityTextV2(), '', '身份未知时不注入空行（不能写「你的昵称是（）」）');
-    assert.doesNotMatch(h.buildWakePromptV2(KEY, 'timeout'), /【你的身份】/);
+    assert.equal(h.selfIdentityText(), '', '身份未知时不注入空行（不能写「你的昵称是（）」）');
+    assert.doesNotMatch(h.buildWakePrompt(KEY, 'timeout'), /【你的身份】/);
   } finally { await h.close(); }
 });
 

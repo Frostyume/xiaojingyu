@@ -1,4 +1,4 @@
-// 二代“对面没说完 / 结束前等待”逻辑测试。
+// 仿真“对面没说完 / 结束前等待”逻辑测试。
 // 验证：
 // 1. looksLikeUnfinished 能识别常见“话说一半”的结尾；
 // 2. 已说完的句子不会被误判；
@@ -12,7 +12,7 @@ import {
   UNFINISHED_PROMPT_REPLIES,
   END_ROUND_WAIT_MIN_MS,
   END_ROUND_WAIT_MAX_MS
-} from '../src/v2-wait.js';
+} from '../src/simulation-wait.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -71,13 +71,15 @@ for (const text of finishedCases) {
   assert(looksLikeUnfinished(text) === false, `已说完/普通判定 false: ${JSON.stringify(text)}`);
 }
 
-// 3. 配置允许长等待
+// 3. 配置允许长等待（干净 clone 没有 config.json 时退回示例配置）
 try {
-  const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
-  const maxMs = Number(cfg.socialV2?.wait?.maxMs) || 0;
+  const realConfig = path.join(ROOT, 'config.json');
+  const file = fs.existsSync(realConfig) ? realConfig : path.join(ROOT, 'config.example.json');
+  const cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const maxMs = Number(cfg.simulation?.wait?.maxMs) || 0;
   assert(maxMs >= END_ROUND_WAIT_MAX_MS, `wait.maxMs=${maxMs} >= 600000`);
 } catch (error) {
-  console.error('❌ 读取 config.json 失败:', error.message);
+  console.error('❌ 读取配置失败:', error.message);
   failed = 1;
 }
 
@@ -89,4 +91,4 @@ if (failed) {
   console.error('\n❌ 测试失败');
   process.exit(1);
 }
-console.log('\n🎉 二代等待/结束回合逻辑测试通过');
+console.log('\n🎉 仿真等待/结束回合逻辑测试通过');

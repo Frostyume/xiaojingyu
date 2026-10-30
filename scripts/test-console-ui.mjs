@@ -14,7 +14,7 @@ const args = process.argv.slice(2);
 const original = args.includes('--original');
 const record = args.includes('--record-baseline');
 const artifacts = args.find(x => x.startsWith('--artifacts='))?.slice('--artifacts='.length);
-const views = ['overview', 'features', 'sessions', 'persona', 'social-v2', 'slang', 'usage', 'access', 'operations', 'reference'];
+const views = ['overview', 'features', 'sessions', 'persona', 'simulation', 'slang', 'usage', 'access', 'operations', 'reference'];
 const legacyIds = JSON.parse((await readFile(join(here, 'console-ui-legacy-ids.json'), 'utf8')).replace(/^\uFEFF/, ''));
 const baselinePath = join(here, 'console-ui-contracts.json');
 if (record && !original) throw new Error('--record-baseline requires --original; only the pre-redesign console can define the baseline.');
@@ -59,7 +59,7 @@ try {
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('dialog', dialog => dialog.accept());
   await page.goto(fixture.url);
-  await page.waitForFunction(() => document.getElementById('v2AgentPreset')?.value === 'qq-chat' && document.getElementById('wlGroups')?.value.includes('123456789'));
+  await page.waitForFunction(() => document.getElementById('simAgentPreset')?.value === 'qq-chat' && document.getElementById('wlGroups')?.value.includes('123456789'));
 
   async function navigate(view) {
     if (original) return;
@@ -107,18 +107,18 @@ try {
       assert(visiblePages.length > 0, `${view} has no visible content`);
       assert(visiblePages.every(x => x === view), `${view} exposes another page: ${visiblePages.join(', ')}`);
     }
-    const drafts = { wlGroups: '100001, 100002', roleInput: '未保存的角色', v2AgentPreset: 'draft-preset', slangMeaning: '未保存的含义', tsMsg: '未发送的测试消息' };
+    const drafts = { wlGroups: '100001, 100002', roleInput: '未保存的角色', simAgentPreset: 'draft-preset', slangMeaning: '未保存的含义', tsMsg: '未发送的测试消息' };
     for (const [id, value] of Object.entries(drafts)) await fill(id, value);
     await navigate('overview');
     await page.waitForTimeout(3300); // Exercise the real 3-second status polling interval.
     for (const [id, value] of Object.entries(drafts)) assert.equal(await (await reveal(`#${id}`)).inputValue(), value, `${id} lost its draft`);
     // Restore fixture defaults so the independent payload baseline remains deterministic.
     await page.reload();
-    await page.waitForFunction(() => document.getElementById('v2AgentPreset')?.value === 'qq-chat');
+    await page.waitForFunction(() => document.getElementById('simAgentPreset')?.value === 'qq-chat');
   });
 
   await test('Mode and preset contracts', async () => {
-    for (const mode of ['chat', 'reserved2', 'closed-agent']) {
+    for (const mode of ['chat', 'simulation', 'closed-agent']) {
       assert.deepEqual(await clickWrite(`#modeRow [data-mode="${mode}"]`, '/api/mode'), { mode, closedAgentPreset: '' });
     }
     const select = await reveal('#closedPreset');
@@ -167,21 +167,21 @@ try {
     await page.waitForFunction(() => document.getElementById('stateDirWarn')?.style.display === 'none');
   });
 
-  await test('Second-generation complete save payload, units, zero values and tool switches', async () => {
-    await fill('v2AgentPreset', 'contract-v2');
-    await fill('v2RecSleepMin', 7);
-    await fill('v2SleepMinMs', 42);
-    await fill('v2PreSleepWaitMin', 0);
-    await fill('v2RecProb', 0);
-    await fill('v2RecKeywords', '鲸鱼，DeepSeek, 测试');
-    await fill('v2AutoReplyCheckSec', 17);
-    await fill('v2WaitDefaultQuietMs', 0);
-    await fill('v2MaxSendMin', 0);
-    await check('v2ProvideRecommendations', false);
-    const firstTool = page.locator('[data-v2-tool]').first();
-    await reveal('[data-v2-tool]');
+  await test('Simulation complete save payload, units, zero values and tool switches', async () => {
+    await fill('simAgentPreset', 'contract-preset');
+    await fill('simRecSleepMin', 7);
+    await fill('simSleepMinMs', 42);
+    await fill('simPreSleepWaitMin', 0);
+    await fill('simRecProb', 0);
+    await fill('simRecKeywords', '鲸鱼，DeepSeek, 测试');
+    await fill('simAutoReplyCheckSec', 17);
+    await fill('simWaitDefaultQuietMs', 0);
+    await fill('simMaxSendMin', 0);
+    await check('simProvideRecommendations', false);
+    const firstTool = page.locator('[data-sim-tool]').first();
+    await reveal('[data-sim-tool]');
     await firstTool.setChecked(false);
-    const body = await clickWrite('#v2ConfigSaveTop', '/api/socialV2/config');
+    const body = await clickWrite('#simConfigSaveTop', '/api/simulation/config');
     assert.equal(body.wake.recommendedSleepMinMs, 420000);
     assert.equal(body.wake.sleepMinMs, 42000);
     assert.equal(body.wake.preSleepWaitMs, 0);
@@ -191,12 +191,12 @@ try {
     assert.equal(body.wait.defaultQuietMs, 0);
     assert.equal(body.send.maxSendPerMinute, 0);
     assert.equal(body.provideRecommendations, false);
-    assert.equal(body.tools[await firstTool.getAttribute('data-v2-tool')], false);
+    assert.equal(body.tools[await firstTool.getAttribute('data-sim-tool')], false);
     // The lower save button must submit the same complete configuration.
-    await page.waitForFunction(() => document.getElementById('v2AgentPreset').value === 'contract-v2');
-    assert.deepEqual(await clickWrite('#v2ConfigSave', '/api/socialV2/config'), body);
-    assert.deepEqual(await clickWrite('#v2PauseBtn', '/api/socialV2/activity'), { paused: true });
-    assert.deepEqual(await clickWrite('#v2ResumeBtn', '/api/socialV2/activity'), { paused: false });
+    await page.waitForFunction(() => document.getElementById('simAgentPreset').value === 'contract-preset');
+    assert.deepEqual(await clickWrite('#simConfigSave', '/api/simulation/config'), body);
+    assert.deepEqual(await clickWrite('#simPauseBtn', '/api/simulation/activity'), { paused: true });
+    assert.deepEqual(await clickWrite('#simResumeBtn', '/api/simulation/activity'), { paused: false });
   });
 
   await test('Slang add, search, confirm modal, tab switching and parameter contracts', async () => {
@@ -309,13 +309,13 @@ try {
     // 切范围：重新请求并按生产同一套桶宽阶梯换粒度
     // （24h→30min / 3d→2h / 7d→6h / 30d→24h，桶数始终 ≤ 48）
     await page.click('#usageChartControls [data-usage-hours="168"]');
-    await page.waitForFunction(() => /每格 \d+ 分钟/.test(document.getElementById('usageChartHint')?.textContent || '')
+    await page.waitForFunction(() => /每格 360 分钟/.test(document.getElementById('usageChartHint')?.textContent || '')
       && document.querySelector('#usageChartControls [data-usage-hours="168"]')?.classList.contains('active'));
     assert.match(await page.textContent('#usageChartHint'), /每格 360 分钟/, '切到 7 天后桶宽变成 6 小时');
 
     // 粗桶会把高峰窗口整个包在中间 → 必须标『跨时段』（细桶边界对齐则不会，这也是真账本的行为）
     await page.click('#usageChartControls [data-usage-hours="720"]');
-    await page.waitForFunction(() => /每格 \d+ 分钟/.test(document.getElementById('usageChartHint')?.textContent || '')
+    await page.waitForFunction(() => /每格 1440 分钟/.test(document.getElementById('usageChartHint')?.textContent || '')
       && document.querySelector('#usageChartControls [data-usage-hours="720"]')?.classList.contains('active'));
     assert.match(await page.textContent('#usageChartHint'), /每格 1440 分钟/, '切到 30 天后桶宽变成 24 小时');
     const coarse = await page.evaluate(() => ({
@@ -344,7 +344,7 @@ try {
         await navigate(view);
         const dimensions = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, document: document.documentElement.scrollWidth, body: document.body.scrollWidth }));
         assert(dimensions.document <= dimensions.viewport + 1, `${width}px / ${view}: ${JSON.stringify(dimensions)}`);
-        if (artifacts && width === 390 && ['overview', 'social-v2', 'slang'].includes(view)) {
+        if (artifacts && width === 390 && ['overview', 'simulation', 'slang'].includes(view)) {
           await mkdir(resolve(artifacts), { recursive: true });
           await page.screenshot({ path: resolve(artifacts, `mobile-${view}.png`), fullPage: true, animations: 'disabled' });
         }
@@ -536,13 +536,13 @@ try {
   if (artifacts) {
     await mkdir(resolve(artifacts), { recursive: true });
     await page.setViewportSize({ width: 1440, height: 1000 });
-    for (const view of original ? ['overview'] : ['overview', 'persona', 'social-v2', 'slang', 'access']) {
+    for (const view of original ? ['overview'] : ['overview', 'persona', 'simulation', 'slang', 'access']) {
       await navigate(view);
       await page.screenshot({ path: resolve(artifacts, `${original ? 'original' : 'desktop'}-${view}.png`), fullPage: true, animations: 'disabled' });
     }
     if (!original) {
       await page.locator('#themeToggle').click();
-      for (const view of ['overview', 'social-v2']) {
+      for (const view of ['overview', 'simulation']) {
         await navigate(view);
         await page.screenshot({ path: resolve(artifacts, `dark-${view}.png`), fullPage: true, animations: 'disabled' });
       }

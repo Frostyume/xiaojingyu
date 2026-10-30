@@ -4,11 +4,11 @@ import assert from 'node:assert/strict';
 import { bridgeHarness } from './audit-bridge-harness.mjs';
 
 const h = await bridgeHarness({
-  config: { socialV2: { clingy: { enabled: true, maxFollowUps: 1, minDelayMs: 1000, maxDelayMs: 1000, probability: 1 } } }
+  config: { simulation: { clingy: { enabled: true, maxFollowUps: 1, minDelayMs: 1000, maxDelayMs: 1000, probability: 1 } } }
 });
 try {
-  h.setMode('reserved2');
-  const st = h.getSocialV2State('private:123');
+  h.setMode('simulation');
+  const st = h.getSimulationState('private:123');
   const now = Date.now();
   st.unread = [];
   st.clingyFollowUps = 0;
@@ -17,7 +17,7 @@ try {
     { isSelf: true, text: '在的', time: now - 1000 }
   ];
 
-  h.scheduleClingyFollowUpV2('private:123');
+  h.scheduleClingyFollowUp('private:123');
   await new Promise((r) => setTimeout(r, 1800));
   assert.equal(h.calls.prompts.length, 1, '主人私聊应触发一次黏人追问');
   const prompt = h.calls.prompts[0].content.map((c) => String(c?.text ?? '')).join('\n');
@@ -25,17 +25,17 @@ try {
   assert.match(prompt, /主人～理我一下嘛/);
   assert.equal(st.clingyFollowUps, 1, '追问计数应增加');
 
-  h.scheduleClingyFollowUpV2('private:123');
+  h.scheduleClingyFollowUp('private:123');
   await new Promise((r) => setTimeout(r, 300));
   assert.equal(h.calls.prompts.length, 1, '达到上限后不应再追');
 
-  const groupSt = h.getSocialV2State('group:456');
+  const groupSt = h.getSimulationState('group:456');
   groupSt.unread = [];
   groupSt.recentMessages = [
     { isSelf: false, text: '聊什么呢', time: now - 5000 },
     { isSelf: true, text: '聊点别的', time: now - 1000 }
   ];
-  h.scheduleClingyFollowUpV2('group:456');
+  h.scheduleClingyFollowUp('group:456');
   await new Promise((r) => setTimeout(r, 300));
   assert.equal(h.calls.prompts.length, 1, '群聊不应触发黏人追问');
 

@@ -118,7 +118,7 @@ export function createInnerLife(deps) {
     sendToQQ,
     onebotSend,
     lastSendSucceeded,
-    getSocialV2State,
+    getSimulationState,
     getEsportsFeed,
     isSessionAllowedInCurrentMode,
     ensureChatModel,
@@ -156,7 +156,7 @@ export function createInnerLife(deps) {
   let running = false;
 
   function ilCfg() {
-    const raw = cfg.socialV2?.innerLife && typeof cfg.socialV2.innerLife === 'object' ? cfg.socialV2.innerLife : {};
+    const raw = cfg.simulation?.innerLife && typeof cfg.simulation.innerLife === 'object' ? cfg.simulation.innerLife : {};
     const merge = (base, value) => ({ ...base, ...(value && typeof value === 'object' ? value : {}) });
     const curiosity = merge(DEFAULTS.curiosity, raw.curiosity);
     curiosity.webSearch = merge(DEFAULTS.curiosity.webSearch, raw.curiosity?.webSearch);
@@ -170,7 +170,7 @@ export function createInnerLife(deps) {
     return {
       enabled: raw.enabled === true,
       dryRun: raw.dryRun === true,
-      quiet: normalizeQuietHours(cfg.socialV2?.nightQuiet ?? raw.quiet ?? DEFAULTS.quiet),
+      quiet: normalizeQuietHours(cfg.simulation?.nightQuiet ?? raw.quiet ?? DEFAULTS.quiet),
       approvalTimeoutMs: Math.max(60 * 1000, Number(raw.approvalTimeoutMs) || DEFAULTS.approvalTimeoutMs),
       reflection: merge(DEFAULTS.reflection, raw.reflection),
       curiosity,
@@ -223,7 +223,7 @@ export function createInnerLife(deps) {
       if (minGap > 0 && last && now - last < minGap) continue;
       let st;
       try {
-        st = getSocialV2State(key);
+        st = getSimulationState(key);
       } catch {
         continue;
       }
@@ -241,7 +241,7 @@ export function createInnerLife(deps) {
     if (!key) return null;
     try {
       if (!isSessionAllowedInCurrentMode(key)) return null;
-      return { key, st: getSocialV2State(key) };
+      return { key, st: getSimulationState(key) };
     } catch {
       return null;
     }
@@ -492,13 +492,13 @@ export function createInnerLife(deps) {
       }
     };
     if (il.mood?.includeOwnerPrivate !== false && cfg.ownerQQ) {
-      try { addChat('主人私聊', getSocialV2State(`private:${cfg.ownerQQ}`), 20); } catch {}
+      try { addChat('主人私聊', getSimulationState(`private:${cfg.ownerQQ}`), 20); } catch {}
     }
     const groupKeys = (Array.isArray(cfg.allow?.groups) ? cfg.allow.groups : [])
       .map((id) => `group:${String(id).replace(/^group:/, '')}`)
       .filter((key) => { try { return isSessionAllowedInCurrentMode(key); } catch { return false; } })
       .map((key) => {
-        try { return { key, st: getSocialV2State(key) }; } catch { return null; }
+        try { return { key, st: getSimulationState(key) }; } catch { return null; }
       })
       .filter(Boolean)
       .sort((a, b) => (Number(b.st.lastIncomingAt) || 0) - (Number(a.st.lastIncomingAt) || 0))
@@ -578,7 +578,7 @@ export function createInnerLife(deps) {
       try { api.events.follow(innerSessionId); } catch {}
       return innerSessionId;
     }
-    const preset = resolvePresetName(cfg.socialV2?.agentPreset || cfg.agentPreset, { strict: true });
+    const preset = resolvePresetName(cfg.simulation?.agentPreset || cfg.agentPreset, { strict: true });
     if (!preset) throw new Error('内心生活会话缺少安全 preset');
     const saved = readJson(files.session, null);
     if (saved?.sessionId && saved.preset === preset) {
@@ -703,7 +703,7 @@ export function createInnerLife(deps) {
     const persona = personaBlock();
     let target = targetState(ilCfg());
     if (targetKeyOverride) {
-      try { target = { key: targetKeyOverride, st: getSocialV2State(targetKeyOverride) }; } catch {}
+      try { target = { key: targetKeyOverride, st: getSimulationState(targetKeyOverride) }; } catch {}
     }
     const digestText = opts.digestText !== undefined ? String(opts.digestText || '') : digest(target?.st ?? null, 30);
     const topics = Array.isArray(opts.topics) ? opts.topics : recentTopics(target?.st ?? null, 6);
@@ -750,7 +750,7 @@ export function createInnerLife(deps) {
 
   function curiosityPrompt(candidates, { timeFix = '', required = false, toneFix = '', target: targetGroup = '' } = {}) {
     const target = targetGroup || targetKey(ilCfg());
-    const profile = target ? cfg.socialV2?.groupProfiles?.[target] : null;
+    const profile = target ? cfg.simulation?.groupProfiles?.[target] : null;
     const groupStyle = profile?.style ? `【本群风格（优先遵守）】\n${String(profile.style).trim()}\n\n` : '';
     const timeBlock = timeFix
       ? `\n【时间校正】上一版出现：${timeFix}。重写时以上面的【现在】为准；拿不准就删掉具体时段/钟点。`
@@ -813,7 +813,7 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     if (!['.png', '.jpg', '.jpeg'].includes(ext)) {
       temp = path.join(stateDir, `qzone-img-${process.pid}.png`);
       try {
-        const ffmpeg = String(cfg.socialV2?.voice?.ffmpegPath || 'ffmpeg');
+        const ffmpeg = String(cfg.simulation?.voice?.ffmpegPath || 'ffmpeg');
         execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', abs, temp], { timeout: 30000 });
         filePath = temp;
       } catch (error) {
@@ -823,7 +823,7 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     }
     try {
       const buffer = fs.readFileSync(filePath);
-      const maxBytes = Number(cfg.socialV2?.imageLibrary?.maxBytes) || 20 * 1024 * 1024;
+      const maxBytes = Number(cfg.simulation?.imageLibrary?.maxBytes) || 20 * 1024 * 1024;
       if (buffer.length > maxBytes) return empty;
       return { images: [`base64://${buffer.toString('base64')}`], name: entry.note || entry.name || '' };
     } finally {
@@ -1233,7 +1233,7 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     if (!force && lastByTarget && now - lastByTarget < il.groupShare.minGapMs) return false;
     if (!force && isQuiet(il)) return false;
     if (!isSessionAllowedInCurrentMode(key)) return false;
-    const st = getSocialV2State(key);
+    const st = getSimulationState(key);
     const idleMs = Number(il.groupShare.idleMs) || 0;
     if (idleMs > 0 && st.lastIncomingAt && now - st.lastIncomingAt < idleMs) {
       log(`[inner] 群里刚有人说话，这次不分享（${key}）`);
@@ -1962,7 +1962,7 @@ ${othersLine}拟回复：${reply}
     const m = state.modules.ai_tips || {};
     const tips = loadAiTips();
     const target = module?.targets?.[0] || aiTipTarget(il);
-    const profile = target ? cfg.socialV2?.groupProfiles?.[target] : null;
+    const profile = target ? cfg.simulation?.groupProfiles?.[target] : null;
     const history = Array.isArray(m.history) ? m.history : [];
     const counts = new Map();
     for (const item of history) counts.set(item.category, (counts.get(item.category) || 0) + 1);
@@ -2084,7 +2084,7 @@ ${othersLine}拟回复：${reply}
         legacy: true
       });
     }
-    const subs = Array.isArray(cfg.socialV2?.subscriptions) ? cfg.socialV2.subscriptions.filter((s) => s && s.enabled !== false) : [];
+    const subs = Array.isArray(cfg.simulation?.subscriptions) ? cfg.simulation.subscriptions.filter((s) => s && s.enabled !== false) : [];
     if (!conf.modules.s16 && subs.length) {
       modules.push({
         id: 's16',
@@ -2232,7 +2232,7 @@ ${othersLine}拟回复：${reply}
   }
 
   function shareModulesConfig() {
-    const normalized = normalizeShareConfig(cfg.socialV2?.shareModules);
+    const normalized = normalizeShareConfig(cfg.simulation?.shareModules);
     const tips = ilCfg().aiTips;
     if (!normalized.modules.ai_tips && tips?.enabled) {
       normalized.modules.ai_tips = normalizeShareModule({
@@ -2317,7 +2317,7 @@ ${othersLine}拟回复：${reply}
   }
 
   function shareGroupStyle(target) {
-    const style = target ? cfg.socialV2?.groupProfiles?.[target]?.style : '';
+    const style = target ? cfg.simulation?.groupProfiles?.[target]?.style : '';
     return style ? `【本群风格（优先遵守）】\n${String(style).trim()}\n\n` : '';
   }
 
@@ -2821,7 +2821,7 @@ ${share.text}${share.item?.url ? `
 
   function aiTipsPrompt(il, { category, tips, recentChat = '', duplicateHint = '' }) {
     const target = aiTipTarget(il);
-    const profile = target ? cfg.socialV2?.groupProfiles?.[target] : null;
+    const profile = target ? cfg.simulation?.groupProfiles?.[target] : null;
     const groupStyle = profile?.style ? `【本群风格（优先遵守）】\n${String(profile.style).trim()}\n\n` : '';
     const historyLines = tips.history.slice(0, 30).map((item, index) => {
       const label = categoryById(item.category)?.label || item.category || '';
@@ -3176,7 +3176,7 @@ ${share.text}${share.item?.url ? `
     }
 
     let recentChat = '';
-    try { recentChat = digest(getSocialV2State(target), 8).slice(0, 700); } catch {}
+    try { recentChat = digest(getSimulationState(target), 8).slice(0, 700); } catch {}
 
     let parsed = null;
     let chosenCandidate = null;
@@ -3383,7 +3383,7 @@ ${share.text}${share.item?.url ? `
     if (!dryRun && !force && tips.sentToday >= tips.dailyTarget) return { status: 'daily-done', sentToday: tips.sentToday, dailyTarget: tips.dailyTarget };
 
     let recentChat = '';
-    try { recentChat = digest(getSocialV2State(target), 8).slice(0, 700); } catch {}
+    try { recentChat = digest(getSimulationState(target), 8).slice(0, 700); } catch {}
     const maxChars = Math.max(200, Math.min(360, Number(il.aiTips.maxChars) || DEFAULTS.aiTips.maxChars));
     let category = (categoryId && categoryById(categoryId)) || pickCategory(tips.history);
     let lastError = '';
@@ -3660,7 +3660,7 @@ ${formatTipCaption(item)}`;
     const state = loadInner();
     if (!il.enabled && !force) return { status: 'disabled' };
     if (!isDshReady()) return { status: 'dsh-not-ready' };
-    if (getMode() !== 'reserved2') return { status: 'mode' };
+    if (getMode() !== 'simulation') return { status: 'mode' };
     if (isPaused() && !force) return { status: 'paused' };
     const shareId = name === 'aiTips' ? 'ai_tips' : (name.startsWith('share:') ? name.slice(6) : '');
     let result;
@@ -3777,7 +3777,7 @@ ${formatTipCaption(item)}`;
     const il = ilCfg();
     if (!il.enabled) return;
     if (!isDshReady()) { scheduleRetry(5 * 60 * 1000); return; }
-    if (getMode() !== 'reserved2') { scheduleRetry(10 * 60 * 1000); return; }
+    if (getMode() !== 'simulation') { scheduleRetry(10 * 60 * 1000); return; }
     if (isPaused()) { scheduleRetry(10 * 60 * 1000); return; }
     const state = loadInner();
     const now = Date.now();
@@ -3802,7 +3802,7 @@ ${formatTipCaption(item)}`;
     started = true;
     const il = ilCfg();
     if (!il.enabled) {
-      log('[inner] 内心生活未启用（socialV2.innerLife.enabled != true）');
+      log('[inner] 内心生活未启用（simulation.innerLife.enabled != true）');
       return;
     }
     const state = loadInner();

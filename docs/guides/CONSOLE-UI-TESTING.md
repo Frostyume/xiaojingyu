@@ -41,8 +41,8 @@ node scripts/test-console-ui.mjs --artifacts=docs/ui-verification
 - 改造前 225 个元素 ID 保留，DOM ID 唯一。
 - 九个导航视图及切换后草稿保留，跨越实际的 3 秒状态轮询。
 - 模式及预设、角色创建与切换、静默模式、白名单、安全设置。
-- 二代配置上下两个保存按钮的完整 payload，时间单位、零值、工具开关、暂停及恢复。
-- 一代社交参数与会话阶段。
+- 仿真配置上下两个保存按钮的完整 payload，时间单位、零值、工具开关、暂停及恢复。
+- 旧版社交参数与会话阶段。
 - 黑话添加、搜索、标签切换、确认对话框与学习参数。
 - 测试消息、AI 提醒仅发送到 mock API。
 - 全部 24 次写请求与改造前的 API payload 基线逐项完全比较。
@@ -61,7 +61,7 @@ node scripts/test-console-ui.mjs --artifacts=docs/ui-verification
 
 ## 基线说明
 
-`console-ui-legacy-ids.json` 保存改造前的 225 个元素 ID。`console-ui-contracts.json` 来自原控制台在相同 fixture 中执行相同操作后的 24 次写请求，包含二代配置的完整嵌套参数。
+`console-ui-legacy-ids.json` 保存改造前的 225 个元素 ID。`console-ui-contracts.json` 来自原控制台在相同 fixture 中执行相同操作后的 24 次写请求，包含仿真配置的完整嵌套参数。
 
 只有后端契约经过明确调整时才更新基线。`scripts/fixtures/console.before.html` 是改造前的原版控制台（通常无需改动），重录时运行：
 

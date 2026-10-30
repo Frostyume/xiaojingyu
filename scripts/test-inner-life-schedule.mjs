@@ -26,7 +26,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const configPath = resolve(root, 'config.json');
 if (existsSync(configPath)) {
   const config = JSON.parse(readFileSync(configPath, 'utf8').replace(/^\uFEFF/, ''));
-  const inner = config.socialV2?.innerLife ?? {};
+  const inner = config.simulation?.innerLife ?? {};
   const reflection = inner.reflection ?? {};
   if (reflection.minIntervalMs != null && reflection.maxIntervalMs != null) {
     assert(

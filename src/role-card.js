@@ -1,22 +1,22 @@
 // 人格卡（roles/<名称>.md）的解析与「按仿真模式取用」。
 //
 // 为什么要分模式：
-//   一代仿真（reserved）用空格分条、用 [SILENT] 表示沉默；
-//   二代仿真（reserved2）必须用工具发言（qq_send_message 的数组分条），没有 [SILENT]。
-//   同一张人格卡被两种模式共用时，一代专属指令会与二代工具协议冲突。
-// 以前靠 currentRoleHintV2() 对正文做「逐行猜测 + 正则过滤」，既容易误伤又说不清边界。
+//   旧版仿真（reserved）用空格分条、用 [SILENT] 表示沉默；
+//   群聊仿真（simulation）必须用工具发言（qq_send_message 的数组分条），没有 [SILENT]。
+//   同一张人格卡被两种模式共用时，旧版专属指令会与仿真工具协议冲突。
+// 以前靠逐行正则猜测，既容易误伤又说不清边界。
 //
 // 现在改为显式标记：在标题里写模式，桥接只取当前模式适用的小节。
-//   ## 表情包体系 〔二代〕      → 只在 reserved2 注入
-//   ## 分条方式 〔一代〕        → 只在 reserved/chat 注入
+//   ## 表情包体系 〔仿真〕      → 只在 simulation 注入
+//   ## 分条方式 〔旧版〕        → 只在 reserved/chat 注入
 //   ## 你是谁                   → 两种模式都注入
 // 标记会在注入前从标题里去掉，模型看到的始终是干净的小节标题。
-export const ROLE_INJECT_MODES = ['v1', 'v2'];
+export const ROLE_INJECT_MODES = ['legacy', 'simulation'];
 
-// 模式标记：`〔二代〕` / `[v2]` / `（reserved2）` 等写法都认。
+// 模式标记：`〔仿真〕` / `[simulation]` / `（群聊仿真）`；旧版用 `〔旧版〕` / `[legacy]`。
 const MODE_TAGS = [
-  { mode: 'v2', re: /[\[〔（(]\s*(?:二代|2\s*代|v2|reserved2)\s*[\]〕）)]/gi },
-  { mode: 'v1', re: /[\[〔（(]\s*(?:一代|1\s*代|v1|reserved)\s*[\]〕）)]/gi },
+  { mode: 'simulation', re: /[\[〔（(]\s*(?:群聊仿真|仿真|simulation)\s*[\]〕）)]/gi },
+  { mode: 'legacy', re: /[\[〔（(]\s*(?:旧版仿真|旧版|legacy|reserved)\s*[\]〕）)]/gi },
 ];
 
 function detectMode(heading) {
@@ -38,7 +38,7 @@ function stripModeTags(heading) {
 
 /**
  * 按标题把人格卡拆成小节。
- * @returns {{mode: 'all'|'v1'|'v2', heading: string|null, lines: string[]}[]}
+ * @returns {{mode: 'all'|'legacy'|'simulation', heading: string|null, lines: string[]}[]}
  */
 export function parseRoleSections(text) {
   const sections = [];
@@ -62,10 +62,10 @@ export function parseRoleSections(text) {
 
 /**
  * 取出某次仿真真正要注入的人格文本（已去掉模式标记）。
- * @param {'v1'|'v2'} mode
+ * @param {'legacy'|'simulation'} mode
  */
 export function selectRoleText(text, mode) {
-  const want = mode === 'v1' ? 'v1' : 'v2';
+  const want = mode === 'legacy' ? 'legacy' : 'simulation';
   return parseRoleSections(text)
     .filter((section) => section.mode === 'all' || section.mode === want)
     .map((section) => section.lines.join('\n'))
@@ -76,10 +76,10 @@ export function selectRoleText(text, mode) {
 
 /**
  * 报告每个小节在当前模式下是否会被注入，供控制台预览。
- * @param {'v1'|'v2'} mode
+ * @param {'legacy'|'simulation'} mode
  */
 export function roleSectionReport(text, mode) {
-  const want = mode === 'v1' ? 'v1' : 'v2';
+  const want = mode === 'legacy' ? 'legacy' : 'simulation';
   return parseRoleSections(text).map((section) => ({
     heading: section.heading ?? '(开头部分)',
     mode: section.mode,
@@ -96,13 +96,13 @@ export function roleCharStats(text) {
   return {
     total: source.length,
     common: sum(sections.filter((section) => section.mode === 'all')),
-    v1Only: sum(sections.filter((section) => section.mode === 'v1')),
-    v2Only: sum(sections.filter((section) => section.mode === 'v2')),
-    v1: selectRoleText(source, 'v1').length,
-    v2: selectRoleText(source, 'v2').length,
+    legacyOnly: sum(sections.filter((section) => section.mode === 'legacy')),
+    simulationOnly: sum(sections.filter((section) => section.mode === 'simulation')),
+    legacy: selectRoleText(source, 'legacy').length,
+    simulation: selectRoleText(source, 'simulation').length,
   };
 }
 
-// 一代仿真遗留指令：未加模式标记时，这些行在二代下会被兜底过滤。
-// 正确做法是给所在小节加上 〔一代〕 标记。
-export const GEN1_ROLE_LINE_RE = /\[SILENT\]|空格分隔|按空格|用空格|空格分句|空格代表|自动转发|回复会自动|输出\s*\[SILENT\]/i;
+// 旧版仿真遗留指令：未加模式标记时，这些行在仿真下会被兜底过滤。
+// 正确做法是给所在小节加上 〔旧版〕 标记。
+export const LEGACY_ROLE_LINE_RE = /\[SILENT\]|空格分隔|按空格|用空格|空格分句|空格代表|自动转发|回复会自动|输出\s*\[SILENT\]/i;

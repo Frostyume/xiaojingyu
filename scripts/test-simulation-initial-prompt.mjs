@@ -1,4 +1,4 @@
-// 二代仿真「会话初始提示词」回归：操作者在控制台为某个群/私聊预写环境说明，
+// 群聊仿真「会话初始提示词」回归：操作者在控制台为某个群/私聊预写环境说明，
 // 只在该会话**首次唤醒**（bootstrap）时注入给 AI。
 //
 // 钉住的边界（每一条都对应一个具体的失败形态）：
@@ -61,7 +61,7 @@ await test('保存后可读回、key 归一化，并在重启后从文件恢复'
   let savedKey = '';
   try {
     await withServer(h, async (port) => {
-      const created = await call(port, '/api/socialV2/initial-prompt', {
+      const created = await call(port, '/api/simulation/initial-prompt', {
         method: 'POST', headers: ADMIN, body: { key: 'group:0456', text: ENV_TEXT }
       });
       assert.equal(created.status, 200, '管理员应能保存初始提示词');
@@ -73,12 +73,12 @@ await test('保存后可读回、key 归一化，并在重启后从文件恢复'
       // 内存态立即可见（AI 的下一次 bootstrap 就能拿到）
       assert.equal(h.getInitialPrompt('group:456')?.text, ENV_TEXT);
 
-      const read = await call(port, '/api/socialV2/initial-prompt?key=group%3A456', { headers: ADMIN });
+      const read = await call(port, '/api/simulation/initial-prompt?key=group%3A456', { headers: ADMIN });
       assert.equal(read.status, 200);
       assert.equal(read.json.exists, true);
       assert.equal(read.json.text, ENV_TEXT, '读回内容必须逐字一致（含段落换行）');
 
-      const list = await call(port, '/api/socialV2/initial-prompt', { headers: ADMIN });
+      const list = await call(port, '/api/simulation/initial-prompt', { headers: ADMIN });
       assert.equal(list.status, 200);
       assert.equal(list.json.entries.length, 1);
       assert.equal(list.json.entries[0].key, 'group:456');
@@ -109,25 +109,25 @@ await test('初始提示词只出现在 bootstrap 唤醒，且只给配置的那
     const r = h.setInitialPrompt('group:456', ENV_TEXT);
     assert.equal(r.ok, true);
 
-    const bootstrap = h.buildWakePromptV2('group:456', 'bootstrap');
+    const bootstrap = h.buildWakePrompt('group:456', 'bootstrap');
     assert.ok(bootstrap.includes(ENV_TEXT), 'bootstrap 唤醒必须带操作者预写的环境说明');
     assert.ok(bootstrap.includes('群聊环境'), '注入段要有可识别的标题');
     assert.ok(bootstrap.includes('仅本次首次唤醒参考'), '注入段要说明只在首次唤醒参考');
     assert.ok(bootstrap.includes('不是群友发的消息'), '要告诉 AI 这不是群友发言（防提示注入误读）');
 
     for (const reason of ['question', 'atMention', 'timeout', 'replyCheck', 'proactiveCheck', 'poke', 'admin', 'keyword:小鲸鱼']) {
-      assert.ok(!h.buildWakePromptV2('group:456', reason).includes(ENV_TEXT), `${reason} 唤醒不得重复注入初始提示词`);
+      assert.ok(!h.buildWakePrompt('group:456', reason).includes(ENV_TEXT), `${reason} 唤醒不得重复注入初始提示词`);
     }
-    assert.ok(!h.buildWakePromptV2('group:999', 'bootstrap').includes(ENV_TEXT), '不得串到别的会话');
+    assert.ok(!h.buildWakePrompt('group:999', 'bootstrap').includes(ENV_TEXT), '不得串到别的会话');
 
     // 私聊用「私聊环境」标签，方便 AI 分清群里还是私聊
     h.setInitialPrompt('private:123', '这是管理员私聊，直接说结论即可。');
-    const priv = h.buildWakePromptV2('private:123', 'bootstrap');
+    const priv = h.buildWakePrompt('private:123', 'bootstrap');
     assert.ok(priv.includes('私聊环境') && priv.includes('这是管理员私聊'));
 
     // 删除后不再注入
     assert.equal(h.setInitialPrompt('group:456', '').deleted, true);
-    assert.ok(!h.buildWakePromptV2('group:456', 'bootstrap').includes(ENV_TEXT), '删除后 bootstrap 不得再注入');
+    assert.ok(!h.buildWakePrompt('group:456', 'bootstrap').includes(ENV_TEXT), '删除后 bootstrap 不得再注入');
   } finally { await h.close(); }
 });
 
@@ -135,22 +135,22 @@ await test('初始提示词只出现在 bootstrap 唤醒，且只给配置的那
 await test('agent token 既读不到初始提示词，也改不了它', async () => {
   const h = await bridgeHarness();
   try {
-    h.setMode('reserved2');
+    h.setMode('simulation');
     h.setInitialPrompt('group:456', ENV_TEXT);
     await withServer(h, async (port) => {
       const asAgent = { ...ADMIN, 'x-agent-token': 'fixture-agent-token', 'x-agent-call': '1' };
-      const readOne = await call(port, '/api/socialV2/initial-prompt?key=group%3A456', { headers: asAgent });
+      const readOne = await call(port, '/api/simulation/initial-prompt?key=group%3A456', { headers: asAgent });
       assert.equal(readOne.status, 403, 'agent token 读单条必须 403');
-      const readList = await call(port, '/api/socialV2/initial-prompt', { headers: asAgent });
+      const readList = await call(port, '/api/simulation/initial-prompt', { headers: asAgent });
       assert.equal(readList.status, 403, 'agent token 列全部必须 403');
-      const write = await call(port, '/api/socialV2/initial-prompt', {
+      const write = await call(port, '/api/simulation/initial-prompt', {
         method: 'POST', headers: asAgent, body: { key: 'group:456', text: 'AI 自己改掉的内容' }
       });
       assert.equal(write.status, 403, 'agent token 写必须 403');
       assert.equal(h.getInitialPrompt('group:456')?.text, ENV_TEXT, '被拒后内容不得改变');
 
       // 仅控制台令牌（管理端）可以
-      const admin = await call(port, '/api/socialV2/initial-prompt?key=group%3A456', { headers: ADMIN });
+      const admin = await call(port, '/api/simulation/initial-prompt?key=group%3A456', { headers: ADMIN });
       assert.equal(admin.status, 200);
       assert.equal(admin.json.text, ENV_TEXT);
     });
@@ -159,7 +159,7 @@ await test('agent token 既读不到初始提示词，也改不了它', async ()
 
 // ── 4. 输入校验 ───────────────────────────────────────────────────────────────
 await test('非法 key / 超长 / 缺 text 都被拒，且不会误删已有内容', async () => {
-  const h = await bridgeHarness({ config: { socialV2: { initialPromptMaxChars: 100 } } });
+  const h = await bridgeHarness({ config: { simulation: { initialPromptMaxChars: 100 } } });
   try {
     assert.equal(h.initialPromptMaxChars(), 100);
     assert.equal(h.setInitialPrompt('group:456', 'x'.repeat(100)).ok, true, '正好到上限允许');
@@ -168,29 +168,29 @@ await test('非法 key / 超长 / 缺 text 都被拒，且不会误删已有内�
 
     await withServer(h, async (port) => {
       for (const key of ['', 'group:', 'group:abc', 'private:0', 'group:-1', 'wechat:123', 'group:9007199254740993']) {
-        const res = await call(port, '/api/socialV2/initial-prompt', { method: 'POST', headers: ADMIN, body: { key, text: 'x' } });
+        const res = await call(port, '/api/simulation/initial-prompt', { method: 'POST', headers: ADMIN, body: { key, text: 'x' } });
         assert.equal(res.status, 400, `非法 key「${key}」必须 400，实际 ${res.status}`);
       }
-      const badType = await call(port, '/api/socialV2/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', text: { a: 1 } } });
+      const badType = await call(port, '/api/simulation/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', text: { a: 1 } } });
       assert.equal(badType.status, 400, 'text 非字符串必须 400');
 
       // 缺 text 且没写 delete:true —— 绝不能被当成"清空"（否则一次漏字段的调用就删了内容）
-      const missing = await call(port, '/api/socialV2/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456' } });
+      const missing = await call(port, '/api/simulation/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456' } });
       assert.equal(missing.status, 400, '缺 text 必须 400 而不是静默删除');
       assert.equal(h.getInitialPrompt('group:456')?.text.length, 100, '缺 text 的请求不得删除已有内容');
 
-      const tooLong = await call(port, '/api/socialV2/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', text: 'y'.repeat(101) } });
+      const tooLong = await call(port, '/api/simulation/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', text: 'y'.repeat(101) } });
       assert.equal(tooLong.status, 400);
       assert.match(tooLong.json.error, /过长|上限/, '错误信息要说明是超长');
 
-      const byDelete = await call(port, '/api/socialV2/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', delete: true } });
+      const byDelete = await call(port, '/api/simulation/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', delete: true } });
       assert.equal(byDelete.status, 200);
       assert.equal(byDelete.json.deleted, true);
       assert.equal(h.getInitialPrompt('group:456'), null);
 
       // 空内容保存 = 删除（文本域清空后点保存的自然语义）
       h.setInitialPrompt('group:456', 'abc');
-      const empty = await call(port, '/api/socialV2/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', text: '   \n  ' } });
+      const empty = await call(port, '/api/simulation/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', text: '   \n  ' } });
       assert.equal(empty.status, 200);
       assert.equal(empty.json.deleted, true, '空白内容等于删除');
     });
@@ -201,7 +201,7 @@ await test('非法 key / 超长 / 缺 text 都被拒，且不会误删已有内�
 await test('initialPromptMaxChars 的越界配置被收敛到 100~8000', async () => {
   const cases = [[1, 100], [50, 100], [2000, 2000], [99999, 8000], ['300', 300], [-5, 2000], ['abc', 2000], [0, 2000]];
   for (const [input, expected] of cases) {
-    const h = await bridgeHarness({ config: { socialV2: { initialPromptMaxChars: input } } });
+    const h = await bridgeHarness({ config: { simulation: { initialPromptMaxChars: input } } });
     try { assert.equal(h.initialPromptMaxChars(), expected, `initialPromptMaxChars=${JSON.stringify(input)}`); }
     finally { await h.close(); }
   }
@@ -214,9 +214,9 @@ await test('initial-prompts.json 损坏时降级为只读，保存失败且原�
   try {
     assert.equal(h.getInitialPrompt('group:456'), null, '损坏文件不产生条目');
     await withServer(h, async (port) => {
-      const list = await call(port, '/api/socialV2/initial-prompt', { headers: ADMIN });
+      const list = await call(port, '/api/simulation/initial-prompt', { headers: ADMIN });
       assert.equal(list.json.writable, false, '损坏时应标记为不可写');
-      const save = await call(port, '/api/socialV2/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', text: 'abc' } });
+      const save = await call(port, '/api/simulation/initial-prompt', { method: 'POST', headers: ADMIN, body: { key: 'group:456', text: 'abc' } });
       assert.equal(save.status, 500, '只读降级下保存必须失败');
       assert.equal(h.getInitialPrompt('group:456'), null, '失败后内存也要回滚');
       const onDisk = fs.readFileSync(path.join(h.temp, 'state', 'initial-prompts.json'), 'utf8');
@@ -229,16 +229,16 @@ await test('initial-prompts.json 损坏时降级为只读，保存失败且原�
 await test('手动唤醒在会话未 bootstrap 时必须走 bootstrap（否则初始提示词永远发不出去）', async () => {
   const h = await bridgeHarness();
   try {
-    h.setMode('reserved2');
+    h.setMode('simulation');
     h.setInitialPrompt('group:456', ENV_TEXT);
     await withServer(h, async (port) => {
-      const first = await call(port, '/api/socialV2/wake', { method: 'POST', headers: ADMIN, body: { key: 'group:456', reason: 'admin' } });
+      const first = await call(port, '/api/simulation/wake', { method: 'POST', headers: ADMIN, body: { key: 'group:456', reason: 'admin' } });
       assert.equal(first.status, 200);
       assert.equal(first.json.reason, 'bootstrap', '首次唤醒必须走 bootstrap');
       assert.equal(first.json.firstWake, true);
       assert.equal(first.json.requestedReason, 'admin', '仍回显操作者请求的原因');
 
-      const second = await call(port, '/api/socialV2/wake', { method: 'POST', headers: ADMIN, body: { key: 'group:456', reason: 'admin' } });
+      const second = await call(port, '/api/simulation/wake', { method: 'POST', headers: ADMIN, body: { key: 'group:456', reason: 'admin' } });
       assert.equal(second.status, 200);
       assert.equal(second.json.reason, 'admin', '已 bootstrap 过则保持原原因');
       assert.equal(second.json.firstWake, false);
@@ -255,9 +255,9 @@ await test('手动唤醒在会话未 bootstrap 时必须走 bootstrap（否则�
 
 // ── 8. 端到端：真实进线消息 → bootstrap 唤醒 → 投递的 prompt 带环境说明 ────────
 await test('端到端：群消息进线触发的首次唤醒，投递给 DSH 的 prompt 带初始提示词', async () => {
-  const h = await bridgeHarness({ config: { socialV2: { wake: { batchWindowMs: 1000 } } } });
+  const h = await bridgeHarness({ config: { simulation: { wake: { batchWindowMs: 1000 } } } });
   try {
-    h.setMode('reserved2');
+    h.setMode('simulation');
     h.setInitialPrompt('group:456', ENV_TEXT);
     const event = {
       self_id: 999,
@@ -289,12 +289,12 @@ await test('端到端：群消息进线触发的首次唤醒，投递给 DSH 的
 await test('控制台有初始提示词面板，且事件/接口都已接线', async () => {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const html = fs.readFileSync(path.join(root, 'public', 'console.html'), 'utf8');
-  for (const id of ['v2InitPromptKey', 'v2InitPromptText', 'v2InitPromptLoad', 'v2InitPromptSave', 'v2InitPromptClear', 'v2InitPromptMsg', 'v2InitPromptCount', 'v2InitPromptMax']) {
+  for (const id of ['simInitPromptKey', 'simInitPromptText', 'simInitPromptLoad', 'simInitPromptSave', 'simInitPromptClear', 'simInitPromptMsg', 'simInitPromptCount', 'simInitPromptMax']) {
     const n = (html.match(new RegExp(`id="${id}"`, 'g')) ?? []).length;
     assert.equal(n, 1, `控制台元素 ${id} 必须存在且唯一（实际 ${n} 处）`);
   }
-  assert.match(html, /getElementById\('v2InitPromptSave'\)\.addEventListener/, '保存按钮已绑定事件');
-  assert.match(html, /api\('\/api\/socialV2\/initial-prompt'/, '面板调用 /api/socialV2/initial-prompt');
+  assert.match(html, /getElementById\('simInitPromptSave'\)\.addEventListener/, '保存按钮已绑定事件');
+  assert.match(html, /api\('\/api\/simulation\/initial-prompt'/, '面板调用 /api/simulation/initial-prompt');
   assert.match(html, /仅在首次唤醒|只在.*首次唤醒/, '面板要说明"仅首次唤醒生效"这一关键行为');
   // 面板不得在页面加载时自动请求接口（否则离线 fixture 与请求基线都会变）
   assert.ok(!/window\.addEventListener\('load'[\s\S]{0,400}initial-prompt/.test(html), '面板不应在页面加载时自动拉取');

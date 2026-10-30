@@ -128,7 +128,7 @@ async function main() {
       { errors: validation.errors.slice(0, 50), unknown: validation.unknown.slice(0, 50) });
     // 按群 profile / 自定义价目表 / 分享模块实例都是运行期动态键（模板里只有空对象），
     // 不该要求出现在 config.example.json 里。
-    const dynamicUnknown = validation.unknown.filter((key) => /^socialV2\.groupProfiles\./.test(key) || /^pricing\.models\./.test(key) || /^socialV2\.shareModules\.modules\./.test(key));
+    const dynamicUnknown = validation.unknown.filter((key) => /^simulation\.groupProfiles\./.test(key) || /^pricing\.models\./.test(key) || /^simulation\.shareModules\.modules\./.test(key));
     const templateUnknown = validation.unknown.filter((key) => !dynamicUnknown.includes(key));
     if (templateUnknown.length) {
       add('config.schema-coverage', 'warn', '配置项覆盖率',
@@ -289,7 +289,7 @@ async function main() {
   } else {
     add('role.card', 'ok', '角色卡', '未设置角色');
   }
-  const presetName = cfg.socialV2?.agentPreset || cfg.agentPreset || 'qq-chat';
+  const presetName = cfg.simulation?.agentPreset || cfg.agentPreset || 'qq-chat';
   const presetSrc = path.join(ROOT, 'dsh', 'agent-presets', presetName, 'agent.cordis.yml');
   const presetPatch = path.join(ROOT, 'plugins', 'agent-presets', 'presets', `${presetName}.patch.yml`);
   function presetInstallState(name) {

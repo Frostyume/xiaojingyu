@@ -182,7 +182,7 @@ DSH 0.2.0 删除了 `ctx.settings.register(ns, schema, opts)`——`SettingsForm
 
 在 0.2.0 上实测（`npm run probe:settings` / `verify:adaptation`）：
 
-- `settings/describe` 列出 **20 个**命名空间，其中**有** `qq-mode`，`value = {"mode":"reserved2"}`，带 `revision`；
+- `settings/describe` 列出 **20 个**命名空间，其中**有** `qq-mode`，`value = {"mode":"simulation"}`，带 `revision`；
 - `settings/update` 写回成功并返回 `SettingsNamespaceView`。
 
 即三点前提在 0.2.0 依然成立且是唯一路径：**① entry id 恰好等于命名空间名**（`cordis.patch.yml` 的
@@ -220,7 +220,7 @@ schema 接受全部 mode 拼写、**不再出现 `settings.register`**（只看�
   `probeRpc` / `probeMuxSocket` / `probeWorkspaceDir`；9 个脚本全部改用它。
 - **落盘**：探针与测试夹具原先写在仓库 `state/` 下。`state/` 被 `harden-state-acl.mjs` 收紧了 ACL
   （见 §7.2），在 DSH 沙箱会话里**写不进去**（EPERM）。
-  → 探针、`self-test`、`test-setup-dsh-idempotent`、`test-dsh-v2-wait` 的临时产物全部改到系统临时目录。
+  → 探针、`self-test`、`test-setup-dsh-idempotent`、`test-dsh-simulation-wait` 的临时产物全部改到系统临时目录。
   迁完后 `npm run self-test` 在沙箱里也能完整跑通。
 - 删除 `scripts/probe-015.mjs`（0.1.5 专用，已被 verifier 取代，走的是旧点号协议路径）；
   同一用途由 `probe-020-protocol.mjs` 承担。
@@ -538,8 +538,8 @@ AAAA 排在 A 前面，而本机没有 IPv6 出口；旧 `safe-fetch` 只取 `ad
 - 表情包：解析保留 `emoji_id`/`summary`/`sub_type`（含 `mface` 段）；**表情优先走 CDN**
   （市场表情不在网关缓存，`get_image` 必失败），无 URL 时用 `emoji_id`（或文件名里的 32 位 hex）
   推出 `gxh.vip.qq.com/.../raw300.gif` 兜底。
-- 落库（`appendSocialV2Message`）不再丢 `kind`/`emojiId`/`summary`/`subType`；`summary` 单行化并限长 60。
-- 单条媒体上限：8MB / 64MP / 5 张（`socialV2.media` 可调）。
+- 落库（`appendSimulationMessage`）不再丢 `kind`/`emojiId`/`summary`/`subType`；`summary` 单行化并限长 60。
+- 单条媒体上限：8MB / 64MP / 5 张（`simulation.media` 可调）。
 
 实测：29 个收藏表情 29/29 抓取成功（修复前抽样 5/6，失败那次 20003ms）；会话里的 GIF 表情
 `20s 超时 → 421ms`。
@@ -553,7 +553,7 @@ Bing **RSS** 仅作兜底；5 分钟查询缓存；空结果显式 `note`。安�
 **https + 公网**端点、禁止跟随重定向、响应体 2MB、总超时 35s、key 不落日志；
 `web_fetch` 仍走 SSRF 防护传输。
 
-### J.3 reserved2 状态机与长轮询
+### J.3 simulation 状态机与长轮询
 
 - `refreshMode` 读 DSH settings 时 **user 层优先**（0.2.0-rc.2 写完 `value` 不热更新，
   否则控制台切的模式会被 5 秒轮询改回去）。
@@ -578,6 +578,6 @@ Bing **RSS** 仅作兜底；5 分钟查询缓存；空结果显式 `note`。安�
 
 ### J.6 仍已知未修
 
-- `saveSocialV2State()` 写盘失败只记日志、接口仍回 `ok:true`（需写盘队列，改动面大）；
+- `saveSimulationState()` 写盘失败只记日志、接口仍回 `ok:true`（需写盘队列，改动面大）；
 - `auditAndSend` 的返回值不反映真实发送结果（主回复路径已由 `lastSendSucceeded()` 兜住）；
 - `toolCallNames` 在 `turn/end` 丢失时不回收（有 15 分钟租约兜底，增长极慢）。

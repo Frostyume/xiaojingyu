@@ -96,14 +96,14 @@ console.log('## sticker-lib 纯函数');
 console.log('## 配置文件');
 {
   const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
-  const tools = cfg.socialV2?.tools ?? {};
+  const tools = cfg.simulation?.tools ?? {};
   ok(tools.listStickers === true, 'config listStickers=true');
   ok(tools.getStickerImage === true, 'config getStickerImage=true');
   ok(tools.sendSticker === true, 'config sendSticker=true');
   ok(tools.stickerNote === true, 'config stickerNote=true');
   ok(tools.setStickerRemark === false, 'config setStickerRemark=false（默认禁用）');
-  ok(cfg.socialV2?.sticker?.enabled === true, 'config sticker.enabled=true');
-  ok(!('sendCaptionMaxChars' in (cfg.socialV2?.sticker ?? {})), 'config sticker 不再包含 sendCaptionMaxChars');
+  ok(cfg.simulation?.sticker?.enabled === true, 'config sticker.enabled=true');
+  ok(!('sendCaptionMaxChars' in (cfg.simulation?.sticker ?? {})), 'config sticker 不再包含 sendCaptionMaxChars');
 }
 
 console.log('## 表情单气泡约束');
@@ -134,7 +134,7 @@ console.log('## MCP 工具描述存在性');
 console.log('## bridge 路由/函数存在性');
 {
   const bridge = fs.readFileSync(path.join(ROOT, 'src', 'bridge.js'), 'utf8');
-  for (const s of ['/api/socialV2/sticker-list', '/api/socialV2/sticker-image', '/api/socialV2/sticker-note', '/api/socialV2/send-sticker', '/api/socialV2/sticker-remark', '/api/stickers', 'syncStickerLibrary', 'sendStickerV2', '/api/socialV2/delete-sticker', '/api/socialV2/delete-image', 'deleteStickerV2', 'deleteImageV2', 'mediaRefFromQuoted', 'quotedMessageId']) {
+  for (const s of ['/api/simulation/sticker-list', '/api/simulation/sticker-image', '/api/simulation/sticker-note', '/api/simulation/send-sticker', '/api/simulation/sticker-remark', '/api/stickers', 'syncStickerLibrary', 'sendSticker', '/api/simulation/delete-sticker', '/api/simulation/delete-image', 'deleteSticker', 'deleteImage', 'mediaRefFromQuoted', 'quotedMessageId']) {
     ok(bridge.includes(s), `bridge 包含 ${s}`);
   }
 }
@@ -159,9 +159,9 @@ console.log('## 模型工具：按引用 messageId 删除');
     files: { 'state/stickers.json': [{ id: 'emoji-tool-test', desc: '工具删除测试', source: 'qq' }] }
   });
   try {
-    h.setMode('reserved2');
+    h.setMode('simulation');
     h.setSnowlumaConnected(false);
-    const st = h.getSocialV2State('private:123');
+    const st = h.getSimulationState('private:123');
     st.lastIncomingUserId = '123';
     st.recentMessages.push({
       messageId: '777', sender: '我', text: '[表情包:工具删除测试]', plain: '[表情包:工具删除测试]',
@@ -170,7 +170,7 @@ console.log('## 模型工具：按引用 messageId 删除');
     const server = h.startConsoleServer();
     if (!server.listening) await new Promise((resolve) => server.once('listening', resolve));
     const port = server.address().port;
-    const res = await fetch(`http://127.0.0.1:${port}/api/socialV2/delete-sticker`, {
+    const res = await fetch(`http://127.0.0.1:${port}/api/simulation/delete-sticker`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-agent-token': st.agentToken },
       body: JSON.stringify({ key: 'private:123', messageId: '777' })

@@ -30,7 +30,7 @@ const tests = [
   // 体检修复回归：无令牌智能体调用面、send-burst 失败回滚、唤醒限频重试、
   // 定时器类暂存唤醒补发、collector 生命周期、ownerQQ 覆盖语义、预设名校验、
   // wake triggers 白名单、memory-update 边界、wait 租约归一化、md/黑话/表情/账本；
-  // 本轮新增：/api/send/* 失败路径的作用域错误（R15）、reserved2 落库丢表情识别字段（R16）。
+  // 本轮新增：/api/send/* 失败路径的作用域错误（R15）、simulation 落库丢表情识别字段（R16）。
   'test-audit-regressions.mjs',
   // 控制面分层（群内低风险直连 / 私聊全能 / 高危二次确认）：授权判定纯函数 +
   // 假网关 + 回环控制台的端到端验收，含关闭开关后的旧行为回归。
@@ -41,9 +41,9 @@ const tests = [
   'test-media-search.mjs',
   // GitHub issue 回归：#22 模式 user 层优先 / #11/#19 回合判忙租约 / #29 机器人身份注入。
   'test-issue-regressions.mjs',
-  // 二代「会话初始提示词」：只在首次唤醒注入、管理面隔离、损坏文件只读降级、
+  // 仿真「会话初始提示词」：只在首次唤醒注入、管理面隔离、损坏文件只读降级、
   // 以及控制台「立即唤醒」不得顶掉首次 bootstrap（否则初始提示词永远发不出去）。
-  'test-v2-initial-prompt.mjs',
+  'test-simulation-initial-prompt.mjs',
   // 令牌账本 / 价目表 与 体检修复回归（纯函数，无外部依赖）
   'test-token-usage.mjs', 'test-hardening.mjs',
   // 语音发送（纯函数 + 端点存在性；真发语音只在 --live 或 CLI 里做）

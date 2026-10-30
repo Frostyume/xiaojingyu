@@ -22,7 +22,7 @@ const specs = [
   },
   {
     key: 'qzone.minGapMinutes', label: '说说最小间隔', type: 'number', min: 30, max: 1440, unit: '分钟',
-    description: '两条说说之间至少隔多久', storedPath: 'socialV2.innerLife.qzone.minGapMs', fromStored: (v) => Math.round(Number(v) / 60000), toStored: (v) => Math.round(Number(v) * 60000)
+    description: '两条说说之间至少隔多久', storedPath: 'simulation.innerLife.qzone.minGapMs', fromStored: (v) => Math.round(Number(v) / 60000), toStored: (v) => Math.round(Number(v) * 60000)
   },
   {
     key: 'qzone.skipProbability', label: '说说跳过概率', type: 'number', min: 0, max: 0.9, unit: '',
@@ -93,11 +93,11 @@ const specs = [
   },
   {
     key: 'share.maxPerDay', label: '主动分享每天上限', type: 'number', min: 0, max: 30, unit: '条',
-    description: '好奇/生活分享每天最多几条', storedPath: 'socialV2.innerLife.groupShare.maxPerDay'
+    description: '好奇/生活分享每天最多几条', storedPath: 'simulation.innerLife.groupShare.maxPerDay'
   },
   {
     key: 'share.minGapMinutes', label: '主动分享最小间隔', type: 'number', min: 10, max: 1440, unit: '分钟',
-    description: '两次主动分享之间至少隔多久', storedPath: 'socialV2.innerLife.groupShare.minGapMs', fromStored: (v) => Math.round(Number(v) / 60000), toStored: (v) => Math.round(Number(v) * 60000)
+    description: '两次主动分享之间至少隔多久', storedPath: 'simulation.innerLife.groupShare.minGapMs', fromStored: (v) => Math.round(Number(v) / 60000), toStored: (v) => Math.round(Number(v) * 60000)
   }
 ];
 
@@ -127,10 +127,10 @@ export function readOwnerConfig(cfg, key) {
 }
 
 function defaultStoredPath(key) {
-  if (key.startsWith('qzone.')) return `socialV2.innerLife.${key}`;
-  if (key.startsWith('signature.')) return `socialV2.${key}`;
-  if (key.startsWith('dailyReport.')) return `socialV2.${key}`;
-  if (key.startsWith('voice.')) return `socialV2.${key}`;
+  if (key.startsWith('qzone.')) return `simulation.innerLife.${key}`;
+  if (key.startsWith('signature.')) return `simulation.${key}`;
+  if (key.startsWith('dailyReport.')) return `simulation.${key}`;
+  if (key.startsWith('voice.')) return `simulation.${key}`;
   return key;
 }
 

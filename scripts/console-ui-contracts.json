@@ -11,7 +11,7 @@
     "method": "POST",
     "path": "/api/mode",
     "body": {
-      "mode": "reserved2",
+      "mode": "simulation",
       "closedAgentPreset": ""
     }
   },
@@ -102,10 +102,10 @@
   },
   {
     "method": "POST",
-    "path": "/api/socialV2/config",
+    "path": "/api/simulation/config",
     "body": {
       "enabled": true,
-      "agentPreset": "contract-v2",
+      "agentPreset": "contract-preset",
       "provideRecommendations": false,
       "autoReplyCheckMs": 17000,
       "tools": {
@@ -227,10 +227,10 @@
   },
   {
     "method": "POST",
-    "path": "/api/socialV2/config",
+    "path": "/api/simulation/config",
     "body": {
       "enabled": true,
-      "agentPreset": "contract-v2",
+      "agentPreset": "contract-preset",
       "provideRecommendations": false,
       "autoReplyCheckMs": 17000,
       "tools": {
@@ -352,14 +352,14 @@
   },
   {
     "method": "POST",
-    "path": "/api/socialV2/activity",
+    "path": "/api/simulation/activity",
     "body": {
       "paused": true
     }
   },
   {
     "method": "POST",
-    "path": "/api/socialV2/activity",
+    "path": "/api/simulation/activity",
     "body": {
       "paused": false
     }

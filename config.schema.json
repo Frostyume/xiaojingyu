@@ -373,11 +373,11 @@
         }
       }
     },
-    "socialV2": {
+    "simulation": {
       "type": "object",
       "properties": {
         "agentPreset": {
-          "title": "二代 preset",
+          "title": "仿真预设",
           "type": "string",
           "default": "qq-chat"
         },
@@ -482,7 +482,7 @@
           }
         },
         "enabled": {
-          "title": "二代仿真总开关",
+          "title": "群聊仿真总开关",
           "type": "boolean",
           "default": true
         },
@@ -2922,7 +2922,7 @@
     {
       "key": "social.activeCheckMaxMs",
       "label": "Active Check Max Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -2930,7 +2930,7 @@
     {
       "key": "social.activeCheckMinMs",
       "label": "Active Check Min Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -2938,7 +2938,7 @@
     {
       "key": "social.activeDurationEnabled",
       "label": "Active Duration Enabled",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -2946,7 +2946,7 @@
     {
       "key": "social.activeDurationMaxMs",
       "label": "Active Duration Max Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -2954,7 +2954,7 @@
     {
       "key": "social.activeDurationMinMs",
       "label": "Active Duration Min Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -2962,7 +2962,7 @@
     {
       "key": "social.activeReplyDelayMaxMs",
       "label": "Active Reply Delay Max Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -2970,7 +2970,7 @@
     {
       "key": "social.activeReplyDelayMinMs",
       "label": "Active Reply Delay Min Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -2978,7 +2978,7 @@
     {
       "key": "social.burstEnabled",
       "label": "Burst Enabled",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -2986,7 +2986,7 @@
     {
       "key": "social.burstIntervalMaxMs",
       "label": "Burst Interval Max Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -2994,7 +2994,7 @@
     {
       "key": "social.burstIntervalMinMs",
       "label": "Burst Interval Min Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3002,7 +3002,7 @@
     {
       "key": "social.contextWindow",
       "label": "Context Window",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3010,7 +3010,7 @@
     {
       "key": "social.enabled",
       "label": "Enabled",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -3018,7 +3018,7 @@
     {
       "key": "social.idleRetryProbability",
       "label": "Idle Retry Probability",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3026,7 +3026,7 @@
     {
       "key": "social.idleRetryWaitMs",
       "label": "Idle Retry Wait Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3034,7 +3034,7 @@
     {
       "key": "social.idleWindowMs",
       "label": "Idle Window Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3042,7 +3042,7 @@
     {
       "key": "social.longGapMaxMs",
       "label": "Long Gap Max Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3050,7 +3050,7 @@
     {
       "key": "social.longGapMinMs",
       "label": "Long Gap Min Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3058,7 +3058,7 @@
     {
       "key": "social.longGapProbability",
       "label": "Long Gap Probability",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3066,7 +3066,7 @@
     {
       "key": "social.maxReplyChars",
       "label": "Max Reply Chars",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3074,7 +3074,7 @@
     {
       "key": "social.mustReplyKeywords",
       "label": "Must Reply Keywords",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "array",
       "restart": "none",
       "advanced": true
@@ -3082,7 +3082,7 @@
     {
       "key": "social.proactiveCheckMaxMs",
       "label": "Proactive Check Max Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3090,7 +3090,7 @@
     {
       "key": "social.proactiveCheckMinMs",
       "label": "Proactive Check Min Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3098,7 +3098,7 @@
     {
       "key": "social.proactiveEnabled",
       "label": "Proactive Enabled",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -3106,7 +3106,7 @@
     {
       "key": "social.proactiveIdleThresholdMs",
       "label": "Proactive Idle Threshold Ms",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3114,7 +3114,7 @@
     {
       "key": "social.proactiveProbability",
       "label": "Proactive Probability",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3122,7 +3122,7 @@
     {
       "key": "social.skipProbability",
       "label": "Skip Probability",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3130,7 +3130,7 @@
     {
       "key": "social.surrenderProbability",
       "label": "Surrender Probability",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
@@ -3138,23 +3138,23 @@
     {
       "key": "social.triggerProbability",
       "label": "Trigger Probability",
-      "group": "一代仿真（reserved）",
+      "group": "旧版仿真（reserved）",
       "type": "number",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.agentPreset",
-      "label": "二代 preset",
-      "group": "二代仿真（reserved2）",
+      "key": "simulation.agentPreset",
+      "label": "仿真预设",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "dsh",
       "advanced": false
     },
     {
-      "key": "socialV2.autoReplyCheckMs",
+      "key": "simulation.autoReplyCheckMs",
       "label": "回复检查间隔（ms）",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -3162,185 +3162,185 @@
       "max": 600000
     },
     {
-      "key": "socialV2.clingy.enabled",
+      "key": "simulation.clingy.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.clingy.maxDelayMs",
+      "key": "simulation.clingy.maxDelayMs",
       "label": "Max Delay Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.clingy.maxFollowUps",
+      "key": "simulation.clingy.maxFollowUps",
       "label": "Max Follow Ups",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.clingy.minDelayMs",
+      "key": "simulation.clingy.minDelayMs",
       "label": "Min Delay Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.clingy.probability",
+      "key": "simulation.clingy.probability",
       "label": "Probability",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.context.contextWindow",
+      "key": "simulation.context.contextWindow",
       "label": "Context Window",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.context.inlineWakeMessages",
+      "key": "simulation.context.inlineWakeMessages",
       "label": "Inline Wake Messages",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.context.recentLimit",
+      "key": "simulation.context.recentLimit",
       "label": "Recent Limit",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.context.unreadLimit",
+      "key": "simulation.context.unreadLimit",
       "label": "Unread Limit",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.context.wakeMaxChars",
+      "key": "simulation.context.wakeMaxChars",
       "label": "Wake Max Chars",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.context.wakeMessageLimit",
+      "key": "simulation.context.wakeMessageLimit",
       "label": "Wake Message Limit",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.context.wakeRecentLimit",
+      "key": "simulation.context.wakeRecentLimit",
       "label": "Wake Recent Limit",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.enabled",
-      "label": "二代仿真总开关",
-      "group": "二代仿真（reserved2）",
+      "key": "simulation.enabled",
+      "label": "群聊仿真总开关",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.esportsFeed.maxItems",
+      "key": "simulation.esportsFeed.maxItems",
       "label": "Max Items",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.esportsFeed.refreshMs",
+      "key": "simulation.esportsFeed.refreshMs",
       "label": "Refresh Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.esportsFeed.summaryMaxChars",
+      "key": "simulation.esportsFeed.summaryMaxChars",
       "label": "Summary Max Chars",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.feedback.maxLength",
+      "key": "simulation.feedback.maxLength",
       "label": "Max Length",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.feedback.notifyOwnerOnError",
+      "key": "simulation.feedback.notifyOwnerOnError",
       "label": "Notify Owner On Error",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.imageLibrary.allowUrlSave",
+      "key": "simulation.imageLibrary.allowUrlSave",
       "label": "Allow Url Save",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.imageLibrary.includeInPrompt",
+      "key": "simulation.imageLibrary.includeInPrompt",
       "label": "Include In Prompt",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.imageLibrary.maxBytes",
+      "key": "simulation.imageLibrary.maxBytes",
       "label": "Max Bytes",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.imageLibrary.promptMaxImages",
+      "key": "simulation.imageLibrary.promptMaxImages",
       "label": "Prompt Max Images",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.initialPromptMaxChars",
+      "key": "simulation.initialPromptMaxChars",
       "label": "初始提示词上限（字符）",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -3348,825 +3348,825 @@
       "max": 8000
     },
     {
-      "key": "socialV2.innerLife.aiTips.enabled",
+      "key": "simulation.innerLife.aiTips.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.images",
+      "key": "simulation.innerLife.aiTips.images",
       "label": "Images",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.links",
+      "key": "simulation.innerLife.aiTips.links",
       "label": "Links",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.maxChars",
+      "key": "simulation.innerLife.aiTips.maxChars",
       "label": "Max Chars",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.maxHistory",
+      "key": "simulation.innerLife.aiTips.maxHistory",
       "label": "Max History",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.maxLinks",
+      "key": "simulation.innerLife.aiTips.maxLinks",
       "label": "Max Links",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.maxPerDay",
+      "key": "simulation.innerLife.aiTips.maxPerDay",
       "label": "Max Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.minGapMs",
+      "key": "simulation.innerLife.aiTips.minGapMs",
       "label": "Min Gap Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.minPerDay",
+      "key": "simulation.innerLife.aiTips.minPerDay",
       "label": "Min Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.target",
+      "key": "simulation.innerLife.aiTips.target",
       "label": "Target",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.webImages",
+      "key": "simulation.innerLife.aiTips.webImages",
       "label": "Web Images",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.windowEndHour",
+      "key": "simulation.innerLife.aiTips.windowEndHour",
       "label": "Window End Hour",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.aiTips.windowStartHour",
+      "key": "simulation.innerLife.aiTips.windowStartHour",
       "label": "Window Start Hour",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.approvalTimeoutMs",
+      "key": "simulation.innerLife.approvalTimeoutMs",
       "label": "Approval Timeout Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.enabled",
+      "key": "simulation.innerLife.curiosity.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.maxCandidates",
+      "key": "simulation.innerLife.curiosity.maxCandidates",
       "label": "Max Candidates",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.maxPerDay",
+      "key": "simulation.innerLife.curiosity.maxPerDay",
       "label": "Max Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.minPerDay",
+      "key": "simulation.innerLife.curiosity.minPerDay",
       "label": "Min Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.refreshMs",
+      "key": "simulation.innerLife.curiosity.refreshMs",
       "label": "Refresh Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.sources.bilibili",
+      "key": "simulation.innerLife.curiosity.sources.bilibili",
       "label": "Bilibili",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.sources.rss",
+      "key": "simulation.innerLife.curiosity.sources.rss",
       "label": "Rss",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "array",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.sources.s16",
+      "key": "simulation.innerLife.curiosity.sources.s16",
       "label": "S16",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.webSearch.enabled",
+      "key": "simulation.innerLife.curiosity.webSearch.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.webSearch.maxQueries",
+      "key": "simulation.innerLife.curiosity.webSearch.maxQueries",
       "label": "Max Queries",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.curiosity.webSearch.maxResults",
+      "key": "simulation.innerLife.curiosity.webSearch.maxResults",
       "label": "Max Results",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.groupShare.idleMs",
+      "key": "simulation.innerLife.groupShare.idleMs",
       "label": "Idle Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.groupShare.maxChars",
+      "key": "simulation.innerLife.groupShare.maxChars",
       "label": "Max Chars",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.groupShare.maxPerDay",
+      "key": "simulation.innerLife.groupShare.maxPerDay",
       "label": "Max Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.groupShare.minGapMs",
+      "key": "simulation.innerLife.groupShare.minGapMs",
       "label": "Min Gap Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.groupShare.requireApproval",
+      "key": "simulation.innerLife.groupShare.requireApproval",
       "label": "Require Approval",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.groupShare.target",
+      "key": "simulation.innerLife.groupShare.target",
       "label": "Target",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.budgets.maxDay",
+      "key": "simulation.innerLife.mood.budgets.maxDay",
       "label": "Max Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.budgets.maxHour",
+      "key": "simulation.innerLife.mood.budgets.maxHour",
       "label": "Max Hour",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.circadian.enabled",
+      "key": "simulation.innerLife.mood.circadian.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.decay.arousalHalfLifeH",
+      "key": "simulation.innerLife.mood.decay.arousalHalfLifeH",
       "label": "Arousal Half Life H",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.decay.energyHalfLifeH",
+      "key": "simulation.innerLife.mood.decay.energyHalfLifeH",
       "label": "Energy Half Life H",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.decay.valenceNegativeHalfLifeH",
+      "key": "simulation.innerLife.mood.decay.valenceNegativeHalfLifeH",
       "label": "Valence Negative Half Life H",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.decay.valencePositiveHalfLifeH",
+      "key": "simulation.innerLife.mood.decay.valencePositiveHalfLifeH",
       "label": "Valence Positive Half Life H",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.enabled",
+      "key": "simulation.innerLife.mood.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.eventNudge.enabled",
+      "key": "simulation.innerLife.mood.eventNudge.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.eventNudge.maxDelta",
+      "key": "simulation.innerLife.mood.eventNudge.maxDelta",
       "label": "Max Delta",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.eventNudge.maxPerDay",
+      "key": "simulation.innerLife.mood.eventNudge.maxPerDay",
       "label": "Max Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.eventNudge.maxPerHour",
+      "key": "simulation.innerLife.mood.eventNudge.maxPerHour",
       "label": "Max Per Hour",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.eventNudge.minIntensity",
+      "key": "simulation.innerLife.mood.eventNudge.minIntensity",
       "label": "Min Intensity",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.history.enabled",
+      "key": "simulation.innerLife.mood.history.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.history.keepDays",
+      "key": "simulation.innerLife.mood.history.keepDays",
       "label": "Keep Days",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.history.maxBytes",
+      "key": "simulation.innerLife.mood.history.maxBytes",
       "label": "Max Bytes",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.includeOwnerPrivate",
+      "key": "simulation.innerLife.mood.includeOwnerPrivate",
       "label": "Include Owner Private",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.maxEventsPerReflection",
+      "key": "simulation.innerLife.mood.maxEventsPerReflection",
       "label": "Max Events Per Reflection",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.maxReflectionDelta",
+      "key": "simulation.innerLife.mood.maxReflectionDelta",
       "label": "Max Reflection Delta",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.mode",
+      "key": "simulation.innerLife.mood.mode",
       "label": "Mode",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.noise.enabled",
+      "key": "simulation.innerLife.mood.noise.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.noise.sigma",
+      "key": "simulation.innerLife.mood.noise.sigma",
       "label": "Sigma",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.setPoint.alpha",
+      "key": "simulation.innerLife.mood.setPoint.alpha",
       "label": "Alpha",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.setPoint.enabled",
+      "key": "simulation.innerLife.mood.setPoint.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.setPoint.max",
+      "key": "simulation.innerLife.mood.setPoint.max",
       "label": "Max",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.mood.setPoint.min",
+      "key": "simulation.innerLife.mood.setPoint.min",
       "label": "Min",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.approvalFirst",
+      "key": "simulation.innerLife.qzone.approvalFirst",
       "label": "Approval First",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.commentReply.approvalTimeoutMs",
+      "key": "simulation.innerLife.qzone.commentReply.approvalTimeoutMs",
       "label": "Approval Timeout Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.commentReply.enabled",
+      "key": "simulation.innerLife.qzone.commentReply.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.commentReply.maxPerDay",
+      "key": "simulation.innerLife.qzone.commentReply.maxPerDay",
       "label": "Max Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.commentReply.mentionEnabled",
+      "key": "simulation.innerLife.qzone.commentReply.mentionEnabled",
       "label": "Mention Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.commentReply.mentionMaxPerDay",
+      "key": "simulation.innerLife.qzone.commentReply.mentionMaxPerDay",
       "label": "Mention Max Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.commentReply.mentionNames",
+      "key": "simulation.innerLife.qzone.commentReply.mentionNames",
       "label": "Mention Names",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "array",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.commentReply.pollMs",
+      "key": "simulation.innerLife.qzone.commentReply.pollMs",
       "label": "Poll Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.commentReply.requireApproval",
+      "key": "simulation.innerLife.qzone.commentReply.requireApproval",
       "label": "Require Approval",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.maxChars",
+      "key": "simulation.innerLife.qzone.maxChars",
       "label": "Max Chars",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.maxPerDay",
+      "key": "simulation.innerLife.qzone.maxPerDay",
       "label": "Max Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.minGapMs",
+      "key": "simulation.innerLife.qzone.minGapMs",
       "label": "Min Gap Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.requireApproval",
+      "key": "simulation.innerLife.qzone.requireApproval",
       "label": "Require Approval",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.skipProbability",
+      "key": "simulation.innerLife.qzone.skipProbability",
       "label": "Skip Probability",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.visibility",
+      "key": "simulation.innerLife.qzone.visibility",
       "label": "Visibility",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.reflection.enabled",
+      "key": "simulation.innerLife.reflection.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.reflection.maxIntervalMs",
+      "key": "simulation.innerLife.reflection.maxIntervalMs",
       "label": "Max Interval Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.reflection.minIntervalMs",
+      "key": "simulation.innerLife.reflection.minIntervalMs",
       "label": "Min Interval Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.media.maxBytes",
+      "key": "simulation.media.maxBytes",
       "label": "Max Bytes",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.media.maxCount",
+      "key": "simulation.media.maxCount",
       "label": "Max Count",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.media.maxPixels",
+      "key": "simulation.media.maxPixels",
       "label": "Max Pixels",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.memory.personalMaxChars",
+      "key": "simulation.memory.personalMaxChars",
       "label": "Personal Max Chars",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.memory.personalTopK",
+      "key": "simulation.memory.personalTopK",
       "label": "Personal Top K",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.nightQuiet.enabled",
+      "key": "simulation.nightQuiet.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.nightQuiet.end",
+      "key": "simulation.nightQuiet.end",
       "label": "End",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.nightQuiet.start",
+      "key": "simulation.nightQuiet.start",
       "label": "Start",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.ownerFeatures.enabled",
+      "key": "simulation.ownerFeatures.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.proactive.checkIntervalMaxMs",
+      "key": "simulation.proactive.checkIntervalMaxMs",
       "label": "Check Interval Max Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.proactive.checkIntervalMinMs",
+      "key": "simulation.proactive.checkIntervalMinMs",
       "label": "Check Interval Min Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.proactive.enabled",
+      "key": "simulation.proactive.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.proactive.idleThresholdMs",
+      "key": "simulation.proactive.idleThresholdMs",
       "label": "Idle Threshold Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.proactive.probability",
+      "key": "simulation.proactive.probability",
       "label": "Probability",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.provideRecommendations",
+      "key": "simulation.provideRecommendations",
       "label": "提供推荐参数",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.reminders.allowedKeys",
+      "key": "simulation.reminders.allowedKeys",
       "label": "Allowed Keys",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "array",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.reminders.maxPerDayPerKey",
+      "key": "simulation.reminders.maxPerDayPerKey",
       "label": "Max Per Day Per Key",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.burstEnabled",
+      "key": "simulation.send.burstEnabled",
       "label": "Burst Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.burstIntervalMaxMs",
+      "key": "simulation.send.burstIntervalMaxMs",
       "label": "Burst Interval Max Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.burstIntervalMinMs",
+      "key": "simulation.send.burstIntervalMinMs",
       "label": "Burst Interval Min Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.burstMaxMessages",
+      "key": "simulation.send.burstMaxMessages",
       "label": "Burst Max Messages",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.gapBaseMs",
+      "key": "simulation.send.gapBaseMs",
       "label": "Gap Base Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.gapPerCharMs",
+      "key": "simulation.send.gapPerCharMs",
       "label": "Gap Per Char Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.longGapMaxMs",
+      "key": "simulation.send.longGapMaxMs",
       "label": "Long Gap Max Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.longGapMinMs",
+      "key": "simulation.send.longGapMinMs",
       "label": "Long Gap Min Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.longGapProbability",
+      "key": "simulation.send.longGapProbability",
       "label": "Long Gap Probability",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.maxGapMs",
+      "key": "simulation.send.maxGapMs",
       "label": "Max Gap Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.send.maxMessageChars",
+      "key": "simulation.send.maxMessageChars",
       "label": "单条最大字数",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4174,9 +4174,9 @@
       "max": 4000
     },
     {
-      "key": "socialV2.send.maxSendPerHour",
+      "key": "simulation.send.maxSendPerHour",
       "label": "每小时发送上限",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4184,9 +4184,9 @@
       "max": 2000
     },
     {
-      "key": "socialV2.send.maxSendPerMinute",
+      "key": "simulation.send.maxSendPerMinute",
       "label": "每分钟发送上限",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4194,497 +4194,497 @@
       "max": 120
     },
     {
-      "key": "socialV2.send.recommendedHint",
+      "key": "simulation.send.recommendedHint",
       "label": "Recommended Hint",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.shareModules.enabled",
+      "key": "simulation.shareModules.enabled",
       "label": "Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.shareModules.limits.crossModuleGapMs",
+      "key": "simulation.shareModules.limits.crossModuleGapMs",
       "label": "Cross Module Gap Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.shareModules.limits.moduleMaxPerDay",
+      "key": "simulation.shareModules.limits.moduleMaxPerDay",
       "label": "Module Max Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.shareModules.limits.perGroupPerDay",
+      "key": "simulation.shareModules.limits.perGroupPerDay",
       "label": "Per Group Per Day",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.shareModules.limits.perGroupPerHour",
+      "key": "simulation.shareModules.limits.perGroupPerHour",
       "label": "Per Group Per Hour",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.signature.approvalTimeoutMs",
+      "key": "simulation.signature.approvalTimeoutMs",
       "label": "Approval Timeout Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.signature.requireApproval",
+      "key": "simulation.signature.requireApproval",
       "label": "Require Approval",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.speech.asr.cacheTtlMs",
+      "key": "simulation.speech.asr.cacheTtlMs",
       "label": "Cache Ttl Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.speech.asr.provider",
+      "key": "simulation.speech.asr.provider",
       "label": "Provider",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.sticker.collect.maxPerHour",
+      "key": "simulation.sticker.collect.maxPerHour",
       "label": "Max Per Hour",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.sticker.collect.maxPerMinute",
+      "key": "simulation.sticker.collect.maxPerMinute",
       "label": "Max Per Minute",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.sticker.collect.maxRemarkChars",
+      "key": "simulation.sticker.collect.maxRemarkChars",
       "label": "Max Remark Chars",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.sticker.includeInPrompt",
+      "key": "simulation.sticker.includeInPrompt",
       "label": "Include In Prompt",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.sticker.maxListCount",
+      "key": "simulation.sticker.maxListCount",
       "label": "Max List Count",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.sticker.promptMaxStickers",
+      "key": "simulation.sticker.promptMaxStickers",
       "label": "Prompt Max Stickers",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.sticker.syncTtlMs",
+      "key": "simulation.sticker.syncTtlMs",
       "label": "Sync Ttl Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.subscriptions",
+      "key": "simulation.subscriptions",
       "label": "Subscriptions",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "array",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.tools.collectSticker",
+      "key": "simulation.tools.collectSticker",
       "label": "工具 collectSticker",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.deleteImage",
+      "key": "simulation.tools.deleteImage",
       "label": "工具 deleteImage",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.deleteSticker",
+      "key": "simulation.tools.deleteSticker",
       "label": "工具 deleteSticker",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.feedback",
+      "key": "simulation.tools.feedback",
       "label": "工具 feedback",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getActiveMembers",
+      "key": "simulation.tools.getActiveMembers",
       "label": "工具 getActiveMembers",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getForwardMsg",
+      "key": "simulation.tools.getForwardMsg",
       "label": "工具 getForwardMsg",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getImages",
+      "key": "simulation.tools.getImages",
       "label": "工具 getImages",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getMessageDetail",
+      "key": "simulation.tools.getMessageDetail",
       "label": "工具 getMessageDetail",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getMyRecent",
+      "key": "simulation.tools.getMyRecent",
       "label": "工具 getMyRecent",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getPrompt",
+      "key": "simulation.tools.getPrompt",
       "label": "工具 getPrompt",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getRecent",
+      "key": "simulation.tools.getRecent",
       "label": "工具 getRecent",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getSelfImage",
+      "key": "simulation.tools.getSelfImage",
       "label": "工具 getSelfImage",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getStickerImage",
+      "key": "simulation.tools.getStickerImage",
       "label": "工具 getStickerImage",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.getUnread",
+      "key": "simulation.tools.getUnread",
       "label": "工具 getUnread",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.listImages",
+      "key": "simulation.tools.listImages",
       "label": "工具 listImages",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.listStickers",
+      "key": "simulation.tools.listStickers",
       "label": "工具 listStickers",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.markRead",
+      "key": "simulation.tools.markRead",
       "label": "工具 markRead",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.memory",
+      "key": "simulation.tools.memory",
       "label": "工具 memory",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.reply",
+      "key": "simulation.tools.reply",
       "label": "工具 reply",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.saveImage",
+      "key": "simulation.tools.saveImage",
       "label": "工具 saveImage",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.sendBurst",
+      "key": "simulation.tools.sendBurst",
       "label": "工具 sendBurst",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.sendGroup",
+      "key": "simulation.tools.sendGroup",
       "label": "工具 sendGroup",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.sendImage",
+      "key": "simulation.tools.sendImage",
       "label": "工具 sendImage",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.sendMessage",
+      "key": "simulation.tools.sendMessage",
       "label": "工具 sendMessage",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.sendPoke",
+      "key": "simulation.tools.sendPoke",
       "label": "工具 sendPoke",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.sendPrivate",
+      "key": "simulation.tools.sendPrivate",
       "label": "工具 sendPrivate",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.sendSticker",
+      "key": "simulation.tools.sendSticker",
       "label": "工具 sendSticker",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.sendVoice",
+      "key": "simulation.tools.sendVoice",
       "label": "工具 sendVoice",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.setStickerRemark",
+      "key": "simulation.tools.setStickerRemark",
       "label": "工具 setStickerRemark",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.setWakeConfig",
+      "key": "simulation.tools.setWakeConfig",
       "label": "工具 setWakeConfig",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.slangQuery",
+      "key": "simulation.tools.slangQuery",
       "label": "工具 slangQuery",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.slangSubmit",
+      "key": "simulation.tools.slangSubmit",
       "label": "工具 slangSubmit",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.socialState",
+      "key": "simulation.tools.socialState",
       "label": "工具 socialState",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.stickerNote",
+      "key": "simulation.tools.stickerNote",
       "label": "工具 stickerNote",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.tools.waitMessages",
+      "key": "simulation.tools.waitMessages",
       "label": "工具 waitMessages",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": true
     },
     {
-      "key": "socialV2.wait.defaultMs",
+      "key": "simulation.wait.defaultMs",
       "label": "Default Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wait.defaultQuietMs",
+      "key": "simulation.wait.defaultQuietMs",
       "label": "Default Quiet Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wait.maxMs",
+      "key": "simulation.wait.maxMs",
       "label": "Max Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wait.minMs",
+      "key": "simulation.wait.minMs",
       "label": "Min Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wait.minQuietAfterNewMs",
+      "key": "simulation.wait.minQuietAfterNewMs",
       "label": "Min Quiet After New Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.batchWindowMs",
+      "key": "simulation.wake.batchWindowMs",
       "label": "Batch Window Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.defaultMode",
+      "key": "simulation.wake.defaultMode",
       "label": "Default Mode",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.maxWakeConfigReminders",
+      "key": "simulation.wake.maxWakeConfigReminders",
       "label": "Max Wake Config Reminders",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.maxWakePerHour",
+      "key": "simulation.wake.maxWakePerHour",
       "label": "每小时唤醒上限",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4692,9 +4692,9 @@
       "max": 600
     },
     {
-      "key": "socialV2.wake.maxWakePerMinute",
+      "key": "simulation.wake.maxWakePerMinute",
       "label": "每分钟唤醒上限",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4702,129 +4702,129 @@
       "max": 60
     },
     {
-      "key": "socialV2.wake.noActionLimit",
+      "key": "simulation.wake.noActionLimit",
       "label": "No Action Limit",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.preSleepWaitEnabled",
+      "key": "simulation.wake.preSleepWaitEnabled",
       "label": "Pre Sleep Wait Enabled",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.preSleepWaitMs",
+      "key": "simulation.wake.preSleepWaitMs",
       "label": "Pre Sleep Wait Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedAtMention",
+      "key": "simulation.wake.recommendedAtMention",
       "label": "Recommended At Mention",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedDefaultInfinite",
+      "key": "simulation.wake.recommendedDefaultInfinite",
       "label": "Recommended Default Infinite",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedHint",
+      "key": "simulation.wake.recommendedHint",
       "label": "Recommended Hint",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "string",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedKeywords",
+      "key": "simulation.wake.recommendedKeywords",
       "label": "Recommended Keywords",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "array",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedNameMention",
+      "key": "simulation.wake.recommendedNameMention",
       "label": "Recommended Name Mention",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedPoke",
+      "key": "simulation.wake.recommendedPoke",
       "label": "Recommended Poke",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedProbability",
+      "key": "simulation.wake.recommendedProbability",
       "label": "Recommended Probability",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedQuestion",
+      "key": "simulation.wake.recommendedQuestion",
       "label": "Recommended Question",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "boolean",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedSleepMaxMs",
+      "key": "simulation.wake.recommendedSleepMaxMs",
       "label": "Recommended Sleep Max Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.recommendedSleepMinMs",
+      "key": "simulation.wake.recommendedSleepMinMs",
       "label": "Recommended Sleep Min Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.sleepMaxMs",
+      "key": "simulation.wake.sleepMaxMs",
       "label": "Sleep Max Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.wake.sleepMinMs",
+      "key": "simulation.wake.sleepMinMs",
       "label": "Sleep Min Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
-      "key": "socialV2.weather.timeoutMs",
+      "key": "simulation.weather.timeoutMs",
       "label": "Timeout Ms",
-      "group": "二代仿真（reserved2）",
+      "group": "群聊仿真",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -5598,7 +5598,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.context.digestMaxChars",
+      "key": "simulation.context.digestMaxChars",
       "label": "衔接摘要上限（字符）",
       "group": "上下文与成本",
       "type": "number",
@@ -5608,7 +5608,7 @@
       "max": 4000
     },
     {
-      "key": "socialV2.context.rotateAtTokens",
+      "key": "simulation.context.rotateAtTokens",
       "label": "会话旋转阈值（tokens）",
       "group": "上下文与成本",
       "type": "number",
@@ -5618,7 +5618,7 @@
       "max": 500000
     },
     {
-      "key": "socialV2.context.wakeBudgetTokens",
+      "key": "simulation.context.wakeBudgetTokens",
       "label": "唤醒 prompt token 预算",
       "group": "上下文与成本",
       "type": "number",
@@ -5628,7 +5628,7 @@
       "max": 20000
     },
     {
-      "key": "socialV2.memory.enabled",
+      "key": "simulation.memory.enabled",
       "label": "分层长期记忆",
       "group": "上下文与成本",
       "type": "boolean",
@@ -5636,7 +5636,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.memory.maxChars",
+      "key": "simulation.memory.maxChars",
       "label": "记忆注入上限（字符）",
       "group": "上下文与成本",
       "type": "number",
@@ -5646,7 +5646,7 @@
       "max": 4000
     },
     {
-      "key": "socialV2.memory.minConfidence",
+      "key": "simulation.memory.minConfidence",
       "label": "记忆最低置信度",
       "group": "上下文与成本",
       "type": "number",
@@ -5656,7 +5656,7 @@
       "max": 1
     },
     {
-      "key": "socialV2.memory.topK",
+      "key": "simulation.memory.topK",
       "label": "记忆检索条数",
       "group": "上下文与成本",
       "type": "number",
@@ -5666,7 +5666,7 @@
       "max": 30
     },
     {
-      "key": "socialV2.valueScore.deferThreshold",
+      "key": "simulation.valueScore.deferThreshold",
       "label": "延后阈值",
       "group": "上下文与成本",
       "type": "number",
@@ -5676,7 +5676,7 @@
       "max": 1
     },
     {
-      "key": "socialV2.valueScore.enabled",
+      "key": "simulation.valueScore.enabled",
       "label": "价值评分",
       "group": "上下文与成本",
       "type": "boolean",
@@ -5684,7 +5684,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.valueScore.wakeThreshold",
+      "key": "simulation.valueScore.wakeThreshold",
       "label": "唤醒阈值",
       "group": "上下文与成本",
       "type": "number",
@@ -5694,7 +5694,7 @@
       "max": 1
     },
     {
-      "key": "socialV2.signature.dryRun",
+      "key": "simulation.signature.dryRun",
       "label": "只预览不更新",
       "group": "个性签名",
       "type": "boolean",
@@ -5702,7 +5702,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.signature.enabled",
+      "key": "simulation.signature.enabled",
       "label": "自动个性签名",
       "group": "个性签名",
       "type": "boolean",
@@ -5710,7 +5710,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.signature.firstDelayMs",
+      "key": "simulation.signature.firstDelayMs",
       "label": "首次延迟（ms）",
       "group": "个性签名",
       "type": "number",
@@ -5720,7 +5720,7 @@
       "max": 86400000
     },
     {
-      "key": "socialV2.signature.maxChars",
+      "key": "simulation.signature.maxChars",
       "label": "签名最大字数",
       "group": "个性签名",
       "type": "number",
@@ -5730,7 +5730,7 @@
       "max": 60
     },
     {
-      "key": "socialV2.signature.maxIntervalHours",
+      "key": "simulation.signature.maxIntervalHours",
       "label": "最长间隔（小时）",
       "group": "个性签名",
       "type": "number",
@@ -5740,7 +5740,7 @@
       "max": 720
     },
     {
-      "key": "socialV2.signature.minIntervalHours",
+      "key": "simulation.signature.minIntervalHours",
       "label": "最短间隔（小时）",
       "group": "个性签名",
       "type": "number",
@@ -5762,7 +5762,7 @@
       ]
     },
     {
-      "key": "socialV2.innerLife.groupShare.targets",
+      "key": "simulation.innerLife.groupShare.targets",
       "label": "主动分享目标群",
       "group": "内容引擎",
       "type": "array",
@@ -5770,7 +5770,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.dryRun",
+      "key": "simulation.innerLife.dryRun",
       "label": "内心生活演练模式",
       "group": "内心生活",
       "type": "boolean",
@@ -5778,7 +5778,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.enabled",
+      "key": "simulation.innerLife.enabled",
       "label": "内心生活",
       "group": "内心生活",
       "type": "boolean",
@@ -5786,7 +5786,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.groupShare.enabled",
+      "key": "simulation.innerLife.groupShare.enabled",
       "label": "群内分享",
       "group": "内心生活",
       "type": "boolean",
@@ -5794,7 +5794,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.innerLife.qzone.enabled",
+      "key": "simulation.innerLife.qzone.enabled",
       "label": "QQ 空间",
       "group": "内心生活",
       "type": "boolean",
@@ -5810,7 +5810,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.controlTiers.enabled",
+      "key": "simulation.controlTiers.enabled",
       "label": "控制面分层",
       "group": "控制面分层",
       "type": "boolean",
@@ -5818,7 +5818,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.controlTiers.groupEscalationNotify",
+      "key": "simulation.controlTiers.groupEscalationNotify",
       "label": "群里高危被拒时私聊提醒主人",
       "group": "控制面分层",
       "type": "boolean",
@@ -5826,7 +5826,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.controlTiers.ownerDirectiveTtlMs",
+      "key": "simulation.controlTiers.ownerDirectiveTtlMs",
       "label": "群内主人指令有效期（ms）",
       "group": "控制面分层",
       "type": "number",
@@ -5836,7 +5836,7 @@
       "max": 86400000
     },
     {
-      "key": "socialV2.controlTiers.requireConfirmForHighRisk",
+      "key": "simulation.controlTiers.requireConfirmForHighRisk",
       "label": "高危动作需私聊确认",
       "group": "控制面分层",
       "type": "boolean",
@@ -5844,7 +5844,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.esportsFeed.enabled",
+      "key": "simulation.esportsFeed.enabled",
       "label": "电竞资讯",
       "group": "提醒 / 天气 / 订阅",
       "type": "boolean",
@@ -5852,7 +5852,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.reminders.enabled",
+      "key": "simulation.reminders.enabled",
       "label": "提醒",
       "group": "提醒 / 天气 / 订阅",
       "type": "boolean",
@@ -5860,7 +5860,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.reminders.overdueGraceMs",
+      "key": "simulation.reminders.overdueGraceMs",
       "label": "过期容忍（ms）",
       "group": "提醒 / 天气 / 订阅",
       "type": "number",
@@ -5870,7 +5870,7 @@
       "max": 86400000
     },
     {
-      "key": "socialV2.weather.defaultCity",
+      "key": "simulation.weather.defaultCity",
       "label": "默认城市",
       "group": "提醒 / 天气 / 订阅",
       "type": "string",
@@ -5878,7 +5878,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.weather.enabled",
+      "key": "simulation.weather.enabled",
       "label": "天气",
       "group": "提醒 / 天气 / 订阅",
       "type": "boolean",
@@ -5886,7 +5886,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.relationships.enabled",
+      "key": "simulation.relationships.enabled",
       "label": "群友关系（galgame）",
       "group": "群友关系",
       "type": "boolean",
@@ -5894,7 +5894,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.relationships.excludeFamily",
+      "key": "simulation.relationships.excludeFamily",
       "label": "自动排除家人群",
       "group": "群友关系",
       "type": "boolean",
@@ -5902,7 +5902,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.relationships.excludedGroups",
+      "key": "simulation.relationships.excludedGroups",
       "label": "额外排除的群",
       "group": "群友关系",
       "type": "array",
@@ -5910,7 +5910,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.relationships.liveLimit",
+      "key": "simulation.relationships.liveLimit",
       "label": "实时页展示人数",
       "group": "群友关系",
       "type": "number",
@@ -5920,7 +5920,7 @@
       "max": 12
     },
     {
-      "key": "socialV2.relationships.promptLimit",
+      "key": "simulation.relationships.promptLimit",
       "label": "prompt 关系卡人数",
       "group": "群友关系",
       "type": "number",
@@ -5930,7 +5930,7 @@
       "max": 12
     },
     {
-      "key": "socialV2.dailyReport.at",
+      "key": "simulation.dailyReport.at",
       "label": "发送时间（HH:MM）",
       "group": "群日报",
       "type": "string",
@@ -5938,7 +5938,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.dailyReport.enabled",
+      "key": "simulation.dailyReport.enabled",
       "label": "群日报",
       "group": "群日报",
       "type": "boolean",
@@ -5946,7 +5946,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.dailyReport.groups",
+      "key": "simulation.dailyReport.groups",
       "label": "开启日报的群",
       "group": "群日报",
       "type": "array",
@@ -5954,7 +5954,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.dailyReport.maxItems",
+      "key": "simulation.dailyReport.maxItems",
       "label": "摘录条数",
       "group": "群日报",
       "type": "number",
@@ -5964,7 +5964,7 @@
       "max": 20
     },
     {
-      "key": "socialV2.imageLibrary.dir",
+      "key": "simulation.imageLibrary.dir",
       "label": "图片库目录",
       "group": "表情与图片",
       "type": "string",
@@ -5972,7 +5972,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.imageLibrary.enabled",
+      "key": "simulation.imageLibrary.enabled",
       "label": "通用图片库",
       "group": "表情与图片",
       "type": "boolean",
@@ -5980,7 +5980,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.sticker.collect.enabled",
+      "key": "simulation.sticker.collect.enabled",
       "label": "允许收藏表情",
       "group": "表情与图片",
       "type": "boolean",
@@ -5988,7 +5988,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.sticker.enabled",
+      "key": "simulation.sticker.enabled",
       "label": "表情包体系",
       "group": "表情与图片",
       "type": "boolean",
@@ -5996,7 +5996,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.speech.asr.enabled",
+      "key": "simulation.speech.asr.enabled",
       "label": "语音转写（ASR）",
       "group": "语音",
       "type": "boolean",
@@ -6004,7 +6004,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.speech.asr.timeoutMs",
+      "key": "simulation.speech.asr.timeoutMs",
       "label": "转写超时（ms）",
       "group": "语音",
       "type": "number",
@@ -6014,7 +6014,7 @@
       "max": 120000
     },
     {
-      "key": "socialV2.voice.allowAbsolutePath",
+      "key": "simulation.voice.allowAbsolutePath",
       "label": "允许绝对路径",
       "group": "语音",
       "type": "boolean",
@@ -6022,7 +6022,7 @@
       "advanced": true
     },
     {
-      "key": "socialV2.voice.autoReadback",
+      "key": "simulation.voice.autoReadback",
       "label": "语音后自动朗读",
       "group": "语音",
       "type": "boolean",
@@ -6030,7 +6030,7 @@
       "advanced": true
     },
     {
-      "key": "socialV2.voice.defaultVolume",
+      "key": "simulation.voice.defaultVolume",
       "label": "默认音量倍数",
       "group": "语音",
       "type": "number",
@@ -6040,7 +6040,7 @@
       "max": 4
     },
     {
-      "key": "socialV2.voice.dir",
+      "key": "simulation.voice.dir",
       "label": "语音库目录",
       "group": "语音",
       "type": "string",
@@ -6048,7 +6048,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.voice.enabled",
+      "key": "simulation.voice.enabled",
       "label": "语音发送",
       "group": "语音",
       "type": "boolean",
@@ -6056,7 +6056,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.voice.ffmpegPath",
+      "key": "simulation.voice.ffmpegPath",
       "label": "ffmpeg 路径",
       "group": "语音",
       "type": "string",
@@ -6064,7 +6064,7 @@
       "advanced": true
     },
     {
-      "key": "socialV2.voice.loudness",
+      "key": "simulation.voice.loudness",
       "label": "智能音量",
       "group": "语音",
       "type": "string",
@@ -6077,7 +6077,7 @@
       ]
     },
     {
-      "key": "socialV2.voice.maxBytes",
+      "key": "simulation.voice.maxBytes",
       "label": "单条最大字节",
       "group": "语音",
       "type": "number",
@@ -6087,7 +6087,7 @@
       "max": 104857600
     },
     {
-      "key": "socialV2.voice.maxPerHour",
+      "key": "simulation.voice.maxPerHour",
       "label": "每小时上限",
       "group": "语音",
       "type": "number",
@@ -6097,7 +6097,7 @@
       "max": 600
     },
     {
-      "key": "socialV2.voice.maxPerMinute",
+      "key": "simulation.voice.maxPerMinute",
       "label": "每分钟上限",
       "group": "语音",
       "type": "number",
@@ -6107,7 +6107,7 @@
       "max": 60
     },
     {
-      "key": "socialV2.voice.maxSeconds",
+      "key": "simulation.voice.maxSeconds",
       "label": "单条最长（秒）",
       "group": "语音",
       "type": "number",
@@ -6117,7 +6117,7 @@
       "max": 600
     },
     {
-      "key": "socialV2.voice.normalize",
+      "key": "simulation.voice.normalize",
       "label": "响度归一",
       "group": "语音",
       "type": "boolean",
@@ -6125,7 +6125,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.budget.blockNonExplicitOnly",
+      "key": "simulation.budget.blockNonExplicitOnly",
       "label": "只压制非显式唤醒",
       "group": "预算",
       "type": "boolean",
@@ -6133,7 +6133,7 @@
       "advanced": false
     },
     {
-      "key": "socialV2.budget.dailyTokensGlobal",
+      "key": "simulation.budget.dailyTokensGlobal",
       "label": "全局每日 token",
       "group": "预算",
       "type": "number",
@@ -6143,7 +6143,7 @@
       "max": 1000000000
     },
     {
-      "key": "socialV2.budget.dailyTokensPerKey",
+      "key": "simulation.budget.dailyTokensPerKey",
       "label": "每会话每日 token",
       "group": "预算",
       "type": "number",
@@ -6153,7 +6153,7 @@
       "max": 100000000
     },
     {
-      "key": "socialV2.budget.enabled",
+      "key": "simulation.budget.enabled",
       "label": "token 预算",
       "group": "预算",
       "type": "boolean",

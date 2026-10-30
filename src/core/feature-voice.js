@@ -1,5 +1,5 @@
 // 功能中心的语音 action：复用 Breeze 的声线与 mood 表演，独立于聊天语音链路。
-// 只负责合成，不负责发送；发送由桥接的 sendVoiceV2 完成。
+// 只负责合成，不负责发送；发送由桥接的 sendVoiceFile 完成。
 
 import fs from 'node:fs';
 import path from 'node:path';

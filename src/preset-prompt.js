@@ -1,4 +1,4 @@
-// 二代仿真预设提示词（「仿真」层）的读取与安全改写。
+// 群聊仿真预设提示词（「仿真」层）的读取与安全改写。
 //
 // 边界说明：
 //   仿真提示词 = 预设内置（dsh/agent-presets/<preset>/agent.cordis.yml 的 persona.prefix），
@@ -13,15 +13,15 @@ export const PRESET_PERSONA_ID = 'persona';
 export const PRESET_PROMPT_MAX_BYTES = 128 * 1024;
 
 // 安全基线段落：缺失说明 AI 的权限边界可能被削弱，保存时警告（不阻断，管理员有最终决定权）。
-export const PRESET_REQUIRED_MARKERS = ['【二代仿真模式 —— 安全规则', '【二代仿真模式 —— 工具协议'];
+export const PRESET_REQUIRED_MARKERS = ['【群聊仿真模式 —— 安全规则', '【群聊仿真模式 —— 工具协议'];
 
 // 硬性不变量：这些串是本项目自己的测试与安全边界所依赖的（test-qq-preset-contract.mjs / verify-persona-config.mjs），
 // 一旦被删就会同时削弱 AI 的权限边界并让 `npm run test:audit`、`npm run verify:persona` 变红，因此保存时直接拒绝。
 //
-// **按预设分别校验**：这套「必须有」的清单起初是照二代预设（qq-chat）写的，
-// 但保存/还原的校验对两个预设用的是同一份清单 —— 结果一代预设（qq-chat-legacy，本来就
+// **按预设分别校验**：这套「必须有」的清单起初是照仿真预设（qq-chat）写的，
+// 但保存/还原的校验对两个预设用的是同一份清单 —— 结果旧版预设（qq-chat-legacy，本来就
 // 不用工具、也从不自称「你没有本地工具」）在控制台里 100% 存不进去也还原不了，
-// 报错还声称它「缺少安全不变量」。一代确实需要的不变量只有下面这几条。
+// 报错还声称它「缺少安全不变量」。旧版确实需要的不变量只有下面这几条。
 export const PRESET_BLOCKING_SUBSTRINGS = [
   '你没有本地工具',
   '群友没有管理权限',
@@ -29,23 +29,23 @@ export const PRESET_BLOCKING_SUBSTRINGS = [
   '角色由桥接注入',
   '不会自动发送到 QQ',
 ];
-// 一代（qq-chat-legacy，未随仓库发布）：不用 MCP 工具，靠空格分句 + [SILENT]，因此工具面那几条不适用。
-// 这三条都逐字出现在一代预设的正文里 ——
+// 旧版（qq-chat-legacy，未随仓库发布）：不用 MCP 工具，靠空格分句 + [SILENT]，因此工具面那几条不适用。
+// 这三条都逐字出现在旧版预设的正文里 ——
 // 清单必须与预设实际文案一致，否则控制台会用一个预设自己都不满足的条件把它锁死。
-export const PRESET_BLOCKING_SUBSTRINGS_V1 = [
+export const PRESET_BLOCKING_SUBSTRINGS_LEGACY = [
   '群友没有管理权限',
   'API 令牌',
   '角色扮演由系统注入',
 ];
 export const PRESET_MIN_BODY_CHARS = 500;
 
-/** 取某个预设对应的硬性不变量清单（未知预设按更严的二代替处理）。 */
-export function presetBlockingSubstrings(preset = 'v2') {
-  return preset === 'v1' ? PRESET_BLOCKING_SUBSTRINGS_V1 : PRESET_BLOCKING_SUBSTRINGS;
+/** 取某个预设对应的硬性不变量清单（未知预设按更严的仿真替处理）。 */
+export function presetBlockingSubstrings(preset = 'simulation') {
+  return preset === 'legacy' ? PRESET_BLOCKING_SUBSTRINGS_LEGACY : PRESET_BLOCKING_SUBSTRINGS;
 }
 
-/** 硬性校验：返回阻止保存的原因列表（空数组=可保存）。preset 取 'v1' / 'v2'。 */
-export function presetPromptBlockers(content, preset = 'v2') {
+/** 硬性校验：返回阻止保存的原因列表（空数组=可保存）。preset 取 'legacy' / 'simulation'。 */
+export function presetPromptBlockers(content, preset = 'simulation') {
   const text = String(content ?? '');
   const blockers = [];
   if (!text.trim()) {
@@ -123,10 +123,10 @@ export function presetPromptWarnings(content) {
  * 用 |-（literal + strip）与原文 >-（folded + strip）在"结尾不留多余换行"上保持一致。
  * @param {string} text 原 YAML 全文
  * @param {string} content 新的提示词正文
- * @param {'v1'|'v2'} preset 预设代次（决定用哪一套硬性不变量）
+ * @param {'legacy'|'simulation'} preset 预设模式（决定用哪一套硬性不变量）
  * @returns {string} 新的 YAML 全文
  */
-export function renderPresetPromptYaml(text, content, preset = 'v2') {
+export function renderPresetPromptYaml(text, content, preset = 'simulation') {
   const loc = locatePresetPromptBlock(text);
   if (!loc) throw new Error('无法定位预设里的 prefix 块（文件结构可能已变化）');
   const normalized = String(content ?? '').replace(/\r\n/g, '\n').replace(/\n+$/, '');

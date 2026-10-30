@@ -857,7 +857,7 @@ export class NodeApiClient extends AbstractApiClient {
           // DSH 正常结束了单条会话流（follow 被回收 / 会话被归档 / 服务端空闲清理）。
           // 旧代码在这里什么都不做：不重订阅、不打日志，而重放只在 socket 'open' 时发生，
           // 于是这个会话**永久失联**且毫无提示。更糟的是若它断在回合中间，
-          // collectors/v2TurnStartAt 会一直留着 → isConversationBusyV2 永远为真 →
+          // collectors/simulationTurnStartAt 会一直留着 → isConversationBusy 永远为真 →
           // 该群所有唤醒都被塞进 pendingWakeReasons，群彻底哑掉且没有租约能救。
           // 这里主动重开一次订阅；仍然想订阅的会话才重开（forget 过的就让它走）。
           if (this._desiredFollows.has(sessionId)) {

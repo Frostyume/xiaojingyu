@@ -337,7 +337,7 @@ export function resolveAudioProcessing({ volume = 1, normalize = false, loudness
 /**
  * 定位 ffmpeg：显式参数 → 环境变量 → PATH。
  *
- * 优先级按**实现**写文档：config.json 的 socialV2.voice.ffmpegPath 是"这台机器上 ffmpeg 在哪"的
+ * 优先级按**实现**写文档：config.json 的 simulation.voice.ffmpegPath 是"这台机器上 ffmpeg 在哪"的
  * 显式配置，比环境变量更具体，所以参数优先（旧注释写成"环境变量 → 参数"，与代码相反，
  * 照着注释去改代码就会把用户的显式配置降级成环境变量兜底）。
  *
@@ -458,7 +458,7 @@ export async function processAudioVolume(file, {
     const timer = setTimeout(() => { try { child.kill(); } catch {} resolve({ code: -2, error: 'ffmpeg 超时' }); }, timeoutMs);
     child.on('error', (e) => {
       clearTimeout(timer);
-      resolve({ code: -1, error: e.code === 'ENOENT' ? '找不到 ffmpeg（请设置 FFMPEG_PATH 或在 config.json 里指定 socialV2.voice.ffmpegPath）' : `ffmpeg 不可用：${e.message}` });
+      resolve({ code: -1, error: e.code === 'ENOENT' ? '找不到 ffmpeg（请设置 FFMPEG_PATH 或在 config.json 里指定 simulation.voice.ffmpegPath）' : `ffmpeg 不可用：${e.message}` });
     });
     child.on('close', (code) => { clearTimeout(timer); resolve({ code }); });
   });

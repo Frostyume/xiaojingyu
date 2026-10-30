@@ -144,9 +144,9 @@ npm run test:audit    # 全量离线回归（不含真 QQ/DSH）
 
 | 配置 | 默认 | 作用 |
 | --- | --- | --- |
-| `socialV2.context.wakeBudgetTokens` | 5000 | 唤醒 prompt 的 token 预算；超了按优先级丢可选段（赛果/节奏提示/搜索说明…），人格内核、令牌、工具协议、睡前观察永不丢 |
-| `socialV2.context.rotateAtTokens` | 120000 | 单会话 input tokens 超阈值时，**下一次唤醒前**归档旧会话并注入本地衔接摘要；0=关闭 |
-| `socialV2.context.digestMaxChars` | 1500 | 摘要上限（最近话题/想说没说/群友印象/最近几轮/操作者初始提示词） |
+| `simulation.context.wakeBudgetTokens` | 5000 | 唤醒 prompt 的 token 预算；超了按优先级丢可选段（赛果/节奏提示/搜索说明…），人格内核、令牌、工具协议、睡前观察永不丢 |
+| `simulation.context.rotateAtTokens` | 120000 | 单会话 input tokens 超阈值时，**下一次唤醒前**归档旧会话并注入本地衔接摘要；0=关闭 |
+| `simulation.context.digestMaxChars` | 1500 | 摘要上限（最近话题/想说没说/群友印象/最近几轮/操作者初始提示词） |
 
 要点：
 
@@ -169,7 +169,7 @@ npm run test:audit    # 全量离线回归（不含真 QQ/DSH）
 - `routing.tiers` 可给不同任务设不同 provider/model/effort；`routing.fallback` 是备用链路，
   主链路失败会自动尝试下一条（`session/selectModel` 不支持 effort 时自动去掉该参数）。
 - 记忆：
-  - 轻量数组（进行中话题/印象）仍在 `social-v2.json`；
+  - 轻量数组（进行中话题/印象）仍在 `simulation.json`；
   - 长期事实另存 SQLite `memory_facts` + FTS5(trigram)，`topK` 条按相关度注入；
   - 重复事实只累加权重；过期/低置信度会在启动时清理；
   - 2 字中文查询走 LIKE（trigram 需要 ≥3 字符），3 字以上走 FTS。
@@ -228,7 +228,7 @@ npm run test:audit    # 全量离线回归（不含真 QQ/DSH）
 
 ## 18. 群日报（Stage 3）
 
-- 默认**关闭**，按群开启：`socialV2.dailyReport.groups` 或
+- 默认**关闭**，按群开启：`simulation.dailyReport.groups` 或
   `groupProfiles[group].dailyReport=true`。
 - 每天固定时间（上海时区，默认 21:30）由任务队列发送；内容为本地统计：
   消息量/参与/活跃成员/在聊话题/链接/摘录，**不调用模型**。
@@ -272,7 +272,7 @@ export default {
 
 - 账本：`usage_ledger`，按 `(session, turn, step, retry)` 幂等；token 来自 provider usage，
   费用按价目表估算（仅展示）。
-- 配置：`socialV2.budget.{enabled,dailyTokensPerKey,dailyTokensGlobal,blockNonExplicitOnly}`；
+- 配置：`simulation.budget.{enabled,dailyTokensPerKey,dailyTokensGlobal,blockNonExplicitOnly}`；
   0 = 不限。
 - 策略：默认只压制**非显式**唤醒（概率/任意消息/主动机会/定时检查）；
   @/名字/关键词/提问/私聊/拍一拍/管理员/引导永远放行。
@@ -300,7 +300,7 @@ export default {
 
 ## 24. 自动个性签名（2026-10-26）
 
-- 配置：`socialV2.signature.{enabled,minIntervalHours,maxIntervalHours,firstDelayMs,maxChars,dryRun}`；
+- 配置：`simulation.signature.{enabled,minIntervalHours,maxIntervalHours,firstDelayMs,maxChars,dryRun}`；
   默认开启，首次约 10 分钟后，之后每次在 **12–48 小时之间随机**（均匀分布，不再固定 24h）。
 - 内容：本地根据心情/精力/兴趣/时段生成，**不调用模型**；避开最近 20 条；末尾不留句号。
 - 动作：SnowLuma `set_qq_profile` 的 `personal_note`；同时带当前昵称，避免网关清空昵称。

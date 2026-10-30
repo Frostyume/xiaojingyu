@@ -154,7 +154,7 @@ test('qq_wait_for_messages uses the node:http long-poll channel, not fetch', asy
   const result = await callTool('qq_wait_for_messages', { key: 'group:1', token: 'fixture-token', timeoutMs: 300000, quietMs: 10000 });
   assert.notEqual(result.isError, true, result.content?.[0]?.text);
   assert.ok(requested, '必须真的发起 http.request');
-  assert.equal(requested.path, '/api/socialV2/wait');
+  assert.equal(requested.path, '/api/simulation/wait');
   assert.equal(requested.method, 'POST');
   assert.equal(requested.hostname, '127.0.0.1');
   assert.ok(Number(requested.port) > 0, '必须打到控制台端口');
@@ -192,11 +192,11 @@ test('a bridge 200 with ok:false is reported to the model as a failure', async (
 
 // 回归：旧只读工具没有会话令牌，只能用在封闭 agent（管理员私聊）里。
 // 桥接的 /api/status 对「带 agent 令牌」的调用返回最小对象（不含 mode 字段），
-// 于是「看到 reserved2 才拒绝」的黑名单写法会判定为假 ⇒ 在二代仿真模式下放行，
+// 于是「看到 simulation 才拒绝」的黑名单写法会判定为假 ⇒ 在群聊仿真模式下放行，
 // 把白名单群名、群成员名单注入模型上下文。
 test('legacy read tools fail closed unless the bridge reports closed-agent', async () => {
   for (const status of [
-    { mode: 'reserved2' }, { mode: 'chat' }, { mode: 'reserved' },
+    { mode: 'simulation' }, { mode: 'chat' }, { mode: 'reserved' },
     {},                       // 无 mode 字段（桥接对 agent 流量返回的最小状态）
   ]) {
     const callTool = loadSnowlumaTools(async () => Response.json(status));
@@ -214,7 +214,7 @@ test('legacy read tools fail closed unless the bridge reports closed-agent', asy
 
 test('denied legacy group reads never reveal the group allowlist', async () => {
   const fixtureConfig = { allow: { groups: ['111111', '222222'] } };
-  for (const mode of ['reserved2', 'closed-agent']) {
+  for (const mode of ['simulation', 'closed-agent']) {
     const calls = [];
     const callTool = loadSnowlumaTools(async (url) => {
       calls.push(String(url));

@@ -282,7 +282,7 @@ async function collect() {
       role: status?.role ?? null,
       roleMode: status?.roleMode ?? null,
       dshReady: status?.dshReady ?? null,
-      socialV2Paused: status?.socialV2Paused ?? null,
+      simulationPaused: status?.simulationPaused ?? null,
       consoleAuthEnabled: status?.consoleAuthEnabled ?? null,
       whitelist: status?.allowGroups
         ? { groups: status.allowGroups.length, private: (status.allowPrivate || []).length }
@@ -621,7 +621,7 @@ node qq-bridge\\scripts\\handoff.mjs --check
 | DSH | 端口 ${code(dsh.port)}，ready ${code(b.dshReady)}，model ${code(dsh.model)} |
 | SnowLuma | ${snow ? `connected=${snow.connected} online=${snow.accountOnline} good=${snow.good}` : "未知"} |
 | 白名单 | 群 ${code(b.whitelist?.groups)} / 私聊 ${code(b.whitelist?.private)} |
-| 社交暂停 | ${code(b.socialV2Paused)} ｜ 控制台鉴权 ${code(b.consoleAuthEnabled)} |
+| 社交暂停 | ${code(b.simulationPaused)} ｜ 控制台鉴权 ${code(b.consoleAuthEnabled)} |
 | 出站队列 | pending ${code(snapshot.runtime.queues?.outbox?.pending)} / uncertain ${code(snapshot.runtime.queues?.outbox?.uncertain)} / dead ${code(snapshot.runtime.queues?.outbox?.dead)} |
 | 任务队列 | pending ${code(snapshot.runtime.queues?.jobsPending)} ｜ 存储 ready ${code(snapshot.runtime.queues?.storageReady)} |
 | 机器队列 | task ${snapshot.queue.tasks}（${byStatusText(snapshot.queue.byStatus)}），proposal ${snapshot.queue.proposals} |
@@ -701,8 +701,8 @@ function runChecks(snapshot) {
   else add("ok", "基准文档", `${code(snapshot.baseline.version)} (sha ${snapshot.baseline.sha8})`);
 
   const mode = snapshot.runtime.bridge.mode;
-  if (mode === "reserved2") add("ok", "当前模式", "reserved2");
-  else add("fail", "当前模式", `期望 reserved2，实际 ${code(mode)}`);
+  if (mode === "simulation") add("ok", "当前模式", "simulation");
+  else add("fail", "当前模式", `期望 simulation，实际 ${code(mode)}`);
 
   const b = snapshot.runtime.bridge;
   if (b.httpOk) add("ok", "桥接", `PID ${b.pid}，控制台 ${snapshot.runtime.consolePort} 可达`);

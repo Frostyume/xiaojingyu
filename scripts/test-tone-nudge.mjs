@@ -5,7 +5,7 @@ import { bridgeHarness } from './audit-bridge-harness.mjs';
 
 const h = await bridgeHarness();
 try {
-  const st = h.getSocialV2State('group:456');
+  const st = h.getSimulationState('group:456');
   const self = (text) => ({ isSelf: true, text });
   const user = (text) => ({ isSelf: false, text });
 

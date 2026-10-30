@@ -112,10 +112,10 @@ export function buildDailyReport({ key = '', messages = [], topics = [], mood = 
 }
 
 export function dailyReportEnabled(cfg, key) {
-  const dr = cfg?.socialV2?.dailyReport;
+  const dr = cfg?.simulation?.dailyReport;
   if (!dr || dr.enabled !== true) return false;
   const groups = Array.isArray(dr.groups) ? dr.groups.map(String) : [];
   if (groups.includes(String(key))) return true;
-  const profile = cfg?.socialV2?.groupProfiles?.[key];
+  const profile = cfg?.simulation?.groupProfiles?.[key];
   return profile?.dailyReport === true;
 }

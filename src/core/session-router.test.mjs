@@ -36,7 +36,7 @@ test('initial owner private is closed-agent and all other channels simulate', ()
   assert.equal(router.modeFor('group:9'), 'simulation');
   assert.equal(router.presetFor('group:9'), 'qsh-sim');
   // Whatever this constructor emits must be loadable by it. Keeping the raw
-  // legacy `reserved2` spelling in `defaults.mode` next to the canonical
+  // legacy `simulation` spelling in `defaults.mode` next to the canonical
   // `qsh-sim` preset produces a state this very loader rejects (the legacy
   // spelling only accepts the legacy preset), so the persisted default is
   // canonicalised on the way out.
@@ -90,7 +90,7 @@ test('closed-agent is rejected when no owner is configured', () => {
 test('missing and unknown modes fail closed at load', () => {
   for (const policy of [
     { preset: 'qsh-sim' },
-    { mode: 'reserved2', preset: 'qsh-sim' },
+    { mode: 'simulation', preset: 'qsh-sim' },
     { mode: 'mystery', preset: 'qsh-sim' },
     { mode: { toString: () => 'closed-agent' }, preset: 'qsh-closed' },
   ]) {
@@ -219,8 +219,8 @@ test('removing owner override returns only owner to simulation', () => {
   assert.equal(router.policyFingerprint('group:8'), groupBefore);
 });
 
-test('legacy chat, reserved, and reserved2 migrate explicitly with audit events', () => {
-  for (const mode of ['chat', 'reserved', 'reserved2']) {
+test('legacy chat, reserved, and simulation migrate explicitly with audit events', () => {
+  for (const mode of ['chat', 'reserved', 'simulation']) {
     const { state, events } = migrateLegacyMode({ mode, ownerQQ });
     const router = new SessionRouter({ ownerQQ, state });
     assert.equal(router.modeFor(ownerKey), 'simulation');

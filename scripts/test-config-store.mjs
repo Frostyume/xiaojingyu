@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createConfigWriter } from '../src/core/config-store.js';
 
-function sandbox(initial = { socialV2: { enabled: true } }) {
+function sandbox(initial = { simulation: { enabled: true } }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'config-store-'));
   const file = path.join(dir, 'config.json');
   fs.writeFileSync(file, JSON.stringify(initial));
@@ -50,12 +50,12 @@ test('不同 tag 分桶，互不影响每日去重', () => {
 
 test('写入内容落到磁盘且原文件被替换', () => {
   const { dir, file, writer } = sandbox();
-  writer.write({ socialV2: { enabled: false }, extra: 1 }, { tag: 'social' });
-  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { socialV2: { enabled: false }, extra: 1 });
+  writer.write({ simulation: { enabled: false }, extra: 1 }, { tag: 'social' });
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { simulation: { enabled: false }, extra: 1 });
   assert.equal(backups(dir, 'social').length, 1);
   // 备份是写之前的内容
   const bak = path.join(dir, backups(dir, 'social')[0]);
-  assert.deepEqual(JSON.parse(fs.readFileSync(bak, 'utf8')), { socialV2: { enabled: true } });
+  assert.deepEqual(JSON.parse(fs.readFileSync(bak, 'utf8')), { simulation: { enabled: true } });
 });
 
 test('非对象目标一律拒绝，不落盘', () => {

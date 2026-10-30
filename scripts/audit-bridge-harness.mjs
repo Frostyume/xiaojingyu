@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as markdown from '../src/md-to-plain.js';
 import * as sensitive from '../src/sensitive.js';
-import * as wait from '../src/v2-wait.js';
+import * as wait from '../src/simulation-wait.js';
 import * as safeFetch from '../src/safe-fetch.js';
 import * as forward from '../src/forward.js';
 import * as slang from '../src/slang-learner.js';
@@ -72,7 +72,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     // 离线安全回归默认开启控制台令牌；生产默认关闭（consoleAuth.enabled=false）。
     consoleAuth: { enabled: true, ...(config.consoleAuth ?? {}) },
     // 离线测试不能依赖本机时钟：凌晨/夜间跑时，真实夜间静默会吞掉 timeout 唤醒。
-    socialV2: { nightQuiet: { enabled: false }, ...(config.socialV2 ?? {}) }
+    simulation: { nightQuiet: { enabled: false }, ...(config.simulation ?? {}) }
   };
   fs.writeFileSync(path.join(temp, 'config.json'), JSON.stringify(mergedConfig));
   if (savedState) fs.writeFileSync(path.join(temp, 'state/sessions.json'), JSON.stringify(savedState));
@@ -143,7 +143,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
   let source = fs.readFileSync(path.join(root, 'src/bridge.js'), 'utf8');
   // 去掉顶层 import（VM 里靠 context 注入提供这些绑定）。
   // 必须按行处理：这些 import 有**多行**写法，用单行正则（/^import[\s\S]*?;/gm）会在
-  // 第一个分号处停下，把紧跟其后的正常代码一起删掉（曾把 `cfg.socialV2.voice = {…}`
+  // 第一个分号处停下，把紧跟其后的正常代码一起删掉（曾把 `cfg.simulation.voice = {…}`
   // 整段吞掉，导致语音相关断言在虚拟环境里悄悄失真）。
   source = source.split(/\r?\n/).reduce((acc, line) => {
     if (acc.droppingImport) {
@@ -162,21 +162,21 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
   source = source.replace('  bot.onPrivateMessage(async (event) => {', `
   return {
     ensureSession, ensureSlangLearnerSession, resolvePresetName, deliverPrompt, drainPromptQueue,
-    sendToQQ, sendStickerV2, handleIncoming, startConsoleServer, cfg, state, api, promptQueues,
-    getSocialV2State, appendSocialV2Message, recordSentMessagesV2,
-    appendMemoryV2, formatMemoryV2,
-    buildWakePromptV2, buildWakeSnapshotV2, sendWakePromptV2, socialV2,
+    sendToQQ, sendSticker, handleIncoming, startConsoleServer, cfg, state, api, promptQueues,
+    getSimulationState, appendSimulationMessage, recordSentMessages,
+    appendMemory, formatMemory,
+    buildWakePrompt, buildWakeSnapshot, sendWakePrompt, simulation,
     relationshipStore, relationshipsEnabledForKey, buildRelationshipSnapshot, buildLiveSnapshot,
-    refreshMode, modeAllowed, trackTurnEvent, replayPendingWakeReasonsV2,
-    collectors, setupSleepTimerV2,
-    getInitialPrompt, setInitialPrompt, loadInitialPrompts, formatInitialPromptV2,
+    refreshMode, modeAllowed, trackTurnEvent, replayPendingWakeReasons,
+    collectors, setupSleepTimer,
+    getInitialPrompt, setInitialPrompt, loadInitialPrompts, formatInitialPrompt,
     initialPrompts, initialPromptMaxChars,
     extractMediaFromSegments, segmentsToText, fetchOneBotImage, fetchMediaData, resolveMediaList,
     emojiCdnCandidates, getImageDimensions, acceptImageBuffer, MAX_MEDIA_BYTES, bot,
-    isConversationBusyV2, v2TurnStartAt, turnLeaseNoted, TURN_BUSY_LEASE_MS,
-    settingFromDshNamespace, selfIdentityTextV2, buildWakeReminderPromptV2,
-    evaluateWakeTriggerV2, wakeScoreDecisionV2, buildContextDigestV2, maybeRotateSessionForContext,
-    isNightQuietNow, nightQuietConfig, buildToneNudgeLine, scheduleClingyFollowUpV2,
+    isConversationBusy, simulationTurnStartAt, turnLeaseNoted, TURN_BUSY_LEASE_MS,
+    settingFromDshNamespace, selfIdentityText, buildWakeReminderPrompt,
+    evaluateWakeTrigger, wakeScoreDecision, buildContextDigest, maybeRotateSessionForContext,
+    isNightQuietNow, nightQuietConfig, buildToneNudgeLine, scheduleClingyFollowUp,
     getMode() { return currentMode; },
     signatureState,
     handleSignatureJob,
@@ -196,8 +196,8 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     ownerChatKey, callerKeyOfToken, ownerHighRiskGuard,
     confirmPendingActionByCode, pendingActionsNow,
     hashActionArgs, createPendingAction, isHighRiskOwnerAction, describePendingAction,
-    voiceCfg, voiceLibrary, resolveVoicePathForV2, resolveVoicePathForOperator,
-    voiceBudgetCheck, sendVoiceV2, sendVoiceForV2, assertOutboundAuditOk,
+    voiceCfg, voiceLibrary, resolveSimulationVoicePath, resolveVoicePathForOperator,
+    voiceBudgetCheck, sendVoiceFile, sendVoiceForConversation, assertOutboundAuditOk,
     setMode(value) { currentMode = value; },
     setReady(value) { dshReady = value; },
     setPresets(value) { dshPresetIds = value; dshDefaultPreset = 'standard'; },

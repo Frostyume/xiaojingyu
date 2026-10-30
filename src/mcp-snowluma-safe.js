@@ -106,7 +106,7 @@ async function onebot(action, params = {}) {
   return body.data;
 }
 
-// 桥接控制台/内部 Agent API 访问：二代仿真模式的状态工具都通过这里读写桥接内存态。
+// 桥接控制台/内部 Agent API 访问：群聊仿真模式的状态工具都通过这里读写桥接内存态。
 function agentApiBase() {
   const port = Number(getConfig().consolePort) || 3100;
   return `http://127.0.0.1:${port}`;
@@ -281,16 +281,16 @@ function agentApiLongPoll(path, init = {}) {
 async function authorizeRead(key) {
   // 会话令牌必须显式携带：桥接已把空令牌的请求一律拒绝（避免把该端点变成免鉴权入口）。
   // 旧只读工具没有令牌，因此它们改由 legacyReadToolAllowed() 做模式判定，不再调用本函数。
-  throw new Error('旧只读工具没有会话令牌；请使用带会话令牌的 v2 读工具');
+  throw new Error('旧只读工具没有会话令牌；请使用带会话令牌的仿真读工具');
 }
 
 // 旧只读工具（qq_status 之外的 qq_list_groups / qq_get_group_members / qq_get_group_history）
 // 没有会话令牌，因此**只能在封闭 agent（管理员私聊）里使用**。
 //
-// 这里用「确认是 closed-agent 才放行」的白名单写法，而不是「看到 reserved2 就拒绝」的黑名单写法：
+// 这里用「确认是 closed-agent 才放行」的白名单写法，而不是「看到 simulation 就拒绝」的黑名单写法：
 // 桥接的 /api/status 在「带 agent 令牌」时返回的是最小状态对象（不含 mode 字段），
-// 用 `status?.mode === 'reserved2'` 判断会得到 undefined ⇒ 黑名单判定为假 ⇒ 旧工具被放行，
-// 等于在二代仿真模式下把白名单群名、群成员名单注入模型上下文。
+// 用 `status?.mode === 'simulation'` 判断会得到 undefined ⇒ 黑名单判定为假 ⇒ 旧工具被放行，
+// 等于在群聊仿真模式下把白名单群名、群成员名单注入模型上下文。
 async function legacyReadToolAllowed() {
   const status = await agentApi('/api/status');
   return String(status?.mode ?? '') === 'closed-agent';
@@ -308,7 +308,7 @@ const server = new McpServer({ name: 'snowluma-safe', version: '0.0.0' });
 // DSH 在启动时读取工具清单，所以关掉/打开后需要重启 DSH 才会刷新（控制台面板已注明）。
 //
 // 只列**各模式共用的工具不在其中**：qq_send_group_message / qq_send_private_message / qq_reply
-// 同时服务 chat / reserved / closed-agent 模式，用 v2 的开关去决定它们是否注册会误伤其它模式，
+// 同时服务 chat / reserved / closed-agent 模式，用仿真的开关去决定它们是否注册会误伤其它模式，
 // 所以这三个仍然只在调用时由桥接校验。
 const TOOL_CONFIG_FLAGS = {
   qq_get_prompt: 'getPrompt',
@@ -332,11 +332,11 @@ const TOOL_CONFIG_FLAGS = {
   qq_slang_submit: 'slangSubmit',
   qq_send_voice: 'sendVoice',
   qq_list_voices: 'sendVoice',
-  // 下面这些曾经漏登记。漏一个不是"多注册一个工具"那么轻：桥接那边按 `v2ToolEnabled(flag)`
+  // 下面这些曾经漏登记。漏一个不是"多注册一个工具"那么轻：桥接那边按 `simulationToolEnabled(flag)`
   // 在**调用期**一律 403，而这里不登记就等于"控制台显示已关闭、模型每次请求仍收到它的完整
   // 描述与参数 schema，然后调用它、再拿到 403"——既白烧 token（本文件开头 176 行起就是为省这份
   // token 才改注册期过滤的），又诱导模型误调。`qq_set_sticker_remark` 默认就是 `false`
-  // （见 bridge.js 的 socialV2.tools 默认表），所以此前它一直是"默认关闭却仍然可见"。
+  // （见 bridge.js 的 simulation.tools 默认表），所以此前它一直是"默认关闭却仍然可见"。
   qq_send_poke: 'sendPoke',
   qq_get_message_images: 'getImages',
   qq_get_forward_msg: 'getForwardMsg',
@@ -358,7 +358,7 @@ const disabledTools = [];
   const registerTool = server.tool.bind(server);
   server.tool = (name, ...rest) => {
     const flag = TOOL_CONFIG_FLAGS[name];
-    if (flag && cfg.socialV2?.tools?.[flag] === false) {
+    if (flag && cfg.simulation?.tools?.[flag] === false) {
       disabledTools.push(`${name}(${flag})`);
       return undefined;
     }
@@ -391,7 +391,7 @@ server.tool(
     // 判定失败一律拒绝（fail-closed），不依赖「看到某个模式才拒绝」的黑名单写法。
     try {
       if (!(await legacyReadToolAllowed())) {
-        return { content: [{ type: 'text', text: '旧只读工具仅在封闭 agent（管理员私聊）模式可用；其它模式请使用带会话令牌的 v2 读工具' }], isError: true };
+        return { content: [{ type: 'text', text: '旧只读工具仅在封闭 agent（管理员私聊）模式可用；其它模式请使用带会话令牌的仿真读工具' }], isError: true };
       }
     } catch (error) {
       return { content: [{ type: 'text', text: `无法确认当前模式，拒绝执行：${error?.message ?? error}` }], isError: true };
@@ -417,7 +417,7 @@ server.tool(
     const g = String(groupId);
     try {
       if (!(await legacyReadToolAllowed())) {
-        return { content: [{ type: 'text', text: '旧只读工具仅在封闭 agent（管理员私聊）模式可用；其它模式请使用带会话令牌的 v2 读工具' }], isError: true };
+        return { content: [{ type: 'text', text: '旧只读工具仅在封闭 agent（管理员私聊）模式可用；其它模式请使用带会话令牌的仿真读工具' }], isError: true };
       }
     } catch (error) {
       return { content: [{ type: 'text', text: `无法确认当前模式，拒绝读取：${error?.message ?? error}` }], isError: true };
@@ -444,7 +444,7 @@ server.tool(
     const g = String(groupId);
     try {
       if (!(await legacyReadToolAllowed())) {
-        return { content: [{ type: 'text', text: '旧只读工具仅在封闭 agent（管理员私聊）模式可用；其它模式请使用带会话令牌的 v2 读工具' }], isError: true };
+        return { content: [{ type: 'text', text: '旧只读工具仅在封闭 agent（管理员私聊）模式可用；其它模式请使用带会话令牌的仿真读工具' }], isError: true };
       }
     } catch (error) {
       return { content: [{ type: 'text', text: `无法确认当前模式，拒绝读取：${error?.message ?? error}` }], isError: true };
@@ -472,7 +472,7 @@ server.tool(
   },
   async ({ token }) => {
     try {
-      const data = await agentApi('/api/socialV2/chats', { headers: { 'x-agent-token': token } });
+      const data = await agentApi('/api/simulation/chats', { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取会话列表失败：${error?.message ?? error}` }], isError: true };
@@ -490,7 +490,7 @@ server.tool(
   },
   async ({ key, token, limit }) => {
     try {
-      const data = await agentApi(`/api/socialV2/chat-context?key=${encodeURIComponent(key)}&limit=${limit ?? 20}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/chat-context?key=${encodeURIComponent(key)}&limit=${limit ?? 20}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `读取会话失败：${error?.message ?? error}` }], isError: true };
@@ -500,12 +500,12 @@ server.tool(
 
 server.tool(
   'qq_send_group_message',
-  '向指定 QQ 群发送一条纯文本消息；如需引用某条消息，可传 replyToMessageId（非零整数，可为负数），可先用 qq_get_recent_messages / qq_get_message_detail 查询。二代模式（reserved2）下这是可用的发送工具之一，但优先使用 qq_send_message；reserved2 下调用时必须携带会话令牌 token，否则会被拒绝。不要在发送后输出“已发送”类汇报。目标群必须命中系统白名单（config.json 的 allow.groups），否则拒绝。主人在某个群里刚说完话时，该群会话也可以把消息发到别的群（群友插话即失效）；主人在私聊用主人令牌则始终可以跨会话发送。',
+  '向指定 QQ 群发送一条纯文本消息；如需引用某条消息，可传 replyToMessageId（非零整数，可为负数），可先用 qq_get_recent_messages / qq_get_message_detail 查询。仿真模式（simulation）下这是可用的发送工具之一，但优先使用 qq_send_message；simulation 下调用时必须携带会话令牌 token，否则会被拒绝。不要在发送后输出“已发送”类汇报。目标群必须命中系统白名单（config.json 的 allow.groups），否则拒绝。主人在某个群里刚说完话时，该群会话也可以把消息发到别的群（群友插话即失效）；主人在私聊用主人令牌则始终可以跨会话发送。',
   {
     groupId: z.union([z.number(), z.string()]).describe('群号（必须在白名单内）'),
     message: z.string().describe('消息文本，纯文本，不要用 Markdown 或 CQ 码'),
     replyToMessageId: z.union([z.number(), z.string()]).optional().describe('要引用/回复的消息 id（非零整数，可为负数，可选）'),
-    token: z.string().optional().describe('二代会话令牌（reserved2 模式下必填；closed-agent 模式不需要）。主人在私聊时可用主人令牌跨会话发送')
+    token: z.string().optional().describe('仿真会话令牌（simulation 模式下必填；closed-agent 模式不需要）。主人在私聊时可用主人令牌跨会话发送')
   },
   async ({ groupId, message, replyToMessageId, token }) => {
     try {
@@ -526,12 +526,12 @@ server.tool(
 
 server.tool(
   'qq_reply',
-  '在指定 QQ 群里引用/回复某条消息，并发送一条文本。适合群消息很多、需要明确“我回的是哪条”时使用；replyToMessageId 是被引用消息的 id（非零整数，QQ 消息 id 可能为负数），可先用 qq_get_recent_messages / qq_get_unread_messages / qq_get_message_detail 查到具体消息内容和 id。发送前桥接会校验该 id 存在且属于当前会话。二代模式下这是你正常可用的引用工具，但不要每条都引用。只有以下情况才需要引用：① 你这条消息指向的人或消息并非最新一条别人的消息（也就是你在回更早的某条）；② 你连续几句话里不同消息指代的是不同的消息或不同的人。其他情况（上下文唯一、刚在接同一条最新消息）不要引用，别让对方猜，也别为了用工具而用。reserved2 下调用时必须携带会话令牌 token。目标群必须命中系统白名单（config.json 的 allow.groups），否则拒绝。主人在某个群里刚说完话时，该群会话也可以引用别的群（群友插话即失效）。',
+  '在指定 QQ 群里引用/回复某条消息，并发送一条文本。适合群消息很多、需要明确“我回的是哪条”时使用；replyToMessageId 是被引用消息的 id（非零整数，QQ 消息 id 可能为负数），可先用 qq_get_recent_messages / qq_get_unread_messages / qq_get_message_detail 查到具体消息内容和 id。发送前桥接会校验该 id 存在且属于当前会话。仿真模式下这是你正常可用的引用工具，但不要每条都引用。只有以下情况才需要引用：① 你这条消息指向的人或消息并非最新一条别人的消息（也就是你在回更早的某条）；② 你连续几句话里不同消息指代的是不同的消息或不同的人。其他情况（上下文唯一、刚在接同一条最新消息）不要引用，别让对方猜，也别为了用工具而用。simulation 下调用时必须携带会话令牌 token。目标群必须命中系统白名单（config.json 的 allow.groups），否则拒绝。主人在某个群里刚说完话时，该群会话也可以引用别的群（群友插话即失效）。',
   {
     groupId: z.union([z.number(), z.string()]).describe('群号（必须在白名单内）'),
     replyToMessageId: z.union([z.number(), z.string()]).describe('被引用/回复的消息 id（非零整数，可为负数）'),
     message: z.string().describe('要发送的文本，纯文本，不要用 Markdown 或 CQ 码'),
-    token: z.string().optional().describe('二代会话令牌（reserved2 模式下必填；closed-agent 模式不需要）。主人在私聊时可用主人令牌跨会话发送')
+    token: z.string().optional().describe('仿真会话令牌（simulation 模式下必填；closed-agent 模式不需要）。主人在私聊时可用主人令牌跨会话发送')
   },
   async ({ groupId, replyToMessageId, message, token }) => {
     try {
@@ -550,12 +550,12 @@ server.tool(
 
 server.tool(
   'qq_send_private_message',
-  '向指定 QQ 好友发送一条私聊消息。若提供 replyToMessageId，会以 QQ 引用/回复形式发出（引用条 + 文本）。replyToMessageId 必须是非零整数消息 id（QQ 消息 id 可能为负数），可先用 qq_get_message_detail 查询。二代模式（reserved2）下这是可用的发送工具之一，但优先使用 qq_send_message；调用时必须携带会话令牌 token，否则会被拒绝。不要在发送后输出“已发送”类汇报。目标 QQ 必须命中系统白名单（config.json 的 allow.private），否则拒绝。',
+  '向指定 QQ 好友发送一条私聊消息。若提供 replyToMessageId，会以 QQ 引用/回复形式发出（引用条 + 文本）。replyToMessageId 必须是非零整数消息 id（QQ 消息 id 可能为负数），可先用 qq_get_message_detail 查询。仿真模式（simulation）下这是可用的发送工具之一，但优先使用 qq_send_message；调用时必须携带会话令牌 token，否则会被拒绝。不要在发送后输出“已发送”类汇报。目标 QQ 必须命中系统白名单（config.json 的 allow.private），否则拒绝。',
   {
     userId: z.union([z.number(), z.string()]).describe('好友 QQ 号（必须在白名单内）'),
     message: z.string().describe('消息文本，纯文本，不要用 Markdown 或 CQ 码'),
     replyToMessageId: z.union([z.number(), z.string()]).optional().describe('要引用/回复的消息 id（非零整数，可为负数，可选）'),
-    token: z.string().optional().describe('二代会话令牌（reserved2 模式下必填；closed-agent 模式不需要）。主人在私聊时可用主人令牌跨会话发送')
+    token: z.string().optional().describe('仿真会话令牌（simulation 模式下必填；closed-agent 模式不需要）。主人在私聊时可用主人令牌跨会话发送')
   },
   async ({ userId, message, replyToMessageId, token }) => {
     try {
@@ -572,14 +572,14 @@ server.tool(
   }
 );
 
-// ── 二代仿真模式（reserved2）工具 ─────────────────────────────────────────
+// ── 群聊仿真模式（simulation）工具 ─────────────────────────────────────────
 server.tool(
   'qq_get_prompt',
-  '查看当前二代仿真模式的提示词/角色/推荐值/可用工具/当前唤醒配置（只读）。',
+  '查看当前群聊仿真模式的提示词/角色/推荐值/可用工具/当前唤醒配置（只读）。',
   { key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'), token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）') },
   async ({ key, token }) => {
     try {
-      const data = await agentApi(`/api/socialV2/prompt?key=${encodeURIComponent(key)}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/prompt?key=${encodeURIComponent(key)}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取提示词失败：${error?.message ?? error}` }], isError: true };
@@ -598,7 +598,7 @@ server.tool(
   },
   async ({ key, token, limit, afterSeq }) => {
     try {
-      const data = await agentApi(`/api/socialV2/unread?key=${encodeURIComponent(key)}&limit=${limit ?? 30}${afterSeq === undefined ? '' : `&afterSeq=${afterSeq}`}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/unread?key=${encodeURIComponent(key)}&limit=${limit ?? 30}${afterSeq === undefined ? '' : `&afterSeq=${afterSeq}`}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取未读消息失败：${error?.message ?? error}` }], isError: true };
@@ -617,7 +617,7 @@ server.tool(
   },
   async ({ key, token, limit, offset }) => {
     try {
-      const data = await agentApi(`/api/socialV2/recent?key=${encodeURIComponent(key)}&limit=${limit ?? 20}&offset=${offset ?? 0}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/recent?key=${encodeURIComponent(key)}&limit=${limit ?? 20}&offset=${offset ?? 0}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取最近消息失败：${error?.message ?? error}` }], isError: true };
@@ -627,11 +627,11 @@ server.tool(
 
 server.tool(
   'qq_social_state',
-  '查看指定会话的二代仿真状态：WakeConfig、未读数、上次唤醒原因、上次发言时间等（只读）。',
+  '查看指定会话的群聊仿真状态：WakeConfig、未读数、上次唤醒原因、上次发言时间等（只读）。',
   { key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'), token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）') },
   async ({ key, token }) => {
     try {
-      const data = await agentApi(`/api/socialV2/state?key=${encodeURIComponent(key)}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/state?key=${encodeURIComponent(key)}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取状态失败：${error?.message ?? error}` }], isError: true };
@@ -649,7 +649,7 @@ server.tool(
   },
   async ({ key, token, throughSeq }) => {
     try {
-      const data = await agentApi('/api/socialV2/mark-read', { method: 'POST', body: JSON.stringify({ key, throughSeq }), headers: { 'x-agent-token': token } });
+      const data = await agentApi('/api/simulation/mark-read', { method: 'POST', body: JSON.stringify({ key, throughSeq }), headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `标记已读失败：${error?.message ?? error}` }], isError: true };
@@ -659,7 +659,7 @@ server.tool(
 
 server.tool(
   'qq_set_wake_config',
-  '设置指定会话的二代唤醒配置：mode/无限期或有限时间/提前唤醒条件（@、名字、关键词、提问、拍一拍、概率、anyMessage、指定成员）。triggers.speakerIds 是可选的“指定群友发言唤醒”：填一个或多个群友 QQ 号后，只要其中任意一位在群里发言就会唤醒你；不设置则不启用。适合在等某个人回复、或某人反应慢怕错过时使用。triggers.poke 开启后，群里有人拍一拍（包括拍你或拍别人）会唤醒你。注意：每次设置潜水/下一次唤醒前需先用 qq_wait_for_messages(timeoutMs=300000) 完成一次沉睡前观察：5 分钟内没人说话可设置并沉睡；期间有人发新消息则先查看 newMessages，判断不需要你参与可直接设置并沉睡；若你参与了回复，则下次想睡需重新等待观察窗口。',
+  '设置指定会话的仿真唤醒配置：mode/无限期或有限时间/提前唤醒条件（@、名字、关键词、提问、拍一拍、概率、anyMessage、指定成员）。triggers.speakerIds 是可选的“指定群友发言唤醒”：填一个或多个群友 QQ 号后，只要其中任意一位在群里发言就会唤醒你；不设置则不启用。适合在等某个人回复、或某人反应慢怕错过时使用。triggers.poke 开启后，群里有人拍一拍（包括拍你或拍别人）会唤醒你。注意：每次设置潜水/下一次唤醒前需先用 qq_wait_for_messages(timeoutMs=300000) 完成一次沉睡前观察：5 分钟内没人说话可设置并沉睡；期间有人发新消息则先查看 newMessages，判断不需要你参与可直接设置并沉睡；若你参与了回复，则下次想睡需重新等待观察窗口。',
   {
     key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
     token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -684,7 +684,7 @@ server.tool(
   },
   async ({ key, token, config, throughSeq }) => {
     try {
-      const data = await agentApi('/api/socialV2/wake-config', { method: 'POST', body: JSON.stringify({ key, config, throughSeq }), headers: { 'x-agent-token': token } });
+      const data = await agentApi('/api/simulation/wake-config', { method: 'POST', body: JSON.stringify({ key, config, throughSeq }), headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `设置唤醒配置失败：${error?.message ?? error}` }], isError: true };
@@ -694,7 +694,7 @@ server.tool(
 
 server.tool(
   'qq_send_burst',
-  '在指定 QQ 群分多条发送消息（二代仿真模式专用），桥接会按真人化随机间隔发送。暂不支持引用，需要引用请用 qq_reply。注意：数组里的每个字符串就是一条 QQ 消息，字符串内部不要用空格分隔中文短句，需要多条请用数组元素；每条消息要读起来完整，不要把同一句话拆到两条里。',
+  '在指定 QQ 群分多条发送消息（群聊仿真模式专用），桥接会按真人化随机间隔发送。暂不支持引用，需要引用请用 qq_reply。注意：数组里的每个字符串就是一条 QQ 消息，字符串内部不要用空格分隔中文短句，需要多条请用数组元素；每条消息要读起来完整，不要把同一句话拆到两条里。',
   {
     groupId: z.union([z.number(), z.string()]).describe('群号（必须在白名单内）'),
     token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -721,7 +721,7 @@ server.tool(
           } catch {}
         }
       }
-      const data = await agentApi('/api/socialV2/send-burst', {
+      const data = await agentApi('/api/simulation/send-burst', {
         method: 'POST',
         body: JSON.stringify({ key, messages: finalMessages }),
         headers: { 'x-agent-token': token },
@@ -736,7 +736,7 @@ server.tool(
 
 server.tool(
   'qq_send_message',
-  '统一发送工具：可发一条或多条，可引用某条消息，可自定义/按字数计算条间时间差。二代仿真模式专用。注意：字符串=一条消息，数组=多条消息；每个字符串内部不要用空格分隔中文短句，需要多条请用数组元素；每条消息要读起来完整，不要把同一句话拆到两条里。只有以下情况才需要传 replyToMessageId 引用：① 你这条消息指向的人或消息并非最新一条别人的消息（也就是你在回更早的某条）；② 你连续几句话里不同消息指代的是不同的消息或不同的人。其他情况（上下文唯一、刚在接同一条最新消息）不要引用，别让对方猜，也别为了用工具而用。',
+  '统一发送工具：可发一条或多条，可引用某条消息，可自定义/按字数计算条间时间差。群聊仿真模式专用。注意：字符串=一条消息，数组=多条消息；每个字符串内部不要用空格分隔中文短句，需要多条请用数组元素；每条消息要读起来完整，不要把同一句话拆到两条里。只有以下情况才需要传 replyToMessageId 引用：① 你这条消息指向的人或消息并非最新一条别人的消息（也就是你在回更早的某条）；② 你连续几句话里不同消息指代的是不同的消息或不同的人。其他情况（上下文唯一、刚在接同一条最新消息）不要引用，别让对方猜，也别为了用工具而用。',
   {
     key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
     token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -767,7 +767,7 @@ server.tool(
           } catch {}
         }
       }
-      const data = await agentApi('/api/socialV2/send-message', {
+      const data = await agentApi('/api/simulation/send-message', {
         method: 'POST',
         body: JSON.stringify({ key, messages: finalMessages, replyToMessageId, atUserId: atUserId ?? null, gapMode, gapMs, gaps }),
         headers: { 'x-agent-token': token },
@@ -780,10 +780,10 @@ server.tool(
   }
 );
 
-if (cfg.socialV2?.tools?.sendPoke !== false) {
+if (cfg.simulation?.tools?.sendPoke !== false) {
   server.tool(
     'qq_send_poke',
-    '发送 QQ 拍一拍（群聊/私聊）。适合用“戳一下”代替一句废话、提醒对方、自然回应别人的拍一拍，或偶尔主动戳一下正在聊的人/熟人——这样更拟真；但别频繁，真人不会一直戳人。群聊必须传 targetUserId（要拍的群友 QQ 号，可从 qq_get_active_members / qq_get_message_detail 的 userId 获取）；私聊可不传 targetUserId（默认拍当前私聊对象）。reserved2 下必须携带会话令牌 token，发送会受桥接白名单与发送频率限制。',
+    '发送 QQ 拍一拍（群聊/私聊）。适合用“戳一下”代替一句废话、提醒对方、自然回应别人的拍一拍，或偶尔主动戳一下正在聊的人/熟人——这样更拟真；但别频繁，真人不会一直戳人。群聊必须传 targetUserId（要拍的群友 QQ 号，可从 qq_get_active_members / qq_get_message_detail 的 userId 获取）；私聊可不传 targetUserId（默认拍当前私聊对象）。simulation 下必须携带会话令牌 token，发送会受桥接白名单与发送频率限制。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -791,7 +791,7 @@ if (cfg.socialV2?.tools?.sendPoke !== false) {
     },
     async ({ key, token, targetUserId }) => {
       try {
-        const data = await agentApi('/api/socialV2/send-poke', {
+        const data = await agentApi('/api/simulation/send-poke', {
           method: 'POST',
           body: JSON.stringify({ key, targetUserId: targetUserId != null ? String(targetUserId) : '' }),
           headers: { 'x-agent-token': token },
@@ -820,7 +820,7 @@ server.tool(
     try {
       // 必须走长轮询通道：全局 fetch（undici）有 300s headersTimeout，
       // 而沉睡前观察的预算就是 300s（见 agentApiLongPoll 的说明）。
-      const data = await agentApiLongPoll('/api/socialV2/wait', {
+      const data = await agentApiLongPoll('/api/simulation/wait', {
         method: 'POST',
         body: JSON.stringify({ key, purpose, timeoutMs, minNewMessages, quietMs }),
         headers: { 'x-agent-token': token },
@@ -844,7 +844,7 @@ server.tool(
   },
   async ({ key, token, level, message }) => {
     try {
-      const data = await agentApi('/api/socialV2/feedback', {
+      const data = await agentApi('/api/simulation/feedback', {
         method: 'POST',
         body: JSON.stringify({ key, level, message }),
         headers: { 'x-agent-token': token }
@@ -866,7 +866,7 @@ server.tool(
   },
   async ({ key, token, limit }) => {
     try {
-      const data = await agentApi(`/api/socialV2/my-recent?key=${encodeURIComponent(key)}&limit=${limit ?? 10}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/my-recent?key=${encodeURIComponent(key)}&limit=${limit ?? 10}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取自己消息失败：${error?.message ?? error}` }], isError: true };
@@ -884,7 +884,7 @@ server.tool(
   },
   async ({ key, token, messageId }) => {
     try {
-      const data = await agentApi(`/api/socialV2/message-detail?key=${encodeURIComponent(key)}&messageId=${encodeURIComponent(String(messageId))}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/message-detail?key=${encodeURIComponent(key)}&messageId=${encodeURIComponent(String(messageId))}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取消息详情失败：${error?.message ?? error}` }], isError: true };
@@ -902,7 +902,7 @@ server.tool(
   },
   async ({ key, token, limit }) => {
     try {
-      const data = await agentApi(`/api/socialV2/active-members?key=${encodeURIComponent(key)}&limit=${limit ?? 10}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/active-members?key=${encodeURIComponent(key)}&limit=${limit ?? 10}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取活跃成员失败：${error?.message ?? error}` }], isError: true };
@@ -929,7 +929,7 @@ server.tool(
   },
   async ({ key, token, category, content, extra }) => {
     try {
-      const data = await agentApi('/api/socialV2/memory-append', {
+      const data = await agentApi('/api/simulation/memory-append', {
         method: 'POST',
         body: JSON.stringify({ key, category, content, extra: extra || {} }),
         headers: { 'x-agent-token': token }
@@ -953,7 +953,7 @@ server.tool(
     try {
       const q = new URLSearchParams({ key });
       if (category) q.set('category', category);
-      const data = await agentApi(`/api/socialV2/memory?${q.toString()}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/memory?${q.toString()}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `记忆读取失败：${error?.message ?? error}` }], isError: true };
@@ -973,7 +973,7 @@ server.tool(
   },
   async ({ key, token, category, content, target }) => {
     try {
-      const data = await agentApi('/api/socialV2/memory-remove', {
+      const data = await agentApi('/api/simulation/memory-remove', {
         method: 'POST',
         body: JSON.stringify({ key, category, content: content || '', target: target || '' }),
         headers: { 'x-agent-token': token }
@@ -995,7 +995,7 @@ server.tool(
   },
   async ({ key, token, category }) => {
     try {
-      const data = await agentApi('/api/socialV2/memory-clear', {
+      const data = await agentApi('/api/simulation/memory-clear', {
         method: 'POST',
         body: JSON.stringify({ key, category: category || '' }),
         headers: { 'x-agent-token': token }
@@ -1018,7 +1018,7 @@ server.tool(
   async ({ key, token, q }) => {
     try {
       const query = q ? `&q=${encodeURIComponent(String(q))}` : '';
-      const data = await agentApi(`/api/socialV2/slang/query?key=${encodeURIComponent(key)}${query}`, { headers: { 'x-agent-token': token } });
+      const data = await agentApi(`/api/simulation/slang/query?key=${encodeURIComponent(key)}${query}`, { headers: { 'x-agent-token': token } });
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `查询黑话失败：${error?.message ?? error}` }], isError: true };
@@ -1037,7 +1037,7 @@ server.tool(
   },
   async ({ key, token, content, context }) => {
     try {
-      const data = await agentApi('/api/socialV2/slang/submit', {
+      const data = await agentApi('/api/simulation/slang/submit', {
         method: 'POST',
         body: JSON.stringify({ key, content, context: context || '' }),
         headers: { 'x-agent-token': token }
@@ -1049,15 +1049,15 @@ server.tool(
   }
 );
 
-// ── 图片/表情查看工具（一代/二代仿真共用） ─────────────────────────────────
-if (cfg.socialV2?.tools?.getImages !== false) {
+// ── 图片/表情查看工具（旧版/群聊仿真共用） ─────────────────────────────────
+if (cfg.simulation?.tools?.getImages !== false) {
   server.tool(
     'qq_get_message_images',
-    '获取指定 QQ 消息中的图片/表情，并直接以图像内容返回给模型；你可以直接看图接话。当消息文本里出现 [图片]、[表情] 或 hasMedia=true 时调用。支持一条消息里的多张图片/表情；二代模式下必须携带会话令牌。',
+    '获取指定 QQ 消息中的图片/表情，并直接以图像内容返回给模型；你可以直接看图接话。当消息文本里出现 [图片]、[表情] 或 hasMedia=true 时调用。支持一条消息里的多张图片/表情；仿真模式下必须携带会话令牌。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
-      messageId: z.union([z.number(), z.string()]).describe('要查看的消息 id（QQ 消息 id 可为负数；二代也可用本地 seq）'),
-      token: z.string().optional().describe('二代会话令牌（reserved2 下必填，见唤醒提示中的【会话令牌】）')
+      messageId: z.union([z.number(), z.string()]).describe('要查看的消息 id（QQ 消息 id 可为负数；仿真也可用本地 seq）'),
+      token: z.string().optional().describe('仿真会话令牌（simulation 下必填，见唤醒提示中的【会话令牌】）')
     },
     async ({ key, messageId, token }) => {
       try {
@@ -1096,7 +1096,7 @@ if (cfg.socialV2?.tools?.getImages !== false) {
 }
 
 // ── 生活技能：提醒 / 天气 / 小游戏 ─────────────────────────────────────────
-if (cfg.socialV2?.tools?.addReminder !== false) {
+if (cfg.simulation?.tools?.addReminder !== false) {
   server.tool(
     'qq_add_reminder',
     '给当前会话增加一条定时提醒（仅主人私聊/家人群可用，其他群会被拒绝）。dueAt 必须是带时区的 ISO 时间，例如 2026-10-25T08:00:00+08:00，或毫秒时间戳；text 是到点要发出去的原话，像你平时说话，短一点。时间不确定时先问清楚再调用。',
@@ -1109,7 +1109,7 @@ if (cfg.socialV2?.tools?.addReminder !== false) {
     },
     async ({ key, token, text, dueAt, note }) => {
       try {
-        const data = await agentApi('/api/socialV2/reminder/add', {
+        const data = await agentApi('/api/simulation/reminder/add', {
           method: 'POST',
           body: JSON.stringify({ key, text, dueAt, note: note ?? '' }),
           headers: { 'x-agent-token': token },
@@ -1123,7 +1123,7 @@ if (cfg.socialV2?.tools?.addReminder !== false) {
   );
 }
 
-if (cfg.socialV2?.tools?.listReminders !== false) {
+if (cfg.simulation?.tools?.listReminders !== false) {
   server.tool(
     'qq_list_reminders',
     '查看当前会话还没发送的提醒（按时间排序）。',
@@ -1134,7 +1134,7 @@ if (cfg.socialV2?.tools?.listReminders !== false) {
     async ({ key, token }) => {
       try {
         const q = new URLSearchParams({ key });
-        const data = await agentApi(`/api/socialV2/reminders?${q.toString()}`, {
+        const data = await agentApi(`/api/simulation/reminders?${q.toString()}`, {
           headers: { 'x-agent-token': token },
           timeoutMs: 30000
         });
@@ -1146,7 +1146,7 @@ if (cfg.socialV2?.tools?.listReminders !== false) {
   );
 }
 
-if (cfg.socialV2?.tools?.cancelReminder !== false) {
+if (cfg.simulation?.tools?.cancelReminder !== false) {
   server.tool(
     'qq_cancel_reminder',
     '取消一条还没发送的提醒：先 qq_list_reminders 拿到 id，再传 id 取消。',
@@ -1157,7 +1157,7 @@ if (cfg.socialV2?.tools?.cancelReminder !== false) {
     },
     async ({ key, token, id }) => {
       try {
-        const data = await agentApi('/api/socialV2/reminder/cancel', {
+        const data = await agentApi('/api/simulation/reminder/cancel', {
           method: 'POST',
           body: JSON.stringify({ key, id }),
           headers: { 'x-agent-token': token },
@@ -1171,20 +1171,20 @@ if (cfg.socialV2?.tools?.cancelReminder !== false) {
   );
 }
 
-if (cfg.socialV2?.tools?.weather !== false) {
+if (cfg.simulation?.tools?.weather !== false) {
   server.tool(
     'qq_weather',
     '查询城市当前天气和今天的温度/降水概率（Open-Meteo，只读）。城市不传时使用配置里的默认城市。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
-      city: z.string().optional().describe('城市名，例如 北京；不传则用 socialV2.weather.defaultCity')
+      city: z.string().optional().describe('城市名，例如 北京；不传则用 simulation.weather.defaultCity')
     },
     async ({ key, token, city }) => {
       try {
         const q = new URLSearchParams({ key });
         if (city) q.set('city', String(city));
-        const data = await agentApi(`/api/socialV2/weather?${q.toString()}`, {
+        const data = await agentApi(`/api/simulation/weather?${q.toString()}`, {
           headers: { 'x-agent-token': token },
           timeoutMs: 30000
         });
@@ -1196,7 +1196,7 @@ if (cfg.socialV2?.tools?.weather !== false) {
   );
 }
 
-if (cfg.socialV2?.tools?.playGame !== false) {
+if (cfg.simulation?.tools?.playGame !== false) {
   server.tool(
     'qq_play_game',
     '和群友玩一个小游戏：rps=猜拳（choice 传 石头/剪刀/布 或 rock/paper/scissors）；dice=掷骰子（sides 默认 6）；fortune=今日鲸鱼运势（同一群同一天结果一致，会结合你当前心情/精力）。只在有人明确要玩/问运势时调用，别主动刷。',
@@ -1209,7 +1209,7 @@ if (cfg.socialV2?.tools?.playGame !== false) {
     },
     async ({ key, token, game, choice, sides }) => {
       try {
-        const data = await agentApi('/api/socialV2/game', {
+        const data = await agentApi('/api/simulation/game', {
           method: 'POST',
           body: JSON.stringify({ key, game, choice: choice ?? '', sides: sides ?? 6 }),
           headers: { 'x-agent-token': token },
@@ -1223,8 +1223,8 @@ if (cfg.socialV2?.tools?.playGame !== false) {
   );
 }
 
-// ── 表情包体系工具（二代仿真模式） ─────────────────────────────────────────
-if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.listStickers !== false) {
+// ── 表情包体系工具（群聊仿真模式） ─────────────────────────────────────────
+if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.listStickers !== false) {
   server.tool(
     'qq_list_stickers',
     '查看 QQ 账号上已收藏的表情包（自定义表情）列表：包含 emoji_id、备注 desc、本地笔记 localNote、标签 tags、使用次数等。可通过 query 按备注/笔记/标签搜索；无备注的表情可以先调用 qq_get_sticker_image 看图理解，再用 qq_sticker_note 记下含义。刚新增/删除表情后如需立即同步，请传 refresh=true。',
@@ -1232,7 +1232,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.listSticker
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
       query: z.string().optional().describe('可选搜索词，按备注/本地笔记/标签/用法过滤'),
-      count: z.number().optional().describe('最多返回条数，默认 48，受 socialV2.sticker.maxListCount 配置上限约束（当前通常 100）'),
+      count: z.number().optional().describe('最多返回条数，默认 48，受 simulation.sticker.maxListCount 配置上限约束（当前通常 100）'),
       refresh: z.boolean().optional().describe('是否强制从 QQ 重新同步收藏表情，默认 false（走缓存）')
     },
     async ({ key, token, query, count, refresh }) => {
@@ -1240,7 +1240,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.listSticker
         // 强制同步走 POST：GET 上的 refresh 参数会让「读接口」产生写副作用
         // （真的去问 OneBot 拉收藏表情并落盘 state/stickers.json），
         // 从而绕开控制台对所有非 GET 请求的 CSRF 防护（一个 <img src=...> 就能触发）。
-        const data = await agentApi('/api/socialV2/sticker-list', {
+        const data = await agentApi('/api/simulation/sticker-list', {
           method: 'POST',
           headers: { 'x-agent-token': token },
           body: JSON.stringify({ key, query: query ? String(query) : '', count, refresh: refresh === true, token })
@@ -1253,7 +1253,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.listSticker
   );
 }
 
-if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.getStickerImage !== false) {
+if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.getStickerImage !== false) {
   server.tool(
     'qq_get_sticker_image',
     '获取指定收藏表情的图片内容并直接以图像返回给模型（视觉模型可“看懂”）。当 qq_list_stickers 返回的表情 desc/localNote 为空、或你想确认表情实际长什么样时调用。stickerId 可用 qq_list_stickers 返回的 id / md5 / url。',
@@ -1265,7 +1265,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.getStickerI
     async ({ key, token, stickerId }) => {
       try {
         const q = new URLSearchParams({ key, stickerId: String(stickerId) });
-        const data = await agentApi(`/api/socialV2/sticker-image?${q.toString()}`, { headers: { 'x-agent-token': token }, timeoutMs: 180000 });
+        const data = await agentApi(`/api/simulation/sticker-image?${q.toString()}`, { headers: { 'x-agent-token': token }, timeoutMs: 180000 });
         if (!data?.image?.data || !data?.image?.mimeType) {
           return { content: [{ type: 'text', text: `表情没有可返回的图片：${errorText(data?.error, '未知')}` }], isError: true };
         }
@@ -1281,7 +1281,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.getStickerI
   );
 }
 
-if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.sendSticker !== false) {
+if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.sendSticker !== false) {
   server.tool(
     'qq_send_sticker',
     '在指定会话发送一个 QQ 收藏表情包（自定义表情）。stickerId 用 qq_list_stickers 返回的 id / md5 / url。可以主动发，不用等对方点名：接梗、吐槽、赞同、自嘲、无语、晚安时都自然。只发 Q 版鲸鱼/DeepSeek 鲸鱼娘/软萌日常表情，真人、别的角色、擦边/血腥/政治/烂梗、与语境无关的图不发。注意：一条消息只能是一张表情，不能在同一气泡里附带文字；想说的话请先用 qq_send_message / qq_reply 作为单独气泡发送，再单独发这张表情。需要引用/点名时可用 replyToMessageId / atUserId（群聊）。别连续刷屏。',
@@ -1294,7 +1294,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.sendSticker
     },
     async ({ key, token, stickerId, replyToMessageId, atUserId }) => {
       try {
-        const data = await agentApi('/api/socialV2/send-sticker', {
+        const data = await agentApi('/api/simulation/send-sticker', {
           method: 'POST',
           body: JSON.stringify({ key, stickerId: String(stickerId), replyToMessageId, atUserId: atUserId ?? null }),
           headers: { 'x-agent-token': token },
@@ -1308,7 +1308,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.sendSticker
   );
 }
 
-if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.deleteSticker !== false) {
+if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.deleteSticker !== false) {
   server.tool(
     'qq_delete_sticker',
     '删除一个 QQ 收藏表情（自定义表情）。这是破坏性操作，只允许主人使用：主人私聊，或主人在群里本人发起的对话。主人回复/引用了某条你发的表情时，传那条消息的 messageId 即可，桥接会解析具体表情；也可以传 stickerId（qq_list_stickers 返回的 id / md5 / 备注关键词）。匹配到多个会返回候选，先确认再删。',
@@ -1320,7 +1320,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.deleteStick
     },
     async ({ key, token, stickerId, messageId }) => {
       try {
-        const data = await agentApi('/api/socialV2/delete-sticker', {
+        const data = await agentApi('/api/simulation/delete-sticker', {
           method: 'POST',
           body: JSON.stringify({ key, stickerId: stickerId ? String(stickerId) : '', messageId: messageId ? String(messageId) : '' }),
           headers: { 'x-agent-token': token },
@@ -1334,7 +1334,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.deleteStick
   );
 }
 
-if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.listImages !== false) {
+if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.listImages !== false) {
   server.tool(
     'qq_list_images',
     '查看/搜索你的图片库（区别于 QQ 收藏表情库）。图片库放的是任意图片：网上找的图、视频/帖子截图、群友发的图、二创表情等。可用 query 按名称/备注/标签搜索；找到合适的用 qq_send_image 当图片发出去，收到的图或网图用 qq_save_image 存进来。',
@@ -1347,7 +1347,7 @@ if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.listIm
     async ({ key, token, query, limit }) => {
       try {
         const qs = new URLSearchParams({ key, query: query ?? '', limit: String(limit ?? 20) });
-        const data = await agentApi(`/api/socialV2/images?${qs.toString()}`, {
+        const data = await agentApi(`/api/simulation/images?${qs.toString()}`, {
           method: 'GET',
           headers: { 'x-agent-token': token },
           timeoutMs: 30000
@@ -1360,7 +1360,7 @@ if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.listIm
   );
 }
 
-if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.sendImage !== false) {
+if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.sendImage !== false) {
   server.tool(
     'qq_send_image',
     '把图片库里的一张图当**图片**发到会话（不是 QQ 收藏表情）。image 传 qq_list_images 返回的 id / name。可以主动发：话题对得上、分享见闻、表达状态时都用，不用等对方要；但每 3~5 轮最多一张，别连续刷。只发小鲸鱼自己的 Q 版/生活配图，真人、别的角色、擦边/政治/无关图不发；拿不准就不发。可以带一句很短的配文 caption（图片消息允许带文字，这点和表情不同）；要引用/点名时用 replyToMessageId / atUserId。一条消息只发一张图。',
@@ -1374,7 +1374,7 @@ if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.sendIm
     },
     async ({ key, token, image, caption, replyToMessageId, atUserId }) => {
       try {
-        const data = await agentApi('/api/socialV2/send-image', {
+        const data = await agentApi('/api/simulation/send-image', {
           method: 'POST',
           body: JSON.stringify({ key, image: String(image), caption: caption ?? '', replyToMessageId, atUserId: atUserId ?? null }),
           headers: { 'x-agent-token': token },
@@ -1388,7 +1388,7 @@ if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.sendIm
   );
 }
 
-if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.saveImage !== false) {
+if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.saveImage !== false) {
   server.tool(
     'qq_save_image',
     '把一张图片存进你的图片库：可以存群里别人发的图/表情（传 messageId），也可以存网上的图（传 url，桥接会安全下载）。可顺手写 name（文件名）、note（一句话备注）和 tags（2~4 个标签）。图片库的图可以用 qq_send_image 发出去，也可以作为空间说说配图；别存群友隐私/敏感内容。',
@@ -1403,7 +1403,7 @@ if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.saveIm
     },
     async ({ key, token, messageId, url, name, note, tags }) => {
       try {
-        const data = await agentApi('/api/socialV2/save-image', {
+        const data = await agentApi('/api/simulation/save-image', {
           method: 'POST',
           body: JSON.stringify({ key, messageId: messageId ?? '', url: url ?? '', name: name ?? '', note: note ?? '', tags: tags ?? [] }),
           headers: { 'x-agent-token': token },
@@ -1417,7 +1417,7 @@ if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.saveIm
   );
 }
 
-if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.deleteImage !== false) {
+if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.deleteImage !== false) {
   server.tool(
     'qq_delete_image',
     '从你的图片库里删除一张图片（只删本地图片库，不动 QQ 收藏表情）。这是破坏性操作，只允许主人使用：主人私聊，或主人在群里本人发起的对话。主人回复/引用了某条你发的图片时，传那条消息的 messageId；也可以传 image（qq_list_images 返回的 id / name / 备注关键词）。匹配到多张会返回候选。',
@@ -1429,7 +1429,7 @@ if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.delete
     },
     async ({ key, token, image, messageId }) => {
       try {
-        const data = await agentApi('/api/socialV2/delete-image', {
+        const data = await agentApi('/api/simulation/delete-image', {
           method: 'POST',
           body: JSON.stringify({ key, image: image ? String(image) : '', messageId: messageId ? String(messageId) : '' }),
           headers: { 'x-agent-token': token },
@@ -1443,7 +1443,7 @@ if (cfg.socialV2?.imageLibrary?.enabled !== false && cfg.socialV2?.tools?.delete
   );
 }
 
-if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.collectSticker !== false) {
+if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.collectSticker !== false) {
   server.tool(
     'qq_collect_sticker',
     '收藏当前会话里别人发的一张表情/图片到你的 QQ 收藏表情，并可写一句简短备注。只允许收藏 Q 版小鲸鱼/DeepSeek 鲸鱼娘形象的图，其他角色、真人、截图、普通梗图不要收藏（桥接会用视觉模型再确认，不符合会拒绝）。messageId 用 qq_get_unread_messages / qq_get_recent_messages 返回的 messageId 或 seq；同一张别连偷，收藏后可在 qq_list_stickers 里看到并继续使用。',
@@ -1455,7 +1455,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.collectStic
     },
     async ({ key, token, messageId, remark }) => {
       try {
-        const data = await agentApi('/api/socialV2/collect-sticker', {
+        const data = await agentApi('/api/simulation/collect-sticker', {
           method: 'POST',
           body: JSON.stringify({ key, messageId: String(messageId), remark: remark || '' }),
           headers: { 'x-agent-token': token },
@@ -1469,7 +1469,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.collectStic
   );
 }
 
-if (cfg.socialV2?.voice?.enabled !== false && cfg.socialV2?.tools?.sendVoice !== false) {
+if (cfg.simulation?.voice?.enabled !== false && cfg.simulation?.tools?.sendVoice !== false) {
   server.tool(
     'qq_send_voice',
     '在指定会话发一条 QQ 语音（把语音库里准备好的音频当语音条发出去）。voice 传 qq_list_voices 返回的 name（文件名，可带子目录），也可以直接传语音库里的文件名（不带扩展名也能匹配）。注意：① 只能发语音库（qq-bridge/audio/）里的文件，不能发任意本地路径，也不能发 URL/base64；② 受时长与频率上限约束（见 qq_list_voices 的 limits），超限会被拒绝；③ 语音是「开口说话」的强表达，别滥用，闲聊里偶尔发一条即可；④ 返回的 verified=true 表示已经用 get_msg 回读到这条消息的 record 段（语音确实落地了）—— 只有 verified=true 才能对用户说你发了语音；⑤ readback 只对「收到的」语音有意义（QQ 会转写别人的语音），自己发的语音一般拿不到转写文本，默认关闭，别依赖它。',
@@ -1483,7 +1483,7 @@ if (cfg.socialV2?.voice?.enabled !== false && cfg.socialV2?.tools?.sendVoice !==
     },
     async ({ key, token, voice, label, verify, readback }) => {
       try {
-        const data = await agentApi('/api/socialV2/send-voice', {
+        const data = await agentApi('/api/simulation/send-voice', {
           method: 'POST',
           body: JSON.stringify({
             key,
@@ -1515,7 +1515,7 @@ if (cfg.socialV2?.voice?.enabled !== false && cfg.socialV2?.tools?.sendVoice !==
       try {
         const q = new URLSearchParams({ key });
         if (probe === false) q.set('probe', '0');
-        const data = await agentApi(`/api/socialV2/voices?${q.toString()}`, { headers: { 'x-agent-token': token } });
+        const data = await agentApi(`/api/simulation/voices?${q.toString()}`, { headers: { 'x-agent-token': token } });
         return { content: [{ type: 'text', text: serializeModelData(data) }] };
       } catch (error) {
         return { content: [{ type: 'text', text: `获取语音库失败：${error?.message ?? error}` }], isError: true };
@@ -1851,7 +1851,7 @@ if (ttsCfg().enabled === true) {
         const voiceProvider = breeze.format === 'ogg' ? 'breeze-opus' : 'breeze';
 
         stage = '发送语音';
-        const data = await agentApi('/api/socialV2/send-voice', {
+        const data = await agentApi('/api/simulation/send-voice', {
           method: 'POST',
           body: JSON.stringify({
             key,
@@ -1898,7 +1898,7 @@ if (ttsCfg().enabled === true) {
   );
 }
 
-if (cfg.socialV2?.innerLife?.enabled !== false) {
+if (cfg.simulation?.innerLife?.enabled !== false) {
   server.tool(
     'qq_owner_admin',
     '主人的管理动作（仅主人私聊）。用自然语言理解主人意图后调用：改声线 voice_style、改个性签名 signature、立即找一条分享 run_share、立即写一条说说 run_qzone、暂停/恢复空间说说 pause_qzone/resume_qzone、设置主动分享目标群 set_share_targets、查看内心生活状态 status、查看说说频率规则 qzone_status、查看整体规则 owner_status。主人问“说说频率/规则/为什么这么频繁”时必须先 qzone_status 再回答，不要猜。高危动作会先私聊主人确认（不要自己填 confirmCode）。',
@@ -1936,7 +1936,7 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
         } else if (!['run_qzone', 'pause_qzone', 'resume_qzone', 'status', 'qzone_status', 'owner_status'].includes(action)) {
           throw new Error('未知的 action');
         }
-        const data = await agentApi('/api/socialV2/owner-admin', {
+        const data = await agentApi('/api/simulation/owner-admin', {
           method: 'POST',
           body: JSON.stringify(payload),
           headers: { 'x-agent-token': token },
@@ -1950,7 +1950,7 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
   );
 }
 
-if (cfg.socialV2?.innerLife?.mood?.eventNudge?.enabled === true) {
+if (cfg.simulation?.innerLife?.mood?.eventNudge?.enabled === true) {
   server.tool(
     'qq_mood_nudge',
     '只在某件事明显影响你心情时调用：被认真夸/被安慰/被凶/小冲突/分享被接住/被冷落。强度 3–5；普通闲聊、接梗、天气、查资料不要调用。同一事件只记一次；每小时/每天有限额；它不代替正常回复，也不是情绪表演。返回当前心情。',
@@ -1966,7 +1966,7 @@ if (cfg.socialV2?.innerLife?.mood?.eventNudge?.enabled === true) {
     },
     async ({ key, token, what, intensity, valence, arousal, cause, sourceMessageId }) => {
       try {
-        const data = await agentApi('/api/socialV2/mood/nudge', {
+        const data = await agentApi('/api/simulation/mood/nudge', {
           method: 'POST',
           body: JSON.stringify({ key, token, what, intensity, valence, arousal: arousal || 'none', cause, sourceMessageId: sourceMessageId ?? null }),
           headers: { 'x-agent-token': token },
@@ -1980,8 +1980,8 @@ if (cfg.socialV2?.innerLife?.mood?.eventNudge?.enabled === true) {
   );
 }
 
-if (cfg.socialV2?.innerLife?.enabled !== false) {
-  const shareModuleCall = async (token, payload) => agentApi('/api/socialV2/share-modules', {
+if (cfg.simulation?.innerLife?.enabled !== false) {
+  const shareModuleCall = async (token, payload) => agentApi('/api/simulation/share-modules', {
     method: 'POST',
     body: JSON.stringify(payload),
     headers: { 'x-agent-token': token },
@@ -2147,8 +2147,8 @@ function highRiskKeyError(key) {
   return k === `private:${cfg.ownerQQ}` ? '' : '管理动作只允许主人私聊';
 }
 
-if (cfg.socialV2?.innerLife?.enabled !== false) {
-  const ownerFeatureCall = async (token, payload) => agentApi('/api/socialV2/owner-features', {
+if (cfg.simulation?.innerLife?.enabled !== false) {
+  const ownerFeatureCall = async (token, payload) => agentApi('/api/simulation/owner-features', {
     method: 'POST',
     body: JSON.stringify(payload),
     headers: { 'x-agent-token': token },
@@ -2231,7 +2231,7 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
       }
     }
   );
-  const ownerConfigCall = async (token, payload) => agentApi('/api/socialV2/owner-config', {
+  const ownerConfigCall = async (token, payload) => agentApi('/api/simulation/owner-config', {
     method: 'POST',
     body: JSON.stringify(payload),
     headers: { 'x-agent-token': token },
@@ -2294,7 +2294,7 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
       }
     }
   );
-  const devProposalCall = async (token, payload) => agentApi('/api/socialV2/dev-proposals', {
+  const devProposalCall = async (token, payload) => agentApi('/api/simulation/dev-proposals', {
     method: 'POST',
     body: JSON.stringify(payload),
     headers: { 'x-agent-token': token },
@@ -2408,7 +2408,7 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
   );
 }
 
-if (cfg.socialV2?.innerLife?.enabled !== false) {
+if (cfg.simulation?.innerLife?.enabled !== false) {
   server.tool(
     'qq_post_qzone',
     '把一段文字发到你的 QQ 空间（说说）。仅主人私聊可用。主人让你“把这段发成说说/发到空间/挂个说说”时直接调用，不要说自己没有入口，也不要让主人去管理端发。text 最多 150 字；可以带 image（图片库 id 或 name，可用 qq_save_image 先存封面）；dryRun=true 只预览不发布。内容会检查时间是否自洽；发布成功返回 tid。',
@@ -2424,7 +2424,7 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
       try {
         const keyErr = highRiskKeyError(key);
         if (keyErr) return { content: [{ type: 'text', text: keyErr }], isError: true };
-        const data = await agentApi('/api/socialV2/qzone-post', {
+        const data = await agentApi('/api/simulation/qzone-post', {
           method: 'POST',
           body: JSON.stringify({ key, token, text: String(text ?? ''), image: image ? String(image) : '', dryRun: dryRun === true, ...(confirmCode ? { confirmCode: String(confirmCode) } : {}) }),
           headers: { 'x-agent-token': token },
@@ -2438,7 +2438,7 @@ if (cfg.socialV2?.innerLife?.enabled !== false) {
   );
 }
 
-if (cfg.socialV2?.tools?.getSelfImage !== false) {
+if (cfg.simulation?.tools?.getSelfImage !== false) {
   server.tool(
     'qq_get_self_image',
     '查看你自己的默认 Q 版形象图片（DeepSeek 小鲸鱼形象）。当你被问“你长什么样/发张自拍/你是什么形象”时，可以调用这个工具看自己的样子；返回的图片会直接进入你的视觉上下文。',
@@ -2449,7 +2449,7 @@ if (cfg.socialV2?.tools?.getSelfImage !== false) {
     async ({ key, token }) => {
       try {
         const q = new URLSearchParams({ key });
-        const data = await agentApi(`/api/socialV2/self-image?${q.toString()}`, { headers: { 'x-agent-token': token } });
+        const data = await agentApi(`/api/simulation/self-image?${q.toString()}`, { headers: { 'x-agent-token': token } });
         if (!data?.image?.data || !data?.image?.mimeType) {
           return { content: [{ type: 'text', text: `没有可返回的形象图片：${errorText(data?.error, '未知')}` }], isError: true };
         }
@@ -2466,7 +2466,7 @@ if (cfg.socialV2?.tools?.getSelfImage !== false) {
   );
 }
 
-if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.stickerNote !== false) {
+if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.stickerNote !== false) {
   server.tool(
     'qq_sticker_note',
     '给一个收藏表情记录你自己的理解/备注/标签/用法，供以后选择表情时参考。这是本地记忆，不会修改 QQ 账号的官方备注；适合对没有备注的表情看图后记住含义。',
@@ -2484,7 +2484,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.stickerNote
         if (note !== undefined && note !== null) payload.note = String(note);
         if (tags !== undefined && tags !== null) payload.tags = Array.isArray(tags) ? tags.map(String) : [];
         if (usage !== undefined && usage !== null) payload.usage = String(usage);
-        const data = await agentApi('/api/socialV2/sticker-note', {
+        const data = await agentApi('/api/simulation/sticker-note', {
           method: 'POST',
           body: JSON.stringify(payload),
           headers: { 'x-agent-token': token }
@@ -2497,10 +2497,10 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.stickerNote
   );
 }
 
-if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.setStickerRemark !== false) {
+if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.setStickerRemark !== false) {
   server.tool(
     'qq_set_sticker_remark',
-    '修改 QQ 账号里收藏表情的官方备注（desc）。这是写操作，会直接影响 QQ 账号的表情备注；仅在管理员明确允许（socialV2.tools.setStickerRemark=true）时可用。一般优先用 qq_sticker_note 记录自己的理解，不要随意改官方备注。',
+    '修改 QQ 账号里收藏表情的官方备注（desc）。这是写操作，会直接影响 QQ 账号的表情备注；仅在管理员明确允许（simulation.tools.setStickerRemark=true）时可用。一般优先用 qq_sticker_note 记录自己的理解，不要随意改官方备注。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -2509,7 +2509,7 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.setStickerR
     },
     async ({ key, token, stickerId, remark }) => {
       try {
-        const data = await agentApi('/api/socialV2/sticker-remark', {
+        const data = await agentApi('/api/simulation/sticker-remark', {
           method: 'POST',
           body: JSON.stringify({ key, stickerId: String(stickerId), remark: String(remark || '') }),
           headers: { 'x-agent-token': token }
@@ -2522,8 +2522,8 @@ if (cfg.socialV2?.sticker?.enabled !== false && cfg.socialV2?.tools?.setStickerR
   );
 }
 
-// ── 合并转发消息查看工具（二代仿真模式） ────────────────────────────────────
-if (cfg.socialV2?.tools?.getForwardMsg !== false) {
+// ── 合并转发消息查看工具（群聊仿真模式） ────────────────────────────────────
+if (cfg.simulation?.tools?.getForwardMsg !== false) {
   server.tool(
     'qq_get_forward_msg',
     '查看当前会话中出现的合并转发消息/聊天记录内容（只读）。当消息文本里出现 `[转发消息 id=...]`，或 `qq_get_unread_messages` / `qq_get_recent_messages` / `qq_get_message_detail` 返回的某条消息带 `forwardIds` / `hasForward: true` 时调用。只能查看当前会话确实收到过的转发消息 id，不能任意读取。返回内容会包含每条消息的 text、media（图片/表情元数据）与 nestedForwardIds；如果合并转发里有图片，工具会直接把最多 5 张图片以图像内容返回给视觉模型；如果里面有嵌套合并转发，会附带嵌套转发 id 和前几条预览，必要时可继续用本工具查看嵌套 id。',
@@ -2535,7 +2535,7 @@ if (cfg.socialV2?.tools?.getForwardMsg !== false) {
     async ({ key, token, id }) => {
       try {
         const q = new URLSearchParams({ key, id: String(id) });
-        const data = await agentApi(`/api/socialV2/forward-message?${q.toString()}`, {
+        const data = await agentApi(`/api/simulation/forward-message?${q.toString()}`, {
           headers: { 'x-agent-token': token },
           timeoutMs: 120000
         });
@@ -2564,7 +2564,7 @@ if (cfg.socialV2?.tools?.getForwardMsg !== false) {
         const imageTexts = [];
         if (images.length) {
           try {
-            const mediaRes = await agentApi('/api/socialV2/forward-media', {
+            const mediaRes = await agentApi('/api/simulation/forward-media', {
               method: 'POST',
               body: JSON.stringify({ key, media: images.slice(0, MAX_IMAGES) }),
               headers: { 'x-agent-token': token },

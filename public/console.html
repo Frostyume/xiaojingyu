@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>QQ 桥接控制台</title>
+<title>小鲸鱼 · QQ 桥接控制台</title>
 <script>
 // 主题引导：须在样式表之前执行，避免首屏闪一下浅色。
 (function () {
@@ -818,13 +818,13 @@ summary {
 .save-bar .meta {
   font-size:11px
 }
-.v2-tool-list {
+.simulation-tool-list {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(min(265px,100%),1fr));
   gap:10px;
   margin-top:12px
 }
-.v2-tool-item {
+.simulation-tool-item {
   display:flex;
   align-items:flex-start;
   gap:9px;
@@ -836,15 +836,15 @@ summary {
   font-size:12px;
   min-width:0
 }
-.v2-tool-item input {
+.simulation-tool-item input {
   margin-top:4px
 }
-.v2-tool-item .meta {
+.simulation-tool-item .meta {
   display:block;
   font-size:11px;
   margin-top:3px
 }
-.v2-tool-item b {
+.simulation-tool-item b {
   font-family:Consolas,monospace;
   font-size:12px;
   font-weight:500;
@@ -1722,10 +1722,10 @@ tr:last-child td {
 .settings-group[open] summary {
   background:var(--surface-open)
 }
-.v2-tool-item {
+.simulation-tool-item {
   transition:background .18s ease,border-color .18s ease
 }
-.v2-tool-item:hover {
+.simulation-tool-item:hover {
   background:var(--surface-hover)
 }
 
@@ -1852,13 +1852,670 @@ button:active:not(:disabled) {
 .content-controls input,.content-controls select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:inherit;font:inherit}
 .content-controls input[type=checkbox]{align-self:flex-start;width:16px;height:16px}
 .content-history{border-top:1px solid var(--border);margin-top:10px;padding-top:8px}
+
+/* =====================================================================
+   潮汐主题 · Tidepool
+   深海侧栏 + 海玻璃卡片 + 浅海渐变。所有颜色仍走原有设计变量，
+   因此表单、表格、弹窗会一起换肤，无需逐块改。
+   ===================================================================== */
+:root {
+  --bg:#e9f3f3;
+  --surface:#fff;
+  --surface-subtle:#f6fbfa;
+  --surface-sunken:#eef6f5;
+  --surface-hover:#e4f2f0;
+  --surface-chip:#eef7f6;
+  --surface-chip-strong:#d8ebe7;
+  --surface-open:#f3faf9;
+  --card:#fdfefe;
+  --topbar-bg:rgba(248,252,251,.84);
+  --save-bar-bg:#f3faf9f2;
+  --overlay:#062b3566;
+  --card-border:#d7e7e4;
+  --border:#d0e2df;
+  --border-input:#c7dcda;
+  --border-chip:#d4e6e3;
+  --border-strong:#b6d2cf;
+  --border-dashed:#d1e4e1;
+  --border-subtle:#e3efed;
+  --text:#12313a;
+  --text-strong:#08222a;
+  --text-input:#123039;
+  --text-secondary:#41636b;
+  --label:#4c6a71;
+  --muted:#5b777d;
+  --muted-soft:#789096;
+  --placeholder:#8ba1a5;
+  --icon:#557a80;
+  --eyebrow:#0d8f84;
+  --code-fg:#3f6b73;
+  --code-fg-strong:#245b64;
+  --pre-fg:#4c6a70;
+  --accent:#0d9488;
+  --accent-hover:#0b7c72;
+  --accent-border:#0d9488;
+  --accent-soft-bg:#dcf3ef;
+  --accent-soft-bg-active:#d0efe9;
+  --accent-soft-fg:#096b62;
+  --accent-soft-fg-muted:#4f8883;
+  --accent-border-soft:#b5e0da;
+  --accent-border-soft-hover:#9bd3cb;
+  --accent-border-active:#4bc1b3;
+  --accent-border-hover:#7bd0c5;
+  --accent-border-focus:#2fb3a5;
+  --accent-ring:#0d948814;
+  --danger:#fff4f1;--danger-border:#f0d2cb;--danger-hover-bg:#ffe9e3;--err:#b8452f;
+  --ok:#0c8466;
+  --pill-blue-bg:#e2f2f5;--pill-blue-fg:#1d6a78;
+  --pill-green-bg:#e0f5ee;--pill-green-fg:#14735a;
+  --pill-red-bg:#ffece7;--pill-red-fg:#b04a35;
+  --warn-bg:#fff7e8;--warn-border:#f0d8a8;--warn-fg:#8a641f;--warn-fg-strong:#a66e12;
+  --dot-idle:#7aa39c;--dot-offline:#9bb0b3;
+  --focus-ring:#2fbfae;--focus-ring-modal:#43c9b9;
+  --toast-bg:#072b34;--toast-fg:#effbfa;
+  --shadow-card:0 1px 0 #ffffffb3 inset,0 20px 44px -30px #0c4b5240;
+  --shadow-md:0 10px 24px -18px #0c4b5247;
+  --shadow-pop:0 26px 64px -26px #08333b52;
+  --shadow-modal:0 34px 96px -32px #06272e70;
+  --shadow-log:0 12px 36px -20px #08333b44;
+  --decor-a:#2ec4b62e;--decor-b:#ff8f6b1f;
+  --radius:20px;
+  --sidebar-ink:#e8f7f5;--sidebar-muted:#8fb4b6;--sidebar-line:#1a4650;
+  color-scheme:light;
+}
+[data-theme="dark"] {
+  --bg:#061822;
+  --surface:#0a2430;
+  --surface-subtle:#0d2a36;
+  --surface-sunken:#081f2a;
+  --surface-hover:#123541;
+  --surface-chip:#0d2b36;
+  --surface-chip-strong:#17414b;
+  --surface-open:#0c2b36;
+  --card:#0a2330;
+  --topbar-bg:rgba(7,26,36,.84);
+  --save-bar-bg:#08222df2;
+  --overlay:#00000099;
+  --card-border:#163844;
+  --border:#173c47;
+  --border-input:#1c4350;
+  --border-chip:#1a3f4a;
+  --border-strong:#255561;
+  --border-dashed:#1b414c;
+  --border-subtle:#12333d;
+  --text:#e6f4f4;
+  --text-strong:#f4fdfc;
+  --text-input:#e2f2f2;
+  --text-secondary:#a9c6c8;
+  --label:#96b6b8;
+  --muted:#8aadb0;
+  --muted-soft:#75989c;
+  --placeholder:#648b90;
+  --icon:#8db4b6;
+  --eyebrow:#5ed8c8;
+  --code-fg:#9cc9c8;
+  --code-fg-strong:#bfe4e2;
+  --pre-fg:#9dbdbf;
+  --accent:#4fd9c8;
+  --accent-hover:#74e6d7;
+  --accent-border:#4fd9c8;
+  --accent-soft-bg:#0d3d40;
+  --accent-soft-bg-active:#11484a;
+  --accent-soft-fg:#9df0e5;
+  --accent-soft-fg-muted:#78b6b3;
+  --accent-border-soft:#1d5457;
+  --accent-border-soft-hover:#266b6b;
+  --accent-border-active:#2e857f;
+  --accent-border-hover:#3c9b93;
+  --accent-border-focus:#4fd9c8;
+  --accent-ring:#4fd9c822;
+  --danger:#2d1815;--danger-border:#502a22;--danger-hover-bg:#3a1f19;--err:#ff9d8a;
+  --ok:#5ee0b0;
+  --pill-blue-bg:#0d3d40;--pill-blue-fg:#9df0e5;
+  --pill-green-bg:#0c332a;--pill-green-fg:#66e0b3;
+  --pill-red-bg:#331b16;--pill-red-fg:#ffa694;
+  --warn-bg:#2b2413;--warn-border:#51431e;--warn-fg:#ecc57a;--warn-fg-strong:#f5d38d;
+  --dot-idle:#3f6b64;--dot-offline:#43626b;
+  --focus-ring:#4fd9c8;--focus-ring-modal:#6fe4d6;
+  --toast-bg:#e8fbf8;--toast-fg:#052026;
+  --shadow-card:0 1px 0 #ffffff0a inset,0 24px 52px -30px #000000cc;
+  --shadow-md:0 12px 30px -18px #000000d9;
+  --shadow-pop:0 28px 66px -26px #000000e6;
+  --shadow-modal:0 38px 104px -32px #000000f2;
+  --shadow-log:0 14px 40px -20px #000000d9;
+  --decor-a:#2ec4b62e;--decor-b:#ff8f6b24;
+  --sidebar-ink:#e8f7f5;--sidebar-muted:#84a8ab;--sidebar-line:#15414b;
+  color-scheme:dark;
+}
+::selection {
+  background:#2ec4b640
+}
+html {
+  scroll-padding-top:88px
+}
+body {
+  background:
+    radial-gradient(1100px 560px at 88% -12%,#8fe4d826,transparent 62%),
+    radial-gradient(900px 520px at -8% 34%,#ffb19914,transparent 60%),
+    var(--bg);
+  background-attachment:fixed
+}
+.bg-decor {
+  background-image:repeating-linear-gradient(115deg,#0d948805 0 1px,transparent 1px 92px)
+}
+.bg-decor::before {
+  background:radial-gradient(circle at 50% 50%,var(--decor-a),transparent 66%);
+  filter:blur(2px)
+}
+.bg-decor::after {
+  background:radial-gradient(circle at 50% 50%,var(--decor-b),transparent 68%);
+  filter:blur(2px)
+}
+
+/* ── 深海侧栏 ─────────────────────────────────────────────── */
+.sidebar {
+  width:248px;
+  padding:26px 15px 18px;
+  background:
+    radial-gradient(120% 52% at 12% 0%,#0f5b5d66,transparent 62%),
+    radial-gradient(100% 46% at 100% 100%,#0a3f4dcc,transparent 66%),
+    linear-gradient(180deg,#082a36 0%,#061e29 56%,#051a24 100%);
+  border-right:1px solid #07323d;
+  box-shadow:16px 0 48px -38px #001820;
+  color:var(--sidebar-ink)
+}
+.sidebar::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background-image:radial-gradient(#7fe9da17 1px,transparent 1px);
+  background-size:17px 17px;
+  mask-image:linear-gradient(180deg,#000 0%,transparent 68%)
+}
+.sidebar>* {
+  position:relative;
+  z-index:1
+}
+.workspace {
+  margin-left:248px
+}
+.brand {
+  gap:12px;
+  padding:2px 10px 24px;
+  color:var(--sidebar-ink);
+  font-size:20px;
+  letter-spacing:-.4px
+}
+.brand small {
+  color:var(--sidebar-muted);
+  letter-spacing:.04em;
+  font-size:9.5px
+}
+.brand-mark {
+  width:42px;
+  height:42px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  border-radius:15px;
+  background:linear-gradient(145deg,#a9f4e7 0%,#3fd0bf 52%,#1fae9f 100%);
+  box-shadow:0 10px 24px -12px #2ec4b6cc,inset 0 1px 0 #ffffffaa;
+  color:#062b33
+}
+.brand-mark svg {
+  width:30px;
+  height:30px;
+  display:block
+}
+.sidebar .nav-label {
+  margin:20px 14px 6px;
+  color:var(--sidebar-muted);
+  opacity:.72;
+  font-size:9px;
+  letter-spacing:.2em
+}
+.sidebar>.nav-label {
+  margin-top:8px
+}
+.sidebar .nav-item {
+  color:#c2dcdd;
+  border-radius:12px;
+  padding:9px 12px;
+  margin:2px 0;
+  gap:10px;
+  font-size:13px
+}
+.sidebar .nav-item:hover {
+  background:#ffffff0d;
+  color:#fff
+}
+.sidebar .nav-item.active {
+  background:linear-gradient(90deg,#2ec4b636,#2ec4b60a);
+  color:#a9f4e9;
+  box-shadow:inset 3px 0 0 #4fe0cc,0 0 26px -12px #4fe0cc
+}
+.sidebar .nav-icon {
+  width:27px;
+  height:27px;
+  display:inline-grid;
+  place-items:center;
+  border-radius:8px;
+  background:#ffffff0a;
+  font-size:16px;
+  color:#9fc9c9;
+  transition:background .18s ease,color .18s ease
+}
+.sidebar .nav-item:hover .nav-icon {
+  background:#ffffff14;
+  color:#d8fffa
+}
+.sidebar .nav-item.active .nav-icon {
+  background:#4fe0cc26;
+  color:#8ff3e7
+}
+.sidebar .nav-count {
+  background:#ffffff14;
+  color:#bfe9e3;
+  border-radius:999px
+}
+.sidebar-bottom {
+  border-top-color:var(--sidebar-line);
+  color:#9fc0c2;
+  margin:26px 10px 0
+}
+.sidebar-bottom small {
+  color:#6f969a
+}
+.local-dot {
+  background:#4fe0cc;
+  box-shadow:0 0 10px #4fe0cc
+}
+
+/* ── 顶栏与主区 ───────────────────────────────────────────── */
+.topbar {
+  height:72px;
+  padding:0 34px;
+  background:var(--topbar-bg);
+  backdrop-filter:blur(16px) saturate(1.1);
+  border-bottom:1px solid var(--border-subtle)
+}
+.breadcrumb {
+  align-items:center;
+  gap:10px;
+  padding:6px 13px;
+  border:1px solid var(--border-subtle);
+  border-radius:999px;
+  background:var(--surface-chip);
+  font-size:11px
+}
+.breadcrumb span:last-child {
+  color:var(--text-strong);
+  font-weight:600
+}
+.topbar-actions {
+  gap:10px
+}
+.status-badge {
+  padding:5px 12px;
+  border:1px solid var(--border-subtle);
+  border-radius:999px;
+  background:var(--surface-chip)
+}
+.icon-button {
+  width:36px;
+  height:36px;
+  border-radius:999px;
+  background:var(--surface);
+  box-shadow:var(--shadow-md);
+  font-size:20px
+}
+main {
+  padding:34px 38px 22px
+}
+.page-heading {
+  position:relative;
+  overflow:hidden;
+  align-items:flex-end;
+  z-index:0;
+  padding:30px 34px;
+  margin-bottom:26px;
+  border:1px solid var(--card-border);
+  border-radius:26px;
+  background:
+    radial-gradient(80% 130% at 100% 0%,#7fe0d233,transparent 58%),
+    radial-gradient(60% 110% at 0% 100%,#ff9c7a17,transparent 62%),
+    linear-gradient(122deg,#ffffff 0%,#f1faf9 100%);
+  box-shadow:var(--shadow-card)
+}
+[data-theme="dark"] .page-heading {
+  background:
+    radial-gradient(80% 130% at 100% 0%,#2ec4b626,transparent 58%),
+    radial-gradient(60% 110% at 0% 100%,#ff8f6b14,transparent 62%),
+    linear-gradient(122deg,#0a2632 0%,#081f2a 100%)
+}
+.page-heading>* {
+  position:relative;
+  z-index:1
+}
+.page-heading::before {
+  content:"";
+  position:absolute;
+  z-index:0;
+  right:-70px;
+  top:-110px;
+  width:320px;
+  height:320px;
+  border-radius:50%;
+  background:radial-gradient(circle,#2ec4b62b,transparent 66%);
+  pointer-events:none
+}
+.page-heading::after {
+  content:"";
+  position:absolute;
+  z-index:0;
+  right:36px;
+  bottom:22px;
+  width:150px;
+  height:44px;
+  opacity:.55;
+  pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='44' viewBox='0 0 150 44'%3E%3Cpath d='M2 30c14-16 28-16 42 0s28 16 42 0 28-16 42 0 14 8 20 6' fill='none' stroke='%230d9488' stroke-opacity='.35' stroke-width='1.4'/%3E%3Cpath d='M2 38c14-16 28-16 42 0s28 16 42 0 28-16 42 0 14 8 20 6' fill='none' stroke='%230d9488' stroke-opacity='.16' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right bottom
+}
+.eyebrow {
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  margin-bottom:12px;
+  color:var(--accent);
+  font-size:10px;
+  letter-spacing:.26em
+}
+.eyebrow::before {
+  content:"";
+  width:24px;
+  height:1.5px;
+  border-radius:2px;
+  background:linear-gradient(90deg,var(--accent),transparent)
+}
+h1 {
+  font-size:34px;
+  font-weight:800;
+  letter-spacing:-1.1px;
+  line-height:1.28;
+  color:var(--text-strong)
+}
+.page-heading h1::after {
+  content:"";
+  display:block;
+  width:112px;
+  height:6px;
+  margin-top:13px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='6' viewBox='0 0 28 6'%3E%3Cpath d='M0 3c2.3-2.3 4.7-2.3 7 0s4.7 2.3 7 0 4.7-2.3 7 0 4.7 2.3 7 0' fill='none' stroke='%230d9488' stroke-opacity='.6' stroke-width='1.5'/%3E%3C/svg%3E") repeat-x
+}
+.page-heading p {
+  font-size:13px;
+  color:var(--muted)
+}
+.search-wrap {
+  flex-basis:280px
+}
+.search-wrap input {
+  border-radius:999px;
+  padding:11px 18px;
+  background:var(--surface);
+  box-shadow:var(--shadow-md)
+}
+
+/* ── 总览指标：独立海玻璃卡片 ─────────────────────────────── */
+.overview-summary {
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:12px;
+  padding:0;
+  margin-bottom:24px;
+  background:transparent;
+  border:0
+}
+.metric {
+  position:relative;
+  overflow:hidden;
+  padding:18px 20px;
+  border:1px solid var(--card-border);
+  border-radius:16px;
+  background:linear-gradient(180deg,var(--surface) 0%,var(--surface-subtle) 100%);
+  box-shadow:var(--shadow-md)
+}
+.metric:last-child {
+  border:1px solid var(--card-border)
+}
+.metric::after {
+  content:"";
+  position:absolute;
+  right:-22px;
+  top:-22px;
+  width:74px;
+  height:74px;
+  border-radius:50%;
+  background:radial-gradient(circle,#2ec4b61f,transparent 70%);
+  pointer-events:none
+}
+.metric>span {
+  font-size:11px;
+  letter-spacing:.08em;
+  color:var(--muted)
+}
+.metric strong {
+  font-size:28px;
+  font-weight:750;
+  letter-spacing:-.8px;
+  margin:7px 0 3px;
+  color:var(--text-strong)
+}
+#metricMode {
+  font-size:23px;
+  color:var(--accent-soft-fg)
+}
+#metricSnowluma {
+  font-size:20px
+}
+.metric small {
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:8px;
+  color:var(--muted-soft)
+}
+.metric small span {
+  float:none;
+  flex:none
+}
+.metric-link:hover {
+  background:linear-gradient(180deg,var(--surface) 0%,var(--accent-soft-bg) 100%);
+  border-color:var(--accent-border-soft-hover)
+}
+
+/* ── 卡片、按钮、表单 ─────────────────────────────────────── */
+.card {
+  position:relative;
+  padding:26px 28px;
+  border-radius:22px;
+  background:linear-gradient(180deg,var(--card) 0%,var(--surface-subtle) 100%);
+  box-shadow:var(--shadow-card)
+}
+.card h2 {
+  font-size:17px;
+  font-weight:700;
+  letter-spacing:-.3px;
+  gap:10px
+}
+.card h2::before {
+  content:"";
+  width:6px;
+  height:20px;
+  flex:none;
+  border-radius:99px;
+  background:linear-gradient(180deg,var(--accent),#7ee0d2);
+  box-shadow:0 0 14px #2ec4b666
+}
+.card h3 {
+  letter-spacing:-.2px
+}
+button {
+  border-radius:11px
+}
+button.active,.primary {
+  background:linear-gradient(135deg,var(--accent) 0%,#15b3a2 100%);
+  border-color:transparent;
+  box-shadow:0 12px 24px -14px #0d9488b3
+}
+input[type=text],input[type=search],input[type=password],input[type=number],textarea,select {
+  border-radius:10px;
+  background:var(--surface)
+}
+.tag {
+  border-radius:999px
+}
+.settings-group {
+  border-radius:14px
+}
+.save-bar {
+  border-radius:16px;
+  backdrop-filter:blur(12px)
+}
+.mode-row button {
+  border-radius:16px;
+  background:linear-gradient(180deg,var(--surface),var(--surface-subtle))
+}
+.mode-row button.active {
+  background:linear-gradient(145deg,var(--accent-soft-bg),var(--surface))
+}
+.modal {
+  border-radius:20px
+}
+.toast {
+  border-radius:999px
+}
+
+@media(max-width:1180px) {
+  .sidebar {
+    width:220px
+  }
+  .workspace {
+    margin-left:220px
+  }
+  .topbar {
+    padding:0 24px
+  }
+  main {
+    padding:28px 24px 20px
+  }
+  .overview-summary {
+    grid-template-columns:repeat(3,minmax(0,1fr))
+  }
+  .page-heading {
+    padding:26px 28px
+  }
+}
+@media(max-width:760px) {
+  .sidebar {
+    width:100%;
+    padding:16px 16px 8px;
+    border-right:0;
+    border-bottom:1px solid #0b3a44;
+    background:
+      radial-gradient(120% 80% at 12% 0%,#0f5b5d80,transparent 62%),
+      linear-gradient(160deg,#082a36 0%,#061e29 100%)
+  }
+  .sidebar .nav-icon {
+    display:none
+  }
+  .brand {
+    padding:0 4px 12px;
+    font-size:19px
+  }
+  .brand-mark {
+    width:36px;
+    height:36px;
+    border-radius:13px
+  }
+  .brand-mark svg {
+    width:26px;
+    height:26px
+  }
+  .sidebar .nav-item {
+    color:#c2dcdd;
+    padding:8px 12px
+  }
+  .workspace {
+    margin-left:0
+  }
+  .topbar {
+    height:56px;
+    padding:0 16px
+  }
+  .breadcrumb {
+    padding:4px 10px;
+    gap:7px
+  }
+  .status-badge {
+    padding:4px 9px
+  }
+  .icon-button {
+    width:30px;
+    height:30px;
+    font-size:18px
+  }
+  main {
+    padding:22px 16px 18px
+  }
+  .page-heading {
+    padding:22px 20px;
+    border-radius:20px
+  }
+  .search-wrap {
+    flex-basis:auto;
+    width:100%
+  }
+  h1 {
+    font-size:26px;
+    letter-spacing:-.7px
+  }
+  .page-heading::after {
+    display:none
+  }
+  .overview-summary {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px
+  }
+  .metric,
+  .metric:nth-child(n) {
+    padding:16px;
+    border:1px solid var(--card-border);
+    min-height:0
+  }
+  .metric:last-child {
+    grid-column:1/-1
+  }
+  .metric strong {
+    font-size:24px
+  }
+  .card {
+    padding:20px;
+    border-radius:18px
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  .page-heading::after {
+    background-image:none
+  }
+}
 </style>
 </head>
 <body>
   <div class="bg-decor" aria-hidden="true"></div>
   <a class="skip-link" href="#mainContent">跳到主要内容</a>
   <aside class="sidebar" aria-label="控制台导航">
-    <a href="#overview" class="brand"><span class="brand-mark" aria-hidden="true">q<span>↗</span></span><span>QQ Bridge<small>DeepSeek Harness 控制台</small></span></a>
+    <a href="#overview" class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false"><path d="M13.4 27.6c-2.8 0-5.6 1.4-7.5 3.9 2 1.2 4.2 1.2 6.2.2-1.6 1.6-2.3 3.6-2 5.9 2.9-1 4.8-3.1 5.6-5.6" fill="#062b33" fill-opacity=".78"/><path d="M13 27.8c0-8.4 7.3-14 17.2-14 9.3 0 15.3 5.4 15.3 12.8 0 7.6-6.3 12.6-15.5 12.6C20.2 39.2 13 35 13 27.8Z" fill="#062b33"/><path d="M16.2 31.2c2.4 4.1 7.1 6.3 13.1 6.3 6.9 0 11.9-3.2 13.4-8.1 1 1.2 1.6 2.6 1.7 4.2-1.6 4-6.1 6.6-12.3 6.6-7.3 0-12.9-3.1-15.9-9Z" fill="#0f6f74" fill-opacity=".55"/><circle cx="37.6" cy="24.4" r="1.7" fill="#c9fff6"/><circle cx="37.6" cy="24.4" r=".8" fill="#04242a"/><path d="M31 10.4c-.4-2.2.2-4 1.9-5.4M31.6 10.8c1.6-2 3.5-2.8 5.7-2.7" stroke="#062b33" stroke-width="1.5" stroke-linecap="round" stroke-opacity=".6"/><path d="M25 34c1.3 2 3 3.2 5.1 3.6" stroke="#8ff3e7" stroke-width="1.2" stroke-linecap="round" stroke-opacity=".5"/></svg></span><span>小鲸鱼<small>QQ Bridge · DeepSeek Harness</small></span></a>
     <div class="nav-label">工作空间</div>
     <nav id="mainNav">
       <button data-view="overview" class="nav-item active" aria-current="page"><span class="nav-icon" aria-hidden="true">◫</span>运行总览</button>
@@ -1866,7 +2523,7 @@ button:active:not(:disabled) {
       <button data-view="sessions" class="nav-item"><span class="nav-icon" aria-hidden="true">☷</span>会话与审批<span class="nav-count" id="pendingCount">—</span></button>
       <button data-view="persona" class="nav-item"><span class="nav-icon" aria-hidden="true">◉</span>人格与角色</button>
       <div class="nav-label">聊天行为</div>
-      <button data-view="social-v2" class="nav-item"><span class="nav-icon" aria-hidden="true">◈</span>群聊仿真</button>
+      <button data-view="simulation" class="nav-item"><span class="nav-icon" aria-hidden="true">◈</span>群聊仿真</button>
       <button data-view="insights" class="nav-item"><span class="nav-icon" aria-hidden="true">◒</span>群聊洞察</button>
       <button data-view="library" class="nav-item"><span class="nav-icon" aria-hidden="true">▦</span>资源库</button>
       <button data-view="slang" class="nav-item"><span class="nav-icon" aria-hidden="true">▤</span>黑话词库</button>
@@ -1916,7 +2573,7 @@ button:active:not(:disabled) {
       <div class="mode-row" id="modeRow">
         <button data-mode="chat" aria-pressed="false"><span class="mode-indicator" aria-hidden="true"></span><strong>聊天模式</strong><small>白名单内，随时对话</small></button>
         <button data-mode="closed-agent" aria-pressed="false"><span class="mode-indicator" aria-hidden="true"></span><strong>封闭 Agent</strong><small>仅管理员，完整工具</small></button>
-        <button data-mode="reserved2" aria-pressed="false"><span class="mode-indicator" aria-hidden="true"></span><strong>群聊仿真</strong><small>自主阅读、发言与潜水</small></button>
+        <button data-mode="simulation" aria-pressed="false"><span class="mode-indicator" aria-hidden="true"></span><strong>群聊仿真</strong><small>自主阅读、发言与潜水</small></button>
       </div>
       <div class="row" style="margin-top:12px">
         <label style="flex:1;margin:0">封闭 Agent 使用的 DSH 预设</label>
@@ -1999,7 +2656,7 @@ button:active:not(:disabled) {
 
       <h3 class="layer-heading">仿真提示词（预设内置）<span class="meta" id="simPromptStatus">加载中…</span></h3>
       <div class="row" style="margin-bottom:8px">
-        <label style="flex:0 0 auto">仿真代次</label>
+        <label style="flex:0 0 auto">仿真模式</label>
         <select id="simPromptPreset" style="flex:0 1 280px">
           <option value="qq-chat">群聊仿真（qq-chat）</option>
         </select>
@@ -2016,70 +2673,70 @@ button:active:not(:disabled) {
       </div>
       <div class="meta" id="simPromptRestart"></div>
     </section>
-<section id="section-social-v2" data-page="social-v2" class="card span-all">
+<section id="section-simulation" data-page="simulation" class="card span-all">
       <h2>群聊仿真控制台</h2>
       <div class="meta">配置保存后写入 config.json 并热更新；工具开关决定 AI 能调用哪些工具。已接入开关的工具在<b>重启 DSH 后</b>会从工具清单里彻底消失（少一份 schema 就少一份每次请求的 token）；发送类等跨模式共用的工具只在调用时被桥接拒绝，清单不变。</div>
 
       <div class="row" style="margin-top:10px">
-        <label style="flex:1">启用群聊仿真</label><input type="checkbox" id="v2Enabled" style="width:auto">
-        <label style="flex:1">agentPreset</label><input type="text" id="v2AgentPreset" placeholder="qq-chat" style="max-width:200px">
+        <label style="flex:1">启用群聊仿真</label><input type="checkbox" id="simEnabled" style="width:auto">
+        <label style="flex:1">agentPreset</label><input type="text" id="simAgentPreset" placeholder="qq-chat" style="max-width:200px">
       </div>
       <div class="row" style="margin-top:6px">
-        <label style="flex:1">提供推荐值给 AI</label><input type="checkbox" id="v2ProvideRecommendations" style="width:auto">
+        <label style="flex:1">提供推荐值给 AI</label><input type="checkbox" id="simProvideRecommendations" style="width:auto">
         <span class="meta" style="flex:2">关闭后 qq_get_prompt 不再返回推荐值，AI 完全自主判断。</span>
       </div>
       <div class="row" style="margin-top:10px">
-        <button id="v2PauseBtn" class="danger">暂停群聊仿真</button>
-        <button id="v2ResumeBtn">恢复群聊仿真</button>
-        <button id="v2ResetBtn" class="danger">重置群聊仿真状态</button>
-        <button id="v2ConfigSaveTop" style="font-weight:bold;padding:6px 14px">保存当前参数</button>
-        <span class="meta" id="v2ActivityStatus">读取中…</span>
+        <button id="simPauseBtn" class="danger">暂停群聊仿真</button>
+        <button id="simResumeBtn">恢复群聊仿真</button>
+        <button id="simResetBtn" class="danger">重置群聊仿真状态</button>
+        <button id="simConfigSaveTop" style="font-weight:bold;padding:6px 14px">保存当前参数</button>
+        <span class="meta" id="simActivityStatus">读取中…</span>
       </div>
 
       <details class="settings-group"><summary>工具开关（关闭后 AI 不再拿到该工具；需重启 DSH 刷新工具清单，重启前仅调用时拒绝）</summary><div class="settings-content">
-      <div class="v2-tool-list" id="v2Tools">
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getPrompt"> <span><b>qq_get_prompt</b><span class="meta">查看角色卡、推荐值、可用工具、当前唤醒配置</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getUnread"> <span><b>qq_get_unread_messages</b><span class="meta">查看未读消息，不自动标记已读</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getRecent"> <span><b>qq_get_recent_messages</b><span class="meta">查看最近消息，支持 offset 扩大范围</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="socialState"> <span><b>qq_social_state</b><span class="meta">查看当前 WakeConfig、未读数、上次唤醒原因等</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendGroup"> <span><b>qq_send_group_message</b><span class="meta">向指定群发送一条纯文本消息</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendPrivate"> <span><b>qq_send_private_message</b><span class="meta">向指定好友发送一条纯文本消息</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="reply"> <span><b>qq_reply</b><span class="meta">引用/回复某条群消息并发送文本</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendBurst"> <span><b>qq_send_burst</b><span class="meta">按数组分多条发送，桥接自动加真人化间隔</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendMessage"> <span><b>qq_send_message</b><span class="meta">统一发送：一条/多条/引用/自定义或按字数计算间隔</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendPoke"> <span><b>qq_send_poke</b><span class="meta">发送 QQ 拍一拍（群聊传 targetUserId，私聊可省）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="waitMessages"> <span><b>qq_wait_for_messages</b><span class="meta">短暂等待新消息，有新消息立即返回或超时返回</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="feedback"> <span><b>qq_report_feedback</b><span class="meta">向控制台反馈 AI 遇到的问题/困惑</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getMyRecent"> <span><b>qq_get_my_recent_messages</b><span class="meta">查看自己最近发过的消息，避免重复</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getMessageDetail"> <span><b>qq_get_message_detail</b><span class="meta">按 message_id 查看单条消息完整内容</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getImages"> <span><b>qq_get_message_images</b><span class="meta">查看消息中的图片/表情内容</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getForwardMsg"> <span><b>qq_get_forward_msg</b><span class="meta">查看当前会话收到的合并转发消息内容</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getActiveMembers"> <span><b>qq_get_active_members</b><span class="meta">查看最近活跃成员列表</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="setWakeConfig"> <span><b>qq_set_wake_config</b><span class="meta">设置唤醒/潜水条件：无限期、有限时间、@/名字/关键词/概率等</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="markRead"> <span><b>qq_mark_read</b><span class="meta">标记当前未读为已读（看过但决定不回复）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="memory"> <span><b>qq_memory_append / qq_memory_query</b><span class="meta">记忆：话题/想说的话/群友印象/跨会话个人记忆</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="slangQuery"> <span><b>qq_slang_query</b><span class="meta">查询已确认黑话/梗/网络表达</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="slangSubmit"> <span><b>qq_slang_submit</b><span class="meta">AI 提交陌生词/黑话给管理员筛选</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="listStickers"> <span><b>qq_list_stickers</b><span class="meta">查看/搜索 QQ 收藏表情（含备注和本地笔记）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getStickerImage"> <span><b>qq_get_sticker_image</b><span class="meta">看图理解没有备注的收藏表情</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendSticker"> <span><b>qq_send_sticker</b><span class="meta">发送收藏表情（一条消息只能一张，不能带文字）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="collectSticker"> <span><b>qq_collect_sticker</b><span class="meta">AI 偶尔收藏别人发的表情并写简短备注</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="getSelfImage"> <span><b>qq_get_self_image</b><span class="meta">查看自己的默认 Q 版形象图片</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="stickerNote"> <span><b>qq_sticker_note</b><span class="meta">给表情记录本地含义/标签/用法</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="setStickerRemark"> <span><b>qq_set_sticker_remark</b><span class="meta">修改 QQ 官方表情备注（默认禁用，慎用）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="sendVoice"> <span><b>qq_send_voice / qq_list_voices</b><span class="meta">发送语音条（只能发语音库里的音频；偶然而为的强表达）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="addReminder"> <span><b>qq_add_reminder</b><span class="meta">在主人私聊/家人群添加定时提醒</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="listReminders"> <span><b>qq_list_reminders</b><span class="meta">查看当前会话待发送提醒</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="cancelReminder"> <span><b>qq_cancel_reminder</b><span class="meta">取消待发送提醒</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="weather"> <span><b>qq_weather</b><span class="meta">查询城市天气（Open-Meteo）</span></span></label>
-        <label class="v2-tool-item"><input type="checkbox" data-v2-tool="playGame"> <span><b>qq_play_game</b><span class="meta">猜拳/骰子/今日鲸鱼运势</span></span></label>
+      <div class="sim-tool-list" id="simTools">
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getPrompt"> <span><b>qq_get_prompt</b><span class="meta">查看角色卡、推荐值、可用工具、当前唤醒配置</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getUnread"> <span><b>qq_get_unread_messages</b><span class="meta">查看未读消息，不自动标记已读</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getRecent"> <span><b>qq_get_recent_messages</b><span class="meta">查看最近消息，支持 offset 扩大范围</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="socialState"> <span><b>qq_social_state</b><span class="meta">查看当前 WakeConfig、未读数、上次唤醒原因等</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="sendGroup"> <span><b>qq_send_group_message</b><span class="meta">向指定群发送一条纯文本消息</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="sendPrivate"> <span><b>qq_send_private_message</b><span class="meta">向指定好友发送一条纯文本消息</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="reply"> <span><b>qq_reply</b><span class="meta">引用/回复某条群消息并发送文本</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="sendBurst"> <span><b>qq_send_burst</b><span class="meta">按数组分多条发送，桥接自动加真人化间隔</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="sendMessage"> <span><b>qq_send_message</b><span class="meta">统一发送：一条/多条/引用/自定义或按字数计算间隔</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="sendPoke"> <span><b>qq_send_poke</b><span class="meta">发送 QQ 拍一拍（群聊传 targetUserId，私聊可省）</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="waitMessages"> <span><b>qq_wait_for_messages</b><span class="meta">短暂等待新消息，有新消息立即返回或超时返回</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="feedback"> <span><b>qq_report_feedback</b><span class="meta">向控制台反馈 AI 遇到的问题/困惑</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getMyRecent"> <span><b>qq_get_my_recent_messages</b><span class="meta">查看自己最近发过的消息，避免重复</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getMessageDetail"> <span><b>qq_get_message_detail</b><span class="meta">按 message_id 查看单条消息完整内容</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getImages"> <span><b>qq_get_message_images</b><span class="meta">查看消息中的图片/表情内容</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getForwardMsg"> <span><b>qq_get_forward_msg</b><span class="meta">查看当前会话收到的合并转发消息内容</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getActiveMembers"> <span><b>qq_get_active_members</b><span class="meta">查看最近活跃成员列表</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="setWakeConfig"> <span><b>qq_set_wake_config</b><span class="meta">设置唤醒/潜水条件：无限期、有限时间、@/名字/关键词/概率等</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="markRead"> <span><b>qq_mark_read</b><span class="meta">标记当前未读为已读（看过但决定不回复）</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="memory"> <span><b>qq_memory_append / qq_memory_query</b><span class="meta">记忆：话题/想说的话/群友印象/跨会话个人记忆</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="slangQuery"> <span><b>qq_slang_query</b><span class="meta">查询已确认黑话/梗/网络表达</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="slangSubmit"> <span><b>qq_slang_submit</b><span class="meta">AI 提交陌生词/黑话给管理员筛选</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="listStickers"> <span><b>qq_list_stickers</b><span class="meta">查看/搜索 QQ 收藏表情（含备注和本地笔记）</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getStickerImage"> <span><b>qq_get_sticker_image</b><span class="meta">看图理解没有备注的收藏表情</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="sendSticker"> <span><b>qq_send_sticker</b><span class="meta">发送收藏表情（一条消息只能一张，不能带文字）</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="collectSticker"> <span><b>qq_collect_sticker</b><span class="meta">AI 偶尔收藏别人发的表情并写简短备注</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="getSelfImage"> <span><b>qq_get_self_image</b><span class="meta">查看自己的默认 Q 版形象图片</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="stickerNote"> <span><b>qq_sticker_note</b><span class="meta">给表情记录本地含义/标签/用法</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="setStickerRemark"> <span><b>qq_set_sticker_remark</b><span class="meta">修改 QQ 官方表情备注（默认禁用，慎用）</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="sendVoice"> <span><b>qq_send_voice / qq_list_voices</b><span class="meta">发送语音条（只能发语音库里的音频；偶然而为的强表达）</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="addReminder"> <span><b>qq_add_reminder</b><span class="meta">在主人私聊/家人群添加定时提醒</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="listReminders"> <span><b>qq_list_reminders</b><span class="meta">查看当前会话待发送提醒</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="cancelReminder"> <span><b>qq_cancel_reminder</b><span class="meta">取消待发送提醒</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="weather"> <span><b>qq_weather</b><span class="meta">查询城市天气（Open-Meteo）</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="playGame"> <span><b>qq_play_game</b><span class="meta">猜拳/骰子/今日鲸鱼运势</span></span></label>
       </div>
       <div class="meta" style="margin-top:6px">群聊仿真黑话学习：AI 可用 <code>qq_slang_submit</code> 提交陌生词，也可由桥接自动提取；管理员在「黑话词库」页面筛选确认后，词条会自动写入黑话提示词并注入 <code>qq_get_prompt</code> 与后续唤醒。</div>
 
       </div></details>
 <details class="settings-group"><summary>语音库与语音发送（调试）</summary><div class="settings-content">
       <div class="meta" style="margin-bottom:8px">
-        语音库目录：<code>qq-bridge/audio/</code>（改 <code>socialV2.voice.dir</code> 可换）。把音频文件丢进去即可被 AI 用 <code>qq_send_voice</code> 发出；
+        语音库目录：<code>qq-bridge/audio/</code>（改 <code>simulation.voice.dir</code> 可换）。把音频文件丢进去即可被 AI 用 <code>qq_send_voice</code> 发出；
         本面板用于调试与试发 —— 试发走的是与 AI 通道相同的解析/校验/限流路径（<code>/api/voice/send</code>），只是由你在控制台触发。
       </div>
       <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center">
@@ -2100,47 +2757,47 @@ button:active:not(:disabled) {
 <details class="settings-group"><summary>唤醒推荐值（仅参考，AI 可不遵守）</summary><div class="settings-content">
       <div class="row">
         <label style="flex:1">默认模式</label>
-        <select id="v2WakeDefaultMode" style="width:120px"><option value="diving">潜水</option><option value="active">活跃</option></select>
-        <label style="flex:1">默认下一次唤醒：无限期（永久）</label><input type="checkbox" id="v2RecDefaultInfinite" style="width:auto">
+        <select id="simWakeDefaultMode" style="width:120px"><option value="diving">潜水</option><option value="active">活跃</option></select>
+        <label style="flex:1">默认下一次唤醒：无限期（永久）</label><input type="checkbox" id="simRecDefaultInfinite" style="width:auto">
       </div>
       <div class="row">
         <label style="flex:1">推荐潜水时长（分）</label>
-        <input type="number" id="v2RecSleepMin" min="1" style="width:80px"> ~
-        <input type="number" id="v2RecSleepMax" min="1" style="width:80px">
+        <input type="number" id="simRecSleepMin" min="1" style="width:80px"> ~
+        <input type="number" id="simRecSleepMax" min="1" style="width:80px">
       </div>
       <div class="row">
-        <label style="flex:1">推荐普通消息概率</label><input type="number" id="v2RecProb" step="0.05" min="0" max="1" style="width:80px">
+        <label style="flex:1">推荐普通消息概率</label><input type="number" id="simRecProb" step="0.05" min="0" max="1" style="width:80px">
       </div>
       <div class="row">
-        <label style="flex:1">推荐关键词（逗号分隔）</label><input type="text" id="v2RecKeywords" placeholder="小鲸鱼, DeepSeek" style="flex:1">
+        <label style="flex:1">推荐关键词（逗号分隔）</label><input type="text" id="simRecKeywords" placeholder="小鲸鱼, DeepSeek" style="flex:1">
       </div>
       <div class="row">
-        <label style="flex:1">推荐 @ 唤醒</label><input type="checkbox" id="v2RecAt" style="width:auto">
-        <label style="flex:1">推荐名字唤醒</label><input type="checkbox" id="v2RecName" style="width:auto">
-        <label style="flex:1">推荐提问唤醒</label><input type="checkbox" id="v2RecQuestion" style="width:auto">
-        <label style="flex:1">推荐拍一拍唤醒</label><input type="checkbox" id="v2RecPoke" style="width:auto">
+        <label style="flex:1">推荐 @ 唤醒</label><input type="checkbox" id="simRecAt" style="width:auto">
+        <label style="flex:1">推荐名字唤醒</label><input type="checkbox" id="simRecName" style="width:auto">
+        <label style="flex:1">推荐提问唤醒</label><input type="checkbox" id="simRecQuestion" style="width:auto">
+        <label style="flex:1">推荐拍一拍唤醒</label><input type="checkbox" id="simRecPoke" style="width:auto">
       </div>
       <label>唤醒推荐提示（给 AI 看的文字）</label>
-      <textarea id="v2WakeHint" rows="2" placeholder="例如：如果你在潜水，推荐 5~120 分钟、普通消息概率 0.05…"></textarea>
+      <textarea id="simWakeHint" rows="2" placeholder="例如：如果你在潜水，推荐 5~120 分钟、普通消息概率 0.05…"></textarea>
 
       </div></details>
 <details class="settings-group"><summary>唤醒硬限制</summary><div class="settings-content">
       <div class="row">
-        <label style="flex:1">最小潜水（秒）</label><input type="number" id="v2SleepMinMs" min="0" style="width:90px">
-        <label style="flex:1">最大潜水（秒，0=不限）</label><input type="number" id="v2SleepMaxMs" min="0" style="width:90px">
+        <label style="flex:1">最小潜水（秒）</label><input type="number" id="simSleepMinMs" min="0" style="width:90px">
+        <label style="flex:1">最大潜水（秒，0=不限）</label><input type="number" id="simSleepMaxMs" min="0" style="width:90px">
       </div>
       <div class="row">
-        <label style="flex:1">每分钟最多唤醒</label><input type="number" id="v2MaxWakeMin" min="0" style="width:90px">
-        <label style="flex:1">每小时最多唤醒</label><input type="number" id="v2MaxWakeHour" min="0" style="width:90px">
+        <label style="flex:1">每分钟最多唤醒</label><input type="number" id="simMaxWakeMin" min="0" style="width:90px">
+        <label style="flex:1">每小时最多唤醒</label><input type="number" id="simMaxWakeHour" min="0" style="width:90px">
       </div>
       <div class="row">
-        <label style="flex:1">合并窗口（毫秒）</label><input type="number" id="v2BatchWindowMs" min="1000" step="500" style="width:100px">
-        <label style="flex:1">无行动兜底次数</label><input type="number" id="v2NoActionLimit" min="1" style="width:80px">
-        <label style="flex:1">唤醒收尾提醒次数</label><input type="number" id="v2MaxWakeConfigReminders" min="1" style="width:80px">
+        <label style="flex:1">合并窗口（毫秒）</label><input type="number" id="simBatchWindowMs" min="1000" step="500" style="width:100px">
+        <label style="flex:1">无行动兜底次数</label><input type="number" id="simNoActionLimit" min="1" style="width:80px">
+        <label style="flex:1">唤醒收尾提醒次数</label><input type="number" id="simMaxWakeConfigReminders" min="1" style="width:80px">
       </div>
       <div class="row">
-        <label style="flex:1">启用沉睡前强制等待</label><input type="checkbox" id="v2PreSleepWaitEnabled" style="width:auto">
-        <label style="flex:1">沉睡前强制等待（分）</label><input type="number" id="v2PreSleepWaitMin" min="0" step="1" style="width:80px">
+        <label style="flex:1">启用沉睡前强制等待</label><input type="checkbox" id="simPreSleepWaitEnabled" style="width:auto">
+        <label style="flex:1">沉睡前强制等待（分）</label><input type="number" id="simPreSleepWaitMin" min="0" step="1" style="width:80px">
         <span class="meta" style="flex:2">AI 设置潜水/下一次唤醒前，默认必须先等够这个观察窗口；0 表示不限制。</span>
       </div>
 
@@ -2148,135 +2805,135 @@ button:active:not(:disabled) {
 <details class="settings-group"><summary>发送限制</summary><div class="settings-content">
       <div class="meta" style="margin-bottom:8px">群聊仿真不再按空格自动拆条；AI 要分多条必须显式传数组或用 qq_send_burst。</div>
       <div class="row">
-        <label style="flex:1">允许多条发送</label><input type="checkbox" id="v2BurstEnabled" style="width:auto">
-        <label style="flex:1">单次最多条数</label><input type="number" id="v2BurstMax" min="1" style="width:70px">
+        <label style="flex:1">允许多条发送</label><input type="checkbox" id="simBurstEnabled" style="width:auto">
+        <label style="flex:1">单次最多条数</label><input type="number" id="simBurstMax" min="1" style="width:70px">
       </div>
       <div class="row">
         <label style="flex:1">条间间隔（毫秒）</label>
-        <input type="number" id="v2BurstMin" min="0" style="width:80px"> ~
-        <input type="number" id="v2BurstMaxMs" min="0" style="width:80px">
+        <input type="number" id="simBurstMin" min="0" style="width:80px"> ~
+        <input type="number" id="simBurstMaxMs" min="0" style="width:80px">
       </div>
       <div class="row">
-        <label style="flex:1">长间隔概率</label><input type="number" id="v2LongGapProb" step="0.05" min="0" max="1" style="width:80px">
+        <label style="flex:1">长间隔概率</label><input type="number" id="simLongGapProb" step="0.05" min="0" max="1" style="width:80px">
         <label style="flex:1">长间隔范围（毫秒）</label>
-        <input type="number" id="v2LongGapMin" min="0" style="width:80px"> ~
-        <input type="number" id="v2LongGapMax" min="0" style="width:80px">
+        <input type="number" id="simLongGapMin" min="0" style="width:80px"> ~
+        <input type="number" id="simLongGapMax" min="0" style="width:80px">
       </div>
       <div class="row">
-        <label style="flex:1">每分钟最多发送</label><input type="number" id="v2MaxSendMin" min="0" style="width:80px">
-        <label style="flex:1">每小时最多发送</label><input type="number" id="v2MaxSendHour" min="0" style="width:80px">
+        <label style="flex:1">每分钟最多发送</label><input type="number" id="simMaxSendMin" min="0" style="width:80px">
+        <label style="flex:1">每小时最多发送</label><input type="number" id="simMaxSendHour" min="0" style="width:80px">
       </div>
       <div class="row">
-        <label style="flex:1">单条最大字符</label><input type="number" id="v2MaxMsgChars" min="1" style="width:80px">
+        <label style="flex:1">单条最大字符</label><input type="number" id="simMaxMsgChars" min="1" style="width:80px">
       </div>
       <div class="row">
-        <label style="flex:1">最大条间隔（毫秒，防止过长）</label><input type="number" id="v2MaxGapMs" min="100" style="width:90px">
-        <label style="flex:1">按字数基础间隔（毫秒）</label><input type="number" id="v2GapBaseMs" min="0" style="width:80px">
-        <label style="flex:1">每字追加（毫秒）</label><input type="number" id="v2GapPerCharMs" min="0" style="width:80px">
+        <label style="flex:1">最大条间隔（毫秒，防止过长）</label><input type="number" id="simMaxGapMs" min="100" style="width:90px">
+        <label style="flex:1">按字数基础间隔（毫秒）</label><input type="number" id="simGapBaseMs" min="0" style="width:80px">
+        <label style="flex:1">每字追加（毫秒）</label><input type="number" id="simGapPerCharMs" min="0" style="width:80px">
       </div>
       <label>发送推荐提示（给 AI 看的文字）</label>
-      <textarea id="v2SendHint" rows="2" placeholder="例如：普通闲聊建议一次 1~3 条，条间 1~3 秒…"></textarea>
+      <textarea id="simSendHint" rows="2" placeholder="例如：普通闲聊建议一次 1~3 条，条间 1~3 秒…"></textarea>
 
       </div></details>
 <details class="settings-group"><summary>等待工具参数（qq_wait_for_messages）</summary><div class="settings-content">
       <div class="row">
-        <label style="flex:1">默认等待（毫秒）</label><input type="number" id="v2WaitDefaultMs" min="100" style="width:90px">
-        <label style="flex:1">最小等待（毫秒）</label><input type="number" id="v2WaitMinMs" min="100" style="width:90px">
-        <label style="flex:1">最大等待（毫秒）</label><input type="number" id="v2WaitMaxMs" min="100" style="width:90px">
+        <label style="flex:1">默认等待（毫秒）</label><input type="number" id="simWaitDefaultMs" min="100" style="width:90px">
+        <label style="flex:1">最小等待（毫秒）</label><input type="number" id="simWaitMinMs" min="100" style="width:90px">
+        <label style="flex:1">最大等待（毫秒）</label><input type="number" id="simWaitMaxMs" min="100" style="width:90px">
       </div>
       <div class="row">
-        <label style="flex:1">默认静默窗口（毫秒）</label><input type="number" id="v2WaitDefaultQuietMs" min="0" style="width:90px">
-        <label style="flex:1">收到新消息后最小静默（毫秒）</label><input type="number" id="v2MinQuietAfterNewMs" min="0" style="width:90px">
+        <label style="flex:1">默认静默窗口（毫秒）</label><input type="number" id="simWaitDefaultQuietMs" min="0" style="width:90px">
+        <label style="flex:1">收到新消息后最小静默（毫秒）</label><input type="number" id="simMinQuietAfterNewMs" min="0" style="width:90px">
         <span class="meta" style="flex:2">收到新消息后至少再等这么久（默认 10000ms=10 秒），防止抢话。</span>
       </div>
       <div class="row">
-        <label style="flex:1">回复检查延迟（秒）</label><input type="number" id="v2AutoReplyCheckSec" min="1" style="width:90px">
+        <label style="flex:1">回复检查延迟（秒）</label><input type="number" id="simAutoReplyCheckSec" min="1" style="width:90px">
         <span class="meta" style="flex:2">回复检查是 AI 发消息后回来检查是否有人回复的延迟。</span>
       </div>
 
       </div></details>
 <details class="settings-group"><summary>主动机会参数（proactive：群安静时 AI 主动冒泡）</summary><div class="settings-content">
       <div class="row">
-        <label style="flex:1">启用主动机会</label><input type="checkbox" id="v2ProactiveEnabled" style="width:auto">
+        <label style="flex:1">启用主动机会</label><input type="checkbox" id="simProactiveEnabled" style="width:auto">
         <label style="flex:1">检查间隔（分）</label>
-        <input type="number" id="v2ProactiveIntervalMin" min="1" style="width:80px"> ~
-        <input type="number" id="v2ProactiveIntervalMax" min="1" style="width:80px">
+        <input type="number" id="simProactiveIntervalMin" min="1" style="width:80px"> ~
+        <input type="number" id="simProactiveIntervalMax" min="1" style="width:80px">
       </div>
       <div class="row">
-        <label style="flex:1">安静阈值（分）</label><input type="number" id="v2ProactiveIdleThreshold" min="1" style="width:80px">
-        <label style="flex:1">触发概率</label><input type="number" id="v2ProactiveProbability" step="0.05" min="0" max="1" style="width:80px">
+        <label style="flex:1">安静阈值（分）</label><input type="number" id="simProactiveIdleThreshold" min="1" style="width:80px">
+        <label style="flex:1">触发概率</label><input type="number" id="simProactiveProbability" step="0.05" min="0" max="1" style="width:80px">
       </div>
 
       </div></details>
 <details class="settings-group"><summary>表情包参数（sticker：QQ 收藏表情体系）</summary><div class="settings-content">
       <div class="row">
-        <label style="flex:1">启用表情包体系</label><input type="checkbox" id="v2StickerEnabled" style="width:auto">
-        <label style="flex:1">同步缓存 TTL（秒）</label><input type="number" id="v2StickerSyncTtlSec" min="1" style="width:90px">
-        <label style="flex:1">列表最大返回数</label><input type="number" id="v2StickerMaxList" min="1" max="500" style="width:90px">
+        <label style="flex:1">启用表情包体系</label><input type="checkbox" id="simStickerEnabled" style="width:auto">
+        <label style="flex:1">同步缓存 TTL（秒）</label><input type="number" id="simStickerSyncTtlSec" min="1" style="width:90px">
+        <label style="flex:1">列表最大返回数</label><input type="number" id="simStickerMaxList" min="1" max="500" style="width:90px">
       </div>
       <div class="row">
-        <label style="flex:1">提示中列出常用表情数</label><input type="number" id="v2StickerPromptMax" min="1" max="30" style="width:90px">
-        <label style="flex:1">在 prompt/唤醒里附带表情摘要</label><input type="checkbox" id="v2StickerIncludePrompt" style="width:auto">
+        <label style="flex:1">提示中列出常用表情数</label><input type="number" id="simStickerPromptMax" min="1" max="30" style="width:90px">
+        <label style="flex:1">在 prompt/唤醒里附带表情摘要</label><input type="checkbox" id="simStickerIncludePrompt" style="width:auto">
         <span class="meta" style="flex:2">关闭后 AI 仍可主动调用 qq_list_stickers，只是不主动喂到上下文。</span>
       </div>
       <div class="row">
-        <label style="flex:1">AI 收藏表情</label><input type="checkbox" id="v2StickerCollectEnabled" style="width:auto">
-        <label style="flex:1">每分钟最多收藏</label><input type="number" id="v2StickerCollectPerMin" min="0" style="width:80px">
-        <label style="flex:1">每小时最多收藏</label><input type="number" id="v2StickerCollectPerHour" min="0" style="width:80px">
+        <label style="flex:1">AI 收藏表情</label><input type="checkbox" id="simStickerCollectEnabled" style="width:auto">
+        <label style="flex:1">每分钟最多收藏</label><input type="number" id="simStickerCollectPerMin" min="0" style="width:80px">
+        <label style="flex:1">每小时最多收藏</label><input type="number" id="simStickerCollectPerHour" min="0" style="width:80px">
       </div>
       <div class="row">
-        <label style="flex:1">收藏备注最大字数</label><input type="number" id="v2StickerCollectRemarkMax" min="1" max="50" style="width:80px">
+        <label style="flex:1">收藏备注最大字数</label><input type="number" id="simStickerCollectRemarkMax" min="1" max="50" style="width:80px">
         <span class="meta" style="flex:2">AI 收藏别人表情时写的简短备注长度上限。</span>
       </div>
 
       </div></details>
 <details class="settings-group"><summary>上下文参数（recent / unread / contextWindow）</summary><div class="settings-content">
       <div class="row">
-        <label style="flex:1">最近消息上限</label><input type="number" id="v2ContextRecentLimit" min="1" style="width:80px">
-        <label style="flex:1">未读上限</label><input type="number" id="v2ContextUnreadLimit" min="1" style="width:80px">
-        <label style="flex:1">上下文窗口</label><input type="number" id="v2ContextWindow" min="1" style="width:80px">
+        <label style="flex:1">最近消息上限</label><input type="number" id="simContextRecentLimit" min="1" style="width:80px">
+        <label style="flex:1">未读上限</label><input type="number" id="simContextUnreadLimit" min="1" style="width:80px">
+        <label style="flex:1">上下文窗口</label><input type="number" id="simContextWindow" min="1" style="width:80px">
       </div>
 
       </div></details>
 <details class="settings-group"><summary>反馈工具参数（qq_report_feedback）</summary><div class="settings-content">
       <div class="row">
-        <label style="flex:1">反馈最大长度</label><input type="number" id="v2FeedbackMaxLength" min="1" style="width:90px">
-        <label style="flex:1">错误级通知 owner</label><input type="checkbox" id="v2FeedbackNotifyOwner" style="width:auto">
+        <label style="flex:1">反馈最大长度</label><input type="number" id="simFeedbackMaxLength" min="1" style="width:90px">
+        <label style="flex:1">错误级通知 owner</label><input type="checkbox" id="simFeedbackNotifyOwner" style="width:auto">
       </div>
       <div class="row" style="margin-top:6px">
-        <button id="v2FeedbackLoad" class="small">加载 AI 反馈</button>
-        <button id="v2FeedbackClear" class="small danger">清空 AI 反馈</button>
-        <span class="meta" id="v2FeedbackMsg"></span>
+        <button id="simFeedbackLoad" class="small">加载 AI 反馈</button>
+        <button id="simFeedbackClear" class="small danger">清空 AI 反馈</button>
+        <span class="meta" id="simFeedbackMsg"></span>
       </div>
-      <pre id="v2FeedbackOutput">（空）</pre>
+      <pre id="simFeedbackOutput">（空）</pre>
 
       </div></details>
 <details class="settings-group"><summary>工具调用日志（AI 调用了什么工具、参数、成功/失败）</summary><div class="settings-content">
       <div class="row">
-        <button id="v2ToolLogLoad" class="small">加载工具日志</button>
-        <button id="v2ToolLogClear" class="small danger">清空工具日志</button>
-        <span class="meta" id="v2ToolLogMsg"></span>
+        <button id="simToolLogLoad" class="small">加载工具日志</button>
+        <button id="simToolLogClear" class="small danger">清空工具日志</button>
+        <span class="meta" id="simToolLogMsg"></span>
       </div>
-      <div id="v2ToolLogOutput" class="tool-log-table">（空）</div>
+      <div id="simToolLogOutput" class="tool-log-table">（空）</div>
 
       </div></details>
 <details class="settings-group"><summary>轻量记忆（activeTopics / pendingThoughts / memberImpressions / personalFact）</summary><div class="settings-content">
       <div class="row">
-        <input type="text" id="v2MemoryKey" placeholder="group:123456789" style="flex:1">
-        <button id="v2MemoryLoad" class="small">加载记忆</button>
-        <button id="v2MemoryClearAll" class="small danger">清空全部</button>
-        <span class="meta" id="v2MemoryMsg"></span>
+        <input type="text" id="simMemoryKey" placeholder="group:123456789" style="flex:1">
+        <button id="simMemoryLoad" class="small">加载记忆</button>
+        <button id="simMemoryClearAll" class="small danger">清空全部</button>
+        <span class="meta" id="simMemoryMsg"></span>
       </div>
-      <div id="v2MemoryOutput" class="tool-log-table">（空）</div>
+      <div id="simMemoryOutput" class="tool-log-table">（空）</div>
 
       </div></details>
 <details class="settings-group"><summary>唤醒状态（AI 当前设置的下一次唤醒条件/倒计时）</summary><div class="settings-content">
       <div class="row">
-        <input type="text" id="v2WakeKey" placeholder="group:123456789" style="flex:1">
-        <button id="v2WakeStatusLoad" class="small">查看唤醒状态</button>
-        <span class="meta" id="v2WakeStatusMsg"></span>
+        <input type="text" id="simWakeKey" placeholder="group:123456789" style="flex:1">
+        <button id="simWakeStatusLoad" class="small">查看唤醒状态</button>
+        <span class="meta" id="simWakeStatusMsg"></span>
       </div>
-      <div id="v2WakeStatusOutput" class="tool-log-table">（空）</div>
+      <div id="simWakeStatusOutput" class="tool-log-table">（空）</div>
 
 </div></details>
 <details class="settings-group"><summary>初始提示词（预写某个群/私聊的环境，只在 AI 首次唤醒时看一次）</summary><div class="settings-content">
@@ -2287,65 +2944,65 @@ button:active:not(:disabled) {
         留空保存等于删除；只写环境背景，别写指令式的要求（那是人格卡/仿真提示词的事）。
       </div>
       <div class="row">
-        <input type="text" id="v2InitPromptKey" placeholder="group:123456789（可从「白名单会话快速选择」带过来）" style="flex:1" aria-label="初始提示词的会话 key">
-        <button id="v2InitPromptLoad" class="small">加载</button>
-        <button id="v2InitPromptSave" class="small">保存</button>
-        <button id="v2InitPromptClear" class="small danger">删除</button>
-        <span class="meta" id="v2InitPromptMsg"></span>
+        <input type="text" id="simInitPromptKey" placeholder="group:123456789（可从「白名单会话快速选择」带过来）" style="flex:1" aria-label="初始提示词的会话 key">
+        <button id="simInitPromptLoad" class="small">加载</button>
+        <button id="simInitPromptSave" class="small">保存</button>
+        <button id="simInitPromptClear" class="small danger">删除</button>
+        <span class="meta" id="simInitPromptMsg"></span>
       </div>
-      <textarea id="v2InitPromptText" rows="5" aria-label="初始提示词正文" placeholder="例如：这是一个偏技术的闲聊群，群友喜欢玩梗、聊模型和本地部署；氛围轻松，别长篇大论，遇到配置问题直接给结论。"></textarea>
+      <textarea id="simInitPromptText" rows="5" aria-label="初始提示词正文" placeholder="例如：这是一个偏技术的闲聊群，群友喜欢玩梗、聊模型和本地部署；氛围轻松，别长篇大论，遇到配置问题直接给结论。"></textarea>
       <div class="meta">
-        当前 <span id="v2InitPromptCount">0</span> / <span id="v2InitPromptMax">2000</span> 字符（上限可在 config.json 的
-        <code>socialV2.initialPromptMaxChars</code> 调整）。
+        当前 <span id="simInitPromptCount">0</span> / <span id="simInitPromptMax">2000</span> 字符（上限可在 config.json 的
+        <code>simulation.initialPromptMaxChars</code> 调整）。
       </div>
-      <div id="v2InitPromptList" class="tool-log-table">（点「加载」且 key 留空时，列出所有已设置的会话）</div>
+      <div id="simInitPromptList" class="tool-log-table">（点「加载」且 key 留空时，列出所有已设置的会话）</div>
 
 </div></details>
 <details class="settings-group"><summary>群风格覆盖（按群/私聊追加最高优先级风格，保存即热更新）</summary><div class="settings-content">
       <div class="meta" style="margin-bottom:8px">
-        这里改的是 <code>config.json</code> 的 <code>socialV2.groupProfiles</code>，每次唤醒都会追加到提示词末尾，优先级高于角色卡和全局偏好。
+        这里改的是 <code>config.json</code> 的 <code>simulation.groupProfiles</code>，每次唤醒都会追加到提示词末尾，优先级高于角色卡和全局偏好。
         保存立即生效，不需要重启；只影响对应会话。<b>主动发言</b>关闭后，该群不再安排主动机会检查（被 @/提问/拍一拍仍会唤醒）。
       </div>
       <div class="row">
-        <select id="v2GroupProfileSelect" style="flex:1"><option value="">选择已有群风格…</option></select>
-        <button id="v2GroupProfileRefresh" class="small">刷新</button>
-        <button id="v2GroupProfileNew" class="small">新建</button>
-        <button id="v2GroupProfileDelete" class="small danger">删除</button>
-        <span class="meta" id="v2GroupProfileMsg"></span>
+        <select id="simGroupProfileSelect" style="flex:1"><option value="">选择已有群风格…</option></select>
+        <button id="simGroupProfileRefresh" class="small">刷新</button>
+        <button id="simGroupProfileNew" class="small">新建</button>
+        <button id="simGroupProfileDelete" class="small danger">删除</button>
+        <span class="meta" id="simGroupProfileMsg"></span>
       </div>
       <div class="row">
         <label style="width:86px">会话 key</label>
-        <input type="text" id="v2GroupProfileKey" placeholder="group:123456789" style="flex:1">
+        <input type="text" id="simGroupProfileKey" placeholder="group:123456789" style="flex:1">
         <label style="width:70px">标签</label>
-        <input type="text" id="v2GroupProfileLabel" placeholder="家人群" style="width:180px">
+        <input type="text" id="simGroupProfileLabel" placeholder="家人群" style="width:180px">
         <label style="width:70px">主动发言</label>
-        <input type="checkbox" id="v2GroupProfileProactive" style="width:auto">
+        <input type="checkbox" id="simGroupProfileProactive" style="width:auto">
       </div>
-      <textarea id="v2GroupProfileStyle" rows="10" placeholder="【本群风格……】&#10;……"></textarea>
-      <div class="meta">当前 <span id="v2GroupProfileCount">0</span> / 8000 字符。保存后下一条唤醒生效；如果该会话已经在聊，新风格会追加在旧上下文之后。</div>
-      <div class="row"><button id="v2GroupProfileSave" class="small">保存群风格</button></div>
+      <textarea id="simGroupProfileStyle" rows="10" placeholder="【本群风格……】&#10;……"></textarea>
+      <div class="meta">当前 <span id="simGroupProfileCount">0</span> / 8000 字符。保存后下一条唤醒生效；如果该会话已经在聊，新风格会追加在旧上下文之后。</div>
+      <div class="row"><button id="simGroupProfileSave" class="small">保存群风格</button></div>
 
       </div></details>
 <details class="settings-group"><summary>白名单会话快速选择</summary><div class="settings-content">
       <div class="row">
-        <select id="v2SessionSelect" style="flex:1"><option value="">选择白名单群/私聊…</option></select>
-        <button id="v2SessionRefresh" class="small">刷新</button>
+        <select id="simSessionSelect" style="flex:1"><option value="">选择白名单群/私聊…</option></select>
+        <button id="simSessionRefresh" class="small">刷新</button>
       </div>
 
       </div></details>
 <details class="settings-group"><summary>会话状态查看</summary><div class="settings-content">
       <div class="row">
-        <input type="text" id="v2StateKey" placeholder="group:123456789" style="flex:1">
-        <button id="v2StateView" class="small">查看</button>
-        <button id="v2ForceWake" class="small">立即唤醒</button>
-        <button id="v2StatesList" class="small">列出全部会话状态</button>
+        <input type="text" id="simStateKey" placeholder="group:123456789" style="flex:1">
+        <button id="simStateView" class="small">查看</button>
+        <button id="simForceWake" class="small">立即唤醒</button>
+        <button id="simStatesList" class="small">列出全部会话状态</button>
       </div>
-      <pre id="v2StateOutput">（空）</pre>
-      <pre id="v2AllStatesOutput" style="margin-top:6px">（全部会话状态：空）</pre>
+      <pre id="simStateOutput">（空）</pre>
+      <pre id="simAllStatesOutput" style="margin-top:6px">（全部会话状态：空）</pre>
     </div></details>
 <div class="save-bar">      <div class="row" style="margin-top:10px">
-        <button id="v2ConfigSave" style="font-weight:bold;padding:8px 16px">保存当前参数（写入 config.json）</button>
-        <span class="meta" id="v2ConfigMsg"></span>
+        <button id="simConfigSave" style="font-weight:bold;padding:8px 16px">保存当前参数（写入 config.json）</button>
+        <span class="meta" id="simConfigMsg"></span>
       </div>
       <div class="meta" style="margin-top:4px">修改上面任意推荐/默认参数后，必须点这个按钮才会持久化；保存后会自动应用到仍使用默认唤醒配置的会话，重启后仍然保留。</div>
 
@@ -2639,7 +3296,7 @@ button:active:not(:disabled) {
     </section>
 <section id="section-daily-report" data-page="insights" class="card span-all">
       <h2>群日报预览</h2>
-      <div class="meta">只做本地统计（消息量/活跃成员/话题/链接/摘录），不调用模型。真正发送需在配置里开启 <code>socialV2.dailyReport</code>。</div>
+      <div class="meta">只做本地统计（消息量/活跃成员/话题/链接/摘录），不调用模型。真正发送需在配置里开启 <code>simulation.dailyReport</code>。</div>
       <div class="row" style="margin-top:10px">
         <input type="text" id="drKey" placeholder="group:群号" style="max-width:220px" aria-label="群日报会话 key">
         <button id="drPreview" class="small">生成预览</button>
@@ -3019,7 +3676,7 @@ async function refresh() {
     document.querySelectorAll('#modeRow button').forEach(b => (b.classList.toggle('active', b.dataset.mode === s.mode), b.setAttribute('aria-pressed', String(b.dataset.mode === s.mode))));
     document.getElementById('roleText').textContent = s.role || '无';
     document.getElementById('roleModeText').textContent = s.roleMode === 'silent' ? '静默' : '正常';
-    const modeLabel = s.mode === 'reserved' ? '旧仿真模式' : s.mode === 'reserved2' ? '群聊仿真' : s.mode === 'closed-agent' ? '封闭 Agent' : '聊天模式';
+    const modeLabel = s.mode === 'reserved' ? '旧版仿真模式' : s.mode === 'simulation' ? '群聊仿真' : s.mode === 'closed-agent' ? '封闭 Agent' : '聊天模式';
     updateOverview(s, modeLabel);
     // 控制台鉴权关闭时，访问令牌设置卡没有意义，直接隐藏（不删除数据，随时可恢复）。
     const tokenCard = document.getElementById('section-token');
@@ -3164,21 +3821,21 @@ async function refreshRoles() {
         const badge = document.createElement('span');
         badge.className = 'persona-badge warn';
         badge.textContent = `超出上限`;
-        badge.title = `按模式筛选后仍有超出：当前模式 ${role.charsV2} 字符 / 旧版 ${role.charsV1} 字符，上限 ${roleInjectMax}`;
+        badge.title = `按模式筛选后仍有超出：当前模式 ${role.charsSimulation} 字符 / 旧版 ${role.charsLegacy} 字符，上限 ${roleInjectMax}`;
         head.appendChild(badge);
       }
       if (role.hasModeTags) {
         const badge = document.createElement('span');
         badge.className = 'persona-badge';
-        badge.textContent = '分代内容';
+        badge.textContent = '分模式内容';
         badge.title = '该人格含旧版/当前模式专属小节，只在对应模式下注入';
         head.appendChild(badge);
       }
       const meta = document.createElement('small');
-      const split = Number.isFinite(role.charsV1) && role.charsV1 !== role.charsV2;
+      const split = Number.isFinite(role.charsLegacy) && role.charsLegacy !== role.charsSimulation;
       const injection = split
-        ? `按模式注入：当前 ${role.injectedV2} / 旧版 ${role.injectedV1} 字符`
-        : `注入 ${role.injectedV2 ?? role.chars} 字符`;
+        ? `按模式注入：当前 ${role.injectedSimulation} / 旧版 ${role.injectedLegacy} 字符`
+        : `注入 ${role.injectedSimulation ?? role.chars} 字符`;
       meta.textContent = `共 ${role.chars} 字符 · ${injection}${role.excerpt ? ' · ' + role.excerpt : ''}`;
       item.append(head, meta);
       item.addEventListener('click', () => openRoleForEdit(role.name));
@@ -4046,10 +4703,10 @@ async function refreshContent() {
 document.getElementById('contentRefresh')?.addEventListener('click', refreshContent);
 
 document.getElementById('espSave')?.addEventListener('click', () => contentApplyConfig({
-  'socialV2.esportsFeed.enabled': document.getElementById('espEnabled').checked,
-  'socialV2.esportsFeed.refreshMs': Math.max(1, contentNumber('espRefreshMin', 5)) * 60000,
-  'socialV2.esportsFeed.maxItems': Math.max(1, contentNumber('espMaxItems', 12)),
-  'socialV2.innerLife.curiosity.sources.s16': document.getElementById('espShareEnabled').checked
+  'simulation.esportsFeed.enabled': document.getElementById('espEnabled').checked,
+  'simulation.esportsFeed.refreshMs': Math.max(1, contentNumber('espRefreshMin', 5)) * 60000,
+  'simulation.esportsFeed.maxItems': Math.max(1, contentNumber('espMaxItems', 12)),
+  'simulation.innerLife.curiosity.sources.s16': document.getElementById('espShareEnabled').checked
 }, document.getElementById('espMsg'), '赛事设置已保存'));
 
 document.getElementById('esportsRefresh')?.addEventListener('click', async () => {
@@ -4074,7 +4731,7 @@ document.getElementById('espSubs')?.addEventListener('click', async (event) => {
   if (!Number.isInteger(idx) || !subs[idx]) return;
   if (btn.dataset.subToggle !== undefined) subs[idx].enabled = !subs[idx].enabled;
   else subs.splice(idx, 1);
-  await contentApplyConfig({ 'socialV2.subscriptions': subs }, document.getElementById('subMsg'), '订阅已更新');
+  await contentApplyConfig({ 'simulation.subscriptions': subs }, document.getElementById('subMsg'), '订阅已更新');
 });
 
 document.getElementById('subAdd')?.addEventListener('click', async () => {
@@ -4098,7 +4755,7 @@ document.getElementById('subAdd')?.addEventListener('click', async () => {
     maxPerDay: Math.max(1, contentNumber('subMax', 2)),
     minGapMs: Math.max(1, contentNumber('subGapMin', 15)) * 60000
   });
-  const ok = await contentApplyConfig({ 'socialV2.subscriptions': subs }, document.getElementById('subMsg'), '订阅已添加');
+  const ok = await contentApplyConfig({ 'simulation.subscriptions': subs }, document.getElementById('subMsg'), '订阅已添加');
   if (ok) document.getElementById('subKey').value = '';
 });
 
@@ -4111,14 +4768,14 @@ document.getElementById('shareSave')?.addEventListener('click', () => {
     return;
   }
   contentApplyConfig({
-    'socialV2.innerLife.groupShare.enabled': document.getElementById('shareEnabled').checked,
-    'socialV2.innerLife.groupShare.target': targets[0],
-    'socialV2.innerLife.groupShare.targets': targets,
-    'socialV2.innerLife.groupShare.maxPerDay': Math.max(0, contentNumber('shareMaxPerDay', 3)),
-    'socialV2.innerLife.groupShare.minGapMs': Math.max(1, contentNumber('shareMinGapMin', 60)) * 60000,
-    'socialV2.innerLife.groupShare.idleMs': Math.max(0, contentNumber('shareIdleSec', 300)) * 1000,
-    'socialV2.innerLife.groupShare.maxChars': Math.max(50, contentNumber('shareMaxChars', 500)),
-    'socialV2.innerLife.groupShare.requireApproval': document.getElementById('shareApproval').checked
+    'simulation.innerLife.groupShare.enabled': document.getElementById('shareEnabled').checked,
+    'simulation.innerLife.groupShare.target': targets[0],
+    'simulation.innerLife.groupShare.targets': targets,
+    'simulation.innerLife.groupShare.maxPerDay': Math.max(0, contentNumber('shareMaxPerDay', 3)),
+    'simulation.innerLife.groupShare.minGapMs': Math.max(1, contentNumber('shareMinGapMin', 60)) * 60000,
+    'simulation.innerLife.groupShare.idleMs': Math.max(0, contentNumber('shareIdleSec', 300)) * 1000,
+    'simulation.innerLife.groupShare.maxChars': Math.max(50, contentNumber('shareMaxChars', 500)),
+    'simulation.innerLife.groupShare.requireApproval': document.getElementById('shareApproval').checked
   }, document.getElementById('shareMsg'), '分享设置已保存');
 });
 
@@ -4128,13 +4785,13 @@ document.getElementById('aiTipsSave')?.addEventListener('click', async () => {
   const min = Math.max(0, Math.min(10, contentNumber('aiTipsMin', 2)));
   const max = Math.max(min, Math.min(10, contentNumber('aiTipsMax', 5)));
   const ok = await contentApplyConfig({
-    'socialV2.innerLife.aiTips.enabled': enabled,
-    'socialV2.innerLife.aiTips.minPerDay': min,
-    'socialV2.innerLife.aiTips.maxPerDay': max,
-    'socialV2.innerLife.aiTips.windowStartHour': Math.max(0, Math.min(23, contentNumber('aiTipsStart', 9))),
-    'socialV2.innerLife.aiTips.windowEndHour': Math.max(1, Math.min(24, contentNumber('aiTipsEnd', 22))),
-    'socialV2.innerLife.aiTips.minGapMs': Math.max(10, contentNumber('aiTipsGapMin', 75)) * 60000,
-    'socialV2.innerLife.aiTips.maxChars': Math.max(60, Math.min(300, contentNumber('aiTipsMaxChars', 200)))
+    'simulation.innerLife.aiTips.enabled': enabled,
+    'simulation.innerLife.aiTips.minPerDay': min,
+    'simulation.innerLife.aiTips.maxPerDay': max,
+    'simulation.innerLife.aiTips.windowStartHour': Math.max(0, Math.min(23, contentNumber('aiTipsStart', 9))),
+    'simulation.innerLife.aiTips.windowEndHour': Math.max(1, Math.min(24, contentNumber('aiTipsEnd', 22))),
+    'simulation.innerLife.aiTips.minGapMs': Math.max(10, contentNumber('aiTipsGapMin', 75)) * 60000,
+    'simulation.innerLife.aiTips.maxChars': Math.max(60, Math.min(300, contentNumber('aiTipsMaxChars', 200)))
   }, msg, 'AI 知识分享设置已保存');
   if (ok) {
     try {
@@ -4472,14 +5129,14 @@ document.getElementById('shareRun')?.addEventListener('click', async () => {
 });
 
 document.getElementById('qzoneSave')?.addEventListener('click', () => contentApplyConfig({
-  'socialV2.innerLife.qzone.enabled': document.getElementById('qzoneEnabled').checked,
-  'socialV2.innerLife.qzone.requireApproval': document.getElementById('qzoneApproval').checked,
-  'socialV2.innerLife.qzone.visibility': contentNumber('qzoneVisibility', 1),
-  'socialV2.innerLife.qzone.maxPerDay': Math.max(0, contentNumber('qzoneMaxPerDay', 2)),
-  'socialV2.innerLife.qzone.minGapMs': Math.max(1, contentNumber('qzoneMinGapMin', 300)) * 60000,
-  'socialV2.innerLife.qzone.maxChars': Math.max(30, contentNumber('qzoneMaxChars', 150)),
-  'socialV2.innerLife.qzone.skipProbability': Math.min(0.95, Math.max(0, contentNumber('qzoneSkipPct', 15) / 100)),
-  'socialV2.innerLife.qzone.commentReply.enabled': document.getElementById('qzoneCommentReply').checked
+  'simulation.innerLife.qzone.enabled': document.getElementById('qzoneEnabled').checked,
+  'simulation.innerLife.qzone.requireApproval': document.getElementById('qzoneApproval').checked,
+  'simulation.innerLife.qzone.visibility': contentNumber('qzoneVisibility', 1),
+  'simulation.innerLife.qzone.maxPerDay': Math.max(0, contentNumber('qzoneMaxPerDay', 2)),
+  'simulation.innerLife.qzone.minGapMs': Math.max(1, contentNumber('qzoneMinGapMin', 300)) * 60000,
+  'simulation.innerLife.qzone.maxChars': Math.max(30, contentNumber('qzoneMaxChars', 150)),
+  'simulation.innerLife.qzone.skipProbability': Math.min(0.95, Math.max(0, contentNumber('qzoneSkipPct', 15) / 100)),
+  'simulation.innerLife.qzone.commentReply.enabled': document.getElementById('qzoneCommentReply').checked
 }, document.getElementById('qzoneMsg'), '说说设置已保存'));
 
 document.getElementById('qzonePause')?.addEventListener('click', async () => {
@@ -5012,186 +5669,186 @@ async function sendVoiceFromConsole() {
   }
 }
 
-// ── 群聊仿真模式（reserved2）配置 ─────────────────────────────────────────
-async function loadV2Config() {
+// ── 群聊仿真模式（simulation）配置 ─────────────────────────────────────────
+async function loadSimConfig() {
   try {
-    const r = await api('/api/socialV2/config');
+    const r = await api('/api/simulation/config');
     const c = r.config || {};
-    document.getElementById('v2Enabled').checked = c.enabled !== false;
-    document.getElementById('v2AgentPreset').value = c.agentPreset || '';
-    document.getElementById('v2ProvideRecommendations').checked = c.provideRecommendations !== false;
-    document.querySelectorAll('[data-v2-tool]').forEach(el => {
-      el.checked = (c.tools && c.tools[el.dataset.v2Tool] !== false);
+    document.getElementById('simEnabled').checked = c.enabled !== false;
+    document.getElementById('simAgentPreset').value = c.agentPreset || '';
+    document.getElementById('simProvideRecommendations').checked = c.provideRecommendations !== false;
+    document.querySelectorAll('[data-sim-tool]').forEach(el => {
+      el.checked = (c.tools && c.tools[el.dataset.simTool] !== false);
     });
     const w = c.wake || {};
-    document.getElementById('v2WakeDefaultMode').value = w.defaultMode === 'active' ? 'active' : 'diving';
-    document.getElementById('v2RecDefaultInfinite').checked = w.recommendedDefaultInfinite !== false;
-    document.getElementById('v2RecSleepMin').value = Math.round((w.recommendedSleepMinMs || 300000) / 60000);
-    document.getElementById('v2RecSleepMax').value = Math.round((w.recommendedSleepMaxMs || 7200000) / 60000);
-    document.getElementById('v2RecProb').value = w.recommendedProbability ?? 0.05;
-    document.getElementById('v2RecKeywords').value = (w.recommendedKeywords || []).join(', ');
-    document.getElementById('v2RecAt').checked = w.recommendedAtMention !== false;
-    document.getElementById('v2RecName').checked = w.recommendedNameMention !== false;
-    document.getElementById('v2RecQuestion').checked = w.recommendedQuestion !== false;
-    document.getElementById('v2RecPoke').checked = w.recommendedPoke !== false;
-    document.getElementById('v2WakeHint').value = w.recommendedHint || '';
-    document.getElementById('v2SleepMinMs').value = Math.round((w.sleepMinMs || 60000) / 1000);
-    document.getElementById('v2SleepMaxMs').value = Math.round((w.sleepMaxMs || 0) / 1000);
-    document.getElementById('v2MaxWakeMin').value = w.maxWakePerMinute ?? 1;
-    document.getElementById('v2MaxWakeHour').value = w.maxWakePerHour ?? 12;
-    document.getElementById('v2BatchWindowMs').value = w.batchWindowMs ?? 8000;
-    document.getElementById('v2NoActionLimit').value = w.noActionLimit ?? 3;
-    document.getElementById('v2MaxWakeConfigReminders').value = w.maxWakeConfigReminders ?? 2;
-    document.getElementById('v2PreSleepWaitEnabled').checked = w.preSleepWaitEnabled !== false;
-    document.getElementById('v2PreSleepWaitMin').value = Number.isFinite(Number(w.preSleepWaitMs)) ? Math.round(Number(w.preSleepWaitMs) / 60000) : 5;
+    document.getElementById('simWakeDefaultMode').value = w.defaultMode === 'active' ? 'active' : 'diving';
+    document.getElementById('simRecDefaultInfinite').checked = w.recommendedDefaultInfinite !== false;
+    document.getElementById('simRecSleepMin').value = Math.round((w.recommendedSleepMinMs || 300000) / 60000);
+    document.getElementById('simRecSleepMax').value = Math.round((w.recommendedSleepMaxMs || 7200000) / 60000);
+    document.getElementById('simRecProb').value = w.recommendedProbability ?? 0.05;
+    document.getElementById('simRecKeywords').value = (w.recommendedKeywords || []).join(', ');
+    document.getElementById('simRecAt').checked = w.recommendedAtMention !== false;
+    document.getElementById('simRecName').checked = w.recommendedNameMention !== false;
+    document.getElementById('simRecQuestion').checked = w.recommendedQuestion !== false;
+    document.getElementById('simRecPoke').checked = w.recommendedPoke !== false;
+    document.getElementById('simWakeHint').value = w.recommendedHint || '';
+    document.getElementById('simSleepMinMs').value = Math.round((w.sleepMinMs || 60000) / 1000);
+    document.getElementById('simSleepMaxMs').value = Math.round((w.sleepMaxMs || 0) / 1000);
+    document.getElementById('simMaxWakeMin').value = w.maxWakePerMinute ?? 1;
+    document.getElementById('simMaxWakeHour').value = w.maxWakePerHour ?? 12;
+    document.getElementById('simBatchWindowMs').value = w.batchWindowMs ?? 8000;
+    document.getElementById('simNoActionLimit').value = w.noActionLimit ?? 3;
+    document.getElementById('simMaxWakeConfigReminders').value = w.maxWakeConfigReminders ?? 2;
+    document.getElementById('simPreSleepWaitEnabled').checked = w.preSleepWaitEnabled !== false;
+    document.getElementById('simPreSleepWaitMin').value = Number.isFinite(Number(w.preSleepWaitMs)) ? Math.round(Number(w.preSleepWaitMs) / 60000) : 5;
     const s = c.send || {};
-    document.getElementById('v2BurstEnabled').checked = s.burstEnabled !== false;
-    document.getElementById('v2BurstMax').value = s.burstMaxMessages ?? 8;
-    document.getElementById('v2BurstMin').value = s.burstIntervalMinMs ?? 1000;
-    document.getElementById('v2BurstMaxMs').value = s.burstIntervalMaxMs ?? 3000;
-    document.getElementById('v2LongGapProb').value = s.longGapProbability ?? 0.2;
-    document.getElementById('v2LongGapMin').value = s.longGapMinMs ?? 5000;
-    document.getElementById('v2LongGapMax').value = s.longGapMaxMs ?? 10000;
-    document.getElementById('v2MaxSendMin').value = s.maxSendPerMinute ?? 8;
-    document.getElementById('v2MaxSendHour').value = s.maxSendPerHour ?? 60;
-    document.getElementById('v2MaxMsgChars').value = s.maxMessageChars ?? 500;
-    document.getElementById('v2MaxGapMs').value = s.maxGapMs ?? 10000;
-    document.getElementById('v2GapBaseMs').value = s.gapBaseMs ?? 800;
-    document.getElementById('v2GapPerCharMs').value = s.gapPerCharMs ?? 20;
-    document.getElementById('v2SendHint').value = s.recommendedHint || '';
+    document.getElementById('simBurstEnabled').checked = s.burstEnabled !== false;
+    document.getElementById('simBurstMax').value = s.burstMaxMessages ?? 8;
+    document.getElementById('simBurstMin').value = s.burstIntervalMinMs ?? 1000;
+    document.getElementById('simBurstMaxMs').value = s.burstIntervalMaxMs ?? 3000;
+    document.getElementById('simLongGapProb').value = s.longGapProbability ?? 0.2;
+    document.getElementById('simLongGapMin').value = s.longGapMinMs ?? 5000;
+    document.getElementById('simLongGapMax').value = s.longGapMaxMs ?? 10000;
+    document.getElementById('simMaxSendMin').value = s.maxSendPerMinute ?? 8;
+    document.getElementById('simMaxSendHour').value = s.maxSendPerHour ?? 60;
+    document.getElementById('simMaxMsgChars').value = s.maxMessageChars ?? 500;
+    document.getElementById('simMaxGapMs').value = s.maxGapMs ?? 10000;
+    document.getElementById('simGapBaseMs').value = s.gapBaseMs ?? 800;
+    document.getElementById('simGapPerCharMs').value = s.gapPerCharMs ?? 20;
+    document.getElementById('simSendHint').value = s.recommendedHint || '';
     const wt = c.wait || {};
-    document.getElementById('v2WaitDefaultMs').value = wt.defaultMs ?? 30000;
-    document.getElementById('v2WaitMinMs').value = wt.minMs ?? 5000;
-    document.getElementById('v2WaitMaxMs').value = wt.maxMs ?? 600000;
-    document.getElementById('v2WaitDefaultQuietMs').value = wt.defaultQuietMs ?? 8000;
-    document.getElementById('v2MinQuietAfterNewMs').value = wt.minQuietAfterNewMs ?? 10000;
-    document.getElementById('v2AutoReplyCheckSec').value = Math.round((c.autoReplyCheckMs || 30000) / 1000);
+    document.getElementById('simWaitDefaultMs').value = wt.defaultMs ?? 30000;
+    document.getElementById('simWaitMinMs').value = wt.minMs ?? 5000;
+    document.getElementById('simWaitMaxMs').value = wt.maxMs ?? 600000;
+    document.getElementById('simWaitDefaultQuietMs').value = wt.defaultQuietMs ?? 8000;
+    document.getElementById('simMinQuietAfterNewMs').value = wt.minQuietAfterNewMs ?? 10000;
+    document.getElementById('simAutoReplyCheckSec').value = Math.round((c.autoReplyCheckMs || 30000) / 1000);
     const pa = c.proactive || {};
-    document.getElementById('v2ProactiveEnabled').checked = pa.enabled !== false;
-    document.getElementById('v2ProactiveIntervalMin').value = Math.round((pa.checkIntervalMinMs || 1800000) / 60000);
-    document.getElementById('v2ProactiveIntervalMax').value = Math.round((pa.checkIntervalMaxMs || 5400000) / 60000);
-    document.getElementById('v2ProactiveIdleThreshold').value = Math.round((pa.idleThresholdMs || 900000) / 60000);
-    document.getElementById('v2ProactiveProbability').value = pa.probability ?? 0.3;
+    document.getElementById('simProactiveEnabled').checked = pa.enabled !== false;
+    document.getElementById('simProactiveIntervalMin').value = Math.round((pa.checkIntervalMinMs || 1800000) / 60000);
+    document.getElementById('simProactiveIntervalMax').value = Math.round((pa.checkIntervalMaxMs || 5400000) / 60000);
+    document.getElementById('simProactiveIdleThreshold').value = Math.round((pa.idleThresholdMs || 900000) / 60000);
+    document.getElementById('simProactiveProbability').value = pa.probability ?? 0.3;
     const stk = c.sticker || {};
-    document.getElementById('v2StickerEnabled').checked = stk.enabled !== false;
-    document.getElementById('v2StickerSyncTtlSec').value = Math.round((stk.syncTtlMs || 60000) / 1000);
-    document.getElementById('v2StickerMaxList').value = stk.maxListCount ?? 100;
-    document.getElementById('v2StickerPromptMax').value = stk.promptMaxStickers ?? 8;
-    document.getElementById('v2StickerIncludePrompt').checked = stk.includeInPrompt !== false;
+    document.getElementById('simStickerEnabled').checked = stk.enabled !== false;
+    document.getElementById('simStickerSyncTtlSec').value = Math.round((stk.syncTtlMs || 60000) / 1000);
+    document.getElementById('simStickerMaxList').value = stk.maxListCount ?? 100;
+    document.getElementById('simStickerPromptMax').value = stk.promptMaxStickers ?? 8;
+    document.getElementById('simStickerIncludePrompt').checked = stk.includeInPrompt !== false;
     const stkCollect = stk.collect || {};
-    document.getElementById('v2StickerCollectEnabled').checked = stkCollect.enabled !== false;
-    document.getElementById('v2StickerCollectPerMin').value = stkCollect.maxPerMinute ?? 2;
-    document.getElementById('v2StickerCollectPerHour').value = stkCollect.maxPerHour ?? 10;
-    document.getElementById('v2StickerCollectRemarkMax').value = stkCollect.maxRemarkChars ?? 20;
+    document.getElementById('simStickerCollectEnabled').checked = stkCollect.enabled !== false;
+    document.getElementById('simStickerCollectPerMin').value = stkCollect.maxPerMinute ?? 2;
+    document.getElementById('simStickerCollectPerHour').value = stkCollect.maxPerHour ?? 10;
+    document.getElementById('simStickerCollectRemarkMax').value = stkCollect.maxRemarkChars ?? 20;
     const ctx = c.context || {};
-    document.getElementById('v2ContextRecentLimit').value = ctx.recentLimit ?? 100;
-    document.getElementById('v2ContextUnreadLimit').value = ctx.unreadLimit ?? 30;
-    document.getElementById('v2ContextWindow').value = ctx.contextWindow ?? 20;
+    document.getElementById('simContextRecentLimit').value = ctx.recentLimit ?? 100;
+    document.getElementById('simContextUnreadLimit').value = ctx.unreadLimit ?? 30;
+    document.getElementById('simContextWindow').value = ctx.contextWindow ?? 20;
     const fb = c.feedback || {};
-    document.getElementById('v2FeedbackMaxLength').value = fb.maxLength ?? 500;
-    document.getElementById('v2FeedbackNotifyOwner').checked = fb.notifyOwnerOnError === true;
+    document.getElementById('simFeedbackMaxLength').value = fb.maxLength ?? 500;
+    document.getElementById('simFeedbackNotifyOwner').checked = fb.notifyOwnerOnError === true;
   } catch {}
 }
 
-async function saveV2Config() {
+async function saveSimConfig() {
   const tools = {};
-  document.querySelectorAll('[data-v2-tool]').forEach(el => { tools[el.dataset.v2Tool] = el.checked; });
+  document.querySelectorAll('[data-sim-tool]').forEach(el => { tools[el.dataset.simTool] = el.checked; });
   const body = {
-    enabled: document.getElementById('v2Enabled').checked,
-    agentPreset: document.getElementById('v2AgentPreset').value.trim(),
-    provideRecommendations: document.getElementById('v2ProvideRecommendations').checked,
-    autoReplyCheckMs: Math.round(Number(document.getElementById('v2AutoReplyCheckSec').value) || 30) * 1000,
+    enabled: document.getElementById('simEnabled').checked,
+    agentPreset: document.getElementById('simAgentPreset').value.trim(),
+    provideRecommendations: document.getElementById('simProvideRecommendations').checked,
+    autoReplyCheckMs: Math.round(Number(document.getElementById('simAutoReplyCheckSec').value) || 30) * 1000,
     tools,
     wake: {
-      defaultMode: document.getElementById('v2WakeDefaultMode').value,
-      recommendedDefaultInfinite: document.getElementById('v2RecDefaultInfinite').checked,
-      preSleepWaitEnabled: document.getElementById('v2PreSleepWaitEnabled').checked,
-      preSleepWaitMs: (Number.isFinite(Number(document.getElementById('v2PreSleepWaitMin').value)) && Number(document.getElementById('v2PreSleepWaitMin').value) >= 0 ? Math.round(Number(document.getElementById('v2PreSleepWaitMin').value)) : 5) * 60000,
-      recommendedSleepMinMs: (Math.round(Number(document.getElementById('v2RecSleepMin').value) || 5)) * 60000,
-      recommendedSleepMaxMs: (Math.round(Number(document.getElementById('v2RecSleepMax').value) || 120)) * 60000,
-      recommendedProbability: Number(document.getElementById('v2RecProb').value) || 0,
-      recommendedKeywords: document.getElementById('v2RecKeywords').value.split(/[,，]/).map(s => s.trim()).filter(Boolean),
-      recommendedAtMention: document.getElementById('v2RecAt').checked,
-      recommendedNameMention: document.getElementById('v2RecName').checked,
-      recommendedQuestion: document.getElementById('v2RecQuestion').checked,
-      recommendedPoke: document.getElementById('v2RecPoke').checked,
-      recommendedHint: document.getElementById('v2WakeHint').value,
-      sleepMinMs: (Math.round(Number(document.getElementById('v2SleepMinMs').value) || 0)) * 1000,
-      sleepMaxMs: (Math.round(Number(document.getElementById('v2SleepMaxMs').value) || 0)) * 1000,
-      maxWakePerMinute: Math.round(Number(document.getElementById('v2MaxWakeMin').value) || 0),
-      maxWakePerHour: Math.round(Number(document.getElementById('v2MaxWakeHour').value) || 0),
-      batchWindowMs: Math.round(Number(document.getElementById('v2BatchWindowMs').value) || 8000),
-      noActionLimit: Math.round(Number(document.getElementById('v2NoActionLimit').value) || 3),
-      maxWakeConfigReminders: Math.round(Number(document.getElementById('v2MaxWakeConfigReminders').value) || 2)
+      defaultMode: document.getElementById('simWakeDefaultMode').value,
+      recommendedDefaultInfinite: document.getElementById('simRecDefaultInfinite').checked,
+      preSleepWaitEnabled: document.getElementById('simPreSleepWaitEnabled').checked,
+      preSleepWaitMs: (Number.isFinite(Number(document.getElementById('simPreSleepWaitMin').value)) && Number(document.getElementById('simPreSleepWaitMin').value) >= 0 ? Math.round(Number(document.getElementById('simPreSleepWaitMin').value)) : 5) * 60000,
+      recommendedSleepMinMs: (Math.round(Number(document.getElementById('simRecSleepMin').value) || 5)) * 60000,
+      recommendedSleepMaxMs: (Math.round(Number(document.getElementById('simRecSleepMax').value) || 120)) * 60000,
+      recommendedProbability: Number(document.getElementById('simRecProb').value) || 0,
+      recommendedKeywords: document.getElementById('simRecKeywords').value.split(/[,，]/).map(s => s.trim()).filter(Boolean),
+      recommendedAtMention: document.getElementById('simRecAt').checked,
+      recommendedNameMention: document.getElementById('simRecName').checked,
+      recommendedQuestion: document.getElementById('simRecQuestion').checked,
+      recommendedPoke: document.getElementById('simRecPoke').checked,
+      recommendedHint: document.getElementById('simWakeHint').value,
+      sleepMinMs: (Math.round(Number(document.getElementById('simSleepMinMs').value) || 0)) * 1000,
+      sleepMaxMs: (Math.round(Number(document.getElementById('simSleepMaxMs').value) || 0)) * 1000,
+      maxWakePerMinute: Math.round(Number(document.getElementById('simMaxWakeMin').value) || 0),
+      maxWakePerHour: Math.round(Number(document.getElementById('simMaxWakeHour').value) || 0),
+      batchWindowMs: Math.round(Number(document.getElementById('simBatchWindowMs').value) || 8000),
+      noActionLimit: Math.round(Number(document.getElementById('simNoActionLimit').value) || 3),
+      maxWakeConfigReminders: Math.round(Number(document.getElementById('simMaxWakeConfigReminders').value) || 2)
     },
     send: {
-      burstEnabled: document.getElementById('v2BurstEnabled').checked,
-      burstMaxMessages: Math.round(Number(document.getElementById('v2BurstMax').value) || 8),
-      burstIntervalMinMs: Math.round(Number(document.getElementById('v2BurstMin').value) || 1000),
-      burstIntervalMaxMs: Math.round(Number(document.getElementById('v2BurstMaxMs').value) || 3000),
-      longGapProbability: Number(document.getElementById('v2LongGapProb').value) || 0,
-      longGapMinMs: Math.round(Number(document.getElementById('v2LongGapMin').value) || 5000),
-      longGapMaxMs: Math.round(Number(document.getElementById('v2LongGapMax').value) || 10000),
-      maxSendPerMinute: Math.round(Number(document.getElementById('v2MaxSendMin').value) || 0),
-      maxSendPerHour: Math.round(Number(document.getElementById('v2MaxSendHour').value) || 0),
-      maxMessageChars: Math.round(Number(document.getElementById('v2MaxMsgChars').value) || 500),
-      maxGapMs: Math.round(Number(document.getElementById('v2MaxGapMs').value) || 10000),
-      gapBaseMs: Math.round(Number(document.getElementById('v2GapBaseMs').value) || 800),
-      gapPerCharMs: Math.round(Number(document.getElementById('v2GapPerCharMs').value) || 20),
-      recommendedHint: document.getElementById('v2SendHint').value
+      burstEnabled: document.getElementById('simBurstEnabled').checked,
+      burstMaxMessages: Math.round(Number(document.getElementById('simBurstMax').value) || 8),
+      burstIntervalMinMs: Math.round(Number(document.getElementById('simBurstMin').value) || 1000),
+      burstIntervalMaxMs: Math.round(Number(document.getElementById('simBurstMaxMs').value) || 3000),
+      longGapProbability: Number(document.getElementById('simLongGapProb').value) || 0,
+      longGapMinMs: Math.round(Number(document.getElementById('simLongGapMin').value) || 5000),
+      longGapMaxMs: Math.round(Number(document.getElementById('simLongGapMax').value) || 10000),
+      maxSendPerMinute: Math.round(Number(document.getElementById('simMaxSendMin').value) || 0),
+      maxSendPerHour: Math.round(Number(document.getElementById('simMaxSendHour').value) || 0),
+      maxMessageChars: Math.round(Number(document.getElementById('simMaxMsgChars').value) || 500),
+      maxGapMs: Math.round(Number(document.getElementById('simMaxGapMs').value) || 10000),
+      gapBaseMs: Math.round(Number(document.getElementById('simGapBaseMs').value) || 800),
+      gapPerCharMs: Math.round(Number(document.getElementById('simGapPerCharMs').value) || 20),
+      recommendedHint: document.getElementById('simSendHint').value
     },
     wait: {
-      defaultMs: Math.round(Number(document.getElementById('v2WaitDefaultMs').value) || 5000),
-      minMs: Math.round(Number(document.getElementById('v2WaitMinMs').value) || 1000),
-      maxMs: Math.round(Number(document.getElementById('v2WaitMaxMs').value) || 10000),
-      defaultQuietMs: Number.isFinite(Number(document.getElementById('v2WaitDefaultQuietMs').value)) ? Math.max(0, Math.round(Number(document.getElementById('v2WaitDefaultQuietMs').value))) : 8000,
-      minQuietAfterNewMs: Number.isFinite(Number(document.getElementById('v2MinQuietAfterNewMs').value)) ? Math.max(0, Math.round(Number(document.getElementById('v2MinQuietAfterNewMs').value))) : 10000
+      defaultMs: Math.round(Number(document.getElementById('simWaitDefaultMs').value) || 5000),
+      minMs: Math.round(Number(document.getElementById('simWaitMinMs').value) || 1000),
+      maxMs: Math.round(Number(document.getElementById('simWaitMaxMs').value) || 10000),
+      defaultQuietMs: Number.isFinite(Number(document.getElementById('simWaitDefaultQuietMs').value)) ? Math.max(0, Math.round(Number(document.getElementById('simWaitDefaultQuietMs').value))) : 8000,
+      minQuietAfterNewMs: Number.isFinite(Number(document.getElementById('simMinQuietAfterNewMs').value)) ? Math.max(0, Math.round(Number(document.getElementById('simMinQuietAfterNewMs').value))) : 10000
     },
     proactive: {
-      enabled: document.getElementById('v2ProactiveEnabled').checked,
-      checkIntervalMinMs: Math.round(Number(document.getElementById('v2ProactiveIntervalMin').value) || 30) * 60000,
-      checkIntervalMaxMs: Math.round(Number(document.getElementById('v2ProactiveIntervalMax').value) || 90) * 60000,
-      idleThresholdMs: Math.round(Number(document.getElementById('v2ProactiveIdleThreshold').value) || 15) * 60000,
-      probability: Number(document.getElementById('v2ProactiveProbability').value) || 0
+      enabled: document.getElementById('simProactiveEnabled').checked,
+      checkIntervalMinMs: Math.round(Number(document.getElementById('simProactiveIntervalMin').value) || 30) * 60000,
+      checkIntervalMaxMs: Math.round(Number(document.getElementById('simProactiveIntervalMax').value) || 90) * 60000,
+      idleThresholdMs: Math.round(Number(document.getElementById('simProactiveIdleThreshold').value) || 15) * 60000,
+      probability: Number(document.getElementById('simProactiveProbability').value) || 0
     },
     sticker: {
-      enabled: document.getElementById('v2StickerEnabled').checked,
-      syncTtlMs: Math.max(1000, Math.round(Number(document.getElementById('v2StickerSyncTtlSec').value) || 60) * 1000),
-      maxListCount: Math.min(500, Math.max(1, Math.round(Number(document.getElementById('v2StickerMaxList').value) || 100))),
-      includeInPrompt: document.getElementById('v2StickerIncludePrompt').checked,
-      promptMaxStickers: Math.min(30, Math.max(1, Math.round(Number(document.getElementById('v2StickerPromptMax').value) || 8))),
+      enabled: document.getElementById('simStickerEnabled').checked,
+      syncTtlMs: Math.max(1000, Math.round(Number(document.getElementById('simStickerSyncTtlSec').value) || 60) * 1000),
+      maxListCount: Math.min(500, Math.max(1, Math.round(Number(document.getElementById('simStickerMaxList').value) || 100))),
+      includeInPrompt: document.getElementById('simStickerIncludePrompt').checked,
+      promptMaxStickers: Math.min(30, Math.max(1, Math.round(Number(document.getElementById('simStickerPromptMax').value) || 8))),
       collect: {
-        enabled: document.getElementById('v2StickerCollectEnabled').checked,
-        maxPerMinute: Math.max(0, Math.round(Number(document.getElementById('v2StickerCollectPerMin').value) || 0)),
-        maxPerHour: Math.max(0, Math.round(Number(document.getElementById('v2StickerCollectPerHour').value) || 0)),
-        maxRemarkChars: Math.min(50, Math.max(1, Math.round(Number(document.getElementById('v2StickerCollectRemarkMax').value) || 20)))
+        enabled: document.getElementById('simStickerCollectEnabled').checked,
+        maxPerMinute: Math.max(0, Math.round(Number(document.getElementById('simStickerCollectPerMin').value) || 0)),
+        maxPerHour: Math.max(0, Math.round(Number(document.getElementById('simStickerCollectPerHour').value) || 0)),
+        maxRemarkChars: Math.min(50, Math.max(1, Math.round(Number(document.getElementById('simStickerCollectRemarkMax').value) || 20)))
       }
     },
     context: {
-      recentLimit: Math.round(Number(document.getElementById('v2ContextRecentLimit').value) || 100),
-      unreadLimit: Math.round(Number(document.getElementById('v2ContextUnreadLimit').value) || 30),
-      contextWindow: Math.round(Number(document.getElementById('v2ContextWindow').value) || 20)
+      recentLimit: Math.round(Number(document.getElementById('simContextRecentLimit').value) || 100),
+      unreadLimit: Math.round(Number(document.getElementById('simContextUnreadLimit').value) || 30),
+      contextWindow: Math.round(Number(document.getElementById('simContextWindow').value) || 20)
     },
     feedback: {
-      maxLength: Math.round(Number(document.getElementById('v2FeedbackMaxLength').value) || 500),
-      notifyOwnerOnError: document.getElementById('v2FeedbackNotifyOwner').checked
+      maxLength: Math.round(Number(document.getElementById('simFeedbackMaxLength').value) || 500),
+      notifyOwnerOnError: document.getElementById('simFeedbackNotifyOwner').checked
     }
   };
-  const r = await api('/api/socialV2/config', 'POST', body);
-  const msg = document.getElementById('v2ConfigMsg');
+  const r = await api('/api/simulation/config', 'POST', body);
+  const msg = document.getElementById('simConfigMsg');
   msg.textContent = r.ok ? '✅ 已保存' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
-  if (r.ok) loadV2Config();
+  if (r.ok) loadSimConfig();
 }
 
-async function viewV2State() {
-  const key = document.getElementById('v2StateKey').value.trim();
+async function viewSimState() {
+  const key = document.getElementById('simStateKey').value.trim();
   if (!key) { alert('请输入会话 key'); return; }
-  const r = await api('/api/socialV2/state?key=' + encodeURIComponent(key));
-  document.getElementById('v2StateOutput').textContent = JSON.stringify(r, null, 2);
+  const r = await api('/api/simulation/state?key=' + encodeURIComponent(key));
+  document.getElementById('simStateOutput').textContent = JSON.stringify(r, null, 2);
 }
 
-function v2ToolLogStatus(entry) {
+function simToolLogStatus(entry) {
   if (entry.type === 'result') {
     const ok = entry.ok !== false;
     return `<span class="pill ${ok ? 'g' : 'r'}">${ok ? '成功' : '失败'}</span>`;
@@ -5263,15 +5920,15 @@ function summarizeToolArgs(tool, args) {
   }
   return parts.join(' | ') || JSON.stringify(obj);
 }
-function v2ToolLogCell(value, tool) {
+function simToolLogCell(value, tool) {
   const text = value == null ? '' : String(value);
   if (!text) return '<span class="meta">-</span>';
   const summary = tool ? summarizeToolArgs(tool, text) : text;
   const short = summary.length > 100 ? summary.slice(0, 100) + '…' : summary;
   return `<span class="tool-log-cell" data-full="${esc(text)}" data-short="${esc(short)}" title="点击查看完整 JSON">${esc(short)}</span>`;
 }
-function renderV2ToolLog(entries) {
-  const box = document.getElementById('v2ToolLogOutput');
+function renderSimToolLog(entries) {
+  const box = document.getElementById('simToolLogOutput');
   const list = entries || [];
   if (!list.length) { box.innerHTML = '<span class="meta">（空）</span>'; return; }
   let html = '<table><tr><th>时间</th><th>会话 key</th><th>工具名</th><th>状态</th><th>参数</th><th>错误信息</th></tr>';
@@ -5279,20 +5936,20 @@ function renderV2ToolLog(entries) {
     const time = e.time ? new Date(e.time).toLocaleString() : '-';
     const key = esc(e.key || '');
     const tool = esc(e.tool || '-');
-    const status = v2ToolLogStatus(e);
-    const params = e.type === 'call' ? v2ToolLogCell(e.args, e.tool) : '<span class="meta">-</span>';
-    const error = e.type === 'result' ? v2ToolLogCell(e.error) : '<span class="meta">-</span>';
+    const status = simToolLogStatus(e);
+    const params = e.type === 'call' ? simToolLogCell(e.args, e.tool) : '<span class="meta">-</span>';
+    const error = e.type === 'result' ? simToolLogCell(e.error) : '<span class="meta">-</span>';
     html += `<tr><td>${esc(time)}</td><td>${key}</td><td>${tool}</td><td>${status}</td><td>${params}</td><td>${error}</td></tr>`;
   }
   html += '</table>';
   box.innerHTML = html;
 }
-function loadV2ToolLog() {
-  return api('/api/socialV2/tool-log?limit=200')
-    .then(r => { renderV2ToolLog(r.entries || []); })
-    .catch(() => { renderV2ToolLog([]); });
+function loadSimToolLog() {
+  return api('/api/simulation/tool-log?limit=200')
+    .then(r => { renderSimToolLog(r.entries || []); })
+    .catch(() => { renderSimToolLog([]); });
 }
-document.getElementById('v2ToolLogOutput').addEventListener('click', (ev) => {
+document.getElementById('simToolLogOutput').addEventListener('click', (ev) => {
   const cell = ev.target.closest('.tool-log-cell');
   if (!cell) return;
   const full = cell.dataset.full;
@@ -5306,8 +5963,8 @@ document.getElementById('v2ToolLogOutput').addEventListener('click', (ev) => {
   }
 });
 
-function renderV2Memory(data) {
-  const box = document.getElementById('v2MemoryOutput');
+function renderSimMemory(data) {
+  const box = document.getElementById('simMemoryOutput');
   if (!data || !data.ok) {
     box.innerHTML = '<span class="meta">加载失败</span>';
     return;
@@ -5342,15 +5999,15 @@ function renderV2Memory(data) {
   html += '</div></div>';
   box.innerHTML = html;
 }
-function loadV2Memory() {
-  const key = document.getElementById('v2MemoryKey').value.trim();
-  const msg = document.getElementById('v2MemoryMsg');
+function loadSimMemory() {
+  const key = document.getElementById('simMemoryKey').value.trim();
+  const msg = document.getElementById('simMemoryMsg');
   if (!key) { msg.textContent = '请输入会话 key'; msg.className = 'meta err'; return; }
   msg.textContent = '加载中…';
   msg.className = 'meta';
-  return api('/api/socialV2/memory?key=' + encodeURIComponent(key))
+  return api('/api/simulation/memory?key=' + encodeURIComponent(key))
     .then(r => {
-      renderV2Memory(r);
+      renderSimMemory(r);
       msg.textContent = r.ok ? '✅ 已加载' : ('❌ ' + (r.error || '失败'));
       msg.className = r.ok ? 'meta ok' : 'meta err';
     })
@@ -5359,28 +6016,28 @@ function loadV2Memory() {
       msg.className = 'meta err';
     });
 }
-document.getElementById('v2MemoryLoad').addEventListener('click', loadV2Memory);
-document.getElementById('v2MemoryClearAll').addEventListener('click', async () => {
-  const key = document.getElementById('v2MemoryKey').value.trim();
-  const msg = document.getElementById('v2MemoryMsg');
+document.getElementById('simMemoryLoad').addEventListener('click', loadSimMemory);
+document.getElementById('simMemoryClearAll').addEventListener('click', async () => {
+  const key = document.getElementById('simMemoryKey').value.trim();
+  const msg = document.getElementById('simMemoryMsg');
   if (!key) { msg.textContent = '请输入会话 key'; msg.className = 'meta err'; return; }
   if (!confirm('确定清空该会话全部轻量记忆？')) return;
-  const r = await api('/api/socialV2/memory-clear', 'POST', { key, category: '' });
+  const r = await api('/api/simulation/memory-clear', 'POST', { key, category: '' });
   msg.textContent = r.ok ? '✅ 已清空全部记忆' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
-  if (r.ok) loadV2Memory();
+  if (r.ok) loadSimMemory();
 });
-document.getElementById('v2MemoryOutput').addEventListener('click', async (ev) => {
+document.getElementById('simMemoryOutput').addEventListener('click', async (ev) => {
   const btn = ev.target.closest('button[data-action]');
   if (!btn) return;
-  const key = document.getElementById('v2MemoryKey').value.trim();
-  const msg = document.getElementById('v2MemoryMsg');
+  const key = document.getElementById('simMemoryKey').value.trim();
+  const msg = document.getElementById('simMemoryMsg');
   if (!key) { msg.textContent = '请输入会话 key'; msg.className = 'meta err'; return; }
   const cat = btn.dataset.cat;
   const action = btn.dataset.action;
   let r;
   if (action === 'clear') {
-    r = await api('/api/socialV2/memory-clear', 'POST', { key, category: cat });
+    r = await api('/api/simulation/memory-clear', 'POST', { key, category: cat });
   } else if (action === 'edit') {
     let newContent;
     let newExtra = {};
@@ -5393,13 +6050,13 @@ document.getElementById('v2MemoryOutput').addEventListener('click', async (ev) =
       if (input === null) return;
       newContent = input;
     }
-    r = await api('/api/socialV2/memory-update', 'POST', { key, category: cat, oldContent: btn.dataset.content || '', target: btn.dataset.target || '', newContent, newExtra });
+    r = await api('/api/simulation/memory-update', 'POST', { key, category: cat, oldContent: btn.dataset.content || '', target: btn.dataset.target || '', newContent, newExtra });
   } else {
-    r = await api('/api/socialV2/memory-remove', 'POST', { key, category: cat, content: btn.dataset.content || '', target: btn.dataset.target || '' });
+    r = await api('/api/simulation/memory-remove', 'POST', { key, category: cat, content: btn.dataset.content || '', target: btn.dataset.target || '' });
   }
   msg.textContent = r.ok ? '✅ 已更新' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
-  if (r.ok) loadV2Memory();
+  if (r.ok) loadSimMemory();
 });
 
 function formatWakeStatus(r) {
@@ -5451,15 +6108,15 @@ function formatWakeStatus(r) {
   lines.push(`<div><b>未读：</b>${Number(r.unreadCount) || 0} 条</div>`);
   return '<div style="padding:8px">' + lines.join('') + '</div>';
 }
-function loadV2WakeStatus() {
-  const key = document.getElementById('v2WakeKey').value.trim();
-  const msg = document.getElementById('v2WakeStatusMsg');
+function loadSimWakeStatus() {
+  const key = document.getElementById('simWakeKey').value.trim();
+  const msg = document.getElementById('simWakeStatusMsg');
   if (!key) { msg.textContent = '请输入会话 key'; msg.className = 'meta err'; return; }
   msg.textContent = '加载中…';
   msg.className = 'meta';
-  return api('/api/socialV2/state?key=' + encodeURIComponent(key))
+  return api('/api/simulation/state?key=' + encodeURIComponent(key))
     .then(r => {
-      document.getElementById('v2WakeStatusOutput').innerHTML = formatWakeStatus(r);
+      document.getElementById('simWakeStatusOutput').innerHTML = formatWakeStatus(r);
       msg.textContent = r.ok ? '✅ 已加载' : ('❌ ' + (r.error || '失败'));
       msg.className = r.ok ? 'meta ok' : 'meta err';
     })
@@ -5468,195 +6125,195 @@ function loadV2WakeStatus() {
       msg.className = 'meta err';
     });
 }
-document.getElementById('v2WakeStatusLoad').addEventListener('click', loadV2WakeStatus);
+document.getElementById('simWakeStatusLoad').addEventListener('click', loadSimWakeStatus);
 
 // ── 初始提示词（每个会话一份，只在 AI 首次唤醒时注入一次） ────────────────────
-const v2InitPromptTextEl = document.getElementById('v2InitPromptText');
-function v2InitPromptKeyValue() { return document.getElementById('v2InitPromptKey').value.trim(); }
-function setV2InitPromptMsg(text, kind) {
-  const msg = document.getElementById('v2InitPromptMsg');
+const simInitPromptTextEl = document.getElementById('simInitPromptText');
+function simInitPromptKeyValue() { return document.getElementById('simInitPromptKey').value.trim(); }
+function setSimInitPromptMsg(text, kind) {
+  const msg = document.getElementById('simInitPromptMsg');
   msg.textContent = text;
   msg.className = 'meta' + (kind ? ' ' + kind : '');
 }
-function updateV2InitPromptCount() {
-  document.getElementById('v2InitPromptCount').textContent = String(v2InitPromptTextEl.value.length);
+function updateSimInitPromptCount() {
+  document.getElementById('simInitPromptCount').textContent = String(simInitPromptTextEl.value.length);
 }
-function applyV2InitPromptMax(maxChars) {
+function applySimInitPromptMax(maxChars) {
   const max = Math.round(Number(maxChars));
   if (!Number.isFinite(max) || max <= 0) return;
-  document.getElementById('v2InitPromptMax').textContent = String(max);
-  v2InitPromptTextEl.maxLength = max;
+  document.getElementById('simInitPromptMax').textContent = String(max);
+  simInitPromptTextEl.maxLength = max;
 }
-function renderV2InitPromptEntries(entries) {
-  const box = document.getElementById('v2InitPromptList');
+function renderSimInitPromptEntries(entries) {
+  const box = document.getElementById('simInitPromptList');
   if (!Array.isArray(entries) || !entries.length) { box.textContent = '（还没有任何会话设置初始提示词）'; return; }
   box.innerHTML = entries.map((e) => {
     const when = Number(e.updatedAt) > 0 ? new Date(Number(e.updatedAt)).toLocaleString() : '未知时间';
     return `<div style="margin:3px 0"><code>${esc(e.key)}</code> · ${Number(e.chars) || 0} 字符 · ${esc(when)} <button class="small" data-init-prompt-key="${esc(e.key)}">编辑</button></div>`;
   }).join('');
 }
-async function loadV2InitialPrompt() {
-  const key = v2InitPromptKeyValue();
-  setV2InitPromptMsg('加载中…');
+async function loadSimInitialPrompt() {
+  const key = simInitPromptKeyValue();
+  setSimInitPromptMsg('加载中…');
   try {
-    const r = await api('/api/socialV2/initial-prompt' + (key ? '?key=' + encodeURIComponent(key) : ''));
-    if (!r.ok) { setV2InitPromptMsg('❌ ' + (r.error || '失败'), 'err'); return; }
-    applyV2InitPromptMax(r.maxChars);
+    const r = await api('/api/simulation/initial-prompt' + (key ? '?key=' + encodeURIComponent(key) : ''));
+    if (!r.ok) { setSimInitPromptMsg('❌ ' + (r.error || '失败'), 'err'); return; }
+    applySimInitPromptMax(r.maxChars);
     const readOnly = r.writable === false;
     if (!key) {
-      renderV2InitPromptEntries(r.entries);
-      setV2InitPromptMsg(readOnly ? '⚠️ 文件不可写（只读降级），只显示已有内容' : `✅ 共 ${(r.entries || []).length} 条`, readOnly ? 'err' : 'ok');
+      renderSimInitPromptEntries(r.entries);
+      setSimInitPromptMsg(readOnly ? '⚠️ 文件不可写（只读降级），只显示已有内容' : `✅ 共 ${(r.entries || []).length} 条`, readOnly ? 'err' : 'ok');
       return;
     }
-    v2InitPromptTextEl.value = r.text || '';
-    updateV2InitPromptCount();
-    document.getElementById('v2InitPromptList').textContent = r.exists
+    simInitPromptTextEl.value = r.text || '';
+    updateSimInitPromptCount();
+    document.getElementById('simInitPromptList').textContent = r.exists
       ? '该会话已设置初始提示词；再点「保存」会覆盖。'
       : '该会话还没有设置初始提示词；填写后点「保存」新建。';
-    if (readOnly) setV2InitPromptMsg('⚠️ 文件不可写（只读降级）：能看不能存', 'err');
-    else setV2InitPromptMsg(r.exists ? '✅ 已加载' : '（空）', r.exists ? 'ok' : '');
+    if (readOnly) setSimInitPromptMsg('⚠️ 文件不可写（只读降级）：能看不能存', 'err');
+    else setSimInitPromptMsg(r.exists ? '✅ 已加载' : '（空）', r.exists ? 'ok' : '');
   } catch (e) {
-    setV2InitPromptMsg('❌ ' + (e.message || e), 'err');
+    setSimInitPromptMsg('❌ ' + (e.message || e), 'err');
   }
 }
-async function saveV2InitialPrompt() {
-  const key = v2InitPromptKeyValue();
-  if (!key) { setV2InitPromptMsg('请输入会话 key（group:群号 或 private:QQ号）', 'err'); return; }
-  setV2InitPromptMsg('保存中…');
+async function saveSimInitialPrompt() {
+  const key = simInitPromptKeyValue();
+  if (!key) { setSimInitPromptMsg('请输入会话 key（group:群号 或 private:QQ号）', 'err'); return; }
+  setSimInitPromptMsg('保存中…');
   try {
-    const r = await api('/api/socialV2/initial-prompt', 'POST', { key, text: v2InitPromptTextEl.value });
-    if (!r.ok) { setV2InitPromptMsg('❌ ' + (r.error || '失败'), 'err'); return; }
-    applyV2InitPromptMax(r.maxChars);
+    const r = await api('/api/simulation/initial-prompt', 'POST', { key, text: simInitPromptTextEl.value });
+    if (!r.ok) { setSimInitPromptMsg('❌ ' + (r.error || '失败'), 'err'); return; }
+    applySimInitPromptMax(r.maxChars);
     if (r.deleted) {
-      v2InitPromptTextEl.value = '';
-      updateV2InitPromptCount();
-      setV2InitPromptMsg('✅ 内容为空，已删除该会话的初始提示词', 'ok');
+      simInitPromptTextEl.value = '';
+      updateSimInitPromptCount();
+      setSimInitPromptMsg('✅ 内容为空，已删除该会话的初始提示词', 'ok');
     } else {
-      setV2InitPromptMsg(`✅ 已保存（${r.chars} 字符），该会话下一次首次唤醒时注入`, 'ok');
+      setSimInitPromptMsg(`✅ 已保存（${r.chars} 字符），该会话下一次首次唤醒时注入`, 'ok');
     }
   } catch (e) {
-    setV2InitPromptMsg('❌ ' + (e.message || e), 'err');
+    setSimInitPromptMsg('❌ ' + (e.message || e), 'err');
   }
 }
-document.getElementById('v2InitPromptLoad').addEventListener('click', loadV2InitialPrompt);
-document.getElementById('v2InitPromptSave').addEventListener('click', saveV2InitialPrompt);
-document.getElementById('v2InitPromptClear').addEventListener('click', async () => {
-  const key = v2InitPromptKeyValue();
-  if (!key) { setV2InitPromptMsg('请输入会话 key', 'err'); return; }
+document.getElementById('simInitPromptLoad').addEventListener('click', loadSimInitialPrompt);
+document.getElementById('simInitPromptSave').addEventListener('click', saveSimInitialPrompt);
+document.getElementById('simInitPromptClear').addEventListener('click', async () => {
+  const key = simInitPromptKeyValue();
+  if (!key) { setSimInitPromptMsg('请输入会话 key', 'err'); return; }
   if (!confirm(`确定删除 ${key} 的初始提示词？`)) return;
   try {
-    const r = await api('/api/socialV2/initial-prompt', 'POST', { key, delete: true });
-    if (!r.ok) { setV2InitPromptMsg('❌ ' + (r.error || '失败'), 'err'); return; }
-    v2InitPromptTextEl.value = '';
-    updateV2InitPromptCount();
-    setV2InitPromptMsg('✅ 已删除', 'ok');
+    const r = await api('/api/simulation/initial-prompt', 'POST', { key, delete: true });
+    if (!r.ok) { setSimInitPromptMsg('❌ ' + (r.error || '失败'), 'err'); return; }
+    simInitPromptTextEl.value = '';
+    updateSimInitPromptCount();
+    setSimInitPromptMsg('✅ 已删除', 'ok');
   } catch (e) {
-    setV2InitPromptMsg('❌ ' + (e.message || e), 'err');
+    setSimInitPromptMsg('❌ ' + (e.message || e), 'err');
   }
 });
-v2InitPromptTextEl.addEventListener('input', updateV2InitPromptCount);
-document.getElementById('v2InitPromptList').addEventListener('click', (ev) => {
+simInitPromptTextEl.addEventListener('input', updateSimInitPromptCount);
+document.getElementById('simInitPromptList').addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-init-prompt-key]');
   if (!btn) return;
-  document.getElementById('v2InitPromptKey').value = btn.dataset.initPromptKey || '';
-  loadV2InitialPrompt();
+  document.getElementById('simInitPromptKey').value = btn.dataset.initPromptKey || '';
+  loadSimInitialPrompt();
 });
 
-// ── 群风格覆盖（config.json 的 socialV2.groupProfiles，保存即热更新） ────────
-let v2GroupProfilesCache = {};
-const v2GroupProfileStyleEl = document.getElementById('v2GroupProfileStyle');
-function setV2GroupProfileMsg(text, kind) {
-  const msg = document.getElementById('v2GroupProfileMsg');
+// ── 群风格覆盖（config.json 的 simulation.groupProfiles，保存即热更新） ────────
+let simGroupProfilesCache = {};
+const simGroupProfileStyleEl = document.getElementById('simGroupProfileStyle');
+function setSimGroupProfileMsg(text, kind) {
+  const msg = document.getElementById('simGroupProfileMsg');
   msg.textContent = text;
   msg.className = 'meta' + (kind ? ' ' + kind : '');
 }
-function updateV2GroupProfileCount() {
-  document.getElementById('v2GroupProfileCount').textContent = String(v2GroupProfileStyleEl.value.length);
+function updateSimGroupProfileCount() {
+  document.getElementById('simGroupProfileCount').textContent = String(simGroupProfileStyleEl.value.length);
 }
-function v2GroupProfileKeyValue() { return document.getElementById('v2GroupProfileKey').value.trim(); }
-function fillV2GroupProfileForm(key) {
-  const p = v2GroupProfilesCache[key] || null;
-  document.getElementById('v2GroupProfileKey').value = key || '';
-  document.getElementById('v2GroupProfileLabel').value = p?.label || '';
-  document.getElementById('v2GroupProfileProactive').checked = p ? p.proactive !== false : true;
-  v2GroupProfileStyleEl.value = p?.style || '';
-  updateV2GroupProfileCount();
+function simGroupProfileKeyValue() { return document.getElementById('simGroupProfileKey').value.trim(); }
+function fillSimGroupProfileForm(key) {
+  const p = simGroupProfilesCache[key] || null;
+  document.getElementById('simGroupProfileKey').value = key || '';
+  document.getElementById('simGroupProfileLabel').value = p?.label || '';
+  document.getElementById('simGroupProfileProactive').checked = p ? p.proactive !== false : true;
+  simGroupProfileStyleEl.value = p?.style || '';
+  updateSimGroupProfileCount();
 }
-async function loadV2GroupProfiles(selectedKey) {
+async function loadSimGroupProfiles(selectedKey) {
   try {
-    const r = await api('/api/socialV2/group-profiles');
-    if (!r.ok) { setV2GroupProfileMsg('❌ ' + (r.error || '失败'), 'err'); return; }
-    v2GroupProfilesCache = r.profiles && typeof r.profiles === 'object' ? r.profiles : {};
-    const sel = document.getElementById('v2GroupProfileSelect');
+    const r = await api('/api/simulation/group-profiles');
+    if (!r.ok) { setSimGroupProfileMsg('❌ ' + (r.error || '失败'), 'err'); return; }
+    simGroupProfilesCache = r.profiles && typeof r.profiles === 'object' ? r.profiles : {};
+    const sel = document.getElementById('simGroupProfileSelect');
     const current = selectedKey || sel.value || '';
-    const keys = Object.keys(v2GroupProfilesCache).sort();
+    const keys = Object.keys(simGroupProfilesCache).sort();
     sel.innerHTML = '<option value="">选择已有群风格…</option>' + keys.map((k) => {
-      const p = v2GroupProfilesCache[k] || {};
+      const p = simGroupProfilesCache[k] || {};
       return `<option value="${esc(k)}">${esc(p.label ? `${p.label}（${k}）` : k)}</option>`;
     }).join('');
-    const typed = v2GroupProfileKeyValue();
-    const pick = (selectedKey && v2GroupProfilesCache[selectedKey]) ? selectedKey
-      : (current && v2GroupProfilesCache[current]) ? current
+    const typed = simGroupProfileKeyValue();
+    const pick = (selectedKey && simGroupProfilesCache[selectedKey]) ? selectedKey
+      : (current && simGroupProfilesCache[current]) ? current
       : (!typed && keys.length ? keys[0] : '');
     if (pick) {
       sel.value = pick;
-      fillV2GroupProfileForm(pick);
+      fillSimGroupProfileForm(pick);
     }
-    setV2GroupProfileMsg(keys.length ? `✅ 已加载 ${keys.length} 个群风格` : '（还没有群风格，点「新建」添加）', keys.length ? 'ok' : '');
+    setSimGroupProfileMsg(keys.length ? `✅ 已加载 ${keys.length} 个群风格` : '（还没有群风格，点「新建」添加）', keys.length ? 'ok' : '');
   } catch (e) {
-    setV2GroupProfileMsg('❌ ' + (e.message || e), 'err');
+    setSimGroupProfileMsg('❌ ' + (e.message || e), 'err');
   }
 }
-async function saveV2GroupProfile() {
-  const key = v2GroupProfileKeyValue();
-  if (!key) { setV2GroupProfileMsg('请输入会话 key（group:群号 或 private:QQ号）', 'err'); return; }
-  setV2GroupProfileMsg('保存中…');
+async function saveSimGroupProfile() {
+  const key = simGroupProfileKeyValue();
+  if (!key) { setSimGroupProfileMsg('请输入会话 key（group:群号 或 private:QQ号）', 'err'); return; }
+  setSimGroupProfileMsg('保存中…');
   try {
-    const r = await api('/api/socialV2/group-profile', 'POST', {
+    const r = await api('/api/simulation/group-profile', 'POST', {
       key,
-      label: document.getElementById('v2GroupProfileLabel').value,
-      proactive: document.getElementById('v2GroupProfileProactive').checked,
-      style: v2GroupProfileStyleEl.value
+      label: document.getElementById('simGroupProfileLabel').value,
+      proactive: document.getElementById('simGroupProfileProactive').checked,
+      style: simGroupProfileStyleEl.value
     });
-    if (!r.ok) { setV2GroupProfileMsg('❌ ' + (r.error || '失败'), 'err'); return; }
-    await loadV2GroupProfiles(r.key);
-    setV2GroupProfileMsg('✅ 已保存，下一条唤醒即生效（不用重启）', 'ok');
+    if (!r.ok) { setSimGroupProfileMsg('❌ ' + (r.error || '失败'), 'err'); return; }
+    await loadSimGroupProfiles(r.key);
+    setSimGroupProfileMsg('✅ 已保存，下一条唤醒即生效（不用重启）', 'ok');
   } catch (e) {
-    setV2GroupProfileMsg('❌ ' + (e.message || e), 'err');
+    setSimGroupProfileMsg('❌ ' + (e.message || e), 'err');
   }
 }
-document.getElementById('v2GroupProfileSelect').addEventListener('change', (ev) => {
+document.getElementById('simGroupProfileSelect').addEventListener('change', (ev) => {
   const key = ev.target.value;
-  if (key) fillV2GroupProfileForm(key);
+  if (key) fillSimGroupProfileForm(key);
 });
-document.getElementById('v2GroupProfileRefresh').addEventListener('click', () => loadV2GroupProfiles());
-document.getElementById('v2GroupProfileNew').addEventListener('click', () => {
-  fillV2GroupProfileForm('');
-  document.getElementById('v2GroupProfileProactive').checked = true;
-  document.getElementById('v2GroupProfileSelect').value = '';
-  document.getElementById('v2GroupProfileKey').focus();
-  setV2GroupProfileMsg('新建：填好 key 和风格后保存');
+document.getElementById('simGroupProfileRefresh').addEventListener('click', () => loadSimGroupProfiles());
+document.getElementById('simGroupProfileNew').addEventListener('click', () => {
+  fillSimGroupProfileForm('');
+  document.getElementById('simGroupProfileProactive').checked = true;
+  document.getElementById('simGroupProfileSelect').value = '';
+  document.getElementById('simGroupProfileKey').focus();
+  setSimGroupProfileMsg('新建：填好 key 和风格后保存');
 });
-document.getElementById('v2GroupProfileSave').addEventListener('click', saveV2GroupProfile);
-document.getElementById('v2GroupProfileDelete').addEventListener('click', async () => {
-  const key = v2GroupProfileKeyValue();
-  if (!key) { setV2GroupProfileMsg('请先选择或填写会话 key', 'err'); return; }
+document.getElementById('simGroupProfileSave').addEventListener('click', saveSimGroupProfile);
+document.getElementById('simGroupProfileDelete').addEventListener('click', async () => {
+  const key = simGroupProfileKeyValue();
+  if (!key) { setSimGroupProfileMsg('请先选择或填写会话 key', 'err'); return; }
   if (!confirm(`确定删除 ${key} 的群风格？`)) return;
   try {
-    const r = await api('/api/socialV2/group-profile', 'POST', { key, delete: true });
-    if (!r.ok) { setV2GroupProfileMsg('❌ ' + (r.error || '失败'), 'err'); return; }
-    fillV2GroupProfileForm('');
-    await loadV2GroupProfiles();
-    document.getElementById('v2GroupProfileSelect').value = '';
-    setV2GroupProfileMsg('✅ 已删除', 'ok');
+    const r = await api('/api/simulation/group-profile', 'POST', { key, delete: true });
+    if (!r.ok) { setSimGroupProfileMsg('❌ ' + (r.error || '失败'), 'err'); return; }
+    fillSimGroupProfileForm('');
+    await loadSimGroupProfiles();
+    document.getElementById('simGroupProfileSelect').value = '';
+    setSimGroupProfileMsg('✅ 已删除', 'ok');
   } catch (e) {
-    setV2GroupProfileMsg('❌ ' + (e.message || e), 'err');
+    setSimGroupProfileMsg('❌ ' + (e.message || e), 'err');
   }
 });
-v2GroupProfileStyleEl.addEventListener('input', updateV2GroupProfileCount);
+simGroupProfileStyleEl.addEventListener('input', updateSimGroupProfileCount);
 
-async function loadV2SessionOptions() {
-  const sel = document.getElementById('v2SessionSelect');
+async function loadSimSessionOptions() {
+  const sel = document.getElementById('simSessionSelect');
   const prev = sel.value;
   try {
     const r = await api('/api/status');
@@ -5671,83 +6328,83 @@ async function loadV2SessionOptions() {
     sel.innerHTML = '<option value="">无法加载白名单</option>';
   }
 }
-document.getElementById('v2SessionRefresh').addEventListener('click', loadV2SessionOptions);
-document.getElementById('v2SessionSelect').addEventListener('change', (ev) => {
+document.getElementById('simSessionRefresh').addEventListener('click', loadSimSessionOptions);
+document.getElementById('simSessionSelect').addEventListener('change', (ev) => {
   const key = ev.target.value;
   if (!key) return;
-  document.getElementById('v2StateKey').value = key;
-  document.getElementById('v2MemoryKey').value = key;
-  document.getElementById('v2WakeKey').value = key;
-  document.getElementById('v2InitPromptKey').value = key;
+  document.getElementById('simStateKey').value = key;
+  document.getElementById('simMemoryKey').value = key;
+  document.getElementById('simWakeKey').value = key;
+  document.getElementById('simInitPromptKey').value = key;
 });
 
-document.getElementById('v2ConfigSave').addEventListener('click', saveV2Config);
-document.getElementById('v2ConfigSaveTop').addEventListener('click', saveV2Config);
+document.getElementById('simConfigSave').addEventListener('click', saveSimConfig);
+document.getElementById('simConfigSaveTop').addEventListener('click', saveSimConfig);
 document.getElementById('voiceRefreshBtn').addEventListener('click', () => loadVoiceLibrary(true));
 document.getElementById('voiceSendBtn').addEventListener('click', sendVoiceFromConsole);
-async function refreshV2Activity() {
+async function refreshSimActivity() {
   try {
-    const r = await api('/api/socialV2/activity');
-    const el = document.getElementById('v2ActivityStatus');
+    const r = await api('/api/simulation/activity');
+    const el = document.getElementById('simActivityStatus');
     el.textContent = r.paused ? '已暂停' : '运行中';
     el.className = r.paused ? 'meta err' : 'meta ok';
   } catch {}
 }
-document.getElementById('v2PauseBtn').addEventListener('click', async () => {
-  await api('/api/socialV2/activity', 'POST', { paused: true });
-  refreshV2Activity();
+document.getElementById('simPauseBtn').addEventListener('click', async () => {
+  await api('/api/simulation/activity', 'POST', { paused: true });
+  refreshSimActivity();
 });
-document.getElementById('v2ResumeBtn').addEventListener('click', async () => {
-  await api('/api/socialV2/activity', 'POST', { paused: false });
-  refreshV2Activity();
+document.getElementById('simResumeBtn').addEventListener('click', async () => {
+  await api('/api/simulation/activity', 'POST', { paused: false });
+  refreshSimActivity();
 });
-document.getElementById('v2ResetBtn').addEventListener('click', async () => {
+document.getElementById('simResetBtn').addEventListener('click', async () => {
   if (!confirm('确定重置群聊仿真状态？\n将清空所有仿真会话、唤醒配置、未读消息和定时器；工具调用日志会保留。')) return;
-  const r = await api('/api/socialV2/reset', 'POST', {});
-  const msg = document.getElementById('v2ConfigMsg');
+  const r = await api('/api/simulation/reset', 'POST', {});
+  const msg = document.getElementById('simConfigMsg');
   msg.textContent = r.ok ? '✅ 已重置群聊仿真状态' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
-  refreshV2Activity();
-  document.getElementById('v2AllStatesOutput').textContent = '（全部会话状态：空）';
-  document.getElementById('v2StateOutput').textContent = '（空）';
+  refreshSimActivity();
+  document.getElementById('simAllStatesOutput').textContent = '（全部会话状态：空）';
+  document.getElementById('simStateOutput').textContent = '（空）';
 });
-document.getElementById('v2StateView').addEventListener('click', viewV2State);
-document.getElementById('v2ForceWake').addEventListener('click', async () => {
-  const key = document.getElementById('v2StateKey').value.trim();
+document.getElementById('simStateView').addEventListener('click', viewSimState);
+document.getElementById('simForceWake').addEventListener('click', async () => {
+  const key = document.getElementById('simStateKey').value.trim();
   if (!key) { alert('请输入会话 key'); return; }
-  const r = await api('/api/socialV2/wake', 'POST', { key, reason: 'admin' });
-  const msg = document.getElementById('v2ConfigMsg');
+  const r = await api('/api/simulation/wake', 'POST', { key, reason: 'admin' });
+  const msg = document.getElementById('simConfigMsg');
   msg.textContent = r.ok ? '✅ 已发送唤醒' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
 });
-document.getElementById('v2StatesList').addEventListener('click', async () => {
-  const r = await api('/api/socialV2/states');
-  document.getElementById('v2AllStatesOutput').textContent = JSON.stringify(r.conversations || [], null, 2);
+document.getElementById('simStatesList').addEventListener('click', async () => {
+  const r = await api('/api/simulation/states');
+  document.getElementById('simAllStatesOutput').textContent = JSON.stringify(r.conversations || [], null, 2);
 });
-document.getElementById('v2FeedbackLoad').addEventListener('click', async () => {
-  const r = await api('/api/socialV2/feedback');
-  document.getElementById('v2FeedbackOutput').textContent = JSON.stringify(r.entries || [], null, 2);
+document.getElementById('simFeedbackLoad').addEventListener('click', async () => {
+  const r = await api('/api/simulation/feedback');
+  document.getElementById('simFeedbackOutput').textContent = JSON.stringify(r.entries || [], null, 2);
 });
-document.getElementById('v2FeedbackClear').addEventListener('click', async () => {
+document.getElementById('simFeedbackClear').addEventListener('click', async () => {
   if (!confirm('确定清空全部 AI 反馈？')) return;
-  const r = await api('/api/socialV2/feedback-clear', 'POST', {});
-  const msg = document.getElementById('v2FeedbackMsg');
+  const r = await api('/api/simulation/feedback-clear', 'POST', {});
+  const msg = document.getElementById('simFeedbackMsg');
   msg.textContent = r.ok ? '✅ 已清空' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
-  if (r.ok) document.getElementById('v2FeedbackOutput').textContent = '（空）';
+  if (r.ok) document.getElementById('simFeedbackOutput').textContent = '（空）';
 });
-document.getElementById('v2ToolLogLoad').addEventListener('click', async () => {
-  const msg = document.getElementById('v2ToolLogMsg');
+document.getElementById('simToolLogLoad').addEventListener('click', async () => {
+  const msg = document.getElementById('simToolLogMsg');
   msg.textContent = '';
-  await loadV2ToolLog();
+  await loadSimToolLog();
 });
-document.getElementById('v2ToolLogClear').addEventListener('click', async () => {
+document.getElementById('simToolLogClear').addEventListener('click', async () => {
   if (!confirm('确定清空全部工具调用日志？')) return;
-  const r = await api('/api/socialV2/tool-log/clear', 'POST', {});
-  const msg = document.getElementById('v2ToolLogMsg');
+  const r = await api('/api/simulation/tool-log/clear', 'POST', {});
+  const msg = document.getElementById('simToolLogMsg');
   msg.textContent = r.ok ? '✅ 已清空' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
-  renderV2ToolLog([]);
+  renderSimToolLog([]);
 });
 
 let slangEntriesCache = [];
@@ -6161,7 +6818,7 @@ const consolePages = {
   features: ['功能总览', '她现在已经会这些。', '按人格、媒体、内心生活、生活技能和运行方式整理的能力清单。'],
   sessions: ['会话与审批', '让每一段对话，都有迹可循。', '查看 QQ 与 DSH 的会话映射，以及等待你回复的审批和提问。'],
   persona: ['人格与角色', '给你的伙伴，一点独特个性。', '选择已有角色，或用自己的语言写下新的性格与表达方式。'],
-  'social-v2': ['群聊仿真', '自主参与，恰到好处。', '管理 AI 的工具、唤醒与发言节奏。展开需要调整的分组，修改后保存参数。'],
+  'simulation': ['群聊仿真', '自主参与，恰到好处。', '管理 AI 的工具、唤醒与发言节奏。展开需要调整的分组，修改后保存参数。'],
   insights: ['群聊洞察', '谁常来，聊过什么。', '查看群友关系（内部数值，可编辑）与群日报预览；日报默认关闭。'],
   library: ['资源库', '每一张图，都有自己的来处。', '查看 QQ 收藏表情与通用图片库的名称、描述、备注和标签。'],
   slang: ['黑话词库', '读懂群聊里的，言外之意。', '从候选到确认，让 AI 逐渐熟悉大家的表达习惯。'],
@@ -6197,7 +6854,7 @@ function setConsolePage(page, { updateHash = true, focus = false, target = '' } 
   if (updateHash && location.hash !== '#' + page) history.pushState({}, '', '#' + page);
   closeConsoleSearch();
   // 语音库按需加载：进入群聊仿真页时才探测（避免每次开控制台都压网关）。
-  if (page === 'social-v2' && typeof loadVoiceLibrary === 'function') loadVoiceLibrary();
+  if (page === 'simulation' && typeof loadVoiceLibrary === 'function') loadVoiceLibrary();
   if (page === 'features' && typeof refreshFeatures === 'function') refreshFeatures();
   if (page === 'reliability') {
     if (typeof refreshReliability === 'function') refreshReliability();
@@ -6264,7 +6921,7 @@ function setConnectionError(error) {
 }
 document.getElementById('refreshConsole').addEventListener('click', async function () {
   this.disabled = true;
-  const tasks = [refresh(), refreshSessions(), refreshPending(), refreshV2Activity()];
+  const tasks = [refresh(), refreshSessions(), refreshPending(), refreshSimActivity()];
   if (currentConsolePage === 'reliability' && typeof refreshReliability === 'function') tasks.push(refreshReliability());
   if (currentConsolePage === 'insights' && typeof refreshContent === 'function') tasks.push(refreshContent());
   if (currentConsolePage === 'persona' && typeof refreshMoodPanel === 'function') tasks.push(refreshMoodPanel());
@@ -6288,11 +6945,11 @@ document.querySelectorAll('input,select,textarea').forEach(input => {
     }
     input.setAttribute('aria-label', label.textContent.trim() + (siblings.length > 1 ? (siblings.indexOf(input) === 0 ? '（下限）' : '（上限）') : ''));
   } else {
-    const names = { consoleTokenInput: '新的控制台访问令牌', closedPreset: '封闭 Agent 使用的 DSH 预设', tsKind: '测试消息目标类型', aiNotifyKind: '后台提醒目标类型', v2SessionSelect: '群聊仿真白名单会话', slangLimitCand: '候选词显示数量', slangLimitConfirmed: '已确认词显示数量', slangLimitRejected: '已拒绝词显示数量' };
+    const names = { consoleTokenInput: '新的控制台访问令牌', closedPreset: '封闭 Agent 使用的 DSH 预设', tsKind: '测试消息目标类型', aiNotifyKind: '后台提醒目标类型', simSessionSelect: '群聊仿真白名单会话', slangLimitCand: '候选词显示数量', slangLimitConfirmed: '已确认词显示数量', slangLimitRejected: '已拒绝词显示数量' };
     input.setAttribute('aria-label', names[input.id] || input.placeholder || input.closest('section')?.querySelector('h2')?.textContent || '设置');
   }
 });
-const primaryActions = ['roleSet','roleCreate','v2ConfigSave','v2ConfigSaveTop','wlSave','secSave','consoleTokenSave','tsSend','aiNotifySend','slangAdd','slangConfigSave','slangModalDirectConfirm'];
+const primaryActions = ['roleSet','roleCreate','simConfigSave','simConfigSaveTop','wlSave','secSave','consoleTokenSave','tsSend','aiNotifySend','slangAdd','slangConfigSave','slangModalDirectConfirm'];
 primaryActions.forEach(id => document.getElementById(id)?.classList.add('primary'));
 document.querySelectorAll('.meta[id$="Msg"], .meta[id$="Msg2"]').forEach(el => el.setAttribute('role','status'));
 document.getElementById('section-mode').querySelector('h2').dataset.note = '选择后即时生效';
@@ -6801,7 +7458,7 @@ document.getElementById('usageClear').addEventListener('click', async () => {
 
 setConsolePage(location.hash.slice(1), { updateHash:false });
 
-refresh(); refreshRoles(); refreshWhitelist(); refreshSessions(); refreshPending(); refreshPresets(); loadV2Config(); loadV2GroupProfiles(); refreshV2Activity(); loadV2ToolLog(); loadV2SessionOptions(); refreshSlang(); loadSlangConfig(); loadSecurity(); refreshSimPrompt(); refreshDshModel(); refreshUsage(); refreshUsageChart(); refreshUsageRecent();
+refresh(); refreshRoles(); refreshWhitelist(); refreshSessions(); refreshPending(); refreshPresets(); loadSimConfig(); loadSimGroupProfiles(); refreshSimActivity(); loadSimToolLog(); loadSimSessionOptions(); refreshSlang(); loadSlangConfig(); loadSecurity(); refreshSimPrompt(); refreshDshModel(); refreshUsage(); refreshUsageChart(); refreshUsageRecent();
 setInterval(() => { refresh(); refreshSessions(); refreshPending(); refreshSlang(); }, 3000);
 // 用量看板只在本页可见时轮询：既保证「实时」，又不让其它页白白多打两份接口。
 setInterval(() => { if (currentConsolePage !== 'usage') return; refreshUsage(); refreshUsageChart(); refreshUsageRecent(); }, 3000);

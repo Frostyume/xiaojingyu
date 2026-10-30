@@ -130,7 +130,7 @@ await test('malformed HTTP request targets return 400 without hanging', async (h
     },
   } });
   try {
-    await h.sendStickerV2('group:456', 'fixture-sticker');
+    await h.sendSticker('group:456', 'fixture-sticker');
     assert.equal(body.message.find((part) => part.type === 'image').data.file, 'base64://' + image.toString('base64'));
     console.log('PASS sticker sending gives OneBot validated bytes, never a URL to refetch');
   } catch (error) { failures++; console.error('FAIL safe sticker sending:', error.message); }
@@ -144,7 +144,7 @@ await test('malformed HTTP request targets return 400 without hanging', async (h
   const path = await import('node:path');
   // 默认出厂配置是 voice.enabled=false（AI 不能发语音）；这里显式打开，
   // 才能测"打开之后"的各项闸门。关闭时的行为单独在下面钉一条。
-  const voiceOn = { socialV2: { voice: { enabled: true } } };
+  const voiceOn = { simulation: { voice: { enabled: true } } };
   const h = await bridgeHarness({ config: voiceOn });
   try {
     // 语音库 fixture：临时 config 的 ROOT 之下，voice.dir 默认 'audio'
@@ -160,20 +160,20 @@ await test('malformed HTTP request targets return 400 without hanging', async (h
     assert.ok(!names.some((n) => n.includes(h.temp)), '语音库不返回绝对路径');
 
     // 1) AI 只能按语音库名字取文件
-    const okPath = h.resolveVoicePathForV2('hello');
+    const okPath = h.resolveSimulationVoicePath('hello');
     assert.equal(okPath.path, path.join(audioDir, 'hello.mp3'), 'AI 省略扩展名也能命中语音库文件');
 
     // 2) 绝对路径默认被拒（防 prompt injection 拿任意本地文件外发）
-    assert.throws(() => h.resolveVoicePathForV2(outside), /语音库|绝对路径/, 'AI 传库外绝对路径被拒');
-    assert.throws(() => h.resolveVoicePathForV2('C:\\Windows\\Media\\Alarm01.wav'), /语音库|绝对路径/, 'AI 传系统绝对路径被拒');
+    assert.throws(() => h.resolveSimulationVoicePath(outside), /语音库|绝对路径/, 'AI 传库外绝对路径被拒');
+    assert.throws(() => h.resolveSimulationVoicePath('C:\\Windows\\Media\\Alarm01.wav'), /语音库|绝对路径/, 'AI 传系统绝对路径被拒');
 
     // 3) 远程/内联来源被拒（体积与来源都不可控）
     for (const bad of ['https://example.com/a.mp3', 'base64://AAAA', 'data:audio/mp3;base64,AAAA']) {
-      assert.throws(() => h.resolveVoicePathForV2(bad), /不接受|只能/, `AI 传 ${bad.split(':')[0]} 来源被拒`);
+      assert.throws(() => h.resolveSimulationVoicePath(bad), /不接受|只能/, `AI 传 ${bad.split(':')[0]} 来源被拒`);
     }
 
     // 4) 真发一条（虚拟网关）：必须是 record 段、且 file 指向库内文件
-    const sent = await h.sendVoiceForV2('group:456', 'hello.mp3', { readback: false });
+    const sent = await h.sendVoiceForConversation('group:456', 'hello.mp3', { readback: false });
     const call = h.calls.http.find((c) => c.url.endsWith('/send_group_msg'));
     assert.ok(call, '语音走 send_group_msg');
     assert.equal(call.body.group_id, 456, '语音发给正确群');
@@ -189,7 +189,7 @@ await test('malformed HTTP request targets return 400 without hanging', async (h
       const dir2 = path.join(h2.temp, 'audio');
       fs.mkdirSync(dir2, { recursive: true });
       fs.writeFileSync(path.join(dir2, 'hi.mp3'), Buffer.alloc(512, 1));
-      const sent2 = await h2.sendVoiceForV2('group:456', 'hi.mp3');
+      const sent2 = await h2.sendVoiceForConversation('group:456', 'hi.mp3');
       // 注意：这些对象来自 vm realm，deepEqual 会因原型不同而失败 → 逐字段断言
       assert.equal(sent2.verification?.confirmed, true, '默认回读 get_msg 确认 record 段');
       assert.equal(sent2.verification?.duration, 3, '回读到语音时长');
@@ -203,59 +203,59 @@ await test('malformed HTTP request targets return 400 without hanging', async (h
         const dir2b = path.join(h2b.temp, 'audio');
         fs.mkdirSync(dir2b, { recursive: true });
         fs.writeFileSync(path.join(dir2b, 'hi.mp3'), Buffer.alloc(512, 1));
-        const sent2b = await h2b.sendVoiceForV2('group:456', 'hi.mp3', { verify: false });
+        const sent2b = await h2b.sendVoiceForConversation('group:456', 'hi.mp3', { verify: false });
         assert.equal(sent2b.verification, null, 'verify=false 时不做回读校验');
         assert.ok(!h2b.calls.http.some((c) => c.url.endsWith('/get_msg')), 'verify=false 时不发 get_msg');
       } finally { await h2b.close(); }
     } finally { await h2.close(); }
 
     // 6) 文件名审计：含本机路径特征的名字不许外发。
-    //    resolveVoicePathForV2 允许绝对路径的"文件名形态"由 allowAbsolutePath 管；
+    //    resolveSimulationVoicePath 允许绝对路径的"文件名形态"由 allowAbsolutePath 管；
     //    这里直接喂一个**看起来就像本机路径**的名字，验证审计层会拦下来。
     await assert.rejects(
-      () => h.sendVoiceForV2('group:456', 'C:\\Users\\somebody\\secret-voice.mp3', { readback: false }),
+      () => h.sendVoiceForConversation('group:456', 'C:\\Users\\somebody\\secret-voice.mp3', { readback: false }),
       /敏感信息|语音库|绝对路径/,
       '文件名含本机路径特征被审计/来源校验拦截'
     );
 
     // 7) 限流：语音额度独立计数，超限拒绝
-    const h3 = await bridgeHarness({ config: { socialV2: { voice: { enabled: true, maxPerMinute: 1, maxPerHour: 2 } } } });
+    const h3 = await bridgeHarness({ config: { simulation: { voice: { enabled: true, maxPerMinute: 1, maxPerHour: 2 } } } });
     try {
       const dir3 = path.join(h3.temp, 'audio');
       fs.mkdirSync(dir3, { recursive: true });
       fs.writeFileSync(path.join(dir3, 'a.mp3'), Buffer.alloc(512, 1));
-      await h3.sendVoiceForV2('group:456', 'a.mp3', { readback: false });
+      await h3.sendVoiceForConversation('group:456', 'a.mp3', { readback: false });
       await assert.rejects(
-        () => h3.sendVoiceForV2('group:456', 'a.mp3', { readback: false }),
+        () => h3.sendVoiceForConversation('group:456', 'a.mp3', { readback: false }),
         /频率超限|每分钟/,
         '同一分钟内第二条语音被限流（每分钟 1 条）'
       );
       // 额度只在发出后才记账：参数错误不应吃掉配额
-      const h4 = await bridgeHarness({ config: { socialV2: { voice: { enabled: true, maxPerMinute: 1, maxPerHour: 2 } } } });
+      const h4 = await bridgeHarness({ config: { simulation: { voice: { enabled: true, maxPerMinute: 1, maxPerHour: 2 } } } });
       try {
         const dir4 = path.join(h4.temp, 'audio');
         fs.mkdirSync(dir4, { recursive: true });
         fs.writeFileSync(path.join(dir4, 'a.mp3'), Buffer.alloc(512, 1));
-        await assert.rejects(() => h4.sendVoiceForV2('group:456', 'nope.mp3'), /找不到/, '不存在的音频被拒');
+        await assert.rejects(() => h4.sendVoiceForConversation('group:456', 'nope.mp3'), /找不到/, '不存在的音频被拒');
         // 失败没有消耗额度 → 紧接着真发一条应当成功
-        const ok2 = await h4.sendVoiceForV2('group:456', 'a.mp3', { readback: false });
+        const ok2 = await h4.sendVoiceForConversation('group:456', 'a.mp3', { readback: false });
         assert.equal(ok2.messageId, 9001, '失败不吃额度：随后发送成功');
       } finally { await h4.close(); }
     } finally { await h3.close(); }
 
     // 8) 语音功能总开关关闭时，**AI 通道**彻底拒绝
-    const h5 = await bridgeHarness({ config: { socialV2: { voice: { enabled: false } } } });
+    const h5 = await bridgeHarness({ config: { simulation: { voice: { enabled: false } } } });
     try {
-      await assert.rejects(() => h5.sendVoiceForV2('group:456', 'a.mp3'), /已关闭/, 'voice.enabled=false 时 AI 通道拒绝发送');
+      await assert.rejects(() => h5.sendVoiceForConversation('group:456', 'a.mp3'), /已关闭/, 'voice.enabled=false 时 AI 通道拒绝发送');
     } finally { await h5.close(); }
 
     // 9) 但**操作者通道**不受这个开关影响：否则"默认不启用"会变成"连手动试发都做不了"
-    const h6 = await bridgeHarness({ config: { socialV2: { voice: { enabled: false } } } });
+    const h6 = await bridgeHarness({ config: { simulation: { voice: { enabled: false } } } });
     try {
       const dir6 = path.join(h6.temp, 'audio');
       fs.mkdirSync(dir6, { recursive: true });
       fs.writeFileSync(path.join(dir6, 'a.mp3'), Buffer.alloc(512, 1));
-      const sent6 = await h6.sendVoiceV2('group:456', path.join(dir6, 'a.mp3'), { guard: false, audit: true });
+      const sent6 = await h6.sendVoiceFile('group:456', path.join(dir6, 'a.mp3'), { guard: false, audit: true });
       assert.equal(sent6.messageId, 9001, 'voice.enabled=false 时操作者仍能发（AI 开关不该封死手动路径）');
     } finally { await h6.close(); }
 
@@ -265,24 +265,24 @@ await test('malformed HTTP request targets return 400 without hanging', async (h
       const dir7 = path.join(h7.temp, 'audio');
       fs.mkdirSync(dir7, { recursive: true });
       fs.writeFileSync(path.join(dir7, 'a.mp3'), Buffer.alloc(512, 1));
-      const loud = await h7.sendVoiceV2('group:456', path.join(dir7, 'a.mp3'), { guard: false, audit: true, audio: { volume: 2.5 } });
+      const loud = await h7.sendVoiceFile('group:456', path.join(dir7, 'a.mp3'), { guard: false, audit: true, audio: { volume: 2.5 } });
       assert.equal(loud.volume, 2.5, '音量倍数透传到音频处理');
       assert.equal(loud.audioMode, 'volume', 'mode 标为 volume');
       assert.match(loud.audioProcessing, /250%/, '处理说明含百分比');
-      const normal = await h7.sendVoiceV2('group:456', path.join(dir7, 'a.mp3'), { guard: false, audit: true });
+      const normal = await h7.sendVoiceFile('group:456', path.join(dir7, 'a.mp3'), { guard: false, audit: true });
       assert.equal(normal.audioMode, 'original', '不传音量时保持原样（不转码）');
       assert.equal(normal.audioProcessing, '原始音量', '原样时说明为"原始音量"');
-      const smart = await h7.sendVoiceV2('group:456', path.join(dir7, 'a.mp3'), { guard: false, audit: true, audio: { normalize: true, loudness: 'loud' } });
+      const smart = await h7.sendVoiceFile('group:456', path.join(dir7, 'a.mp3'), { guard: false, audit: true, audio: { normalize: true, loudness: 'loud' } });
       assert.equal(smart.audioMode, 'loudnorm', '智能音量 mode=loudnorm');
       assert.match(smart.audioProcessing, /-13/, '智能音量按档位给出目标 LUFS');
       // 非法音量必须被拦下（而不是把奇怪的值丢给 ffmpeg）
       await assert.rejects(
-        () => h7.sendVoiceForV2('group:456', 'a.mp3', { verify: false, audio: { volume: 99 } }),
+        () => h7.sendVoiceForConversation('group:456', 'a.mp3', { verify: false, audio: { volume: 99 } }),
         /0\.1~4/,
         '越界音量被拒'
       );
       await assert.rejects(
-        () => h7.sendVoiceForV2('group:456', 'a.mp3', { verify: false, audio: { normalize: true, loudness: 'nope' } }),
+        () => h7.sendVoiceForConversation('group:456', 'a.mp3', { verify: false, audio: { normalize: true, loudness: 'nope' } }),
         /未知的响度档位/,
         '未知响度档位被拒'
       );
@@ -294,14 +294,14 @@ await test('malformed HTTP request targets return 400 without hanging', async (h
 }
 
 // ── 语音路径：allowAbsolutePath 不再放宽 AI 通道（任意本机音频外发）────────────
-// 审计发现：开关打开时 resolveVoicePathForV2 会把 AI 给的绝对路径直接交给
+// 审计发现：开关打开时 resolveSimulationVoicePath 会把 AI 给的绝对路径直接交给
 // resolveAudioSource 解析，于是群友用提示注入就能让 AI 把本机任意音频（< 20MB）
 // 发到群里；而 inspectAudio 在 ffprobe 不可用时对任何文件都放行。
 // 现在即使开了开关，绝对路径也必须落在语音库目录之内。
 {
   const fs = await import('node:fs');
   const path = await import('node:path');
-  const h = await bridgeHarness({ config: { socialV2: { voice: { enabled: true, allowAbsolutePath: true, maxPerMinute: 50, maxPerHour: 50 } } } });
+  const h = await bridgeHarness({ config: { simulation: { voice: { enabled: true, allowAbsolutePath: true, maxPerMinute: 50, maxPerHour: 50 } } } });
   try {
     const libraryDir = path.join(h.temp, 'audio');
     const outsideDir = path.join(h.temp, 'outside');
@@ -313,25 +313,25 @@ await test('malformed HTTP request targets return 400 without hanging', async (h
 
     // 库外的绝对路径必须被拒绝（即使 allowAbsolutePath=true）
     await assert.rejects(
-      () => h.sendVoiceForV2('group:456', outsideFile, { readback: false }),
+      () => h.sendVoiceForConversation('group:456', outsideFile, { readback: false }),
       /语音库/,
       'allowAbsolutePath=true 时库外绝对路径仍必须被拒绝'
     );
     // 相对穿越同样必须被拒绝
     await assert.rejects(
-      () => h.sendVoiceForV2('group:456', path.join('..', 'outside', 'secret.mp3'), { readback: false }),
+      () => h.sendVoiceForConversation('group:456', path.join('..', 'outside', 'secret.mp3'), { readback: false }),
       /语音库|\.\./,
       '相对路径穿越必须被拒绝'
     );
     // 库内的绝对路径应当仍然可用（开关的合理用途）
-    const inside = await h.sendVoiceForV2('group:456', path.join(libraryDir, 'inside.mp3'), { readback: false });
+    const inside = await h.sendVoiceForConversation('group:456', path.join(libraryDir, 'inside.mp3'), { readback: false });
     assert.equal(inside.messageId, 9001, '库内绝对路径仍可发送');
     console.log('PASS voice absolute paths stay confined to the library even when allowAbsolutePath is on');
   } catch (error) { failures++; console.error('FAIL voice library confinement:', error.message); }
   finally { await h.close(); }
 }
 
-// agent token 默认拒绝：MCP 的 v2 工具同时携带 x-console-token 与 x-agent-token，
+// agent token 默认拒绝：仿真的 MCP 工具同时携带 x-console-token 与 x-agent-token，
 // 因此仅靠控制台令牌挡不住 QQ 群里的 AI。人格/提示词/思考强度/白名单/重启等管理端点
 // 必须对 agent token 一律 403，否则 AI 能改写自己的系统提示词或给自己提权。
 {

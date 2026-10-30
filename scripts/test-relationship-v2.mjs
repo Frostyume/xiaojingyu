@@ -11,7 +11,7 @@ async function test(name, run) {
 }
 
 function append(h, key, userId, name, text, extra = {}) {
-  return h.appendSocialV2Message(
+  return h.appendSimulationMessage(
     key, name, text, text, false, false, extra.messageId || `m-${userId}-${Date.now()}`,
     [], userId, [], { text, directed: true, ...extra }
   );
@@ -21,7 +21,7 @@ await test('R1 家人群默认排除、普通群默认开启、可按群覆盖',
   const h = await bridgeHarness({
     config: {
       allow: { private: ['123'], groups: ['456', '789'] },
-      socialV2: {
+      simulation: {
         groupProfiles: {
           'group:456': { label: '家人群' },
           'group:789': { label: '普通群' }
@@ -32,7 +32,7 @@ await test('R1 家人群默认排除、普通群默认开启、可按群覆盖',
   try {
     assert.equal(h.relationshipsEnabledForKey('group:456'), false, '家人群应排除');
     assert.equal(h.relationshipsEnabledForKey('group:789'), true, '普通群应开启');
-    h.setMode('reserved2');
+    h.setMode('simulation');
     append(h, 'group:456', '20001', '家人', '晚上好');
     assert.equal(h.relationshipStore.get('group:456', '20001'), null, '排除群不应记账');
     append(h, 'group:789', '20001', '小明', '晚上好');
@@ -44,7 +44,7 @@ await test('R1 家人群默认排除、普通群默认开启、可按群覆盖',
 await test('R2 事件分类、负向下降、prompt 语气卡不带 ID/数值', async () => {
   const h = await bridgeHarness({ config: { allow: { private: ['123'], groups: ['789'] } } });
   try {
-    h.setMode('reserved2');
+    h.setMode('simulation');
     append(h, 'group:789', '20001', '小明', '你好呀', { isQuestion: true });
     const before = h.relationshipStore.get('group:789', '20001');
     append(h, 'group:789', '20001', '小明', '滚开，烦死了');
@@ -52,7 +52,7 @@ await test('R2 事件分类、负向下降、prompt 语气卡不带 ID/数值', 
     assert.ok(after.affection < before.affection, '负向事件应降低好感');
 
     h.relationshipStore.set('group:789', '20001', { affection: 72, trust: 55, familiarity: 70, rapport: 50, note: '小明' });
-    const prompt = h.buildWakePromptV2('group:789', 'timeout');
+    const prompt = h.buildWakePrompt('group:789', 'timeout');
     assert.match(prompt, /群友关系/);
     assert.match(prompt, /对当前说话人的语气/);
     assert.ok(!prompt.includes('20001'), 'prompt 不得包含 QQ 号');
@@ -63,10 +63,10 @@ await test('R2 事件分类、负向下降、prompt 语气卡不带 ID/数值', 
 await test('R2b 同一批来信多次发送只记一次回复好感', async () => {
   const h = await bridgeHarness({ config: { allow: { private: ['123'], groups: ['789'] } } });
   try {
-    h.setMode('reserved2');
+    h.setMode('simulation');
     append(h, 'group:789', '20001', '小明', '你好呀');
-    h.recordSentMessagesV2('group:789', ['回复一']);
-    h.recordSentMessagesV2('group:789', ['回复二']);
+    h.recordSentMessages('group:789', ['回复一']);
+    h.recordSentMessages('group:789', ['回复二']);
     const events = h.relationshipStore.timeline('group:789', '20001', { limit: 20 }).filter((e) => e.type === 'reply');
     assert.equal(events.length, 1, '一轮多次发送只应记一次 reply 事件');
   } finally { await h.close(); }
@@ -124,7 +124,7 @@ await test('R2d 订阅群的唤醒 prompt 带精确赛程日期/北京时间/对
   const h = await bridgeHarness({
     config: {
       allow: { private: ['123'], groups: ['789'] },
-      socialV2: { subscriptions: [{ key: 'group:789', topic: 's16', enabled: true, maxPerDay: 2 }] }
+      simulation: { subscriptions: [{ key: 'group:789', topic: 's16', enabled: true, maxPerDay: 2 }] }
     },
     files: {
       'state/esports-schedule.json': {
@@ -138,9 +138,9 @@ await test('R2d 订阅群的唤醒 prompt 带精确赛程日期/北京时间/对
     }
   });
   try {
-    h.setMode('reserved2');
+    h.setMode('simulation');
     append(h, 'group:789', '20001', '小明', '今天赛程是什么');
-    const prompt = h.buildWakePromptV2('group:789', 'timeout');
+    const prompt = h.buildWakePrompt('group:789', 'timeout');
     assert.match(prompt, /当前时间.*北京时间 UTC\+8/);
     assert.match(prompt, /S16 赛程/);
     assert.match(prompt, /赛程回答格式/);
@@ -176,7 +176,7 @@ await test('R5 同一 QQ 号跨群共享关系，群昵称各自保留', async (
 
 await test('R3 实时快照：昵称 + 脱敏 id + sparkline + spotlight', async () => {  const h = await bridgeHarness({ config: { allow: { private: ['123'], groups: ['789'] } } });
   try {
-    h.setMode('reserved2');
+    h.setMode('simulation');
     append(h, 'group:789', '20001', '小明', '今天聊比赛');
     append(h, 'group:789', '20002', '小红', '我来了', { isAt: true });
     h.relationshipStore.set('group:789', '20001', { affection: 65, trust: 50, familiarity: 60, rapport: 40, note: '小明' });
@@ -219,10 +219,10 @@ await test('R4 控制台鉴权关闭时，本机请求无需 token', async () =>
 
 await test('R6 辱骂/嘲讽按严重度扣好感，普通吐槽不误伤', async () => {
   const h = await bridgeHarness({
-    config: { allow: { private: ['123'], groups: ['456'] }, socialV2: { groupProfiles: {} } }
+    config: { allow: { private: ['123'], groups: ['456'] }, simulation: { groupProfiles: {} } }
   });
   try {
-    h.setMode('reserved2');
+    h.setMode('simulation');
     append(h, 'group:456', '30001', '攻击者', '你不是小鲸鱼，你是脑残', { messageId: 'atk-1' });
     append(h, 'group:456', '30001', '攻击者', '你把输精管和直肠装到嘴巴里', { messageId: 'atk-2' });
     append(h, 'group:456', '30001', '攻击者', '一直喷精喷粪就行了', { messageId: 'atk-3' });
@@ -231,7 +231,7 @@ await test('R6 辱骂/嘲讽按严重度扣好感，普通吐槽不误伤', asyn
     const events = h.relationshipStore.timeline('group:456', '30001', { limit: 10 });
     assert.ok(events.some((e) => e.type === 'insult'), '应记录 insult 事件');
     // 非指向性的普通吐槽不应被当成辱骂
-    h.appendSocialV2Message('group:456', '路人', '这游戏真垃圾', '这游戏真垃圾', false, false, 'norm-1', [], '30002', [], {
+    h.appendSimulationMessage('group:456', '路人', '这游戏真垃圾', '这游戏真垃圾', false, false, 'norm-1', [], '30002', [], {
       text: '这游戏真垃圾', directed: false
     });
     const normal = h.relationshipStore.get('group:456', '30002');

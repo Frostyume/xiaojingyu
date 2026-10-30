@@ -1,7 +1,7 @@
 // 模型 / effort 路由与 fallback（纯函数）。
 //
 // 解析顺序（先命中先用）：
-//   1. 群级覆盖：socialV2.groupProfiles[key].model
+//   1. 群级覆盖：simulation.groupProfiles[key].model
 //   2. 任务档位：routing.tiers[<chat|reflection|research>]
 //   3. 备用链路：routing.fallback[]（provider 故障/模型下线时降级）
 //   4. 基础配置：dsh.provider / dsh.model / dsh.reasoningEffort

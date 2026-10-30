@@ -200,7 +200,7 @@ test('MCP validates/forwards read watermarks and wait purposes against an isolat
     // Omission preserves the old wait contract, while reply explicitly selects
     // the short pre-reply quiet window. Both travel through the real MCP schema.
     await client.callTool({ name: 'qq_wait_for_messages', arguments: common });
-    assert.equal(requests.at(-1).url, '/api/socialV2/wait');
+    assert.equal(requests.at(-1).url, '/api/simulation/wait');
     assert.deepEqual(requests.at(-1).body, { key: common.key });
     assert.equal(requests.at(-1).token, common.token);
     for (const purpose of ['messages', 'reply']) {
@@ -219,12 +219,12 @@ test('MCP validates/forwards read watermarks and wait purposes against an isolat
     }
 
     await client.callTool({ name: 'qq_mark_read', arguments: { ...common, throughSeq: 21 } });
-    assert.equal(requests.at(-1).url, '/api/socialV2/mark-read');
+    assert.equal(requests.at(-1).url, '/api/simulation/mark-read');
     assert.deepEqual(requests.at(-1).body, { key: common.key, throughSeq: 21 });
     assert.equal(requests.at(-1).token, common.token);
 
     await client.callTool({ name: 'qq_set_wake_config', arguments: { ...common, config: { mode: 'diving' }, throughSeq: 0 } });
-    assert.equal(requests.at(-1).url, '/api/socialV2/wake-config');
+    assert.equal(requests.at(-1).url, '/api/simulation/wake-config');
     assert.deepEqual(requests.at(-1).body, { key: common.key, config: { mode: 'diving' }, throughSeq: 0 });
     await client.callTool({ name: 'qq_set_wake_config', arguments: { ...common, config: { mode: 'active' } } });
     assert.deepEqual(requests.at(-1).body, { key: common.key, config: { mode: 'active' } });

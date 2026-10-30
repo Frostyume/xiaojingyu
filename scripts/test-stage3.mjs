@@ -223,11 +223,11 @@ test('daily-report: 下一次时间与按群开关', () => {
   assert.equal(nextDailyAt('21:30', late), Date.UTC(2026, 9, 26, 13, 30), '过了时间顺延到明天');
   assert.equal(localDateKey(noon), '2026-10-25');
 
-  const cfg = { socialV2: { dailyReport: { enabled: true, groups: ['group:1'] }, groupProfiles: { 'group:2': { dailyReport: true } } } };
+  const cfg = { simulation: { dailyReport: { enabled: true, groups: ['group:1'] }, groupProfiles: { 'group:2': { dailyReport: true } } } };
   assert.equal(dailyReportEnabled(cfg, 'group:1'), true);
   assert.equal(dailyReportEnabled(cfg, 'group:2'), true);
   assert.equal(dailyReportEnabled(cfg, 'group:3'), false);
-  assert.equal(dailyReportEnabled({ socialV2: { dailyReport: { enabled: false } } }, 'group:1'), false);
+  assert.equal(dailyReportEnabled({ simulation: { dailyReport: { enabled: false } } }, 'group:1'), false);
 });
 
 test('qzone: 超时核对用正文指纹判断是否已落地', () => {

@@ -73,7 +73,7 @@ test('feature-loader: 仓库内真实 feature 可加载（日报/卡片）', asy
     dir: path.join(root, 'src', 'features'),
     logger: () => {},
     ctx: {
-      cfg: { socialV2: { dailyReport: { enabled: false } } },
+      cfg: { simulation: { dailyReport: { enabled: false } } },
       log: () => {},
       getState: () => ({}),
       jobs: { register: () => {} },

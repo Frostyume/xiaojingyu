@@ -51,12 +51,12 @@ test('signature: 自动签名先私聊主人审核，回「发签名」才写 QQ
   const h = await bridgeHarness({
     config: {
       consoleAuth: { enabled: false },
-      socialV2: { signature: { enabled: true, requireApproval: true, approvalTimeoutMs: 7200000 } }
+      simulation: { signature: { enabled: true, requireApproval: true, approvalTimeoutMs: 7200000 } }
     }
   });
   try {
     h.setSnowlumaConnected(true);
-    h.setMode('reserved2');
+    h.setMode('simulation');
     const draft = await h.handleSignatureJob({});
     assert.equal(draft.status, 'draft');
     assert.ok(h.signatureState.pending?.text, '应生成待审草稿');
@@ -78,7 +78,7 @@ test('signature: 自动签名先私聊主人审核，回「发签名」才写 QQ
 
 test('signature API: 预览与手动更新（fixture 网关）', async () => {
   const h = await bridgeHarness({
-    config: { consoleAuth: { enabled: false }, socialV2: { signature: { enabled: true, firstDelayMs: 60000 } } }
+    config: { consoleAuth: { enabled: false }, simulation: { signature: { enabled: true, firstDelayMs: 60000 } } }
   });
   try {
     const server = h.startConsoleServer();

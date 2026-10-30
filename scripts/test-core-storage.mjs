@@ -242,7 +242,7 @@ test('config-schema: 覆盖现有开关、密钥脱敏、非法值拒绝', () =>
     role: { maxInjectChars: 6000 },
     consoleToken: 'console-secret',
     allow: { private: [], groups: [] },
-    socialV2: {
+    simulation: {
       enabled: true,
       tools: { sendGroup: true, sendVoice: false },
       voice: { enabled: true, maxPerMinute: 2 },
@@ -254,18 +254,18 @@ test('config-schema: 覆盖现有开关、密钥脱敏、非法值拒绝', () =>
   };
   const schema = buildConfigSchema(sample);
   const keys = new Set(schema.fields.map((f) => f.key));
-  for (const key of ['dsh.authToken', 'socialV2.tools.sendVoice', 'socialV2.voice.enabled', 'tts.enabled', 'webSearch.apiKey', 'role.maxInjectChars', 'consoleToken']) {
+  for (const key of ['dsh.authToken', 'simulation.tools.sendVoice', 'simulation.voice.enabled', 'tts.enabled', 'webSearch.apiKey', 'role.maxInjectChars', 'consoleToken']) {
     assert.ok(keys.has(key), `schema 缺少 ${key}`);
   }
   const tokenField = schema.fields.find((f) => f.key === 'dsh.authToken');
   assert.equal(tokenField.secret, true);
   assert.equal(tokenField.value, '已配置');
 
-  const ok = validateConfigPatch(sample, { 'socialV2.voice.maxPerMinute': 3, 'socialV2.enabled': false });
+  const ok = validateConfigPatch(sample, { 'simulation.voice.maxPerMinute': 3, 'simulation.enabled': false });
   assert.equal(ok.ok, true);
-  assert.deepEqual(ok.values, { 'socialV2.voice.maxPerMinute': 3, 'socialV2.enabled': false });
+  assert.deepEqual(ok.values, { 'simulation.voice.maxPerMinute': 3, 'simulation.enabled': false });
 
-  const badType = validateConfigPatch(sample, { 'socialV2.enabled': 'yes' });
+  const badType = validateConfigPatch(sample, { 'simulation.enabled': 'yes' });
   assert.equal(badType.ok, false);
   assert.match(badType.errors[0], /布尔/);
 
@@ -273,7 +273,7 @@ test('config-schema: 覆盖现有开关、密钥脱敏、非法值拒绝', () =>
   assert.equal(badRange.ok, false);
   assert.match(badRange.errors[0], /不能大于/);
 
-  const unknown = validateConfigPatch(sample, { 'socialV2.voice.enabld': true });
+  const unknown = validateConfigPatch(sample, { 'simulation.voice.enabld': true });
   assert.equal(unknown.ok, false);
   assert.match(unknown.errors[0], /未知配置项/);
 
@@ -290,8 +290,8 @@ test('config-schema: v1 → v2 迁移与补丁应用', () => {
   assert.equal(migrated.config.allow.privates, undefined);
   assert.equal(migrated.config.storage.enabled, true);
 
-  const next = applyConfigPatch({ socialV2: { send: { maxMessageChars: 500 } } }, { 'socialV2.send.maxMessageChars': 300 });
-  assert.equal(next.socialV2.send.maxMessageChars, 300);
+  const next = applyConfigPatch({ simulation: { send: { maxMessageChars: 500 } } }, { 'simulation.send.maxMessageChars': 300 });
+  assert.equal(next.simulation.send.maxMessageChars, 300);
 
   const field = { key: 'x', type: 'number', min: 1, max: 2 };
   assert.equal(validateField(field, 3).ok, false);

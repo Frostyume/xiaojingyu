@@ -261,7 +261,7 @@ for (const rel of files) {
     re.lastIndex = 0;
     let m;
     let hits = 0;       // 已上报的命中数（上限 3）
-    let attempts = 0;   // 正则**总迭代次数**（含被过滤掉的）
+    let attempts = 0;   // 正则**总迭模式数**（含被过滤掉的）
     const started = Date.now();
     // 迭代上限必须独立于 hits：被过滤掉的匹配也会让 lastIndex 每次只前进 1 个字符，
     // 在一个"全是 hex 串"的文档里（本仓库的 TOKEN_OPTIMIZATION.md 就是）会出现

@@ -120,23 +120,23 @@ console.log('## 配置项（AI 发语音默认关闭，等语音库准备好再�
   //      这条断言会去断言**用户的当前状态**并失败 —— 测试不该因为用户用了功能而变红。
   // 用户当前值只做提示，不参与判定。
   const exCfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.example.json'), 'utf8'));
-  ok(exCfg.socialV2?.tools?.sendVoice === false, 'config.example.json tools.sendVoice=false（出厂默认不给 AI 发语音）');
-  ok(exCfg.socialV2?.voice?.enabled === false, 'config.example.json voice.enabled=false（出厂默认总闸关闭）');
-  ok(exCfg.socialV2?.voice?.allowAbsolutePath === false, '出厂默认禁止绝对路径（安全默认）');
-  ok(Number(exCfg.socialV2?.voice?.maxPerHour) > 0, '出厂默认带每小时限流');
+  ok(exCfg.simulation?.tools?.sendVoice === false, 'config.example.json tools.sendVoice=false（出厂默认不给 AI 发语音）');
+  ok(exCfg.simulation?.voice?.enabled === false, 'config.example.json voice.enabled=false（出厂默认总闸关闭）');
+  ok(exCfg.simulation?.voice?.allowAbsolutePath === false, '出厂默认禁止绝对路径（安全默认）');
+  ok(Number(exCfg.simulation?.voice?.maxPerHour) > 0, '出厂默认带每小时限流');
   try {
     const localCfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
-    console.log(`  ℹ  你本机的值（仅供参考，不参与判定）：tools.sendVoice=${localCfg.socialV2?.tools?.sendVoice} / voice.enabled=${localCfg.socialV2?.voice?.enabled}`);
+    console.log(`  ℹ  你本机的值（仅供参考，不参与判定）：tools.sendVoice=${localCfg.simulation?.tools?.sendVoice} / voice.enabled=${localCfg.simulation?.voice?.enabled}`);
   } catch {
     console.log('  ℹ  本机没有 config.json（不入库）——本段只查随仓库发布的出厂默认');
   }
   const cfg = exCfg;
   const ex = exCfg;
-  ok(ex.socialV2?.voice?.dir === 'audio', 'config.example.json 含 voice 段');
+  ok(ex.simulation?.voice?.dir === 'audio', 'config.example.json 含 voice 段');
   // 代码里的默认值也必须一致，否则删掉 config.json 里那两行就会变回"默认开"
   const bridgeSrc = fs.readFileSync(path.join(ROOT, 'src', 'bridge.js'), 'utf8');
   ok(/sendVoice: false,/.test(bridgeSrc), 'bridge.js 里 tools 默认 sendVoice: false');
-  ok(/cfg\.socialV2\.voice = \{\s*\n\s*enabled: false,/.test(bridgeSrc), 'bridge.js 里 voice 默认 enabled: false');
+  ok(/cfg\.simulation\.voice = \{\s*\n\s*enabled: false,/.test(bridgeSrc), 'bridge.js 里 voice 默认 enabled: false');
 }
 
 console.log('## MCP 工具与 bridge 路由');
@@ -147,29 +147,29 @@ console.log('## MCP 工具与 bridge 路由');
   ok(mcp.includes("qq_send_voice: 'sendVoice'"), 'qq_send_voice 受 sendVoice 开关控制');
   ok(mcp.includes("qq_list_voices: 'sendVoice'"), 'qq_list_voices 受 sendVoice 开关控制');
   const voiceBlock = mcp.slice(mcp.indexOf("'qq_send_voice'"), mcp.indexOf("'qq_list_voices'"));
-  ok(voiceBlock.includes('/api/socialV2/send-voice'), 'qq_send_voice 调 /api/socialV2/send-voice');
+  ok(voiceBlock.includes('/api/simulation/send-voice'), 'qq_send_voice 调 /api/simulation/send-voice');
   ok(!voiceBlock.includes("绝对路径的音频"), 'qq_send_voice 不暴露绝对路径参数');
 
   const bridge = fs.readFileSync(path.join(ROOT, 'src', 'bridge.js'), 'utf8');
   for (const s of [
-    '/api/voice/send', '/api/socialV2/send-voice', '/api/socialV2/voices',
-    'sendVoiceV2', 'sendVoiceForV2', 'resolveVoicePathForV2', 'resolveVoicePathForOperator',
+    '/api/voice/send', '/api/simulation/send-voice', '/api/simulation/voices',
+    'sendVoiceFile', 'sendVoiceForConversation', 'resolveSimulationVoicePath', 'resolveVoicePathForOperator',
     'voiceBudgetCheck', 'assertOutboundAuditOk', 'type: \'record\''
   ]) {
     ok(bridge.includes(s), `bridge 包含 ${s}`);
   }
-  ok(bridge.includes("v2ToolEnabled('sendVoice')"), 'send-voice 路由受 sendVoice 开关控制');
-  ok(/resolveVoicePathForV2[\s\S]{0,1200}allowAbsolutePath/.test(bridge), 'AI 通道绝对路径受 allowAbsolutePath 约束');
+  ok(bridge.includes("simulationToolEnabled('sendVoice')"), 'send-voice 路由受 sendVoice 开关控制');
+  ok(/resolveSimulationVoicePath[\s\S]{0,1200}allowAbsolutePath/.test(bridge), 'AI 通道绝对路径受 allowAbsolutePath 约束');
 }
 
 console.log('## 安全边界（AI 通道来源限制）');
 {
   const bridge = fs.readFileSync(path.join(ROOT, 'src', 'bridge.js'), 'utf8');
-  const fn = bridge.slice(bridge.indexOf('function resolveVoicePathForV2'), bridge.indexOf('function resolveVoicePathForOperator'));
+  const fn = bridge.slice(bridge.indexOf('function resolveSimulationVoicePath'), bridge.indexOf('function resolveVoicePathForOperator'));
   ok(/base64:|data:|https\?:/.test(fn), 'AI 通道拒绝 base64/data/http 来源');
   ok(/allowAbsolutePath/.test(fn), 'AI 通道检查 allowAbsolutePath');
-  const sendRoute = bridge.slice(bridge.indexOf("url.pathname === '/api/socialV2/send-voice'"), bridge.indexOf("url.pathname === '/api/socialV2/send-sticker'"));
-  ok(sendRoute.includes('v2SessionAllowed(key)'), '语音发送校验会话白名单');
+  const sendRoute = bridge.slice(bridge.indexOf("url.pathname === '/api/simulation/send-voice'"), bridge.indexOf("url.pathname === '/api/simulation/send-sticker'"));
+  ok(sendRoute.includes('simulationSessionAllowed(key)'), '语音发送校验会话白名单');
   // 跨会话统一判定：本会话令牌 / 主人令牌 / 主人在本群刚下过指令（见 docs/CONTROL-TIERS-PLAN-2026-10-30.md §3.3）
   ok(sendRoute.includes('canActOn(key, token, { crossSession: true'), '语音发送走 canActOn 跨会话校验');
   ok(sendRoute.includes('shouldBlockSilentReply(key)'), '语音发送尊重静默模式');
@@ -213,7 +213,7 @@ console.log('## 控制台契约');
 {
   const html = fs.readFileSync(path.join(ROOT, 'public', 'console.html'), 'utf8');
   const bridgeSrc = fs.readFileSync(path.join(ROOT, 'src', 'bridge.js'), 'utf8');
-  ok(html.includes('data-v2-tool="sendVoice"'), '控制台有 sendVoice 工具开关');
+  ok(html.includes('data-sim-tool="sendVoice"'), '控制台有 sendVoice 工具开关');
   ok(bridgeSrc.includes("'sendVoice'"), 'config API 的 toolFlags 含 sendVoice');
   const uniq = (a) => [...new Set(a)].sort();
   const views = uniq([...html.matchAll(/data-view="([a-z0-9-]+)"/g)].map((m) => m[1]));
@@ -223,11 +223,11 @@ console.log('## 控制台契约');
 
 console.log('## 回归：AI 语音通道不许穿出语音库（P1，曾可复现）');
 {
-  // 由来：resolveVoicePathForV2 只拦绝对路径，而 resolveAudioSource 会**先用 process.cwd()
+  // 由来：resolveSimulationVoicePath 只拦绝对路径，而 resolveAudioSource 会**先用 process.cwd()
   // 解析相对路径**，于是 AI 传 `..\..\某本机文件.mp3` 就能读库外文件（allowAbsolutePath
   // 那道闸门形同虚设）。修法是相对路径一律走 safeJoinLibrary。这里用真实 bridge 闭包验证。
   const { bridgeHarness } = await import('./audit-bridge-harness.mjs');
-  const h = await bridgeHarness({ config: { socialV2: { voice: { enabled: true } } } });
+  const h = await bridgeHarness({ config: { simulation: { voice: { enabled: true } } } });
   try {
     const dir = path.join(h.temp, 'audio');
     fs.mkdirSync(dir, { recursive: true });
@@ -236,8 +236,8 @@ console.log('## 回归：AI 语音通道不许穿出语音库（P1，曾可复�
     fs.writeFileSync(outside, Buffer.alloc(512, 1));
 
     // 正常用法必须仍然可用（别把功能一起修死）
-    ok(h.resolveVoicePathForV2('ok.mp3').path === path.join(dir, 'ok.mp3'), '合法文件名可用');
-    ok(h.resolveVoicePathForV2('ok').path === path.join(dir, 'ok.mp3'), '省略扩展名仍可用');
+    ok(h.resolveSimulationVoicePath('ok.mp3').path === path.join(dir, 'ok.mp3'), '合法文件名可用');
+    ok(h.resolveSimulationVoicePath('ok').path === path.join(dir, 'ok.mp3'), '省略扩展名仍可用');
 
     for (const [label, payload] of [
       ['..\\..\\ 相对穿越', '..\\..\\secret-outside.mp3'],
@@ -245,24 +245,24 @@ console.log('## 回归：AI 语音通道不许穿出语音库（P1，曾可复�
       ['sub/../../ 混合穿越', 'sub/../../secret-outside.mp3'],
     ]) {
       let threw = null;
-      try { h.resolveVoicePathForV2(payload); } catch (e) { threw = e; }
+      try { h.resolveSimulationVoicePath(payload); } catch (e) { threw = e; }
       ok(Boolean(threw), `${label} 被拒`, threw ? threw.message.slice(0, 30) : '竟然放行了！');
     }
     let abs = null;
-    try { h.resolveVoicePathForV2(outside); } catch (e) { abs = e; }
+    try { h.resolveSimulationVoicePath(outside); } catch (e) { abs = e; }
     ok(Boolean(abs), '库外绝对路径被拒');
     let sys = null;
-    try { h.resolveVoicePathForV2('C:\\Windows\\Media\\Alarm01.wav'); } catch (e) { sys = e; }
+    try { h.resolveSimulationVoicePath('C:\\Windows\\Media\\Alarm01.wav'); } catch (e) { sys = e; }
     ok(Boolean(sys), '系统绝对路径被拒');
     for (const p of ['base64://AAAA', 'data:audio/mp3;base64,AAAA', 'https://x/a.mp3']) {
       let t = null;
-      try { h.resolveVoicePathForV2(p); } catch (e) { t = e; }
+      try { h.resolveSimulationVoicePath(p); } catch (e) { t = e; }
       ok(Boolean(t), `${p.split(':')[0]} 来源被拒`);
     }
     // 关键不变量：任何"被接受"的路径都必须在语音库目录内
     const accepted = [];
     for (const p of ['ok.mp3', 'ok', '..\\..\\secret-outside.mp3', outside, 'sub/../../x.mp3']) {
-      try { accepted.push(h.resolveVoicePathForV2(p).path); } catch {}
+      try { accepted.push(h.resolveSimulationVoicePath(p).path); } catch {}
     }
     ok(accepted.every((p) => p.startsWith(dir + path.sep)), '被接受的路径全部落在语音库内', `${accepted.length} 个被接受`);
   } finally { await h.close(); }
@@ -300,11 +300,11 @@ console.log('## 回归：长消息里的 URL 不许被切碎（P1，曾静默丢
 
 console.log('## 回归：AI 通道的语音库响应不许带出绝对路径（P1）');
 {
-  // 由来：/api/socialV2/voices 的 dir 字段做了 agentCall ? undefined 抑制，
+  // 由来：/api/simulation/voices 的 dir 字段做了 agentCall ? undefined 抑制，
   // 但紧邻的 hint 模板字符串仍然无条件插值 ${voice.dir} —— 绝对路径又从旁边漏给模型了。
   // 这类"字段堵了、文案没堵"的漏法静态查最有效：AI 通道的所有响应字段与文案都不该含盘符/家目录。
   const src = fs.readFileSync(path.join(ROOT, 'src', 'bridge.js'), 'utf8');
-  const at = src.indexOf("url.pathname === '/api/socialV2/voices'");
+  const at = src.indexOf("url.pathname === '/api/simulation/voices'");
   ok(at > 0, '找到 voices 路由');
   const section = src.slice(at, at + 3200);
   ok(/dir: agentCall \? undefined : voice\.dir/.test(section), 'dir 字段对 AI 通道抑制');
@@ -337,7 +337,7 @@ if (process.env.QQ_BRIDGE_TEST_LIVE === '1') {
       try { token = fs.readFileSync(path.join(ROOT, 'state', 'console-token'), 'utf8').trim(); } catch {}
     }
     const target = (cfg.allow?.groups ?? [])[0];
-    const dir = path.resolve(ROOT, String(cfg.socialV2?.voice?.dir ?? 'audio'));
+    const dir = path.resolve(ROOT, String(cfg.simulation?.voice?.dir ?? 'audio'));
     const first = listAudioFiles(dir)[0];
     if (!target || !first) {
       ok(false, `live 前置条件不足（目标群 ${target ?? '无'}，语音库文件 ${first ?? '无'}）`);

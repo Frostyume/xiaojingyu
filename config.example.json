@@ -128,7 +128,7 @@
     "longGapMinMs": 5000,
     "longGapMaxMs": 10000
   },
-  "socialV2": {
+  "simulation": {
     "enabled": true,
     "autoReplyCheckMs": 30000,
     "agentPreset": "qq-chat",

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { bridgeHarness } from './audit-bridge-harness.mjs';
 
 function stateWithTriggers(h, key) {
-  const st = h.getSocialV2State(key);
+  const st = h.getSimulationState(key);
   st.wakeConfig = {
     mode: 'diving',
     infinite: true,
@@ -36,18 +36,18 @@ function event(extra = {}) {
 
 const quietAllDay = { enabled: true, start: '00:00', end: '00:00' };
 
-const night = await bridgeHarness({ config: { socialV2: { nightQuiet: quietAllDay } } });
+const night = await bridgeHarness({ config: { simulation: { nightQuiet: quietAllDay } } });
 try {
   assert.equal(night.isNightQuietNow(), true, '窗口应覆盖当前时间，测试才有效');
   const st = stateWithTriggers(night, 'group:456');
-  assert.equal(night.evaluateWakeTriggerV2('group:456', st, event(), 'group', '随便聊聊', '随便聊聊', false), null,
+  assert.equal(night.evaluateWakeTrigger('group:456', st, event(), 'group', '随便聊聊', '随便聊聊', false), null,
     'anyMessage / 指定成员 / 概率 在夜间都不得唤醒');
-  assert.equal(night.evaluateWakeTriggerV2('private:123', st, event(), 'private', '随便聊聊', '随便聊聊', false), 'private',
+  assert.equal(night.evaluateWakeTrigger('private:123', st, event(), 'private', '随便聊聊', '随便聊聊', false), 'private',
     '私聊是明确找她，夜间仍应响应');
-  assert.match(String(night.evaluateWakeTriggerV2('group:456', st, event(), 'group', '小鲸鱼在吗', '小鲸鱼在吗', false)), /keyword|nameMention/,
+  assert.match(String(night.evaluateWakeTrigger('group:456', st, event(), 'group', '小鲸鱼在吗', '小鲸鱼在吗', false)), /keyword|nameMention/,
     '名字/关键词在夜间仍应响应');
   const atEvent = event({ message: [{ type: 'at', data: { qq: '999' } }, { type: 'text', data: { text: '在吗' } }] });
-  assert.equal(night.evaluateWakeTriggerV2('group:456', st, atEvent, 'group', '在吗', '在吗', false), 'atMention',
+  assert.equal(night.evaluateWakeTrigger('group:456', st, atEvent, 'group', '在吗', '在吗', false), 'atMention',
     '@ 她在夜间仍应响应');
   assert.equal(night.nightQuietConfig().start, '00:00');
 } finally {
@@ -57,14 +57,14 @@ try {
 // 白天这段只验证「夜间静默关闭后泛监听重新生效」，所以关掉价值评分：
 // 评分自己会把「随便聊聊」判成 defer/ignore，混进来就测不到静默门控了。
 const day = await bridgeHarness({
-  config: { socialV2: { nightQuiet: { ...quietAllDay, enabled: false }, valueScore: { enabled: false } } }
+  config: { simulation: { nightQuiet: { ...quietAllDay, enabled: false }, valueScore: { enabled: false } } }
 });
 try {
   assert.equal(day.isNightQuietNow(), false, '关闭后不应生效');
   const st = stateWithTriggers(day, 'group:456');
   // 泛监听命中后带价值评分后缀（anyMessage:score0.42），断言只看前缀：
   // 要看的是"能不能被叫醒"，不是分数具体多少。
-  assert.match(String(day.evaluateWakeTriggerV2('group:456', st, event(), 'group', '随便聊聊', '随便聊聊', false)), /^anyMessage/,
+  assert.match(String(day.evaluateWakeTrigger('group:456', st, event(), 'group', '随便聊聊', '随便聊聊', false)), /^anyMessage/,
     '关闭夜间静默后恢复 anyMessage 行为');
 } finally {
   await day.close();

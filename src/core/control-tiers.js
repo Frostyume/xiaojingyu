@@ -87,15 +87,15 @@ export function isHighRiskOwnerAction(route, body) {
   const input = body && typeof body === 'object' ? body : {};
   const action = String(input.action ?? '').trim();
   switch (String(route ?? '')) {
-    case '/api/socialV2/owner-features':
+    case '/api/simulation/owner-features':
       return ['apply', 'pause', 'resume', 'delete', 'rollback'].includes(action);
-    case '/api/socialV2/dev-proposals':
+    case '/api/simulation/dev-proposals':
       return ['propose_code', 'merge', 'reject'].includes(action);
-    case '/api/socialV2/owner-config':
+    case '/api/simulation/owner-config':
       return action === 'set';
-    case '/api/socialV2/owner-admin':
+    case '/api/simulation/owner-admin':
       return ['voice_style', 'signature', 'run_share', 'run_qzone', 'pause_qzone', 'resume_qzone', 'set_share_targets'].includes(action);
-    case '/api/socialV2/qzone-post':
+    case '/api/simulation/qzone-post':
       return input.dryRun !== true;
     default:
       return false;
@@ -104,11 +104,11 @@ export function isHighRiskOwnerAction(route, body) {
 
 export function ownerActionCategory(route) {
   switch (String(route ?? '')) {
-    case '/api/socialV2/owner-features': return '功能更新';
-    case '/api/socialV2/dev-proposals': return '代码变更';
-    case '/api/socialV2/owner-config': return '配置修改';
-    case '/api/socialV2/qzone-post': return 'Qzone 发布';
-    case '/api/socialV2/owner-admin': return '管理动作';
+    case '/api/simulation/owner-features': return '功能更新';
+    case '/api/simulation/dev-proposals': return '代码变更';
+    case '/api/simulation/owner-config': return '配置修改';
+    case '/api/simulation/qzone-post': return 'Qzone 发布';
+    case '/api/simulation/owner-admin': return '管理动作';
     default: return '高危操作';
   }
 }
@@ -121,30 +121,30 @@ export function describePendingAction(route, body) {
     return text.length > max ? `${text.slice(0, max)}…` : text;
   };
   switch (String(route ?? '')) {
-    case '/api/socialV2/owner-config':
+    case '/api/simulation/owner-config':
       return `修改配置 ${clip(input.configKey, 60)} = ${clip(JSON.stringify(input.value), 60)}`;
-    case '/api/socialV2/owner-features': {
+    case '/api/simulation/owner-features': {
       const action = String(input.action ?? '');
       const label = input.feature?.label || input.label || input.id || '未命名';
       if (action === 'apply') return `应用功能「${clip(label, 40)}」`;
       if (action === 'delete') return `删除功能「${clip(label, 40)}」`;
       return `功能${action || '操作'}「${clip(label, 40)}」`;
     }
-    case '/api/socialV2/dev-proposals': {
+    case '/api/simulation/dev-proposals': {
       const action = String(input.action ?? '');
       if (action === 'propose_code') return `提交代码提案「${clip(input.title || input.id, 40)}」`;
       if (action === 'merge') return `合并代码提案 ${clip(input.id, 40)}`;
       if (action === 'reject') return `丢弃代码提案 ${clip(input.id, 40)}`;
       return `代码提案${action || '操作'}`;
     }
-    case '/api/socialV2/owner-admin': {
+    case '/api/simulation/owner-admin': {
       const action = String(input.action ?? '');
       const extra = action === 'signature'
         ? `「${clip(input.text, 30)}」`
         : (action === 'set_share_targets' ? `（${Array.isArray(input.targets) ? input.targets.length : 0} 个群）` : '');
       return `管理动作 ${action}${extra}`;
     }
-    case '/api/socialV2/qzone-post':
+    case '/api/simulation/qzone-post':
       return `发布空间说说「${clip(input.text, 30)}」`;
     default:
       return String(route ?? '高危操作');

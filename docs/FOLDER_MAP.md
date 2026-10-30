@@ -46,7 +46,7 @@ DSH/                         ← 工作区根（不是仓库根）
 | `doctor.mjs` | **一条命令定位常见故障**：配置校验、SQLite/队列、DSH 端口、SnowLuma 端口、控制台 API、preset、日志、磁盘；`--fix-dsh-port` / `--fix-config` 需显式给出 | 保留（`npm run doctor`） |
 | `build-config-schema.mjs` | 从 `config.example.json` 生成 `config.schema.json`（控制台/外部工具共用） | 保留（`npm run schema:config`；改了配置模板要重跑） |
 | `dsh-ensure.mjs` | DSH 生命周期外壳：发现当前监听端口、对比/写回 `dsh.baseUrl`（`--fix`），不启动 DSH | 保留（`npm run dsh:ensure`） |
-| `test-dsh-*.mjs` | **需要活的 DSH**（不在 `test:audit` 里）：`test-dsh-auth.mjs`（鉴权链路）、`test-dsh-inbox-projection.mjs`（会话队列投影解析，离线）、`test-dsh-session-retire.mjs`（退役会话的端到端回归）、`test-dsh-v2-wait.mjs`（preset 工具面） | 保留（改 DSH 契约时必须跑） |
+| `test-dsh-*.mjs` | **需要活的 DSH**（不在 `test:audit` 里）：`test-dsh-auth.mjs`（鉴权链路）、`test-dsh-inbox-projection.mjs`（会话队列投影解析，离线）、`test-dsh-session-retire.mjs`（退役会话的端到端回归）、`test-dsh-simulation-wait.mjs`（preset 工具面） | 保留（改 DSH 契约时必须跑） |
 | `test-audit-*.mjs` | test-audit 的子模块（`test-audit-bridge` / `-protocol` / `-security` / `-setup` 及其 `-helpers`/`-guards`），被上一个直接运行 | 保留 |
 | `test-console-ui.mjs` + `console-ui-*.json` / `console-ui-fixture.mjs` / `fixtures/` | 控制台**离线浏览器回归**与基线（`npm run test:console-ui` / `npm run preview:console`），说明见 [guides/CONSOLE-UI-TESTING.md](guides/CONSOLE-UI-TESTING.md) | 保留（基线只在后端契约真变时才重录） |
 | `send-*.mjs` | 面向 SnowLuma/QQ 的**真发送**小工具（`send-voice.mjs` 走桥接；`send-test-group.mjs` 发测试群） | 保留，但注意会真的发消息 |

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readOwnerConfig, validateOwnerConfig, applyOwnerConfig, ownerConfigPatch } from '../src/core/owner-config.js';
 
 const cfg = {
-  socialV2: {
+  simulation: {
     innerLife: { qzone: { maxPerDay: 2, minGapMs: 14400000, requireApproval: true }, groupShare: { maxPerDay: 20, minGapMs: 900000 } },
     signature: { minIntervalHours: 12, maxIntervalHours: 48, requireApproval: true },
     voice: { maxPerMinute: 6, maxPerHour: 60, maxSeconds: 45 },
@@ -35,10 +35,10 @@ test('校验范围与类型', () => {
 test('生成配置 patch 时做单位转换', () => {
   const gap = ownerConfigPatch('qzone.minGapMinutes', 120);
   assert.equal(gap.ok, true);
-  assert.equal(gap.path, 'socialV2.innerLife.qzone.minGapMs');
+  assert.equal(gap.path, 'simulation.innerLife.qzone.minGapMs');
   assert.equal(gap.stored, 7200000);
   const share = applyOwnerConfig(cfg, 'share.maxPerDay', 8);
   assert.equal(share.ok, true);
-  assert.equal(share.path, 'socialV2.innerLife.groupShare.maxPerDay');
+  assert.equal(share.path, 'simulation.innerLife.groupShare.maxPerDay');
   assert.equal(share.before, 20);
 });

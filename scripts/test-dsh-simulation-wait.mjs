@@ -1,6 +1,6 @@
-// 二代等待逻辑的「实时」端到端测试：真建一个 qq-chat 会话并向 DSH 提问，
+// 仿真等待逻辑的「实时」端到端测试：真建一个 qq-chat 会话并向 DSH 提问，
 // 断言 qq_wait_for_messages 出现在该 preset 的可用工具面里。需要 DSH 正在运行。
-// （纯逻辑单测见 scripts/test-v2-wait.mjs，两者不重复。）
+// （纯逻辑单测见 scripts/test-simulation-wait.mjs，两者不重复。）
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
@@ -23,7 +23,7 @@ async function main() {
   const api = new NodeApiClient('http://127.0.0.1:3080', undefined, auth);
   // 探测会话的 cwd 用系统临时目录：state/ 的 ACL 被 harden-state-acl.mjs 收紧过，
   // 沙箱里写不进去（见 scripts/probe-auth.mjs 的同款说明）。
-  const cwd = path.join(os.tmpdir(), 'qq-bridge-self-test-v2-wait');
+  const cwd = path.join(os.tmpdir(), 'qq-bridge-self-test-simulation-wait');
   fs.mkdirSync(cwd, { recursive: true });
   const created = unwrap(await api.sessions.create({ cwd, agentPreset: 'qq-chat' }), 'session.create');
   const sessionId = created.sessionId;

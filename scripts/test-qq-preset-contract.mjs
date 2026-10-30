@@ -1,4 +1,4 @@
-// reserved2 提示词与插件边界的静态契约；不调用模型，不向 QQ 发送消息。
+// simulation 提示词与插件边界的静态契约；不调用模型，不向 QQ 发送消息。
 // 这些检查只能防止关键协议/能力被误删，不能证明聊天质量无损。
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -11,7 +11,7 @@ const preset = yaml.load(fs.readFileSync(
 const persona = preset.find((row) => row.id === 'persona');
 const prefix = persona?.config?.prefix ?? '';
 
-test('reserved2 YAML resolves to the expected persona and template variables', () => {
+test('simulation YAML resolves to the expected persona and template variables', () => {
   assert.equal(persona?.name, '@deepseek-ai/dsh-persona');
   assert.match(prefix, /\{\{model\}\}/);
   assert.match(persona.config.suffix, /isolated DSH session workspace/i);
@@ -101,4 +101,4 @@ test('autonomy limits and the observation escape hatch stay described', () => {
   ]) assert.ok(prefix.includes(text), `missing rule: ${text}`);
 });
 
-console.log(`reserved2 persona prefix: ${prefix.length} characters (not a model-token estimate)`);
+console.log(`simulation persona prefix: ${prefix.length} characters (not a model-token estimate)`);

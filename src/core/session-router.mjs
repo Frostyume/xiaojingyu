@@ -16,7 +16,7 @@
  *     keeps the security-relevant logic in one auditable place.
  *
  *  2. **Legacy mode names are the internal vocabulary.** The four historical
- *     names (`chat` / `reserved` / `reserved2` / `closed-agent`) stay valid, so
+ *     names (`chat` / `reserved` / `simulation` / `closed-agent`) stay valid, so
  *     introducing this module changes *where* a decision is read from, not what
  *     the decision is. Converging the user-visible modes down to two
  *     (`closed-agent` / `simulation`) is a separate, later step.
@@ -40,35 +40,32 @@
  */
 
 /** Simulation is the safe default: no local tools, whitelist-gated. */
-const SIMULATION_MODES = Object.freeze(['chat', 'reserved', 'reserved2']);
+const SIMULATION_MODES = Object.freeze(['chat', 'reserved', 'simulation']);
 
 /**
  * Accepted mode spellings.
  *
- * `simulation` is the canonical name and is kept AS ITSELF, not folded into the
- * legacy `reserved2`. Folding it would make `modeFor()` return an internal legacy
- * string, leaking the old vocabulary back out of the layer that exists to hide
- * it. The legacy names stay accepted so the bridge's current global setting keeps
- * working while the per-conversation config adopts the new spelling.
+ * `simulation` is the canonical name. `chat` / `reserved` are legacy upstream
+ * spellings kept only so old configs keep working; they are not aliases of
+ * `simulation`, because they expect a different (unshipped) preset and must
+ * fail closed rather than silently borrow the simulation tool surface.
  */
 const MODE_ALIASES = Object.freeze({
   simulation: 'simulation',
   chat: 'chat',
   reserved: 'reserved',
-  reserved2: 'reserved2',
   'closed-agent': 'closed-agent',
 });
 
-/** All internal mode names, including both simulation spellings. */
-const ALL_MODES = Object.freeze([...SIMULATION_MODES, 'simulation', 'closed-agent']);
+/** All internal mode names. */
+const ALL_MODES = Object.freeze([...new Set([...SIMULATION_MODES, 'closed-agent'])]);
 
 /**
  * Which presets a mode may use. `closed-agent` intentionally allows only its own
  * closed preset; simulation allows the simulator presets. Anything else is
  * rejected so a typo or a stale config cannot attach an unexpected tool surface.
  *
- * **One preset per mode, on purpose.** `simulation` is the canonical
- * user-facing spelling of `reserved2`; both resolve to the shipped
+ * **One preset per mode, on purpose.** `simulation` resolves to the shipped
  * `qq-chat` preset. `chat` / `reserved` are historical spellings kept only
  * for config compatibility — they expect the old `qq-chat-legacy` preset,
  * which this repository does not ship, so they fail closed instead of
@@ -79,7 +76,6 @@ const ALL_MODES = Object.freeze([...SIMULATION_MODES, 'simulation', 'closed-agen
 const DEFAULT_MODE_PRESETS = Object.freeze({
   chat: Object.freeze(['qq-chat-legacy']),
   reserved: Object.freeze(['qq-chat-legacy']),
-  reserved2: Object.freeze(['qq-chat']),
   simulation: Object.freeze(['qq-chat']),
   'closed-agent': Object.freeze(['qsh-closed']),
 });
@@ -107,7 +103,7 @@ function buildModePresets(overrides = {}) {
 export const LEGACY_TO_CANONICAL = Object.freeze({
   chat: 'simulation',
   reserved: 'simulation',
-  reserved2: 'simulation',
+  simulation: 'simulation',
   'closed-agent': 'closed-agent',
   simulation: 'simulation',
 });
@@ -132,7 +128,7 @@ function isPlainObject(v) {
 
 /**
  * Canonicalise `private:<id>` / `group:<id>`.
- * Mirrors the bridge's own canonicalV2Key: only `\d+`, safe integer, non-zero.
+ * Mirrors the bridge's own canonicalSimulationKey: only `\d+`, safe integer, non-zero.
  * Returns null for anything else so callers can fail closed explicitly.
  */
 export function canonicalConversationKey(key) {
@@ -377,11 +373,11 @@ export function migrateLegacyMode({ mode, ownerQQ, modePresets } = {}) {
     closedAgentEnabled,
     modePresets,
   });
-  // 迁移事件没有"静默"分支：旧写法在 `mode === 'reserved2' && owner === null` 时返回 events: []，
-  // 而"老配置是二代仿真 + 从没配过 ownerQQ"恰恰是最常见的一次迁移 —— 也就是说最常见的迁移是唯一
+  // 迁移事件没有"静默"分支：旧写法在 `mode === 'simulation' && owner === null` 时返回 events: []，
+  // 而"老配置是群聊仿真 + 从没配过 ownerQQ"恰恰是最常见的一次迁移 —— 也就是说最常见的迁移是唯一
   // 不留审计记录的那种，与本模块"caller must persist the events"的契约直接矛盾：调用方按约定落盘，
   // 却什么都落不下来，事后无法回答"这批会话的默认模式是什么时候、按哪次迁移改的"。
-  // （`closedAgentEnabled === false` 这一项对 reserved2 恒为真，所以那个条件实际只是在判断 owner === null。）
+  // （`closedAgentEnabled === false` 这一项对 simulation 恒为真，所以那个条件实际只是在判断 owner === null。）
   const events = [{
     type: 'legacy-mode-migrated',
     from: mode,
@@ -399,9 +395,9 @@ export function migrateLegacyMode({ mode, ownerQQ, modePresets } = {}) {
  * `defaultMode` is the process-global mode and is used for any conversation that
  * has no explicit entry. That is what makes this a drop-in replacement during the
  * migration: behaviour for conversations without an override is unchanged.
- * The legacy spellings are accepted here (`reserved2` is what the running bridge
+ * The legacy spellings are accepted here (`simulation` is what the running bridge
  * still has persisted) and are stored in canonical form — storing the raw
- * spelling would pair e.g. `reserved2` with the canonical `qsh-sim` preset and
+ * spelling would pair e.g. `simulation` with the canonical `qsh-sim` preset and
  * then reject that same state on the next load, i.e. the router could not read
  * back what it had just written.
  */
@@ -412,7 +408,7 @@ export class SessionRouter {
   #now;
   #modePresets;
 
-  constructor({ ownerQQ = null, defaultMode = 'reserved2', state, now = Date.now, modePresets } = {}) {
+  constructor({ ownerQQ = null, defaultMode = 'simulation', state, now = Date.now, modePresets } = {}) {
     if (typeof now !== 'function') throw new TypeError('now must be a function');
     this.#now = now;
     this.#ownerQQ = normalizeOwnerQQ(ownerQQ);
@@ -488,9 +484,9 @@ export class SessionRouter {
    * The conversation's mode in its **canonical** spelling:
    * `'closed-agent'` | `'simulation'`.
    *
-   * 旧拼写（`chat` / `reserved` / `reserved2`）只在**存储与迁移**层存在，不从这里漏出去 ——
+   * 旧拼写（`chat` / `reserved` / `simulation`）只在**存储与迁移**层存在，不从这里漏出去 ——
    * 这一层的存在意义就是把旧词汇挡在里面（见 MODE_ALIASES 的说明）。旧实现返回的是内部
-   * 原始拼写，于是 `reserved2` 会一路泄漏到调用方，和本文件自己的契约矛盾，
+   * 原始拼写，于是 `simulation` 会一路泄漏到调用方，和本文件自己的契约矛盾，
    * 也让"迁移到 simulation"这件事在对外行为上等于没发生。需要旧拼写的地方请用
    * {@link internalModeFor}。
    */
@@ -500,7 +496,7 @@ export class SessionRouter {
   canonicalModeFor(key) { return this.policyFor(key).canonicalMode; }
 
   /**
-   * 内部/存储层的模式拼写（可能是 `chat` / `reserved` / `reserved2` 这类旧名）。
+   * 内部/存储层的模式拼写（可能是 `chat` / `reserved` / `simulation` 这类旧名）。
    * 只有迁移与"当前全局设置仍是旧名"这类兼容判断才需要它；业务代码一律用 `modeFor`。
    */
   internalModeFor(key) { return this.policyFor(key).mode; }

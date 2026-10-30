@@ -5,7 +5,7 @@
 import crypto from 'node:crypto';
 import {
   hostHeaderAllowed, originAllowed, isAgentSurface, tokenlessAgentAllowed,
-  agentTokenAllowedPath, isAdminOnlyV2Request, isStickerConsoleOnly, readonlyStoreFor, isLiveShell
+  agentTokenAllowedPath, isAdminOnlyRequest, isStickerConsoleOnly, readonlyStoreFor, isLiveShell
 } from './policy.js';
 
 export const CONSOLE_SECURITY_HEADERS = {
@@ -67,7 +67,7 @@ export function evaluateConsoleGate({ method, headers, pathname, searchParams, b
     if (hasToken && !isLiveAgentToken(agentToken)) {
       return json(403, '未授权：智能体调用携带的会话令牌无效');
     }
-    // 无令牌的智能体调用只放行非 v2 会话面；整个 /api/socialV2/ 一概不放。
+    // 无令牌的智能体调用只放行非仿真会话面；整个 /api/simulation/ 一概不放。
     if (!hasToken && !tokenlessAgentAllowed(pathname)) {
       return json(403, '未授权：该接口的智能体调用必须携带有效的会话令牌');
     }
@@ -92,17 +92,17 @@ export function evaluateConsoleGate({ method, headers, pathname, searchParams, b
  */
 export function evaluateAgentAccess({
   method, headers, pathname,
-  socialV2Paused, socialV2Enabled, mode,
+  simulationPaused, simulationEnabled, mode,
   slangStoreWritable, stickerStoreWritable
 }) {
   const agentToken = headers['x-agent-token'];
   if (agentToken === '') return json(403, 'agent token 不能为空');
   if (agentToken) {
     const onAgentSurface = isAgentSurface(pathname);
-    if (socialV2Paused && onAgentSurface) return json(403, 'AI 已暂停，当前不允许执行 v2 工具');
-    if (socialV2Enabled === false && onAgentSurface) return json(403, '二代模式已关闭，当前不允许执行 v2 工具');
-    if (pathname.startsWith('/api/socialV2/') && mode !== 'reserved2') return json(403, '该接口仅 reserved2 模式可用');
-    if (isAdminOnlyV2Request(pathname, method)) return json(403, '该接口仅控制台可用');
+    if (simulationPaused && onAgentSurface) return json(403, 'AI 已暂停，当前不允许执行仿真工具');
+    if (simulationEnabled === false && onAgentSurface) return json(403, '仿真模式已关闭，当前不允许执行仿真工具');
+    if (pathname.startsWith('/api/simulation/') && mode !== 'simulation') return json(403, '该接口仅 simulation 模式可用');
+    if (isAdminOnlyRequest(pathname, method)) return json(403, '该接口仅控制台可用');
     if (isStickerConsoleOnly(pathname)) return json(403, '该接口仅控制台可用');
     if (!agentTokenAllowedPath(pathname)) return json(403, '该接口仅控制台可用');
   }

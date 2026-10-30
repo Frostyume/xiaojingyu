@@ -25,9 +25,9 @@ const access = (over = {}) => evaluateAgentAccess({
   method: 'GET',
   headers: {},
   pathname: '/api/status',
-  socialV2Paused: false,
-  socialV2Enabled: true,
-  mode: 'reserved2',
+  simulationPaused: false,
+  simulationEnabled: true,
+  mode: 'simulation',
   slangStoreWritable: true,
   stickerStoreWritable: true,
   ...over
@@ -70,15 +70,15 @@ test('关闭鉴权后不再要求令牌（Host/CSRF 仍在）', () => {
   assert.equal(gate({ authRequired: false, headers: { host: 'evil.example:3100' } }).status, 403);
 });
 
-test('智能体调用隔离：有效令牌才放行，无令牌只放行非 v2 会话面', () => {
+test('智能体调用隔离：有效令牌才放行，无令牌只放行非仿真会话面', () => {
   const host = `127.0.0.1:${PORT}`;
   const call = { host, 'x-console-token': TOKEN, 'x-agent-call': '1' };
   assert.equal(gate({ headers: { ...call, 'x-agent-token': 'live' }, isLiveAgentToken: () => true }).action, 'continue');
   assert.equal(gate({ headers: { ...call, 'x-agent-token': 'stale' } }).status, 403, '令牌无效一律拒绝');
   assert.equal(gate({ headers: call, pathname: '/api/status' }).action, 'continue', 'closed-agent 的无令牌调用可读状态');
   assert.equal(gate({ headers: call, pathname: '/api/send/group' }).action, 'continue');
-  assert.equal(gate({ headers: call, pathname: '/api/socialV2/states' }).status, 403);
-  assert.equal(gate({ headers: { host, 'x-console-token': TOKEN }, pathname: '/api/socialV2/states' }).action, 'continue', '管理端无 x-agent-call 不受此闸门影响');
+  assert.equal(gate({ headers: call, pathname: '/api/simulation/states' }).status, 403);
+  assert.equal(gate({ headers: { host, 'x-console-token': TOKEN }, pathname: '/api/simulation/states' }).action, 'continue', '管理端无 x-agent-call 不受此闸门影响');
 });
 
 test('CSRF：写操作要 JSON，Origin 必须是本机', () => {
@@ -94,13 +94,13 @@ test('CSRF：写操作要 JSON，Origin 必须是本机', () => {
 test('智能体权限：暂停/关闭/模式/仅控制台/白名单', () => {
   const agent = { 'x-agent-token': 'live' };
   assert.equal(access({ headers: { 'x-agent-token': '' } }).status, 403);
-  assert.equal(access({ headers: agent, pathname: '/api/socialV2/states', socialV2Paused: true }).status, 403);
-  assert.equal(access({ headers: agent, pathname: '/api/status', socialV2Paused: true }).action, 'continue');
-  assert.equal(access({ headers: agent, pathname: '/api/images/list', socialV2Enabled: false }).status, 403);
-  assert.equal(access({ headers: agent, pathname: '/api/socialV2/states', mode: 'closed-agent' }).status, 403);
-  assert.equal(access({ headers: agent, pathname: '/api/socialV2/config' }).status, 403);
-  assert.equal(access({ headers: agent, pathname: '/api/socialV2/feedback', method: 'GET' }).status, 403);
-  assert.equal(access({ headers: agent, pathname: '/api/socialV2/feedback', method: 'POST' }).action, 'continue');
+  assert.equal(access({ headers: agent, pathname: '/api/simulation/states', simulationPaused: true }).status, 403);
+  assert.equal(access({ headers: agent, pathname: '/api/status', simulationPaused: true }).action, 'continue');
+  assert.equal(access({ headers: agent, pathname: '/api/images/list', simulationEnabled: false }).status, 403);
+  assert.equal(access({ headers: agent, pathname: '/api/simulation/states', mode: 'closed-agent' }).status, 403);
+  assert.equal(access({ headers: agent, pathname: '/api/simulation/config' }).status, 403);
+  assert.equal(access({ headers: agent, pathname: '/api/simulation/feedback', method: 'GET' }).status, 403);
+  assert.equal(access({ headers: agent, pathname: '/api/simulation/feedback', method: 'POST' }).action, 'continue');
   assert.equal(access({ headers: agent, pathname: '/api/stickers/sync' }).status, 403);
   assert.equal(access({ headers: agent, pathname: '/api/whitelist' }).status, 403);
   assert.equal(access({ headers: agent, pathname: '/api/authorize/read' }).action, 'continue');
@@ -174,7 +174,7 @@ test('接线：真起控制台后四道闸门按序生效', async () => {
     });
     assert.equal(badJson.status, 415);
 
-    const confused = await request(port, '/api/socialV2/states', {
+    const confused = await request(port, '/api/simulation/states', {
       headers: { 'x-console-token': token, 'x-agent-call': '1' }
     });
     assert.equal(confused.status, 403);

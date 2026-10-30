@@ -63,7 +63,7 @@ docs/qq-bridge-SECURITY_AUDIT.md
 docs/guides/PROJECT_GUIDE.md
 docs/guides/VOICE.md
 
-# 语音库（用户个人音频素材，config.json 的 socialV2.voice.dir 指向此处）
+# 语音库（用户个人音频素材，config.json 的 simulation.voice.dir 指向此处）
 audio/
 
 # 内部进度/迁移/规划记录：含真实群号与本机绝对路径（privacy-scan 实测命中），只做本地留档。
