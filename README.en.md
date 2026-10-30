@@ -30,7 +30,7 @@ and actually does things when you ask.</p>
 >
 > The default branch `main` **is** this version — a plain `git clone` gets it, no branch switching needed.
 
-**Contents**: [Who she is](#who-she-is) · [Scenes](#scenes) · [Life of a message](#life-of-a-message) · [Capabilities](#capabilities) · [Live page](#live-status-page-live) · [Local console](#local-console) · [Architecture](#architecture) · [Requirements](#requirements) · [Quick start](#quick-start) · [Limitations](#limitations) · [Security](#security-notes) · [Layout](#repository-layout) · [Upstream](#upstream-and-license)
+**Contents**: [Who she is](#who-she-is) · [Scenes](#scenes) · [Life of a message](#life-of-a-message) · [A life of her own](#a-life-of-her-own) · [Capabilities](#capabilities) · [Live page](#live-status-page-live) · [Local console](#local-console) · [Architecture](#architecture) · [One-sentence deploy](#one-sentence-deploy-for-people-who-do-not-code) · [Quick start](#quick-start) · [Limitations](#limitations) · [Compatibility and extending](#compatibility-and-extending) · [Security](#security-notes) · [Layout](#repository-layout) · [Upstream](#upstream-and-license)
 
 ## Who she is
 
@@ -145,6 +145,63 @@ it from the DSH tool list; voice, sticker, collection and send tools can each be
 - **Send boundary**: every send hits the whitelist; sensitive paths, tokens and cookies are blocked by
   the audit layer; QQ / SnowLuma / DSH internal errors go to logs, never to the group.
 
+## A life of her own
+
+<p align="center">
+  <img src="assets/screenshots/live.png" width="860" alt="Inner life, mood and bonds on the live status page">
+  <br>
+  <sub>Her mood, interests and "what she wants to do next" all live on the status page (offline demo data)</sub>
+</p>
+
+Not every message deserves a reply, and she does not stop existing when the room goes quiet. Xiaojingyu
+keeps her own schedule: she reflects, gets curious, finds something worth sharing, and settles down late
+at night.
+
+### Inner life: moods are not random numbers
+
+- **Scheduled reflection**: every 1–8 hours she wakes at random to look back over recent chats,
+  relationships and her own state, then updates mood, energy, interests, things learned and verbal tics;
+- **Curious browsing**: 5–12 times a day she reads Bilibili trending, matches and RSS feeds, and turns
+  what she finds into candidate stories;
+- **Mood has inertia**: mood decays against real time with a half-life and energy follows Beijing time;
+  hourly and daily change budgets stop one sentence from flipping her from happy to broken;
+- **Reflection never speaks**: it only updates state — whether to share is a separate decision;
+- **Observable**: the console shows mood curves and inner state, `/live` has an **inner life** panel,
+  and a DM with `内心状态` prints it too.
+
+### Proactive sharing: sometimes she wants to show you something
+
+- **Group share**: pick one candidate from curious browsing and post it to a chosen group; at most 20 a
+  day, 15 minutes between shares per group, the group must have been quiet for 2 minutes, and never
+  during night silence;
+- **Qzone posts**: friends-visible by default, at most 2 a day, optionally review-before-publish;
+- **Share modules**: 9 templates (findings, daily life, questions…); a new module starts on
+  **probation** — the first few go to your DM as drafts, and it only auto-posts after you reply
+  `验证通过 <id>`;
+- **AI tips**: off by default; when enabled, 2–5 a day between 09:00 and 22:00;
+- **No spam**: every proactive message is bounded by daily caps, intervals and quiet hours; when the
+  budget is gone she simply keeps diving.
+
+### DM as console: manage her without opening a browser
+
+Owner QQ only, private chat only. You can just say:
+
+| You say | She does |
+| --- | --- |
+| `内心状态` | Report current mood, energy, interests and what she plans to do next |
+| `发` / `不发` | Approve or reject the latest Qzone draft |
+| `跑一次说说` / `跑一次分享` / `反思一下` | Run that task once, right now |
+| `发分享 <id>` / `不发分享 <id>` / `暂停分享 <id>` / `恢复分享 <id>` | Manage candidate stories |
+| `验证通过 <id>` | Promote a share module out of probation |
+| `关说说` / `开说说` / `关AI分享` / `开AI分享` | Toggle the matching capability |
+| `预览三个AI知识` / `用第N种` | Pick a wording for the AI tip |
+| `删说说` / `改签名` / `收藏表情` | Everyday maintenance |
+| Anything else | Treated as a revision note for the draft waiting for review |
+
+Risky actions (cross-session sends, sensitive operations) ask you to reply `/确认 <6-digit code>` in the
+same DM. This DM surface is **not a full admin panel**: editing config, restarting the process and
+running commands still happen only in the console or on the machine itself.
+
 ## Capabilities
 
 | Area | Concrete behaviour |
@@ -153,6 +210,8 @@ it from the DSH tool list; voice, sticker, collection and send tools can each be
 | **Human pacing** | Hard limits for sleep, rate, night silence and clingy follow-ups; sends are spread out at a human rhythm; after a long idle period a probability decides whether to start a topic. |
 | **Two prompt layers** | The **simulation prompt** owns the tool protocol and behaviour boundaries; the **persona prompt** owns character and voice. Role cards can be created, edited, renamed, duplicated and deleted, with per-mode filtering and an injection character cap. |
 | **Memory and relationships** | Active topics, pending thoughts, member impressions and cross-session personal memory; relationship axes per member, daily-report preview, mood / energy / interest and inner-life timelines. |
+| **A life of her own** | Scheduled reflection, curious browsing and evolving mood / energy / interests; group shares and Qzone posts capped per day, spaced out and silenced at night; new share modules go to the owner DM as drafts and only auto-post after approval. |
+| **DM as console** | The owner can check inner state, review post drafts, toggle sharing, promote candidates and change the signature from a private chat; risky actions need `/确认 <6-digit code>`. |
 | **Slang learning** | Candidates are extracted from group history; a human confirms meaning, usage, examples, risk and source before an entry enters the vocabulary. Confirmed entries are injected into the prompt and exposed through query / submit tools; thresholds and injection size are configurable. |
 | **Multimodal expression** | Images, emoji and animated images enter the context; sticker notes, tags and image understanding; quote replies, pokes and burst sends; voice library with TTS emotion; inbound voice ASR transcription (off by default). |
 | **Group insight** | Member relationship table with editable values, daily-report preview, active members and group profile; the daily report stays off until enabled. |
@@ -290,6 +349,35 @@ sequenceDiagram
 - Running DeepSeek Harness Web (default `http://127.0.0.1:3080`)
 - Running SnowLuma with OneBot v11 WebSocket and HTTP API enabled
 
+## One-sentence deploy (for people who do not code)
+
+<p align="center">
+  <img src="assets/diagrams/deploy.en.png" width="100%" alt="One-sentence deploy: six steps, two of them yours">
+  <br>
+  <sub>Six steps; only two need your hands — signing in to SnowLuma, and providing QQ / group numbers</sub>
+</p>
+
+You do not need to understand Node, DSH or OneBot. Open Codex, Claude Code, Qoder or DSH and send it:
+
+> Deploy <https://github.com/Frostyume/xiaojingyu> for me on Windows. Read
+> `docs/guides/AGENT_DEPLOY.md` in the repository first and follow it exactly: check the environment,
+> install dependencies, write the config, run `install-dsh` and `doctor` until everything passes.
+> Except for signing in to SnowLuma by QR code and providing my QQ number / group numbers, do
+> everything yourself. Do not print or upload anything from `config.json` or `state/` — no tokens,
+> cookies or account numbers.
+
+The agent handles the environment check, clone, dependencies, config, DSH-side install, start-up and
+health check. Only two things are yours:
+
+1. **Download SnowLuma and sign in by QR code** — its licence does not allow scripts to install or start it;
+2. **Tell the agent your QQ number, the group numbers to allow, and the OneBot token**.
+
+Done means `npm run doctor` is all green, a whitelisted DM gets a reply, and the console opens — not
+"the command finished". The full step-by-step contract, troubleshooting table and rollback live in
+[docs/guides/AGENT_DEPLOY.md](docs/guides/AGENT_DEPLOY.md).
+
+> Prefer doing it yourself? The six steps below are the same flow the agent runs.
+
 ## Quick start
 
 ```bash
@@ -359,6 +447,70 @@ Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for d
 - Only `simulation` / `closed-agent` are first-class modes; earlier `chat` / `reserved` need a
   `qq-chat-legacy` preset that is not shipped.
 
+## Compatibility and extending
+
+### Compatibility matrix
+
+| Component | Supported | Notes |
+| --- | --- | --- |
+| **OS** | Windows 10 / 11 x64 | QQ and SnowLuma are Windows programs; Linux / macOS are not supported |
+| **Node.js** | ≥ 22.13, 24 recommended | Uses the built-in `node:sqlite`; Node 22 needs `--experimental-sqlite`. The Node 24 CI job is the real gate |
+| **DSH** | Adapted to 0.2.0-rc.2 | Relies on slash RPC, the `/api/remote.mux` event stream and the 0.1.7+ agent-presets mechanism; run `npm run verify:adaptation` before moving to a new major version |
+| **SnowLuma** | OneBot v11 (WebSocket + HTTP) | Not distributed with the repo and never started by it; defaults `ws://127.0.0.1:3001` / `http://127.0.0.1:3000` |
+| **Database** | SQLite (WAL) | No extra service; data lives in `state/db/bridge.db` |
+| **Deployment** | Single machine, loopback only | Console and DSH listen on `127.0.0.1` by default; no multi-tenant or public hosting |
+
+### Extension points
+
+| Extension point | How | Boundary |
+| --- | --- | --- |
+| **Persona card** | Drop `<name>.md` into `personas/`, or edit it under Persona & roles in the console | A group member asking her to change persona has no effect; the persona is injected bridge-side only |
+| **Feature plugin** | Export a manifest from `features/<id>/index.js`; the directory name must equal `id` | Loaded in-process, no sandbox — only load code you trust |
+| **MCP tools** | Extend a server under `mcp/`, then re-run `install-dsh` | The chat preset only exposes a safe subset; never put local-execution tools in it |
+| **DSH preset** | Edit `integrations/dsh/presets/qq-chat/agent.cordis.yml`, then reinstall | A broken preset fails closed and refuses to create sessions |
+| **Config** | Edit `config.example.json`, then `npm run schema:config` | CI uses `--check` to prevent schema drift |
+| **Console page** | Single-page `web/deck.html` plus `console/` routes | No plugin registration point yet; a new page means changing the main program |
+
+A minimal feature plugin looks like this:
+
+```js
+// features/hello/index.js — the directory name must be hello
+export default {
+  id: 'hello',
+  name: 'Sample feature',
+  version: 1,
+  description: 'Reply once when a message contains hello',
+  permissions: ['state:read', 'qq:send'],
+  hooks: {
+    async onMessage(payload, ctx) {
+      if (!payload?.text?.includes('hello')) return;
+      await ctx.send(payload.key, '你好呀');
+    }
+  }
+};
+```
+
+The loader registers `onMessage`, `onWake`, `onTurnEnd`, `onSchedule`, `beforeSend` and
+`onConsoleRequest`, plus the synchronous `formatSegment` (message to text). **The main flow currently
+dispatches only `message` and `formatSegment`; the other hooks and permissions such as
+`prompt:inject`, `service:memory` and `console:route` are reserved interfaces** — secondary development
+has to wire them into the main flow itself or wait for upstream. The available `ctx` is `cfg` / `log` /
+`now` / `getState()` (`state:read`) / `jobs` (`jobs:write`) / `send()` (`qq:send`) /
+`dailyReport` (`service:daily-report`). A plugin that throws only disables itself, never the bridge;
+turn it off by id in `features.disabled` in `config.json`.
+
+### Development loop
+
+```bash
+npm run verify          # schema + console contracts + full core / stage / audit regression
+npm run test:console-ui # console offline browser regression
+npm run test:audit      # 47 offline scripts
+npm run doctor          # real-machine health check
+```
+
+For anything touching QQ sends, DSH sessions or a real account, cover it with the fixtures under
+`tests/` first — never test against a real group.
+
 ## Security notes
 
 - `config.json` and `state/` are **never committed**; the repository only ships `config.example.json`. Both are ACL-hardened to the owner / SYSTEM / Administrators (`npm run harden-acl`).
@@ -373,6 +525,7 @@ Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for d
 | Doc | What it covers |
 | --- | --- |
 | [docs/README.md](docs/README.md) | Documentation index (one line per page) |
+| [docs/guides/AGENT_DEPLOY.md](docs/guides/AGENT_DEPLOY.md) | One-sentence deploy: the agent's steps, boundaries, acceptance and rollback |
 | [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) | DSH-side install: preset, MCP, restart |
 | [docs/guides/DSH_ADAPTATION.md](docs/guides/DSH_ADAPTATION.md) | DSH 0.2.0-rc.2 adaptation notes |
 | [docs/guides/SECURITY_BASELINE.md](docs/guides/SECURITY_BASELINE.md) | Security baseline and Windows ACL |

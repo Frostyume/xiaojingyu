@@ -120,7 +120,7 @@ await test('R2d 订阅群的唤醒 prompt 带精确赛程日期/北京时间/对
   const tomorrow = new Date(Date.now() + 8 * 3600 * 1000);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
   const dayKey = `${tomorrow.getUTCFullYear()}-${String(tomorrow.getUTCMonth() + 1).padStart(2, '0')}-${String(tomorrow.getUTCDate()).padStart(2, '0')}`;
-  const dayLabel = `${tomorrow.getUTCMonth() + 1}/${tomorrow.getUTCDate()}`;
+  const dayLabel = `${tomorrow.getUTCMonth() + 1}/${String(tomorrow.getUTCDate()).padStart(2, '0')}`;
   const h = await bridgeHarness({
     config: {
       allow: { private: ['123'], groups: ['789'] },

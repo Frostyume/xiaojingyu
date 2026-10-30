@@ -29,7 +29,9 @@ const jobs = [
   { html: 'architecture.html', png: 'architecture.png', lang: 'zh', width: 1600, height: 760 },
   { html: 'architecture.html', png: 'architecture.en.png', lang: 'en', width: 1600, height: 760 },
   { html: 'scenes.html', png: 'scenes.png', lang: 'zh', width: 1600, height: 900 },
-  { html: 'scenes.html', png: 'scenes.en.png', lang: 'en', width: 1600, height: 900 }
+  { html: 'scenes.html', png: 'scenes.en.png', lang: 'en', width: 1600, height: 900 },
+  { html: 'deploy.html', png: 'deploy.png', lang: 'zh', width: 1600, height: 780 },
+  { html: 'deploy.html', png: 'deploy.en.png', lang: 'en', width: 1600, height: 780 }
 ];
 
 const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });

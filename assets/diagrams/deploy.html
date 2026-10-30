@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>小鲸鱼 · 一句话部署</title>
+<style>
+  :root {
+    --ink: #eaf7f8;
+    --muted: #93b6bd;
+    --faint: #5f858d;
+    --teal: #2dd4bf;
+    --line: rgba(45, 212, 191, .26);
+    --panel: rgba(10, 42, 52, .74);
+    --panel-2: rgba(6, 28, 36, .82);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    width: 1600px;
+    min-height: 780px;
+    padding: 52px 64px 44px;
+    font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1100px 520px at 18% -10%, rgba(14, 116, 108, .34), transparent 62%),
+      radial-gradient(900px 460px at 92% 8%, rgba(56, 189, 248, .14), transparent 60%),
+      linear-gradient(180deg, #04161f 0%, #061f29 48%, #04141c 100%);
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 233, 222, .045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 233, 222, .045) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.7), rgba(0,0,0,.12));
+    pointer-events: none;
+  }
+  .canvas { position: relative; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 30px; }
+  .kicker {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 13px; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--teal); margin: 0 0 10px;
+  }
+  h1 { font-size: 44px; line-height: 1.1; margin: 0 0 8px; letter-spacing: .01em; }
+  .sub { margin: 0; color: var(--muted); font-size: 18px; }
+  .whale {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--muted); font-size: 13px; letter-spacing: .16em;
+    font-family: "Cascadia Mono", Consolas, monospace;
+  }
+  .whale svg { display: block; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .step {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    padding: 20px 22px 18px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .04);
+    min-height: 196px;
+  }
+  .step .no {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 12px; letter-spacing: .22em; color: var(--teal);
+    display: flex; align-items: center; gap: 9px; margin-bottom: 12px;
+  }
+  .step .no i {
+    width: 25px; height: 25px; border-radius: 50%;
+    border: 1px solid var(--line);
+    display: grid; place-items: center; font-style: normal; font-size: 11px;
+    background: rgba(45, 212, 191, .08);
+  }
+  .step h2 { font-size: 21px; margin: 0 0 7px; font-weight: 600; }
+  .step p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.62; }
+  .step .code {
+    margin-top: 11px;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 12px; color: #bff4ee;
+    background: rgba(45, 212, 191, .07);
+    border: 1px solid rgba(45, 212, 191, .16);
+    border-radius: 9px;
+    padding: 8px 11px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .step.manual { border-color: rgba(250, 204, 21, .34); }
+  .step.manual .no { color: #facc15; }
+  .step.manual .no i { border-color: rgba(250, 204, 21, .3); background: rgba(250, 204, 21, .08); }
+
+  .gate {
+    margin-top: 20px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 15px 20px;
+    border-radius: 14px;
+    border: 1px dashed rgba(45, 212, 191, .38);
+    background: rgba(13, 148, 136, .12);
+    font-size: 15px; color: #d8fbf6;
+  }
+  .gate b { color: #facc15; font-weight: 600; }
+  .gate .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--teal); box-shadow: 0 0 14px var(--teal);
+    flex: none;
+  }
+  .foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 18px; color: var(--faint); font-size: 13px;
+  }
+  .foot .mark {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    letter-spacing: .22em; font-size: 12px; color: #6fa9ae;
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="head">
+    <div>
+      <p class="kicker">DEPLOY · ONE SENTENCE</p>
+      <h1 data-en="One sentence, and she is in your QQ">一句话，把她接到 QQ 里</h1>
+      <p class="sub" data-en="You only need to tell an agent one sentence; it handles the rest.">你只需要对 agent 说一句话；剩下的交给它。</p>
+    </div>
+    <div class="whale">
+      <svg width="46" height="46" viewBox="0 0 46 46" fill="none" aria-hidden="true">
+        <circle cx="23" cy="23" r="21" stroke="#2dd4bf" stroke-opacity=".35"/>
+        <path d="M11 27c0-7 5-12 12-12h6c2 0 3 1 3 3s-1 3-3 3h-5" stroke="#2dd4bf" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M11 27c0 5 4 8 9 8 6 0 10-4 12-9" stroke="#2dd4bf" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="30" cy="20" r="1.6" fill="#eaf7f8"/>
+        <path d="M25 32c2 2 5 2 7 0" stroke="#5eead4" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>XIAOJINGYU · 0.0.0</span>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="no"><i>01</i><span data-en="SAY ONE SENTENCE">说一句话</span></div>
+      <h2 data-en="Paste the prompt">把提示词发给 agent</h2>
+      <p data-en="Copy the deploy prompt from README and send it to Codex, Claude Code, Qoder or DSH.">复制 README 里的部署提示词，发给 Codex、Claude Code、Qoder 或 DSH。</p>
+      <div class="code" data-en="Deploy github.com/Frostyume/xiaojingyu for me">帮我部署 github.com/Frostyume/xiaojingyu</div>
+    </div>
+
+    <div class="step">
+      <div class="no"><i>02</i><span data-en="CHECK THE MACHINE">环境自检</span></div>
+      <h2 data-en="See what is missing">缺什么先补什么</h2>
+      <p data-en="Windows, Node 24, DSH, SnowLuma — checked one by one before touching the repo.">Windows、Node 24、DSH、SnowLuma 逐项确认，再开始动仓库。</p>
+      <div class="code">Windows 10/11 · Node ≥ 22.13 · DSH · SnowLuma</div>
+    </div>
+
+    <div class="step">
+      <div class="no"><i>03</i><span data-en="INSTALL">装依赖与配置</span></div>
+      <h2 data-en="Clone, install, configure">克隆、装依赖、写配置</h2>
+      <p data-en="Creates config.json with your whitelist, DSH model and SnowLuma endpoints.">生成 config.json，填好白名单、DSH 模型与 SnowLuma 端点。</p>
+      <div class="code">git clone → npm install → config.json</div>
+    </div>
+
+    <div class="step">
+      <div class="no"><i>04</i><span data-en="WIRE DSH">接进 DSH</span></div>
+      <h2 data-en="Install preset &amp; MCP">装 preset 与 MCP</h2>
+      <p data-en="Runs install-dsh.mjs, then restarts DSH — presets load only at startup.">执行 install-dsh.mjs，然后重启 DSH——preset 只在启动时加载。</p>
+      <div class="code" data-en="node tools/install-dsh.mjs → restart DSH">node tools/install-dsh.mjs → 重启 DSH</div>
+    </div>
+
+    <div class="step manual">
+      <div class="no"><i>05</i><span data-en="YOU, ONLY HERE">只有这两步</span></div>
+      <h2 data-en="SnowLuma login">SnowLuma 扫码登录</h2>
+      <p data-en="You download it and scan the QR code. The agent never logs in for you, never accepts terms.">你亲自下载并扫码。agent 不代登录、不代同意条款、不代启动它。</p>
+      <div class="code" data-en="official release · scan QR · enable OneBot">官方渠道下载 · 扫码 · 开启 OneBot</div>
+    </div>
+
+    <div class="step">
+      <div class="no"><i>06</i><span data-en="ACCEPTANCE">体检上线</span></div>
+      <h2 data-en="Green, then say hi">全绿后打个招呼</h2>
+      <p data-en="npm run doctor must be all green; then one private message and the console page.">npm run doctor 全绿；再私聊发一句、打开控制台确认。</p>
+      <div class="code" data-en="npm run doctor → say hi → 127.0.0.1:3100">npm run doctor → 私聊一句 → 127.0.0.1:3100</div>
+    </div>
+  </div>
+
+  <div class="gate">
+    <span class="dot"></span>
+    <span data-en="Only two things need your hands: SnowLuma QR login, and your QQ / group numbers. Everything else is automated.">只有两步需要你亲手：<b>SnowLuma 扫码登录</b>，以及提供 <b>QQ 号 / 群号</b>。其余全自动。</span>
+  </div>
+
+  <div class="foot">
+    <span data-en="No code reading required · every step prints a check you can verify">不需要读代码 · 每一步都会打印可核验的检查结果</span>
+    <span class="mark">6 STEPS · 2 MANUAL · 1 SENTENCE</span>
+  </div>
+</div>
+<script>
+  if (new URLSearchParams(location.search).get('lang') === 'en') {
+    document.querySelectorAll('[data-en]').forEach((el) => { el.textContent = el.dataset.en; });
+  }
+</script>
+</body>
+</html>

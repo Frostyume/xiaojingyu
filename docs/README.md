@@ -7,6 +7,7 @@
 
 | 文档 | 一句话说明 |
 | --- | --- |
+| [guides/AGENT_DEPLOY.md](guides/AGENT_DEPLOY.md) | 把部署整件事交给 Codex / Claude Code / Qoder / DSH：agent 的执行步骤、边界、验收与回滚 |
 | [guides/DSH_SETUP.md](guides/DSH_SETUP.md) | 在目标设备上把桥接接进 DSH：`qq-chat` preset 与三个 MCP server 怎么挂 |
 | [guides/DSH_ADAPTATION.md](guides/DSH_ADAPTATION.md) | 适配 DSH 0.2.0 的逐条改动记录（现象/原因/证据/验证）；升级 DSH 前先读最后一节的操作清单 |
 | [guides/SECURITY_BASELINE.md](guides/SECURITY_BASELINE.md) | 安全基线与威胁模型：准入、工具面、出站、控制台、落盘、网络，以及已知残余风险 —— **改动安全相关代码前必读** |
@@ -20,6 +21,7 @@
 
 | 我想…… | 看这个 |
 | --- | --- |
+| 让 agent 一句话把整套东西部署好 | [guides/AGENT_DEPLOY.md](guides/AGENT_DEPLOY.md) |
 | 在新设备上把桥接接进 DSH | [guides/DSH_SETUP.md](guides/DSH_SETUP.md) |
 | 升级 DSH 前评估改动面 | [guides/DSH_ADAPTATION.md](guides/DSH_ADAPTATION.md) |
 | 动安全相关代码 / 做发布前检查 | [guides/SECURITY_BASELINE.md](guides/SECURITY_BASELINE.md)、[guides/PRIVACY.md](guides/PRIVACY.md) |
