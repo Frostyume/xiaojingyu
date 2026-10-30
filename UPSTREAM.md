@@ -9,8 +9,8 @@
 | 项 | 值 |
 | --- | --- |
 | 上游仓库 | `https://github.com/Derpyu520/qq-bridge` |
-| 上游许可证 | `LICENSE` 正文为 MIT，并带有附加声明；GitHub API 因附加文本识别为 `NOASSERTION` |
-| 本仓库许可证 | 沿用上游 `LICENSE`，不得删除或替换上游版权声明 |
+| 上游许可证 | MIT，版权行归 Derpyu520 及上游贡献者 |
+| 本仓库许可证 | `LICENSE` 为纯 MIT 正文（保留上游版权行，未删除、未替换）；第三方组件与 SnowLuma 合规说明已移入 `NOTICE`，两者互不隶属 |
 | 本仓库定位 | 上游的**二次开发定制分支**（小鲸鱼人格 + SnowLuma + DSH），不是独立重写 |
 
 ## 2. 版本锚点
