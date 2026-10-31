@@ -6205,7 +6205,9 @@ document.getElementById('aiTipsPreview')?.addEventListener('click', async () => 
     if (!r.ok || result.status !== 'dryRun') {
       throw new Error(result.status ? `${result.status}${result.error ? `：${result.error}` : ''}` : (r.error || '生成失败'));
     }
-    const links = Array.isArray(result.links) ? result.links : [];
+    const links = (Array.isArray(result.links) ? result.links : [])
+      .map((l) => ({ title: l.title, url: contentSafeUrl(l.url) }))
+      .filter((l) => l.url);
     const linksHtml = links.length
       ? `<div class="muted small" style="margin-top:6px">延伸阅读：${links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.title)}</a>`).join(' · ')}</div>`
       : '';
@@ -6321,7 +6323,9 @@ document.getElementById('shareModulesBox')?.addEventListener('click', async (eve
     const r = await api('/api/inner-life/share-modules', 'POST', { action, id });
     if (action === 'preview') {
       const x = r.result || {};
-      const links = Array.isArray(x.links) ? x.links : [];
+      const links = (Array.isArray(x.links) ? x.links : [])
+        .map((l) => ({ title: l.title, url: contentSafeUrl(l.url) }))
+        .filter((l) => l.url);
       const imgs = (Array.isArray(x.imageDataUrls) && x.imageDataUrls.length ? x.imageDataUrls : [x.cardDataUrl].filter(Boolean)).slice(0, 3);
       const reason = r.ok ? '' : `<div class="muted small" style="color:#b45309">本次没有生成：${esc(x.status || r.error || '未知原因')}${x.error ? `（${esc(x.error)}）` : ''}</div>`;
       box.innerHTML = `<b>预览（未发群）</b> <span class="muted small">[${esc(x.facetLabel || x.template || '')}] ${esc(x.title || '')}</span>`
