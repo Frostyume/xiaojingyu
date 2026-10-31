@@ -615,7 +615,7 @@ function presetStatus(name) {
   // （路径已经写在服务端日志里，排查时看日志即可）。
   return {
     preset: name,
-    label: name === PRESET_NAMES.legacy ? '旧版仿真（qq-chat-legacy）' : '群聊仿真（qq-chat）',
+    label: name === PRESET_NAMES.legacy ? '旧版仿真（qq-chat-legacy）' : '群聊剧场（qq-chat）',
     sourceFile: path.relative(ROOT, presetSourceYaml(name)),
     installed: fs.existsSync(installedPresetYaml(name)),
     requiresRestart: true,
@@ -5839,7 +5839,7 @@ async function main() {
           clearAllSimulationTimers();
           drainAllPromptQueues('模式切换，已取消排队中的投递');
           try { innerLife?.stop(); } catch {}
-          log('桥接模式已离开群聊仿真模式，清理 simulation 定时器与排队投递');
+          log('桥接模式已离开群聊剧场模式，清理 simulation 定时器与排队投递');
         }
         if (currentMode === 'simulation' && lastMode !== 'simulation') {
           for (const key of simulation.conversations.keys()) {
@@ -5847,7 +5847,7 @@ async function main() {
             scheduleProactiveCheck(key);
           }
           try { innerLife?.start(); } catch (error) { log('内心生活启动异常:', error?.message ?? error); }
-          log('桥接模式已进入群聊仿真模式，重建有限睡眠定时器');
+          log('桥接模式已进入群聊剧场模式，重建有限睡眠定时器');
         }
         log(`桥接模式已切换为: ${currentMode}`);
         lastMode = currentMode;
@@ -7012,7 +7012,7 @@ async function main() {
           if (currentMode === 'simulation' && requestedMode !== 'simulation') {
             clearAllSimulationTimers();
             drainAllPromptQueues('模式切换，已取消排队中的投递');
-            log('控制台：模式离开群聊仿真模式，清理 simulation 定时器与排队投递');
+            log('控制台：模式离开群聊剧场模式，清理 simulation 定时器与排队投递');
           }
           currentMode = requestedMode;
           lastMode = requestedMode;
@@ -7022,7 +7022,7 @@ async function main() {
               setupSleepTimer(key);
               scheduleProactiveCheck(key);
             }
-            log('控制台：模式进入群聊仿真模式，重建有限睡眠定时器');
+            log('控制台：模式进入群聊剧场模式，重建有限睡眠定时器');
           }
           log(`控制台：模式已设置为 ${requestedMode}${next.closedAgentPreset ? `（closed-agent preset: ${next.closedAgentPreset}）` : ''}${dshSynced ? '' : ' [仅本地，DSH 未同步]'}`);
           sendJson({ ok: true, mode: requestedMode, closedAgentPreset: next.closedAgentPreset, dshSynced });
@@ -8467,7 +8467,7 @@ async function main() {
           const wakeDefaultChanged = body.wake && typeof body.wake === 'object' &&
             WAKE_DEFAULT_KEYS.some((k) => Object.prototype.hasOwnProperty.call(body.wake, k));
           if (wakeDefaultChanged) refreshAllDefaultWakeConfigs();
-          log('控制台：群聊仿真配置已更新');
+          log('控制台：群聊剧场配置已更新');
           sendJson({ ok: true, config: cfg.simulation });
           return;
         }

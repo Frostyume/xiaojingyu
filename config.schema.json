@@ -111,7 +111,7 @@
         "maxInjectChars": {
           "title": "人格注入上限（字符）",
           "type": "number",
-          "default": 6000,
+          "default": 10000,
           "minimum": 1000,
           "maximum": 20000
         }
@@ -482,7 +482,7 @@
           }
         },
         "enabled": {
-          "title": "群聊仿真总开关",
+          "title": "群聊剧场总开关",
           "type": "boolean",
           "default": true
         },
@@ -3146,7 +3146,7 @@
     {
       "key": "simulation.agentPreset",
       "label": "仿真预设",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "dsh",
       "advanced": false
@@ -3154,7 +3154,7 @@
     {
       "key": "simulation.autoReplyCheckMs",
       "label": "回复检查间隔（ms）",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -3164,7 +3164,7 @@
     {
       "key": "simulation.clingy.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3172,7 +3172,7 @@
     {
       "key": "simulation.clingy.maxDelayMs",
       "label": "Max Delay Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3180,7 +3180,7 @@
     {
       "key": "simulation.clingy.maxFollowUps",
       "label": "Max Follow Ups",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3188,7 +3188,7 @@
     {
       "key": "simulation.clingy.minDelayMs",
       "label": "Min Delay Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3196,7 +3196,7 @@
     {
       "key": "simulation.clingy.probability",
       "label": "Probability",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3204,7 +3204,7 @@
     {
       "key": "simulation.context.contextWindow",
       "label": "Context Window",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3212,7 +3212,7 @@
     {
       "key": "simulation.context.inlineWakeMessages",
       "label": "Inline Wake Messages",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3220,7 +3220,7 @@
     {
       "key": "simulation.context.recentLimit",
       "label": "Recent Limit",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3228,7 +3228,7 @@
     {
       "key": "simulation.context.unreadLimit",
       "label": "Unread Limit",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3236,7 +3236,7 @@
     {
       "key": "simulation.context.wakeMaxChars",
       "label": "Wake Max Chars",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3244,7 +3244,7 @@
     {
       "key": "simulation.context.wakeMessageLimit",
       "label": "Wake Message Limit",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3252,15 +3252,15 @@
     {
       "key": "simulation.context.wakeRecentLimit",
       "label": "Wake Recent Limit",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
     },
     {
       "key": "simulation.enabled",
-      "label": "群聊仿真总开关",
-      "group": "群聊仿真",
+      "label": "群聊剧场总开关",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3268,7 +3268,7 @@
     {
       "key": "simulation.esportsFeed.maxItems",
       "label": "Max Items",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3276,7 +3276,7 @@
     {
       "key": "simulation.esportsFeed.refreshMs",
       "label": "Refresh Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3284,7 +3284,7 @@
     {
       "key": "simulation.esportsFeed.summaryMaxChars",
       "label": "Summary Max Chars",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3292,7 +3292,7 @@
     {
       "key": "simulation.feedback.maxLength",
       "label": "Max Length",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3300,7 +3300,7 @@
     {
       "key": "simulation.feedback.notifyOwnerOnError",
       "label": "Notify Owner On Error",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3308,7 +3308,7 @@
     {
       "key": "simulation.imageLibrary.allowUrlSave",
       "label": "Allow Url Save",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3316,7 +3316,7 @@
     {
       "key": "simulation.imageLibrary.includeInPrompt",
       "label": "Include In Prompt",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3324,7 +3324,7 @@
     {
       "key": "simulation.imageLibrary.maxBytes",
       "label": "Max Bytes",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3332,7 +3332,7 @@
     {
       "key": "simulation.imageLibrary.promptMaxImages",
       "label": "Prompt Max Images",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3340,7 +3340,7 @@
     {
       "key": "simulation.initialPromptMaxChars",
       "label": "初始提示词上限（字符）",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -3350,7 +3350,7 @@
     {
       "key": "simulation.innerLife.aiTips.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3358,7 +3358,7 @@
     {
       "key": "simulation.innerLife.aiTips.images",
       "label": "Images",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3366,7 +3366,7 @@
     {
       "key": "simulation.innerLife.aiTips.links",
       "label": "Links",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3374,7 +3374,7 @@
     {
       "key": "simulation.innerLife.aiTips.maxChars",
       "label": "Max Chars",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3382,7 +3382,7 @@
     {
       "key": "simulation.innerLife.aiTips.maxHistory",
       "label": "Max History",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3390,7 +3390,7 @@
     {
       "key": "simulation.innerLife.aiTips.maxLinks",
       "label": "Max Links",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3398,7 +3398,7 @@
     {
       "key": "simulation.innerLife.aiTips.maxPerDay",
       "label": "Max Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3406,7 +3406,7 @@
     {
       "key": "simulation.innerLife.aiTips.minGapMs",
       "label": "Min Gap Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3414,7 +3414,7 @@
     {
       "key": "simulation.innerLife.aiTips.minPerDay",
       "label": "Min Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3422,7 +3422,7 @@
     {
       "key": "simulation.innerLife.aiTips.target",
       "label": "Target",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "none",
       "advanced": false
@@ -3430,7 +3430,7 @@
     {
       "key": "simulation.innerLife.aiTips.webImages",
       "label": "Web Images",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3438,7 +3438,7 @@
     {
       "key": "simulation.innerLife.aiTips.windowEndHour",
       "label": "Window End Hour",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3446,7 +3446,7 @@
     {
       "key": "simulation.innerLife.aiTips.windowStartHour",
       "label": "Window Start Hour",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3454,7 +3454,7 @@
     {
       "key": "simulation.innerLife.approvalTimeoutMs",
       "label": "Approval Timeout Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3462,7 +3462,7 @@
     {
       "key": "simulation.innerLife.curiosity.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3470,7 +3470,7 @@
     {
       "key": "simulation.innerLife.curiosity.maxCandidates",
       "label": "Max Candidates",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3478,7 +3478,7 @@
     {
       "key": "simulation.innerLife.curiosity.maxPerDay",
       "label": "Max Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3486,7 +3486,7 @@
     {
       "key": "simulation.innerLife.curiosity.minPerDay",
       "label": "Min Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3494,7 +3494,7 @@
     {
       "key": "simulation.innerLife.curiosity.refreshMs",
       "label": "Refresh Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3502,7 +3502,7 @@
     {
       "key": "simulation.innerLife.curiosity.sources.bilibili",
       "label": "Bilibili",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3510,7 +3510,7 @@
     {
       "key": "simulation.innerLife.curiosity.sources.rss",
       "label": "Rss",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "array",
       "restart": "none",
       "advanced": false
@@ -3518,7 +3518,7 @@
     {
       "key": "simulation.innerLife.curiosity.sources.s16",
       "label": "S16",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3526,7 +3526,7 @@
     {
       "key": "simulation.innerLife.curiosity.webSearch.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3534,7 +3534,7 @@
     {
       "key": "simulation.innerLife.curiosity.webSearch.maxQueries",
       "label": "Max Queries",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3542,7 +3542,7 @@
     {
       "key": "simulation.innerLife.curiosity.webSearch.maxResults",
       "label": "Max Results",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3550,7 +3550,7 @@
     {
       "key": "simulation.innerLife.groupShare.idleMs",
       "label": "Idle Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3558,7 +3558,7 @@
     {
       "key": "simulation.innerLife.groupShare.maxChars",
       "label": "Max Chars",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3566,7 +3566,7 @@
     {
       "key": "simulation.innerLife.groupShare.maxPerDay",
       "label": "Max Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3574,7 +3574,7 @@
     {
       "key": "simulation.innerLife.groupShare.minGapMs",
       "label": "Min Gap Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3582,7 +3582,7 @@
     {
       "key": "simulation.innerLife.groupShare.requireApproval",
       "label": "Require Approval",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3590,7 +3590,7 @@
     {
       "key": "simulation.innerLife.groupShare.target",
       "label": "Target",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "none",
       "advanced": false
@@ -3598,7 +3598,7 @@
     {
       "key": "simulation.innerLife.mood.budgets.maxDay",
       "label": "Max Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3606,7 +3606,7 @@
     {
       "key": "simulation.innerLife.mood.budgets.maxHour",
       "label": "Max Hour",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3614,7 +3614,7 @@
     {
       "key": "simulation.innerLife.mood.circadian.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3622,7 +3622,7 @@
     {
       "key": "simulation.innerLife.mood.decay.arousalHalfLifeH",
       "label": "Arousal Half Life H",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3630,7 +3630,7 @@
     {
       "key": "simulation.innerLife.mood.decay.energyHalfLifeH",
       "label": "Energy Half Life H",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3638,7 +3638,7 @@
     {
       "key": "simulation.innerLife.mood.decay.valenceNegativeHalfLifeH",
       "label": "Valence Negative Half Life H",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3646,7 +3646,7 @@
     {
       "key": "simulation.innerLife.mood.decay.valencePositiveHalfLifeH",
       "label": "Valence Positive Half Life H",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3654,7 +3654,7 @@
     {
       "key": "simulation.innerLife.mood.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3662,7 +3662,7 @@
     {
       "key": "simulation.innerLife.mood.eventNudge.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3670,7 +3670,7 @@
     {
       "key": "simulation.innerLife.mood.eventNudge.maxDelta",
       "label": "Max Delta",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3678,7 +3678,7 @@
     {
       "key": "simulation.innerLife.mood.eventNudge.maxPerDay",
       "label": "Max Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3686,7 +3686,7 @@
     {
       "key": "simulation.innerLife.mood.eventNudge.maxPerHour",
       "label": "Max Per Hour",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3694,7 +3694,7 @@
     {
       "key": "simulation.innerLife.mood.eventNudge.minIntensity",
       "label": "Min Intensity",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3702,7 +3702,7 @@
     {
       "key": "simulation.innerLife.mood.history.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3710,7 +3710,7 @@
     {
       "key": "simulation.innerLife.mood.history.keepDays",
       "label": "Keep Days",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3718,7 +3718,7 @@
     {
       "key": "simulation.innerLife.mood.history.maxBytes",
       "label": "Max Bytes",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3726,7 +3726,7 @@
     {
       "key": "simulation.innerLife.mood.includeOwnerPrivate",
       "label": "Include Owner Private",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3734,7 +3734,7 @@
     {
       "key": "simulation.innerLife.mood.maxEventsPerReflection",
       "label": "Max Events Per Reflection",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3742,7 +3742,7 @@
     {
       "key": "simulation.innerLife.mood.maxReflectionDelta",
       "label": "Max Reflection Delta",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3750,7 +3750,7 @@
     {
       "key": "simulation.innerLife.mood.mode",
       "label": "Mode",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "none",
       "advanced": false
@@ -3758,7 +3758,7 @@
     {
       "key": "simulation.innerLife.mood.noise.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3766,7 +3766,7 @@
     {
       "key": "simulation.innerLife.mood.noise.sigma",
       "label": "Sigma",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3774,7 +3774,7 @@
     {
       "key": "simulation.innerLife.mood.setPoint.alpha",
       "label": "Alpha",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3782,7 +3782,7 @@
     {
       "key": "simulation.innerLife.mood.setPoint.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3790,7 +3790,7 @@
     {
       "key": "simulation.innerLife.mood.setPoint.max",
       "label": "Max",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3798,7 +3798,7 @@
     {
       "key": "simulation.innerLife.mood.setPoint.min",
       "label": "Min",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3806,7 +3806,7 @@
     {
       "key": "simulation.innerLife.qzone.approvalFirst",
       "label": "Approval First",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3814,7 +3814,7 @@
     {
       "key": "simulation.innerLife.qzone.commentReply.approvalTimeoutMs",
       "label": "Approval Timeout Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3822,7 +3822,7 @@
     {
       "key": "simulation.innerLife.qzone.commentReply.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3830,7 +3830,7 @@
     {
       "key": "simulation.innerLife.qzone.commentReply.maxPerDay",
       "label": "Max Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3838,7 +3838,7 @@
     {
       "key": "simulation.innerLife.qzone.commentReply.mentionEnabled",
       "label": "Mention Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3846,7 +3846,7 @@
     {
       "key": "simulation.innerLife.qzone.commentReply.mentionMaxPerDay",
       "label": "Mention Max Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3854,7 +3854,7 @@
     {
       "key": "simulation.innerLife.qzone.commentReply.mentionNames",
       "label": "Mention Names",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "array",
       "restart": "none",
       "advanced": false
@@ -3862,7 +3862,7 @@
     {
       "key": "simulation.innerLife.qzone.commentReply.pollMs",
       "label": "Poll Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3870,7 +3870,7 @@
     {
       "key": "simulation.innerLife.qzone.commentReply.requireApproval",
       "label": "Require Approval",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3878,7 +3878,7 @@
     {
       "key": "simulation.innerLife.qzone.maxChars",
       "label": "Max Chars",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3886,7 +3886,7 @@
     {
       "key": "simulation.innerLife.qzone.maxPerDay",
       "label": "Max Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3894,7 +3894,7 @@
     {
       "key": "simulation.innerLife.qzone.minGapMs",
       "label": "Min Gap Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3902,7 +3902,7 @@
     {
       "key": "simulation.innerLife.qzone.requireApproval",
       "label": "Require Approval",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3910,7 +3910,7 @@
     {
       "key": "simulation.innerLife.qzone.skipProbability",
       "label": "Skip Probability",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3918,7 +3918,7 @@
     {
       "key": "simulation.innerLife.qzone.visibility",
       "label": "Visibility",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3926,7 +3926,7 @@
     {
       "key": "simulation.innerLife.reflection.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3934,7 +3934,7 @@
     {
       "key": "simulation.innerLife.reflection.maxIntervalMs",
       "label": "Max Interval Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3942,7 +3942,7 @@
     {
       "key": "simulation.innerLife.reflection.minIntervalMs",
       "label": "Min Interval Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3950,7 +3950,7 @@
     {
       "key": "simulation.media.maxBytes",
       "label": "Max Bytes",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3958,7 +3958,7 @@
     {
       "key": "simulation.media.maxCount",
       "label": "Max Count",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3966,7 +3966,7 @@
     {
       "key": "simulation.media.maxPixels",
       "label": "Max Pixels",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3974,7 +3974,7 @@
     {
       "key": "simulation.memory.personalMaxChars",
       "label": "Personal Max Chars",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3982,7 +3982,7 @@
     {
       "key": "simulation.memory.personalTopK",
       "label": "Personal Top K",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -3990,7 +3990,7 @@
     {
       "key": "simulation.nightQuiet.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -3998,7 +3998,7 @@
     {
       "key": "simulation.nightQuiet.end",
       "label": "End",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "none",
       "advanced": false
@@ -4006,7 +4006,7 @@
     {
       "key": "simulation.nightQuiet.start",
       "label": "Start",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "none",
       "advanced": false
@@ -4014,7 +4014,7 @@
     {
       "key": "simulation.ownerFeatures.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4022,7 +4022,7 @@
     {
       "key": "simulation.proactive.checkIntervalMaxMs",
       "label": "Check Interval Max Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4030,7 +4030,7 @@
     {
       "key": "simulation.proactive.checkIntervalMinMs",
       "label": "Check Interval Min Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4038,7 +4038,7 @@
     {
       "key": "simulation.proactive.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4046,7 +4046,7 @@
     {
       "key": "simulation.proactive.idleThresholdMs",
       "label": "Idle Threshold Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4054,7 +4054,7 @@
     {
       "key": "simulation.proactive.probability",
       "label": "Probability",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4062,7 +4062,7 @@
     {
       "key": "simulation.provideRecommendations",
       "label": "提供推荐参数",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4070,7 +4070,7 @@
     {
       "key": "simulation.reminders.allowedKeys",
       "label": "Allowed Keys",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "array",
       "restart": "none",
       "advanced": false
@@ -4078,7 +4078,7 @@
     {
       "key": "simulation.reminders.maxPerDayPerKey",
       "label": "Max Per Day Per Key",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4086,7 +4086,7 @@
     {
       "key": "simulation.send.burstEnabled",
       "label": "Burst Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4094,7 +4094,7 @@
     {
       "key": "simulation.send.burstIntervalMaxMs",
       "label": "Burst Interval Max Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4102,7 +4102,7 @@
     {
       "key": "simulation.send.burstIntervalMinMs",
       "label": "Burst Interval Min Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4110,7 +4110,7 @@
     {
       "key": "simulation.send.burstMaxMessages",
       "label": "Burst Max Messages",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4118,7 +4118,7 @@
     {
       "key": "simulation.send.gapBaseMs",
       "label": "Gap Base Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4126,7 +4126,7 @@
     {
       "key": "simulation.send.gapPerCharMs",
       "label": "Gap Per Char Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4134,7 +4134,7 @@
     {
       "key": "simulation.send.longGapMaxMs",
       "label": "Long Gap Max Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4142,7 +4142,7 @@
     {
       "key": "simulation.send.longGapMinMs",
       "label": "Long Gap Min Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4150,7 +4150,7 @@
     {
       "key": "simulation.send.longGapProbability",
       "label": "Long Gap Probability",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4158,7 +4158,7 @@
     {
       "key": "simulation.send.maxGapMs",
       "label": "Max Gap Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4166,7 +4166,7 @@
     {
       "key": "simulation.send.maxMessageChars",
       "label": "单条最大字数",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4176,7 +4176,7 @@
     {
       "key": "simulation.send.maxSendPerHour",
       "label": "每小时发送上限",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4186,7 +4186,7 @@
     {
       "key": "simulation.send.maxSendPerMinute",
       "label": "每分钟发送上限",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4196,7 +4196,7 @@
     {
       "key": "simulation.send.recommendedHint",
       "label": "Recommended Hint",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "none",
       "advanced": false
@@ -4204,7 +4204,7 @@
     {
       "key": "simulation.shareModules.enabled",
       "label": "Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4212,7 +4212,7 @@
     {
       "key": "simulation.shareModules.limits.crossModuleGapMs",
       "label": "Cross Module Gap Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4220,7 +4220,7 @@
     {
       "key": "simulation.shareModules.limits.moduleMaxPerDay",
       "label": "Module Max Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4228,7 +4228,7 @@
     {
       "key": "simulation.shareModules.limits.perGroupPerDay",
       "label": "Per Group Per Day",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4236,7 +4236,7 @@
     {
       "key": "simulation.shareModules.limits.perGroupPerHour",
       "label": "Per Group Per Hour",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4244,7 +4244,7 @@
     {
       "key": "simulation.signature.approvalTimeoutMs",
       "label": "Approval Timeout Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4252,7 +4252,7 @@
     {
       "key": "simulation.signature.requireApproval",
       "label": "Require Approval",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4260,7 +4260,7 @@
     {
       "key": "simulation.speech.asr.cacheTtlMs",
       "label": "Cache Ttl Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4268,7 +4268,7 @@
     {
       "key": "simulation.speech.asr.provider",
       "label": "Provider",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "none",
       "advanced": false
@@ -4276,7 +4276,7 @@
     {
       "key": "simulation.sticker.collect.maxPerHour",
       "label": "Max Per Hour",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4284,7 +4284,7 @@
     {
       "key": "simulation.sticker.collect.maxPerMinute",
       "label": "Max Per Minute",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4292,7 +4292,7 @@
     {
       "key": "simulation.sticker.collect.maxRemarkChars",
       "label": "Max Remark Chars",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4300,7 +4300,7 @@
     {
       "key": "simulation.sticker.includeInPrompt",
       "label": "Include In Prompt",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4308,7 +4308,7 @@
     {
       "key": "simulation.sticker.maxListCount",
       "label": "Max List Count",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4316,7 +4316,7 @@
     {
       "key": "simulation.sticker.promptMaxStickers",
       "label": "Prompt Max Stickers",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4324,7 +4324,7 @@
     {
       "key": "simulation.sticker.syncTtlMs",
       "label": "Sync Ttl Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4332,7 +4332,7 @@
     {
       "key": "simulation.subscriptions",
       "label": "Subscriptions",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "array",
       "restart": "none",
       "advanced": false
@@ -4340,7 +4340,7 @@
     {
       "key": "simulation.tools.collectSticker",
       "label": "工具 collectSticker",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4348,7 +4348,7 @@
     {
       "key": "simulation.tools.deleteImage",
       "label": "工具 deleteImage",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4356,7 +4356,7 @@
     {
       "key": "simulation.tools.deleteSticker",
       "label": "工具 deleteSticker",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4364,7 +4364,7 @@
     {
       "key": "simulation.tools.feedback",
       "label": "工具 feedback",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4372,7 +4372,7 @@
     {
       "key": "simulation.tools.getActiveMembers",
       "label": "工具 getActiveMembers",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4380,7 +4380,7 @@
     {
       "key": "simulation.tools.getForwardMsg",
       "label": "工具 getForwardMsg",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4388,7 +4388,7 @@
     {
       "key": "simulation.tools.getImages",
       "label": "工具 getImages",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4396,7 +4396,7 @@
     {
       "key": "simulation.tools.getMessageDetail",
       "label": "工具 getMessageDetail",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4404,7 +4404,7 @@
     {
       "key": "simulation.tools.getMyRecent",
       "label": "工具 getMyRecent",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4412,7 +4412,7 @@
     {
       "key": "simulation.tools.getPrompt",
       "label": "工具 getPrompt",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4420,7 +4420,7 @@
     {
       "key": "simulation.tools.getRecent",
       "label": "工具 getRecent",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4428,7 +4428,7 @@
     {
       "key": "simulation.tools.getSelfImage",
       "label": "工具 getSelfImage",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4436,7 +4436,7 @@
     {
       "key": "simulation.tools.getStickerImage",
       "label": "工具 getStickerImage",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4444,7 +4444,7 @@
     {
       "key": "simulation.tools.getUnread",
       "label": "工具 getUnread",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4452,7 +4452,7 @@
     {
       "key": "simulation.tools.listImages",
       "label": "工具 listImages",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4460,7 +4460,7 @@
     {
       "key": "simulation.tools.listStickers",
       "label": "工具 listStickers",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4468,7 +4468,7 @@
     {
       "key": "simulation.tools.markRead",
       "label": "工具 markRead",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4476,7 +4476,7 @@
     {
       "key": "simulation.tools.memory",
       "label": "工具 memory",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4484,7 +4484,7 @@
     {
       "key": "simulation.tools.reply",
       "label": "工具 reply",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4492,7 +4492,7 @@
     {
       "key": "simulation.tools.saveImage",
       "label": "工具 saveImage",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4500,7 +4500,7 @@
     {
       "key": "simulation.tools.sendBurst",
       "label": "工具 sendBurst",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4508,7 +4508,7 @@
     {
       "key": "simulation.tools.sendGroup",
       "label": "工具 sendGroup",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4516,7 +4516,7 @@
     {
       "key": "simulation.tools.sendImage",
       "label": "工具 sendImage",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4524,7 +4524,7 @@
     {
       "key": "simulation.tools.sendMessage",
       "label": "工具 sendMessage",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4532,7 +4532,7 @@
     {
       "key": "simulation.tools.sendPoke",
       "label": "工具 sendPoke",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4540,7 +4540,7 @@
     {
       "key": "simulation.tools.sendPrivate",
       "label": "工具 sendPrivate",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4548,7 +4548,7 @@
     {
       "key": "simulation.tools.sendSticker",
       "label": "工具 sendSticker",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4556,7 +4556,7 @@
     {
       "key": "simulation.tools.sendVoice",
       "label": "工具 sendVoice",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4564,7 +4564,7 @@
     {
       "key": "simulation.tools.setStickerRemark",
       "label": "工具 setStickerRemark",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4572,7 +4572,7 @@
     {
       "key": "simulation.tools.setWakeConfig",
       "label": "工具 setWakeConfig",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4580,7 +4580,7 @@
     {
       "key": "simulation.tools.slangQuery",
       "label": "工具 slangQuery",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4588,7 +4588,7 @@
     {
       "key": "simulation.tools.slangSubmit",
       "label": "工具 slangSubmit",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4596,7 +4596,7 @@
     {
       "key": "simulation.tools.socialState",
       "label": "工具 socialState",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4604,7 +4604,7 @@
     {
       "key": "simulation.tools.stickerNote",
       "label": "工具 stickerNote",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4612,7 +4612,7 @@
     {
       "key": "simulation.tools.waitMessages",
       "label": "工具 waitMessages",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": true
@@ -4620,7 +4620,7 @@
     {
       "key": "simulation.wait.defaultMs",
       "label": "Default Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4628,7 +4628,7 @@
     {
       "key": "simulation.wait.defaultQuietMs",
       "label": "Default Quiet Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4636,7 +4636,7 @@
     {
       "key": "simulation.wait.maxMs",
       "label": "Max Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4644,7 +4644,7 @@
     {
       "key": "simulation.wait.minMs",
       "label": "Min Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4652,7 +4652,7 @@
     {
       "key": "simulation.wait.minQuietAfterNewMs",
       "label": "Min Quiet After New Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4660,7 +4660,7 @@
     {
       "key": "simulation.wake.batchWindowMs",
       "label": "Batch Window Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4668,7 +4668,7 @@
     {
       "key": "simulation.wake.defaultMode",
       "label": "Default Mode",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "none",
       "advanced": false
@@ -4676,7 +4676,7 @@
     {
       "key": "simulation.wake.maxWakeConfigReminders",
       "label": "Max Wake Config Reminders",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4684,7 +4684,7 @@
     {
       "key": "simulation.wake.maxWakePerHour",
       "label": "每小时唤醒上限",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4694,7 +4694,7 @@
     {
       "key": "simulation.wake.maxWakePerMinute",
       "label": "每分钟唤醒上限",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false,
@@ -4704,7 +4704,7 @@
     {
       "key": "simulation.wake.noActionLimit",
       "label": "No Action Limit",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4712,7 +4712,7 @@
     {
       "key": "simulation.wake.preSleepWaitEnabled",
       "label": "Pre Sleep Wait Enabled",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4720,7 +4720,7 @@
     {
       "key": "simulation.wake.preSleepWaitMs",
       "label": "Pre Sleep Wait Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4728,7 +4728,7 @@
     {
       "key": "simulation.wake.recommendedAtMention",
       "label": "Recommended At Mention",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4736,7 +4736,7 @@
     {
       "key": "simulation.wake.recommendedDefaultInfinite",
       "label": "Recommended Default Infinite",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4744,7 +4744,7 @@
     {
       "key": "simulation.wake.recommendedHint",
       "label": "Recommended Hint",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "string",
       "restart": "none",
       "advanced": false
@@ -4752,7 +4752,7 @@
     {
       "key": "simulation.wake.recommendedKeywords",
       "label": "Recommended Keywords",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "array",
       "restart": "none",
       "advanced": false
@@ -4760,7 +4760,7 @@
     {
       "key": "simulation.wake.recommendedNameMention",
       "label": "Recommended Name Mention",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4768,7 +4768,7 @@
     {
       "key": "simulation.wake.recommendedPoke",
       "label": "Recommended Poke",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4776,7 +4776,7 @@
     {
       "key": "simulation.wake.recommendedProbability",
       "label": "Recommended Probability",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4784,7 +4784,7 @@
     {
       "key": "simulation.wake.recommendedQuestion",
       "label": "Recommended Question",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "boolean",
       "restart": "none",
       "advanced": false
@@ -4792,7 +4792,7 @@
     {
       "key": "simulation.wake.recommendedSleepMaxMs",
       "label": "Recommended Sleep Max Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4800,7 +4800,7 @@
     {
       "key": "simulation.wake.recommendedSleepMinMs",
       "label": "Recommended Sleep Min Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4808,7 +4808,7 @@
     {
       "key": "simulation.wake.sleepMaxMs",
       "label": "Sleep Max Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4816,7 +4816,7 @@
     {
       "key": "simulation.wake.sleepMinMs",
       "label": "Sleep Min Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false
@@ -4824,7 +4824,7 @@
     {
       "key": "simulation.weather.timeoutMs",
       "label": "Timeout Ms",
-      "group": "群聊仿真",
+      "group": "群聊剧场",
       "type": "number",
       "restart": "none",
       "advanced": false

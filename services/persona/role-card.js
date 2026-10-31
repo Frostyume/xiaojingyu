@@ -13,9 +13,9 @@
 // 标记会在注入前从标题里去掉，模型看到的始终是干净的小节标题。
 export const ROLE_INJECT_MODES = ['legacy', 'simulation'];
 
-// 模式标记：`〔仿真〕` / `[simulation]` / `（群聊仿真）`；旧版用 `〔旧版〕` / `[legacy]`。
+// 模式标记：`〔仿真〕` / `[simulation]` / `（群聊仿真）` / `（群聊剧场）`；旧版用 `〔旧版〕` / `[legacy]`。
 const MODE_TAGS = [
-  { mode: 'simulation', re: /[\[〔（(]\s*(?:群聊仿真|仿真|simulation)\s*[\]〕）)]/gi },
+  { mode: 'simulation', re: /[\[〔（(]\s*(?:群聊剧场|群聊仿真|仿真|simulation)\s*[\]〕）)]/gi },
   { mode: 'legacy', re: /[\[〔（(]\s*(?:旧版仿真|旧版|legacy|reserved)\s*[\]〕）)]/gi },
 ];
 

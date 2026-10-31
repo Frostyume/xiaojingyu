@@ -52,18 +52,19 @@ test('注入文本里不再残留模式标记', () => {
   assert.match(selectRoleText(CARD, 'simulation'), /## 三、发言方式\n/);
 });
 
-test('多种标记写法都认（[legacy] / （simulation） / 〔群聊仿真〕）', () => {
+test('多种标记写法都认（[legacy] / （simulation） / 〔群聊仿真〕 / 〔群聊剧场〕）', () => {
   const card = [
     '## A [legacy]', '- a',
     '## B （simulation）', '- b',
     '## C 〔群聊仿真〕', '- c',
     '## D [旧版]', '- d',
+    '## E 〔群聊剧场〕', '- e',
   ].join('\n');
   const v1 = selectRoleText(card, 'legacy');
   const simulationText = selectRoleText(card, 'simulation');
   assert.match(v1, /- a/); assert.match(v1, /- d/);
-  assert.doesNotMatch(v1, /- b/); assert.doesNotMatch(v1, /- c/);
-  assert.match(simulationText, /- b/); assert.match(simulationText, /- c/);
+  assert.doesNotMatch(v1, /- b/); assert.doesNotMatch(v1, /- c/); assert.doesNotMatch(v1, /- e/);
+  assert.match(simulationText, /- b/); assert.match(simulationText, /- c/); assert.match(simulationText, /- e/);
   assert.doesNotMatch(simulationText, /- a/); assert.doesNotMatch(simulationText, /- d/);
 });
 
@@ -92,9 +93,19 @@ test('统计与小节报告可用于控制台预览', () => {
   assert.equal(common.injected, true);
 });
 
-// 注入预算：运行时不做截断，这条守卫只防止人格文本无限膨胀。2026-10-30 由 8000 提到 10000
-// （主仓角色卡当时正好 8000/8000、零余量，任何编辑都会被测试挡下）。
-const ROLE_INJECT_MAX_CHARS = 10000;
+// 注入预算：运行时会在 role.maxInjectChars 处截断（按模式筛选后），这条守卫用来保证
+// 人格卡本身不超过示例配置的上限，并留出编辑余量。上限与 config.example.json 同源，
+// 避免出现「测试按 10000 放行、线上按更低值静默截断」的漂移。
+const EXAMPLE_CONFIG = JSON.parse(fs.readFileSync(new URL('../config.example.json', import.meta.url), 'utf8'));
+const ROLE_INJECT_MAX_CHARS = Number(EXAMPLE_CONFIG.role?.maxInjectChars) || 10000;
+
+test('示例配置为角色卡留出编辑余量', () => {
+  const raw = fs.readFileSync(new URL('../personas/小鲸鱼.md', import.meta.url), 'utf8');
+  const simulation = selectRoleText(raw, 'simulation');
+  assert.ok(simulation.length <= ROLE_INJECT_MAX_CHARS, `角色卡应低于注入上限 ${ROLE_INJECT_MAX_CHARS}`);
+  assert.ok(ROLE_INJECT_MAX_CHARS - simulation.length >= 500,
+    `角色卡距注入上限只剩 ${ROLE_INJECT_MAX_CHARS - simulation.length} 字符，至少留 500 字符余量；请提高 config.example.json 的 role.maxInjectChars`);
+});
 
 test('小鲸鱼的颜文字库使用半角括号、覆盖足够多且不超注入上限', () => {
   const raw = fs.readFileSync(new URL('../personas/小鲸鱼.md', import.meta.url), 'utf8');
