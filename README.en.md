@@ -640,21 +640,11 @@ Interface details:
 
 A conversation runs roughly like this:
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant U as Group member
-  participant S as SnowLuma
-  participant B as Xiaojingyu bridge
-  participant D as DSH agent
-
-  U->>S: speaks in the group
-  S->>B: OneBot v11 event
-  B->>D: delivered to that group's DSH session
-  D->>B: calls qq_get_unread_messages / qq_send_message
-  B->>S: whitelist check + audit, then send
-  S->>U: reply appears in QQ
-```
+<p align="center">
+  <img src="assets/diagrams/conversation.en.png" width="100%" alt="Six hops of one message: group member → SnowLuma → Xiaojingyu bridge → DSH agent, all on your own machine">
+  <br>
+  <sub>Six hops, one reply: solid lines are calls, dashed lines are event pushes, and every send passes the allowlist and the audit</sub>
+</p>
 
 - **One QQ conversation = one DSH session**, grouped into a "QQ 聊天" workspace, with the mapping
   persisted in `state/sessions.json`;

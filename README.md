@@ -581,21 +581,11 @@ coding agent**，并盯完「实现 → 测试 → 你确认 → 合并 → 失�
 
 一次对话大致是这样走完的：
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant U as 群友
-  participant S as SnowLuma
-  participant B as 小鲸鱼桥接
-  participant D as DSH agent
-
-  U->>S: 在群里说话
-  S->>B: OneBot v11 事件
-  B->>D: 投递到该群的 DSH 会话
-  D->>B: 调用 qq_get_unread_messages / qq_send_message
-  B->>S: 白名单校验 + 审计后发送
-  S->>U: QQ 里出现回复
-```
+<p align="center">
+  <img src="assets/diagrams/conversation.png" width="100%" alt="一条消息的六步链路：群友 → SnowLuma → 小鲸鱼桥接 → DSH agent，全部在本机完成">
+  <br>
+  <sub>六跳走完一次对话：实线是调用，虚线是事件推送，发出前必过白名单与审计</sub>
+</p>
 
 几个关键取舍：
 

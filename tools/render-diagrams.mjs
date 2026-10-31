@@ -26,6 +26,8 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || [
 const jobs = [
   { html: 'message-flow.html', png: 'message-flow.png', lang: 'zh', width: 1600, height: 700 },
   { html: 'message-flow.html', png: 'message-flow.en.png', lang: 'en', width: 1600, height: 700 },
+  { html: 'conversation.html', png: 'conversation.png', lang: 'zh', width: 1600, height: 940 },
+  { html: 'conversation.html', png: 'conversation.en.png', lang: 'en', width: 1600, height: 940 },
   { html: 'architecture.html', png: 'architecture.png', lang: 'zh', width: 1600, height: 760 },
   { html: 'architecture.html', png: 'architecture.en.png', lang: 'en', width: 1600, height: 760 },
   { html: 'scenes.html', png: 'scenes.png', lang: 'zh', width: 1600, height: 900 },
