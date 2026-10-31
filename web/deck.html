@@ -2509,7 +2509,7 @@ input[type=text],input[type=search],input[type=password],input[type=number],text
   }
 }
 /* =====================================================================
-   深海指挥舱 · DEEP-SEA COMMAND DECK
+   小鲸鱼指挥舱 · DEEPSEEK COMMAND DECK
    顶部实时读板 + 左侧图标轨 + 高密度仪表盘。只覆盖外观与骨架，
    不改任何 DOM ID、轮询、草稿保护或 API 契约。
    ===================================================================== */
@@ -3438,13 +3438,449 @@ button.active,.primary {
     transition:none;
   }
 }
+
+/* =====================================================================
+   DeepSeek Blue · 统一主题与排版
+   只覆盖设计变量与可见装饰，不改 DOM ID、轮询、草稿保护或 API 契约。
+   ===================================================================== */
+:root {
+  --bg:#f5f7ff;
+  --surface:#ffffff;
+  --surface-subtle:#f8faff;
+  --surface-sunken:#eef2fb;
+  --surface-hover:#edf1ff;
+  --surface-chip:#f1f4ff;
+  --surface-chip-strong:#e3e9ff;
+  --surface-open:#f7f9ff;
+  --card:#ffffff;
+  --topbar-bg:rgba(255,255,255,.88);
+  --save-bar-bg:rgba(247,249,255,.94);
+  --overlay:#101a3d66;
+  --card-border:#e1e7f7;
+  --border:#dfe5f3;
+  --border-input:#d8e0f2;
+  --border-chip:#e2e8f6;
+  --border-strong:#c6d0ea;
+  --border-dashed:#e1e7f5;
+  --border-subtle:#edf1fa;
+  --text:#1c2440;
+  --text-strong:#111936;
+  --text-input:#1b2542;
+  --text-secondary:#4f5b78;
+  --label:#546180;
+  --muted:#66718c;
+  --muted-soft:#8791aa;
+  --placeholder:#9aa4ba;
+  --icon:#7482a3;
+  --eyebrow:#4d6bfe;
+  --code-fg:#4d5f9e;
+  --code-fg-strong:#35488f;
+  --pre-fg:#5b6784;
+  --accent:#4d6bfe;
+  --accent-hover:#3f5ae0;
+  --accent-border:#4d6bfe;
+  --accent-soft-bg:#eef2ff;
+  --accent-soft-bg-active:#e6ebff;
+  --accent-soft-fg:#3d56d8;
+  --accent-soft-fg-muted:#6f7fb8;
+  --accent-border-soft:#ccd7ff;
+  --accent-border-soft-hover:#b9c8ff;
+  --accent-border-active:#7c93ff;
+  --accent-border-hover:#98aaff;
+  --accent-border-focus:#6b86ff;
+  --accent-ring:#4d6bfe14;
+  --ok:#168467;
+  --err:#bd3b3b;
+  --warn-bg:#fff8ee;
+  --warn-border:#f3d6ad;
+  --warn-fg:#8e652a;
+  --warn-fg-strong:#b47720;
+  --dot-idle:#7f8dab;
+  --dot-offline:#a1aab9;
+  --focus-ring:#8ea2ff;
+  --focus-ring-modal:#a9b8ff;
+  --toast-bg:#172044;
+  --toast-fg:#ffffff;
+  --shadow-card:0 1px 2px #172d5108,0 12px 30px #263b8c0d;
+  --shadow-md:0 6px 18px #293b7410;
+  --shadow-pop:0 18px 48px #26366b1c;
+  --shadow-modal:0 26px 84px #172d5133;
+  --shadow-log:0 6px 30px #23365a26;
+  --decor-a:#4d6bfe14;
+  --decor-b:#7c5cff0f;
+  --sidebar-ink:#eef1ff;
+  --sidebar-muted:#94a2c8;
+  --sidebar-line:#1e2b52;
+  --rail-bg:#0b1536;
+  --rail-bg-2:#070d24;
+  --rail-line:#1e2b52;
+  --rail-ink:#e4e9ff;
+  --rail-muted:#8f9cc4;
+  --led:#4d6bfe;
+  --led-glow:rgba(77,107,254,.5);
+  --deck-grid:rgba(77,107,254,.055);
+  --deck-grid-strong:rgba(77,107,254,.1);
+  --deck-scan:rgba(20,35,90,.02);
+  --panel-glow:rgba(77,107,254,.08);
+  --pill-blue-bg:#eef2ff;
+  --pill-blue-fg:#3d56d8;
+  color-scheme:light;
+}
+[data-theme="dark"] {
+  --bg:#070b18;
+  --surface:#0d1428;
+  --surface-subtle:#101830;
+  --surface-sunken:#0a1020;
+  --surface-hover:#151f3d;
+  --surface-chip:#111a33;
+  --surface-chip-strong:#1a2547;
+  --surface-open:#0f1830;
+  --card:#0d1428;
+  --topbar-bg:rgba(9,14,31,.88);
+  --save-bar-bg:rgba(10,16,34,.94);
+  --overlay:#00000099;
+  --card-border:#1c2747;
+  --border:#1b2644;
+  --border-input:#223052;
+  --border-chip:#1e2a4a;
+  --border-strong:#2c3c66;
+  --border-dashed:#1f2b4b;
+  --border-subtle:#141d38;
+  --text:#e6ebff;
+  --text-strong:#f5f7ff;
+  --text-input:#e3e9ff;
+  --text-secondary:#aab5d6;
+  --label:#9aa7cc;
+  --muted:#8f9cc0;
+  --muted-soft:#7582a8;
+  --placeholder:#66739a;
+  --icon:#93a1c9;
+  --eyebrow:#8ea2ff;
+  --code-fg:#a7b8ff;
+  --code-fg-strong:#c8d4ff;
+  --pre-fg:#a3afd0;
+  --accent:#7c93ff;
+  --accent-hover:#94a7ff;
+  --accent-border:#7c93ff;
+  --accent-soft-bg:#182449;
+  --accent-soft-bg-active:#1e2c57;
+  --accent-soft-fg:#c3ceff;
+  --accent-soft-fg-muted:#8f9dce;
+  --accent-border-soft:#2b3c6e;
+  --accent-border-soft-hover:#3a4f8a;
+  --accent-border-active:#4f68b8;
+  --accent-border-hover:#5f79cf;
+  --accent-border-focus:#7c93ff;
+  --accent-ring:#7c93ff22;
+  --ok:#5ee0b0;
+  --err:#ff9d8a;
+  --warn-bg:#2b2413;
+  --warn-border:#51431e;
+  --warn-fg:#ecc57a;
+  --warn-fg-strong:#f5d38d;
+  --dot-idle:#3f5580;
+  --dot-offline:#4a5a7c;
+  --focus-ring:#7c93ff;
+  --focus-ring-modal:#9db0ff;
+  --toast-bg:#eef2ff;
+  --toast-fg:#0a1024;
+  --shadow-card:0 1px 0 #ffffff0a inset,0 24px 52px -30px #000000cc;
+  --shadow-md:0 12px 30px -18px #000000d9;
+  --shadow-pop:0 28px 66px -26px #000000e6;
+  --shadow-modal:0 38px 104px -32px #000000f2;
+  --shadow-log:0 14px 40px -20px #000000d9;
+  --decor-a:#4d6bfe2e;
+  --decor-b:#8b5cf624;
+  --sidebar-ink:#eef1ff;
+  --sidebar-muted:#8492bb;
+  --sidebar-line:#1b2a52;
+  --rail-bg:#0a1128;
+  --rail-bg-2:#040814;
+  --rail-line:#1b2a52;
+  --rail-ink:#e6ebff;
+  --rail-muted:#8593bd;
+  --led:#7c93ff;
+  --led-glow:rgba(124,147,255,.55);
+  --deck-grid:rgba(124,147,255,.045);
+  --deck-grid-strong:rgba(124,147,255,.085);
+  --deck-scan:rgba(180,200,255,.012);
+  --panel-glow:rgba(124,147,255,.07);
+  --pill-blue-bg:#182449;
+  --pill-blue-fg:#c3ceff;
+  color-scheme:dark;
+}
+::selection {
+  background:#4d6bfe33
+}
+body {
+  background-color:var(--bg)
+}
+.sidebar::before {
+  background-image:radial-gradient(#8ea2ff17 1px,transparent 1px)
+}
+.sidebar.rail {
+  background:
+    radial-gradient(120% 52% at 12% 0%,#4d6bfe2e,transparent 62%),
+    radial-gradient(100% 46% at 100% 100%,#2f44d8cc,transparent 66%),
+    linear-gradient(180deg,var(--rail-bg) 0%,var(--rail-bg-2) 100%);
+  border-right-color:var(--rail-line);
+  box-shadow:14px 0 40px -34px #061033
+}
+.brand-mark {
+  background:linear-gradient(150deg,#8ea2ff 0%,#4d6bfe 52%,#2f44d8 100%);
+  box-shadow:0 0 0 1px #ffffff2e,0 10px 24px -14px #4d6bfecc
+}
+.sidebar .nav-item:hover {
+  background:#ffffff0d;
+  color:#ffffff
+}
+.sidebar .nav-item.active,
+.sidebar.rail .nav-item.active {
+  background:linear-gradient(90deg,rgba(77,107,254,.26),rgba(77,107,254,.05));
+  color:#ffffff;
+  box-shadow:inset 3px 0 0 #8ea2ff,0 0 24px -14px #4d6bfe
+}
+.sidebar.rail .nav-item.active {
+  border-color:rgba(124,147,255,.34)
+}
+.sidebar.rail .nav-item.active::before {
+  background:#7c93ff;
+  box-shadow:0 0 10px rgba(124,147,255,.6)
+}
+.sidebar .nav-item.active .nav-icon,
+.sidebar.rail .nav-item.active .nav-icon {
+  background:rgba(124,147,255,.24);
+  color:#eef1ff
+}
+.local-dot {
+  background:#4d6bfe;
+  box-shadow:0 0 10px #4d6bfe
+}
+.page-heading {
+  background:
+    radial-gradient(80% 130% at 100% 0%,#4d6bfe26,transparent 58%),
+    radial-gradient(60% 110% at 0% 100%,#8b5cf614,transparent 62%),
+    linear-gradient(122deg,#ffffff 0%,#f4f6ff 100%)
+}
+[data-theme="dark"] .page-heading {
+  background:
+    radial-gradient(80% 130% at 100% 0%,#7c93ff24,transparent 58%),
+    radial-gradient(60% 110% at 0% 100%,#8b5cf614,transparent 62%),
+    linear-gradient(122deg,#0d1428 0%,#0a1020 100%)
+}
+.page-heading::before {
+  background:radial-gradient(circle,#4d6bfe2b,transparent 66%)
+}
+.page-heading::after {
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='44' viewBox='0 0 150 44'%3E%3Cpath d='M2 30c14-16 28-16 42 0s28 16 42 0 28-16 42 0 14 8 20 6' fill='none' stroke='%234d6bfe' stroke-opacity='.35' stroke-width='1.4'/%3E%3Cpath d='M2 38c14-16 28-16 42 0s28 16 42 0 28-16 42 0 14 8 20 6' fill='none' stroke='%234d6bfe' stroke-opacity='.16' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right bottom
+}
+.page-heading h1::after {
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='6' viewBox='0 0 28 6'%3E%3Cpath d='M0 3c2.3-2.3 4.7-2.3 7 0s4.7 2.3 7 0 4.7-2.3 7 0 4.7 2.3 7 0' fill='none' stroke='%234d6bfe' stroke-opacity='.6' stroke-width='1.5'/%3E%3C/svg%3E") repeat-x
+}
+.card h2::before {
+  background:linear-gradient(180deg,#7c93ff,#4d6bfe);
+  box-shadow:0 0 14px rgba(77,107,254,.4)
+}
+button.active,.primary {
+  background:linear-gradient(135deg,#6b86ff 0%,#4d6bfe 55%,#3f5ae0 100%);
+  box-shadow:0 12px 24px -14px rgba(77,107,254,.6)
+}
+.metric::after {
+  background:radial-gradient(circle,#4d6bfe1f,transparent 70%)
+}
+
+/* 侧栏：从纯图标轨改为带板块名的导航（平板及以下仍用底部图标栏） */
+@media(min-width:981px) {
+  :root {
+    --rail-w:236px
+  }
+  .sidebar.rail {
+    width:var(--rail-w);
+    padding:20px 14px 16px;
+    align-items:stretch
+  }
+  .sidebar.rail .brand {
+    justify-content:flex-start;
+    gap:11px;
+    padding:2px 8px 18px
+  }
+  .sidebar.rail .brand-text {
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    font-size:18px;
+    line-height:1.25;
+    letter-spacing:-.2px
+  }
+  .sidebar.rail .brand-text small {
+    display:block;
+    font-size:10px;
+    letter-spacing:.04em;
+    color:var(--sidebar-muted)
+  }
+  .sidebar.rail .nav-label {
+    display:block;
+    height:auto;
+    margin:16px 10px 6px;
+    padding:0;
+    font-size:10px;
+    line-height:1.4;
+    letter-spacing:.16em;
+    background:none;
+    overflow:visible;
+    color:var(--sidebar-muted);
+    opacity:.9
+  }
+  .sidebar.rail #mainNav {
+    align-items:stretch;
+    gap:3px
+  }
+  .sidebar.rail .nav-item {
+    width:100%;
+    height:38px;
+    padding:0 10px;
+    justify-content:flex-start;
+    gap:10px;
+    font-size:13.5px;
+    line-height:1;
+    border-radius:9px
+  }
+  .sidebar.rail .nav-icon {
+    width:22px;
+    height:22px;
+    flex:none;
+    font-size:15px
+  }
+  .sidebar.rail .nav-item::after {
+    display:none
+  }
+  .sidebar.rail .nav-count {
+    position:static;
+    margin-left:auto;
+    min-width:20px;
+    padding:1px 6px;
+    font-size:10px
+  }
+  .sidebar.rail .nav-item.active::before {
+    left:0;
+    top:9px;
+    bottom:9px;
+    width:3px
+  }
+  .sidebar.rail .sidebar-bottom {
+    display:flex;
+    margin:auto 8px 0;
+    padding-top:14px
+  }
+  .sidebar.rail .sidebar-bottom small {
+    display:block
+  }
+}
+
+/* 移动端底部导航：保留图标，同时显示板块名，避免只看到一排无标签图标 */
+@media(max-width:760px) {
+  .sidebar.rail .nav-item {
+    flex:0 0 auto;
+    width:auto;
+    height:44px;
+    padding:0 10px;
+    gap:6px;
+    font-size:12px
+  }
+  .sidebar.rail .nav-icon {
+    font-size:15px
+  }
+}
+
+/* 字号层级：标题、正文、辅助信息与表格统一到可读尺寸 */
+@media(min-width:761px) {
+  body {
+    font-size:14px
+  }
+  h1,
+  .page-heading h1 {
+    font-size:27px;
+    font-weight:750;
+    letter-spacing:-.8px
+  }
+  .page-heading p {
+    font-family:var(--deck-font);
+    font-size:13.5px;
+    letter-spacing:0;
+    line-height:1.6
+  }
+  .eyebrow {
+    font-size:11px;
+    letter-spacing:.18em
+  }
+  .card h2 {
+    font-size:18px
+  }
+  .card h3 {
+    font-size:15px
+  }
+  .meta,
+  .hint,
+  .inline-tip {
+    font-size:12px
+  }
+  .metric strong {
+    font-size:24px
+  }
+  #metricMode {
+    font-size:20px
+  }
+  #metricSnowluma {
+    font-size:18px
+  }
+  .metric>span {
+    font-size:11.5px
+  }
+  .metric small {
+    font-size:11.5px
+  }
+  table {
+    font-size:13px
+  }
+  th {
+    font-size:11px
+  }
+  label {
+    font-size:12.5px
+  }
+  .search-wrap input {
+    font-size:12.5px
+  }
+  .breadcrumb {
+    font-size:11.5px
+  }
+  .status-ribbon .metric>span {
+    font-size:10px
+  }
+  .status-ribbon .metric strong {
+    font-size:16px
+  }
+  .status-ribbon #metricMode,
+  .status-ribbon #metricSnowluma {
+    font-size:14px
+  }
+  .status-ribbon .metric small {
+    font-size:10.5px
+  }
+  .ribbon-label strong {
+    font-size:11.5px
+  }
+  .ribbon-label small {
+    font-size:9.5px
+  }
+}
 </style>
 </head>
 <body>
   <div class="bg-decor" aria-hidden="true"></div>
   <a class="skip-link" href="#mainContent">跳到主要内容</a>
   <aside class="sidebar rail" aria-label="控制台导航">
-    <a href="#overview" class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false"><path d="M13.4 27.6c-2.8 0-5.6 1.4-7.5 3.9 2 1.2 4.2 1.2 6.2.2-1.6 1.6-2.3 3.6-2 5.9 2.9-1 4.8-3.1 5.6-5.6" fill="#062b33" fill-opacity=".78"/><path d="M13 27.8c0-8.4 7.3-14 17.2-14 9.3 0 15.3 5.4 15.3 12.8 0 7.6-6.3 12.6-15.5 12.6C20.2 39.2 13 35 13 27.8Z" fill="#062b33"/><path d="M16.2 31.2c2.4 4.1 7.1 6.3 13.1 6.3 6.9 0 11.9-3.2 13.4-8.1 1 1.2 1.6 2.6 1.7 4.2-1.6 4-6.1 6.6-12.3 6.6-7.3 0-12.9-3.1-15.9-9Z" fill="#0f6f74" fill-opacity=".55"/><circle cx="37.6" cy="24.4" r="1.7" fill="#c9fff6"/><circle cx="37.6" cy="24.4" r=".8" fill="#04242a"/><path d="M31 10.4c-.4-2.2.2-4 1.9-5.4M31.6 10.8c1.6-2 3.5-2.8 5.7-2.7" stroke="#062b33" stroke-width="1.5" stroke-linecap="round" stroke-opacity=".6"/><path d="M25 34c1.3 2 3 3.2 5.1 3.6" stroke="#8ff3e7" stroke-width="1.2" stroke-linecap="round" stroke-opacity=".5"/></svg></span><span class="brand-text">小鲸鱼<small>QQ Bridge · DeepSeek Harness</small></span></a>
+    <a href="#overview" class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false"><path d="M13.4 27.6c-2.8 0-5.6 1.4-7.5 3.9 2 1.2 4.2 1.2 6.2.2-1.6 1.6-2.3 3.6-2 5.9 2.9-1 4.8-3.1 5.6-5.6" fill="#ffffff" fill-opacity=".72"/><path d="M13 27.8c0-8.4 7.3-14 17.2-14 9.3 0 15.3 5.4 15.3 12.8 0 7.6-6.3 12.6-15.5 12.6C20.2 39.2 13 35 13 27.8Z" fill="#ffffff"/><path d="M16.2 31.2c2.4 4.1 7.1 6.3 13.1 6.3 6.9 0 11.9-3.2 13.4-8.1 1 1.2 1.6 2.6 1.7 4.2-1.6 4-6.1 6.6-12.3 6.6-7.3 0-12.9-3.1-15.9-9Z" fill="#a9b8ff" fill-opacity=".7"/><circle cx="37.6" cy="24.4" r="1.7" fill="#ffffff"/><circle cx="37.6" cy="24.4" r=".8" fill="#0b1536"/><path d="M31 10.4c-.4-2.2.2-4 1.9-5.4M31.6 10.8c1.6-2 3.5-2.8 5.7-2.7" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-opacity=".75"/><path d="M25 34c1.3 2 3 3.2 5.1 3.6" stroke="#c9d4ff" stroke-width="1.2" stroke-linecap="round" stroke-opacity=".6"/></svg></span><span class="brand-text">小鲸鱼<small>DeepSeek Blue · QQ Bridge</small></span></a>
     <div class="nav-label">工作空间</div>
     <nav id="mainNav">
       <button data-view="overview" data-label="运行总览" title="运行总览" class="nav-item active" aria-current="page"><span class="nav-icon" aria-hidden="true">◫</span>运行总览</button>
@@ -3452,7 +3888,7 @@ button.active,.primary {
       <button data-view="sessions" data-label="会话与审批" title="会话与审批" class="nav-item"><span class="nav-icon" aria-hidden="true">☷</span>会话与审批<span class="nav-count" id="pendingCount">—</span></button>
       <button data-view="persona" data-label="人格与角色" title="人格与角色" class="nav-item"><span class="nav-icon" aria-hidden="true">◉</span>人格与角色</button>
       <div class="nav-label">聊天行为</div>
-      <button data-view="simulation" data-label="群聊仿真" title="群聊仿真" class="nav-item"><span class="nav-icon" aria-hidden="true">◈</span>群聊仿真</button>
+      <button data-view="simulation" data-label="群聊剧场" title="群聊剧场" class="nav-item"><span class="nav-icon" aria-hidden="true">◈</span>群聊剧场</button>
       <button data-view="insights" data-label="群聊洞察" title="群聊洞察" class="nav-item"><span class="nav-icon" aria-hidden="true">◒</span>群聊洞察</button>
       <button data-view="library" data-label="资源库" title="资源库" class="nav-item"><span class="nav-icon" aria-hidden="true">▦</span>资源库</button>
       <button data-view="slang" data-label="黑话词库" title="黑话词库" class="nav-item"><span class="nav-icon" aria-hidden="true">▤</span>黑话词库</button>
@@ -3482,7 +3918,7 @@ button.active,.primary {
       </div>
     </section>
     <main id="mainContent" tabindex="-1">
-      <div class="page-heading"><div><div class="eyebrow">DEEP-SEA COMMAND DECK · QQ BRIDGE</div><h1 id="pageTitle">深海指挥舱</h1><p id="pageDescription">链路、会话、人格与发送边界，一块甲板统一调度。</p></div>
+      <div class="page-heading"><div><div class="eyebrow">DEEPSEEK BLUE · QQ BRIDGE</div><h1 id="pageTitle">小鲸鱼指挥舱</h1><p id="pageDescription">链路、会话、人格与发送边界，一块甲板统一调度。</p></div>
         <div class="search-wrap"><label class="sr-only" for="consoleSearch">搜索功能或参数</label><input id="consoleSearch" type="search" placeholder="搜索功能或参数…" autocomplete="off" aria-controls="searchResults" aria-expanded="false"><div id="searchResults" class="search-results" hidden></div></div>
       </div>
       <div id="connectionAlert" class="connection-alert" role="alert" hidden></div>
@@ -3506,7 +3942,7 @@ button.active,.primary {
       <div class="mode-row" id="modeRow">
         <button data-mode="chat" aria-pressed="false"><span class="mode-indicator" aria-hidden="true"></span><strong>聊天模式</strong><small>白名单内，随时对话</small></button>
         <button data-mode="closed-agent" aria-pressed="false"><span class="mode-indicator" aria-hidden="true"></span><strong>封闭 Agent</strong><small>仅管理员，完整工具</small></button>
-        <button data-mode="simulation" aria-pressed="false"><span class="mode-indicator" aria-hidden="true"></span><strong>群聊仿真</strong><small>自主阅读、发言与潜水</small></button>
+        <button data-mode="simulation" aria-pressed="false"><span class="mode-indicator" aria-hidden="true"></span><strong>群聊剧场</strong><small>自主阅读、发言与潜水</small></button>
       </div>
       <div class="row" style="margin-top:12px">
         <label style="flex:1;margin:0">封闭 Agent 使用的 DSH 预设</label>
@@ -3591,9 +4027,9 @@ button.active,.primary {
       <div class="row" style="margin-bottom:8px">
         <label style="flex:0 0 auto">仿真模式</label>
         <select id="simPromptPreset" style="flex:0 1 280px">
-          <option value="qq-chat">群聊仿真（qq-chat）</option>
+          <option value="qq-chat">群聊剧场</option>
         </select>
-        <span class="meta">群聊仿真的提示词由预设内置；保存后需重启 DSH 或重置会话。</span>
+        <span class="meta">群聊剧场的提示词由预设内置；保存后需重启 DSH 或重置会话。</span>
       </div>
       <div class="meta" id="simPromptWarnings"></div>
       <textarea id="simPromptText" class="code-area" spellcheck="false" readonly></textarea>
@@ -3607,11 +4043,11 @@ button.active,.primary {
       <div class="meta" id="simPromptRestart"></div>
     </section>
 <section id="section-simulation" data-page="simulation" class="card span-all">
-      <h2>群聊仿真控制台</h2>
+      <h2>群聊剧场控制台</h2>
       <div class="meta">配置保存后写入 config.json 并热更新；工具开关决定 AI 能调用哪些工具。已接入开关的工具在<b>重启 DSH 后</b>会从工具清单里彻底消失（少一份 schema 就少一份每次请求的 token）；发送类等跨模式共用的工具只在调用时被桥接拒绝，清单不变。</div>
 
       <div class="row" style="margin-top:10px">
-        <label style="flex:1">启用群聊仿真</label><input type="checkbox" id="simEnabled" style="width:auto">
+        <label style="flex:1">启用群聊剧场</label><input type="checkbox" id="simEnabled" style="width:auto">
         <label style="flex:1">agentPreset</label><input type="text" id="simAgentPreset" placeholder="qq-chat" style="max-width:200px">
       </div>
       <div class="row" style="margin-top:6px">
@@ -3619,9 +4055,9 @@ button.active,.primary {
         <span class="meta" style="flex:2">关闭后 qq_get_prompt 不再返回推荐值，AI 完全自主判断。</span>
       </div>
       <div class="row" style="margin-top:10px">
-        <button id="simPauseBtn" class="danger">暂停群聊仿真</button>
-        <button id="simResumeBtn">恢复群聊仿真</button>
-        <button id="simResetBtn" class="danger">重置群聊仿真状态</button>
+        <button id="simPauseBtn" class="danger">暂停群聊剧场</button>
+        <button id="simResumeBtn">恢复群聊剧场</button>
+        <button id="simResetBtn" class="danger">重置群聊剧场状态</button>
         <button id="simConfigSaveTop" style="font-weight:bold;padding:6px 14px">保存当前参数</button>
         <span class="meta" id="simActivityStatus">读取中…</span>
       </div>
@@ -3664,7 +4100,7 @@ button.active,.primary {
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="weather"> <span><b>qq_weather</b><span class="meta">查询城市天气（Open-Meteo）</span></span></label>
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="playGame"> <span><b>qq_play_game</b><span class="meta">猜拳/骰子/今日鲸鱼运势</span></span></label>
       </div>
-      <div class="meta" style="margin-top:6px">群聊仿真黑话学习：AI 可用 <code>qq_slang_submit</code> 提交陌生词，也可由桥接自动提取；管理员在「黑话词库」页面筛选确认后，词条会自动写入黑话提示词并注入 <code>qq_get_prompt</code> 与后续唤醒。</div>
+      <div class="meta" style="margin-top:6px">群聊剧场黑话学习：AI 可用 <code>qq_slang_submit</code> 提交陌生词，也可由桥接自动提取；管理员在「黑话词库」页面筛选确认后，词条会自动写入黑话提示词并注入 <code>qq_get_prompt</code> 与后续唤醒。</div>
 
       </div></details>
 <details class="settings-group"><summary>语音库与语音发送（调试）</summary><div class="settings-content">
@@ -3736,7 +4172,7 @@ button.active,.primary {
 
       </div></details>
 <details class="settings-group"><summary>发送限制</summary><div class="settings-content">
-      <div class="meta" style="margin-bottom:8px">群聊仿真不再按空格自动拆条；AI 要分多条必须显式传数组或用 qq_send_burst。</div>
+      <div class="meta" style="margin-bottom:8px">群聊剧场不再按空格自动拆条；AI 要分多条必须显式传数组或用 qq_send_burst。</div>
       <div class="row">
         <label style="flex:1">允许多条发送</label><input type="checkbox" id="simBurstEnabled" style="width:auto">
         <label style="flex:1">单次最多条数</label><input type="number" id="simBurstMax" min="1" style="width:70px">
@@ -3873,7 +4309,7 @@ button.active,.primary {
       <div class="meta" style="margin-bottom:8px">
         在这里提前告诉 AI「这个群是什么圈子、什么氛围、聊什么、有什么忌讳」。AI 只在<b>该会话的第一次唤醒</b>时收到一次，
         之后不会重复注入（那时它已经在会话上下文里了）；AI 读不到也改不了这份设置。
-        如果 AI 已经在这个会话里首次唤醒过，需要重置该会话（「会话映射」里重置，或「重置群聊仿真状态」）后，下一次首次唤醒才会带上它。
+        如果 AI 已经在这个会话里首次唤醒过，需要重置该会话（「会话映射」里重置，或「重置群聊剧场状态」）后，下一次首次唤醒才会带上它。
         留空保存等于删除；只写环境背景，别写指令式的要求（那是人格卡/仿真提示词的事）。
       </div>
       <div class="row">
@@ -3942,7 +4378,7 @@ button.active,.primary {
       </div></section>
 <section id="section-slang" data-page="slang" class="card span-all">
       <h2>群聊黑话 / 网络用语库</h2>
-      <div class="meta">DSH 会从群聊中自动提取疑似黑话候选；群聊仿真模式下 AI 也可用 <code>qq_slang_submit</code> 主动提交陌生词。候选可批量送 DSH 深度联网研究，研究结果回到控制台由你删改修正后转正；确认后的词条会写入“黑话提示词”，注入群聊仿真的聊天上下文，成为 AI 可查询和使用的记忆。</div>
+      <div class="meta">DSH 会从群聊中自动提取疑似黑话候选；群聊剧场模式下 AI 也可用 <code>qq_slang_submit</code> 主动提交陌生词。候选可批量送 DSH 深度联网研究，研究结果回到控制台由你删改修正后转正；确认后的词条会写入“黑话提示词”，注入群聊剧场的聊天上下文，成为 AI 可查询和使用的记忆。</div>
 
       <div class="slang-tabs">
         <button class="slang-tab active" data-slang-tab="candidate">候选词</button>
@@ -4071,7 +4507,7 @@ button.active,.primary {
         <tr><td>qq_slang_query</td><td>查询已确认黑话/梗/网络表达（只读）</td></tr>
         <tr><td>qq_slang_submit</td><td>AI 提交陌生词/黑话给管理员筛选</td></tr>
       </table>
-      <div class="meta" style="margin-top:10px">群聊仿真模式工具：qq_get_prompt / qq_get_unread_messages / qq_get_recent_messages / qq_social_state / qq_send_burst / qq_send_message / qq_wait_for_messages / qq_set_wake_config / qq_mark_read / qq_memory_* / qq_slang_query / qq_slang_submit 等。</div>
+      <div class="meta" style="margin-top:10px">群聊剧场模式工具：qq_get_prompt / qq_get_unread_messages / qq_get_recent_messages / qq_social_state / qq_send_burst / qq_send_message / qq_wait_for_messages / qq_set_wake_config / qq_mark_read / qq_memory_* / qq_slang_query / qq_slang_submit 等。</div>
     </section>
 <section id="section-whitelist" data-page="access" class="card span-all">
       <h2>白名单 / 管理员</h2>
@@ -4420,7 +4856,7 @@ button.active,.primary {
     </section>
 <section id="section-notify" data-page="operations" class="card span-all">
       <h2>后台控制端引导</h2>
-      <div class="meta">直接向指定 QQ 会话的 DSH agent 投递一条“后台控制端提醒”，用于给 AI 引导/提醒；该消息不是群友消息。群聊仿真模式下会自动附带会话令牌和工具协议说明，AI 的文本输出不会自动转发，发言需通过发送工具。</div>
+      <div class="meta">直接向指定 QQ 会话的 DSH agent 投递一条“后台控制端提醒”，用于给 AI 引导/提醒；该消息不是群友消息。群聊剧场模式下会自动附带会话令牌和工具协议说明，AI 的文本输出不会自动转发，发言需通过发送工具。</div>
       <div class="row" style="margin-top:10px">
         <select id="aiNotifyKind" style="width:110px">
           <option value="group">群</option>
@@ -4609,7 +5045,7 @@ async function refresh() {
     document.querySelectorAll('#modeRow button').forEach(b => (b.classList.toggle('active', b.dataset.mode === s.mode), b.setAttribute('aria-pressed', String(b.dataset.mode === s.mode))));
     document.getElementById('roleText').textContent = s.role || '无';
     document.getElementById('roleModeText').textContent = s.roleMode === 'silent' ? '静默' : '正常';
-    const modeLabel = s.mode === 'reserved' ? '旧版仿真模式' : s.mode === 'simulation' ? '群聊仿真' : s.mode === 'closed-agent' ? '封闭 Agent' : '聊天模式';
+    const modeLabel = s.mode === 'reserved' ? '旧版仿真模式' : s.mode === 'simulation' ? '群聊剧场' : s.mode === 'closed-agent' ? '封闭 Agent' : '聊天模式';
     updateOverview(s, modeLabel);
     // 控制台鉴权关闭时，访问令牌设置卡没有意义，直接隐藏（不删除数据，随时可恢复）。
     const tokenCard = document.getElementById('section-token');
@@ -4662,7 +5098,7 @@ async function saveMode(mode) {
 // 人格提示词 = roles/<名称>.md，桥接每条消息注入，保存即生效。
 let roleEditorState = { mode: 'new', name: '' };
 let roleCache = [];
-let roleInjectMax = 6000;
+let roleInjectMax = 10000;
 
 function setRoleMsg(text, ok) {
   const el = document.getElementById('roleCreateMsg');
@@ -4683,7 +5119,7 @@ function roleEditorWarnings(text) {
   const warns = [];
   if (value.length > roleInjectMax) warns.push(`超出注入上限：当前 ${value.length} 字符，只有前 ${roleInjectMax} 字符会进入提示词（多余 ${value.length - roleInjectMax} 字符不会生效）`);
   if (/\[SILENT\]|空格分隔|按空格|用空格|空格分句|空格代表|自动转发|回复会自动|输出\s*\[SILENT\]/i.test(value)) {
-    warns.push('含旧版仿真专用指令（[SILENT] / 空格分句 / 自动转发），群聊仿真下这些行会被自动过滤');
+    warns.push('含旧版仿真专用指令（[SILENT] / 空格分句 / 自动转发），群聊剧场下这些行会被自动过滤');
   }
   return warns;
 }
@@ -4878,7 +5314,7 @@ async function refreshSessions() {
     const box = document.getElementById('sessionList');
     document.getElementById('metricSessions').textContent = s.sessions.length;
     if (!s.sessions.length) { box.innerHTML = '<div class="empty-state"><strong>还没有会话</strong><p>白名单中的群或好友发来消息后，会话会显示在这里。</p></div>'; return; }
-    let html = '<table><tr><th>QQ 会话</th><th>DSH 会话 ID</th><th>类型</th><th></th></tr>';
+    let html = '<table><tr><th>QQ 会话</th><th>DSH 会话 ID</th><th>类型</th><th>上下文水位</th><th>上次整理</th><th></th></tr>';
     for (const x of s.sessions) {
       const isP = x.key.startsWith('private:');
       const type = isP ? '<span class="pill b">私聊</span>' : '<span class="pill g">群</span>';
@@ -4886,9 +5322,33 @@ async function refreshSessions() {
       const conv = x.name
         ? `<div class="sess-name">${esc(x.name)}${ownerTag}</div><div class="sess-key">${esc(x.key)}</div>`
         : `<code>${esc(x.key)}</code>${ownerTag}`;
-      html += `<tr><td>${conv}</td><td><code>${esc(x.sessionId)}</code></td><td>${type}</td><td><button class="small" data-reset-key="${esc(x.key)}">清除上下文</button></td></tr>`;
+      const ctx = x.context || {};
+      const tokens = Number(ctx.tokens) || 0;
+      const hard = Number(ctx.hardTokens) || 0;
+      const pct = Number(ctx.percent) || 0;
+      const barCls = pct >= 85 ? 'r' : pct >= 60 ? 'b' : 'g';
+      const water = tokens
+        ? `<span class="pill ${barCls}">${pct}%</span> ${Math.round(tokens / 1000)}k / ${Math.round(hard / 1000)}k<div class="muted small">软阈值 ${Math.round((Number(ctx.softTokens) || 0) / 1000)}k${ctx.source === 'compaction' ? ' · 已整理' : ''}</div>`
+        : '<span class="muted">暂无数据</span>';
+      const lastCompact = Number(ctx.lastCompactedAt) || 0;
+      const compactText = lastCompact
+        ? `<span title="${esc(ctx.lastCompactResult || '')}">${esc(relTime(lastCompact))}</span>${ctx.lastCompactError ? `<div class="muted small">${esc(ctx.lastCompactError)}</div>` : ''}`
+        : '<span class="muted">—</span>';
+      html += `<tr><td>${conv}</td><td><code>${esc(x.sessionId)}</code></td><td>${type}</td><td>${water}</td><td>${compactText}</td><td><button class="small" data-compact-key="${esc(x.key)}">立即整理</button> <button class="small" data-reset-key="${esc(x.key)}">清除上下文</button></td></tr>`;
     }
     box.innerHTML = html + '</table>';
+    box.querySelectorAll('[data-compact-key]').forEach(btn => btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = '整理中…';
+      try {
+        const r = await api('/api/simulation/context/compact', 'POST', { key: btn.dataset.compactKey });
+        alert(r.ok
+          ? (r.rotated ? '✅ 已归档旧会话并生成衔接摘要' : (r.compacted ? '✅ 已请求 DSH 整理上下文' : `✅ 无需整理（${r.reason || '未到阈值'}）`))
+          : ('❌ ' + (r.error || '整理失败')));
+      } finally {
+        refreshSessions();
+      }
+    }));
     box.querySelectorAll('[data-reset-key]').forEach(btn => btn.addEventListener('click', async () => {
       if (!confirm('确定清除该会话的上下文？下次消息将开新会话。')) return;
       const r = await api('/api/session/reset', 'POST', { key: btn.dataset.resetKey });
@@ -6602,7 +7062,7 @@ async function sendVoiceFromConsole() {
   }
 }
 
-// ── 群聊仿真模式（simulation）配置 ─────────────────────────────────────────
+// ── 群聊剧场模式（simulation）配置 ─────────────────────────────────────────
 async function loadSimConfig() {
   try {
     const r = await api('/api/simulation/config');
@@ -7292,10 +7752,10 @@ document.getElementById('simResumeBtn').addEventListener('click', async () => {
   refreshSimActivity();
 });
 document.getElementById('simResetBtn').addEventListener('click', async () => {
-  if (!confirm('确定重置群聊仿真状态？\n将清空所有仿真会话、唤醒配置、未读消息和定时器；工具调用日志会保留。')) return;
+  if (!confirm('确定重置群聊剧场状态？\n将清空所有仿真会话、唤醒配置、未读消息和定时器；工具调用日志会保留。')) return;
   const r = await api('/api/simulation/reset', 'POST', {});
   const msg = document.getElementById('simConfigMsg');
-  msg.textContent = r.ok ? '✅ 已重置群聊仿真状态' : ('❌ ' + (r.error || '失败'));
+  msg.textContent = r.ok ? '✅ 已重置群聊剧场状态' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
   refreshSimActivity();
   document.getElementById('simAllStatesOutput').textContent = '（全部会话状态：空）';
@@ -7747,11 +8207,11 @@ document.getElementById('consoleTokenRandom').addEventListener('click', () => ch
 
 // Presentation layer: keep every existing control mounted so drafts and API contracts survive navigation.
 const consolePages = {
-  overview: ['运行总览', '深海指挥舱', '链路、会话、人格与发送边界，一块甲板统一调度。'],
+  overview: ['运行总览', '小鲸鱼指挥舱', '链路、会话、人格与发送边界，一块甲板统一调度。'],
   features: ['功能总览', '能力雷达', '按人格、媒体、内心生活、生活技能与运行方式整理的能力清单。'],
   sessions: ['会话与审批', '会话链路与待批队列', '查看 QQ 与 DSH 的会话映射，以及等待你回复的审批和提问。'],
   persona: ['人格与角色', '人格与声线', '选择已有角色，或用自己的语言写下新的性格与表达方式。'],
-  'simulation': ['群聊仿真', '自主巡航', '管理 AI 的工具、唤醒与发言节奏。展开需要调整的分组，修改后保存参数。'],
+  'simulation': ['群聊剧场', '自主巡航', '管理 AI 的工具、唤醒与发言节奏。展开需要调整的分组，修改后保存参数。'],
   insights: ['群聊洞察', '群聊雷达', '查看群友关系（内部数值，可编辑）与群日报预览；日报默认关闭。'],
   library: ['资源库', '媒体仓库', '查看 QQ 收藏表情与通用图片库的名称、描述、备注和标签。'],
   slang: ['黑话词库', '黑话词库', '从候选到确认，让 AI 逐渐熟悉大家的表达习惯。'],
@@ -7786,7 +8246,7 @@ function setConsolePage(page, { updateHash = true, focus = false, target = '' } 
   document.title = consolePages[page][0] + ' · 本地控制台';
   if (updateHash && location.hash !== '#' + page) history.pushState({}, '', '#' + page);
   closeConsoleSearch();
-  // 语音库按需加载：进入群聊仿真页时才探测（避免每次开控制台都压网关）。
+  // 语音库按需加载：进入群聊剧场页时才探测（避免每次开控制台都压网关）。
   if (page === 'simulation' && typeof loadVoiceLibrary === 'function') loadVoiceLibrary();
   if (page === 'features' && typeof refreshFeatures === 'function') refreshFeatures();
   if (page === 'reliability') {
@@ -7878,7 +8338,7 @@ document.querySelectorAll('input,select,textarea').forEach(input => {
     }
     input.setAttribute('aria-label', label.textContent.trim() + (siblings.length > 1 ? (siblings.indexOf(input) === 0 ? '（下限）' : '（上限）') : ''));
   } else {
-    const names = { consoleTokenInput: '新的控制台访问令牌', closedPreset: '封闭 Agent 使用的 DSH 预设', tsKind: '测试消息目标类型', aiNotifyKind: '后台提醒目标类型', simSessionSelect: '群聊仿真白名单会话', slangLimitCand: '候选词显示数量', slangLimitConfirmed: '已确认词显示数量', slangLimitRejected: '已拒绝词显示数量' };
+    const names = { consoleTokenInput: '新的控制台访问令牌', closedPreset: '封闭 Agent 使用的 DSH 预设', tsKind: '测试消息目标类型', aiNotifyKind: '后台提醒目标类型', simSessionSelect: '群聊剧场白名单会话', slangLimitCand: '候选词显示数量', slangLimitConfirmed: '已确认词显示数量', slangLimitRejected: '已拒绝词显示数量' };
     input.setAttribute('aria-label', names[input.id] || input.placeholder || input.closest('section')?.querySelector('h2')?.textContent || '设置');
   }
 });

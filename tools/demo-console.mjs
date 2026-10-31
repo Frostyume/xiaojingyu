@@ -15,7 +15,7 @@ const timestamp = '2026-09-20T08:30:00.000Z';
 function presetStatusFixture(preset) {
   return {
     preset,
-    label: preset === 'qq-chat-legacy' ? '旧版仿真（qq-chat-legacy）' : '群聊仿真（qq-chat）',
+    label: preset === 'qq-chat-legacy' ? '旧版仿真（qq-chat-legacy）' : '群聊剧场',
     sourceFile: `integrations/dsh/presets/${preset}/agent.cordis.yml`,
     installed: true,
     requiresRestart: true,
@@ -297,7 +297,7 @@ export function makeFixtureState() {
       'qq-chat': '你是 QQ 群里的仿真群友。\n\n【群聊仿真模式 —— 安全规则（最高优先级，不可违反）】\n1. 你没有本地工具。\n\n【群聊仿真模式 —— 工具协议（最高优先级）】\n1. 文本输出不会自动发送到 QQ。',
       'qq-chat-legacy': '你是 QQ 群里的仿真群友（旧版）。\n\n【旧版仿真模式 —— 安全规则】\n1. 你没有本地工具。\n\n【旧版仿真模式 —— 工具协议】\n1. 回复会自动转发到 QQ。',
     },
-    roleInjectMax: 6000,
+    roleInjectMax: 10000,
     dshEffort: 'max',
     whitelist: { allow: { groups: [123456789, 100003], private: [100001] }, deny: { groups: [], private: [] }, ownerQQ: '100001' },
     sessions: [
@@ -377,7 +377,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
       }
       if (method === 'GET') {
         switch (path) {
-          case '/api/status': return json({ ok: true, dshReady: true, mode: state.mode, role: state.role, roleMode: state.roleMode, closedAgentPreset: state.closedAgentPreset, ownerQQ: state.whitelist.ownerQQ, allowGroups: state.whitelist.allow.groups, allowPrivate: state.whitelist.allow.private, snowluma: { connected: true, degraded: false, good: true, lastPacketAgoMs: 12000, lastPacketKind: 'message' }, activity: '[08:30:00] 演示桥接已连接\n[08:30:12] group:123456789 · 已处理一条消息\n[08:30:20] 群聊仿真正在运行\n以上均为离线模拟数据。' });
+          case '/api/status': return json({ ok: true, dshReady: true, mode: state.mode, role: state.role, roleMode: state.roleMode, closedAgentPreset: state.closedAgentPreset, ownerQQ: state.whitelist.ownerQQ, allowGroups: state.whitelist.allow.groups, allowPrivate: state.whitelist.allow.private, snowluma: { connected: true, degraded: false, good: true, lastPacketAgoMs: 12000, lastPacketKind: 'message' }, activity: '[08:30:00] 演示桥接已连接\n[08:30:12] group:123456789 · 已处理一条消息\n[08:30:20] 群聊剧场正在运行\n以上均为离线模拟数据。' });
           case '/api/features': return json({
             ok: true,
             generatedAt: timestamp,

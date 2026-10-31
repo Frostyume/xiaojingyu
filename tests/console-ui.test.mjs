@@ -485,31 +485,31 @@ try {
     assert.equal(await page.locator('#simPromptText').getAttribute('readonly'), '', '保存后应回到只读');
   });
 
-  if (!original) await test('仿真提示词只保留群聊仿真预设', async () => {
+  if (!original) await test('仿真提示词只保留群聊剧场预设', async () => {
     await navigate('persona');
     await page.waitForFunction(() => document.getElementById('simPromptText').value.length > 0);
     const options = await page.locator('#simPromptPreset option').evaluateAll(nodes => nodes.map(n => n.value));
     assert.deepEqual(options, ['qq-chat']);
-    assert.match(await page.locator('#simPromptStatus').textContent(), /群聊仿真|qq-chat/);
+    assert.match(await page.locator('#simPromptStatus').textContent(), /群聊剧场|qq-chat/);
   });
 
   if (!original) await test('人格注入上限可调，且随模式筛选后统计', async () => {
     await navigate('persona');
     await page.waitForFunction(() => document.querySelectorAll('#roleList .persona-item').length > 0);
     const before = await page.locator('#roleInjectMax').inputValue();
-    assert.equal(Number(before), 6000, '默认上限应为 6000');
-    await page.locator('#roleInjectMax').fill('8000');
+    assert.equal(Number(before), 10000, '默认上限应为 10000');
+    await page.locator('#roleInjectMax').fill('12000');
     const [saved] = await Promise.all([
       page.waitForResponse(r => new URL(r.url()).pathname === '/api/roles/limit' && r.request().method() === 'POST'),
       page.locator('#roleInjectMaxSave').click(),
     ]);
     assert.equal(saved.status(), 200);
-    assert.equal((await saved.json()).maxInjectChars, 8000);
-    assert.match(await page.locator('#roleInjectMaxMsg').textContent(), /8000/);
+    assert.equal((await saved.json()).maxInjectChars, 12000);
+    assert.match(await page.locator('#roleInjectMaxMsg').textContent(), /12000/);
     // 改回默认
-    await page.locator('#roleInjectMax').fill('6000');
+    await page.locator('#roleInjectMax').fill('10000');
     await page.locator('#roleInjectMaxSave').click();
-    await page.waitForFunction(() => document.getElementById('roleInjectMaxMsg').textContent.includes('6000'));
+    await page.waitForFunction(() => document.getElementById('roleInjectMaxMsg').textContent.includes('10000'));
   });
 
   if (!original) await test('思考强度：档位来自 DSH、默认 max、可切换并明示全局副作用', async () => {
