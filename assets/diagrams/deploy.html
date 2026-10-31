@@ -2,47 +2,50 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>小鲸鱼 · 一句话部署</title>
+<title>小鲸鱼 · 快速部署</title>
 <style>
   :root {
-    --ink: #eaf7f8;
-    --muted: #93b6bd;
-    --faint: #5f858d;
-    --teal: #2dd4bf;
-    --line: rgba(45, 212, 191, .26);
-    --panel: rgba(10, 42, 52, .74);
-    --panel-2: rgba(6, 28, 36, .82);
+    --ink: #eef2ff;
+    --muted: #a3b1d6;
+    --faint: #6b7aa8;
+    --accent: #7c93ff;
+    --accent-2: #4d6bfe;
+    --accent-3: #a9b8ff;
+    --you: #facc15;
+    --line: rgba(124, 147, 255, .24);
+    --panel: rgba(16, 25, 58, .78);
+    --panel-2: rgba(9, 14, 36, .85);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body {
     width: 1600px;
-    min-height: 780px;
-    padding: 52px 64px 44px;
+    min-height: 700px;
+    padding: 50px 64px 40px;
     font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
     color: var(--ink);
     background:
-      radial-gradient(1100px 520px at 18% -10%, rgba(14, 116, 108, .34), transparent 62%),
-      radial-gradient(900px 460px at 92% 8%, rgba(56, 189, 248, .14), transparent 60%),
-      linear-gradient(180deg, #04161f 0%, #061f29 48%, #04141c 100%);
+      radial-gradient(1100px 520px at 14% -12%, rgba(45, 74, 180, .42), transparent 62%),
+      radial-gradient(900px 460px at 94% 4%, rgba(77, 107, 254, .22), transparent 60%),
+      linear-gradient(180deg, #060b1c 0%, #0b1230 50%, #070c20 100%);
   }
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(148, 233, 222, .045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 233, 222, .045) 1px, transparent 1px);
+      linear-gradient(rgba(160, 178, 255, .045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(160, 178, 255, .045) 1px, transparent 1px);
     background-size: 40px 40px;
     mask-image: linear-gradient(180deg, rgba(0,0,0,.7), rgba(0,0,0,.12));
     pointer-events: none;
   }
   .canvas { position: relative; }
-  .head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 30px; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 26px; }
   .kicker {
     font-family: "Cascadia Mono", Consolas, monospace;
     font-size: 13px; letter-spacing: .34em; text-transform: uppercase;
-    color: var(--teal); margin: 0 0 10px;
+    color: var(--accent); margin: 0 0 10px;
   }
   h1 { font-size: 44px; line-height: 1.1; margin: 0 0 8px; letter-spacing: .01em; }
   .sub { margin: 0; color: var(--muted); font-size: 18px; }
@@ -53,65 +56,105 @@
   }
   .whale svg { display: block; }
 
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .phases { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+  .phase { position: relative; z-index: 1; display: flex; flex-direction: column; }
+  .phase:not(:last-child)::before {
+    content: "";
+    position: absolute; top: 24px; right: -30px;
+    width: 30px; height: 2px;
+    background: linear-gradient(90deg, rgba(124,147,255,.18), var(--accent));
+  }
+  .phase:not(:last-child)::after {
+    content: "›";
+    position: absolute; top: 5px; right: -30px;
+    color: var(--accent); font-size: 30px; line-height: 1;
+    text-shadow: 0 0 14px rgba(124,147,255,.7);
+  }
+  .phase-head { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 16px; }
+  .phase-dot {
+    flex: none;
+    width: 50px; height: 50px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 15px; letter-spacing: .04em;
+    color: #dfe6ff;
+    background: radial-gradient(circle at 32% 26%, rgba(124,147,255,.45), rgba(20,32,78,.95) 70%);
+    border: 1px solid rgba(124,147,255,.55);
+    box-shadow: 0 0 0 6px rgba(6,11,28,.9), 0 0 26px rgba(77,107,254,.38);
+  }
+  .phase-head h2 { margin: 4px 0 2px; font-size: 21px; font-weight: 650; }
+  .phase-head p { margin: 0; color: var(--faint); font-size: 13px; }
+
+  .phase-body {
+    flex: 1;
+    display: flex; flex-direction: column; gap: 14px;
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(19, 29, 66, .55), rgba(10, 16, 40, .62));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  }
   .step {
     position: relative;
-    border: 1px solid var(--line);
-    border-radius: 18px;
+    border: 1px solid rgba(124, 147, 255, .16);
+    border-left: 3px solid rgba(124, 147, 255, .55);
+    border-radius: 13px;
     background: linear-gradient(180deg, var(--panel), var(--panel-2));
-    padding: 20px 22px 18px;
-    box-shadow: 0 18px 44px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .04);
-    min-height: 196px;
+    padding: 14px 16px 13px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.22);
   }
-  .step .no {
+  .step.you { border-left-color: rgba(250, 204, 21, .75); }
+  .step-top { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+  .idx {
     font-family: "Cascadia Mono", Consolas, monospace;
-    font-size: 12px; letter-spacing: .22em; color: var(--teal);
-    display: flex; align-items: center; gap: 9px; margin-bottom: 12px;
+    font-size: 11px; letter-spacing: .18em; color: var(--accent);
   }
-  .step .no i {
-    width: 25px; height: 25px; border-radius: 50%;
-    border: 1px solid var(--line);
-    display: grid; place-items: center; font-style: normal; font-size: 11px;
-    background: rgba(45, 212, 191, .08);
+  .step.you .idx { color: var(--you); }
+  .step h3 { margin: 0; font-size: 17px; font-weight: 600; }
+  .tag {
+    margin-left: auto;
+    font-size: 10px; letter-spacing: .14em;
+    padding: 2px 7px; border-radius: 999px;
+    color: var(--accent-3);
+    background: rgba(77, 107, 254, .14);
+    border: 1px solid rgba(124, 147, 255, .26);
   }
-  .step h2 { font-size: 21px; margin: 0 0 7px; font-weight: 600; }
-  .step p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.62; }
+  .tag.you { color: var(--you); background: rgba(250, 204, 21, .08); border-color: rgba(250, 204, 21, .26); }
+  .step p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
   .step .code {
-    margin-top: 11px;
+    margin-top: 9px;
     font-family: "Cascadia Mono", Consolas, monospace;
-    font-size: 12px; color: #bff4ee;
-    background: rgba(45, 212, 191, .07);
-    border: 1px solid rgba(45, 212, 191, .16);
-    border-radius: 9px;
-    padding: 8px 11px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 11.5px; line-height: 1.5; color: #c7d4ff;
+    background: rgba(77, 107, 254, .09);
+    border: 1px solid rgba(124, 147, 255, .18);
+    border-radius: 8px;
+    padding: 7px 10px;
+    word-break: break-all;
   }
-  .step.manual { border-color: rgba(250, 204, 21, .34); }
-  .step.manual .no { color: #facc15; }
-  .step.manual .no i { border-color: rgba(250, 204, 21, .3); background: rgba(250, 204, 21, .08); }
+  .step.you .code { color: #f3e2a4; background: rgba(250, 204, 21, .05); border-color: rgba(250, 204, 21, .16); }
 
   .gate {
-    margin-top: 20px;
+    margin-top: 18px;
     display: flex; align-items: center; gap: 14px;
-    padding: 15px 20px;
+    padding: 14px 20px;
     border-radius: 14px;
-    border: 1px dashed rgba(45, 212, 191, .38);
-    background: rgba(13, 148, 136, .12);
-    font-size: 15px; color: #d8fbf6;
+    border: 1px dashed rgba(124, 147, 255, .4);
+    background: rgba(77, 107, 254, .10);
+    font-size: 15px; color: #dbe4ff;
   }
-  .gate b { color: #facc15; font-weight: 600; }
+  .gate b { color: var(--accent-3); font-weight: 650; }
   .gate .dot {
     width: 9px; height: 9px; border-radius: 50%;
-    background: var(--teal); box-shadow: 0 0 14px var(--teal);
+    background: var(--accent); box-shadow: 0 0 14px var(--accent);
     flex: none;
   }
   .foot {
     display: flex; align-items: center; justify-content: space-between;
-    margin-top: 18px; color: var(--faint); font-size: 13px;
+    margin-top: 16px; color: var(--faint); font-size: 13px;
   }
   .foot .mark {
     font-family: "Cascadia Mono", Consolas, monospace;
-    letter-spacing: .22em; font-size: 12px; color: #6fa9ae;
+    letter-spacing: .22em; font-size: 12px; color: #7a8cc4;
   }
 </style>
 </head>
@@ -119,74 +162,98 @@
 <div class="canvas">
   <div class="head">
     <div>
-      <p class="kicker">DEPLOY · ONE SENTENCE</p>
-      <h1 data-en="One sentence, and she is in your QQ">一句话，把她接到 QQ 里</h1>
-      <p class="sub" data-en="You only need to tell an agent one sentence; it handles the rest.">你只需要对 agent 说一句话；剩下的交给它。</p>
+      <p class="kicker">DEPLOY · 3 PHASES · 6 STEPS</p>
+      <h1 data-en="From zero to her first reply">从零到她在群里说话</h1>
+      <p class="sub" data-en="Prepare three things, hand over one sentence, then scan the QR code yourself.">准备三样东西 → 把一句话交给 agent → 亲手扫码并验收。</p>
     </div>
     <div class="whale">
       <svg width="46" height="46" viewBox="0 0 46 46" fill="none" aria-hidden="true">
-        <circle cx="23" cy="23" r="21" stroke="#2dd4bf" stroke-opacity=".35"/>
-        <path d="M11 27c0-7 5-12 12-12h6c2 0 3 1 3 3s-1 3-3 3h-5" stroke="#2dd4bf" stroke-width="2.4" stroke-linecap="round"/>
-        <path d="M11 27c0 5 4 8 9 8 6 0 10-4 12-9" stroke="#2dd4bf" stroke-width="2.4" stroke-linecap="round"/>
-        <circle cx="30" cy="20" r="1.6" fill="#eaf7f8"/>
-        <path d="M25 32c2 2 5 2 7 0" stroke="#5eead4" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="23" cy="23" r="21" stroke="#7c93ff" stroke-opacity=".4"/>
+        <path d="M11 27c0-7 5-12 12-12h6c2 0 3 1 3 3s-1 3-3 3h-5" stroke="#7c93ff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M11 27c0 5 4 8 9 8 6 0 10-4 12-9" stroke="#7c93ff" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="30" cy="20" r="1.6" fill="#eef2ff"/>
+        <path d="M25 32c2 2 5 2 7 0" stroke="#a9b8ff" stroke-width="2" stroke-linecap="round"/>
       </svg>
       <span>XIAOJINGYU · 0.0.0</span>
     </div>
   </div>
 
-  <div class="steps">
-    <div class="step">
-      <div class="no"><i>01</i><span data-en="SAY ONE SENTENCE">说一句话</span></div>
-      <h2 data-en="Paste the prompt">把提示词发给 agent</h2>
-      <p data-en="Copy the deploy prompt from README and send it to Codex, Claude Code, Qoder or DSH.">复制 README 里的部署提示词，发给 Codex、Claude Code、Qoder 或 DSH。</p>
-      <div class="code" data-en="Deploy github.com/Frostyume/xiaojingyu for me">帮我部署 github.com/Frostyume/xiaojingyu</div>
-    </div>
+  <div class="phases">
+    <section class="phase">
+      <div class="phase-head">
+        <span class="phase-dot">01</span>
+        <div>
+          <h2 data-en="Prepare">准备</h2>
+          <p data-en="Three things to have ready">先有三样东西</p>
+        </div>
+      </div>
+      <div class="phase-body">
+        <div class="step you">
+          <div class="step-top"><span class="idx">01</span><h3 data-en="Install DSH">装好 DSH</h3><span class="tag you" data-en="YOU">你</span></div>
+          <p data-en="DeepSeek Harness is her brain. Install it from the official channel and start it.">小鲸鱼的大脑。从官方渠道安装并启动，浏览器能打开就算成功。</p>
+          <div class="code">http://127.0.0.1:3080</div>
+        </div>
+        <div class="step you">
+          <div class="step-top"><span class="idx">02</span><h3 data-en="Open an agent">打开一个 agent</h3><span class="tag you" data-en="YOU">你</span></div>
+          <p data-en="Codex, Claude Code, Qoder or DSH — any agent that can run commands and edit files.">Codex、Claude Code、Qoder 或 DSH，任选一个能执行命令、读写文件的。</p>
+          <div class="code" data-en="can run commands + read & write files">能执行命令 + 读写文件</div>
+        </div>
+      </div>
+    </section>
 
-    <div class="step">
-      <div class="no"><i>02</i><span data-en="CHECK THE MACHINE">环境自检</span></div>
-      <h2 data-en="See what is missing">缺什么先补什么</h2>
-      <p data-en="Windows, Node 24, DSH, SnowLuma — checked one by one before touching the repo.">Windows、Node 24、DSH、SnowLuma 逐项确认，再开始动仓库。</p>
-      <div class="code">Windows 10/11 · Node ≥ 22.13 · DSH · SnowLuma</div>
-    </div>
+    <section class="phase">
+      <div class="phase-head">
+        <span class="phase-dot">02</span>
+        <div>
+          <h2 data-en="Hand over">交给 agent</h2>
+          <p data-en="One sentence, four answers">一句话，四个回答</p>
+        </div>
+      </div>
+      <div class="phase-body">
+        <div class="step you">
+          <div class="step-top"><span class="idx">03</span><h3 data-en="Paste the prompt">原样发一句话</h3><span class="tag you" data-en="YOU">你</span></div>
+          <p data-en="Copy the deploy prompt from README and send it as-is.">把 README 里的部署提示词整段复制，发给它。</p>
+          <div class="code" data-en="Deploy github.com/Frostyume/xiaojingyu for me…">帮我部署 github.com/Frostyume/xiaojingyu…</div>
+        </div>
+        <div class="step">
+          <div class="step-top"><span class="idx">04</span><h3 data-en="Answer &amp; let it run">回答后全自动</h3><span class="tag" data-en="AGENT">AGENT</span></div>
+          <p data-en="Give QQ number, whitelist, SnowLuma ports and model name. It clones, installs, configures, installs the preset, restarts DSH and runs doctor.">告诉它 QQ 号、白名单、SnowLuma 端口、模型名；克隆、依赖、配置、preset、重启 DSH、doctor 都由它做。</p>
+          <div class="code">clone → npm install → config → install-dsh → doctor</div>
+        </div>
+      </div>
+    </section>
 
-    <div class="step">
-      <div class="no"><i>03</i><span data-en="INSTALL">装依赖与配置</span></div>
-      <h2 data-en="Clone, install, configure">克隆、装依赖、写配置</h2>
-      <p data-en="Creates config.json with your whitelist, DSH model and SnowLuma endpoints.">生成 config.json，填好白名单、DSH 模型与 SnowLuma 端点。</p>
-      <div class="code">git clone → npm install → config.json</div>
-    </div>
-
-    <div class="step">
-      <div class="no"><i>04</i><span data-en="WIRE DSH">接进 DSH</span></div>
-      <h2 data-en="Install preset &amp; MCP">装 preset 与 MCP</h2>
-      <p data-en="Runs install-dsh.mjs, then restarts DSH — presets load only at startup.">执行 install-dsh.mjs，然后重启 DSH——preset 只在启动时加载。</p>
-      <div class="code" data-en="node tools/install-dsh.mjs → restart DSH">node tools/install-dsh.mjs → 重启 DSH</div>
-    </div>
-
-    <div class="step manual">
-      <div class="no"><i>05</i><span data-en="YOU, ONLY HERE">只有这两步</span></div>
-      <h2 data-en="SnowLuma login">SnowLuma 扫码登录</h2>
-      <p data-en="You download it and scan the QR code. The agent never logs in for you, never accepts terms.">你亲自下载并扫码。agent 不代登录、不代同意条款、不代启动它。</p>
-      <div class="code" data-en="official release · scan QR · enable OneBot">官方渠道下载 · 扫码 · 开启 OneBot</div>
-    </div>
-
-    <div class="step">
-      <div class="no"><i>06</i><span data-en="ACCEPTANCE">体检上线</span></div>
-      <h2 data-en="Green, then say hi">全绿后打个招呼</h2>
-      <p data-en="npm run doctor must be all green; then one private message and the console page.">npm run doctor 全绿；再私聊发一句、打开控制台确认。</p>
-      <div class="code" data-en="npm run doctor → say hi → 127.0.0.1:3100">npm run doctor → 私聊一句 → 127.0.0.1:3100</div>
-    </div>
+    <section class="phase">
+      <div class="phase-head">
+        <span class="phase-dot">03</span>
+        <div>
+          <h2 data-en="Go live">扫码上线</h2>
+          <p data-en="Only the QR scan is yours">只有扫码必须你亲手</p>
+        </div>
+      </div>
+      <div class="phase-body">
+        <div class="step you">
+          <div class="step-top"><span class="idx">05</span><h3 data-en="SnowLuma QR login">SnowLuma 扫码</h3><span class="tag you" data-en="MANUAL">亲手</span></div>
+          <p data-en="Download the official release, run launcher.bat, scan the QR code, enable WebSocket + HTTP API.">官方下载 → launcher.bat → 扫码登录 QQ → 开启 WebSocket 与 HTTP API。</p>
+          <div class="code">ws://127.0.0.1:3001 · http://127.0.0.1:3000</div>
+        </div>
+        <div class="step you">
+          <div class="step-top"><span class="idx">06</span><h3 data-en="Acceptance">验收上线</h3><span class="tag you" data-en="MANUAL">亲手</span></div>
+          <p data-en="doctor all green, one private message gets a reply, console opens.">doctor 全绿 → 白名单私聊发一句「在吗」→ 打开控制台。</p>
+          <div class="code">npm run doctor → 私聊「在吗」→ 127.0.0.1:3100</div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="gate">
     <span class="dot"></span>
-    <span data-en="Only two things need your hands: SnowLuma QR login, and your QQ / group numbers. Everything else is automated.">只有两步需要你亲手：<b>SnowLuma 扫码登录</b>，以及提供 <b>QQ 号 / 群号</b>。其余全自动。</span>
+    <span data-en="Done means: doctor has no FAIL, a whitelisted private chat gets a reply, and the console opens — not just “commands finished”.">完成的标准是：<b>doctor 没有 FAIL</b>、<b>白名单私聊收到回复</b>、<b>控制台能打开</b>——而不是「命令跑完」。</span>
   </div>
 
   <div class="foot">
     <span data-en="No code reading required · every step prints a check you can verify">不需要读代码 · 每一步都会打印可核验的检查结果</span>
-    <span class="mark">6 STEPS · 2 MANUAL · 1 SENTENCE</span>
+    <span class="mark">3 PHASES · 6 STEPS · 2 MANUAL</span>
   </div>
 </div>
 <script>

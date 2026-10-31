@@ -5,14 +5,14 @@
 <title>小鲸鱼 · 一条消息的一生</title>
 <style>
   :root {
-    --ink: #eaf7f8;
-    --muted: #93b6bd;
-    --faint: #5f858d;
-    --teal: #2dd4bf;
-    --teal-deep: #0d9488;
-    --line: rgba(45, 212, 191, .26);
-    --panel: rgba(10, 42, 52, .74);
-    --panel-2: rgba(6, 28, 36, .82);
+    --ink: #eef2ff;
+    --muted: #a3b1d6;
+    --faint: #6b7aa8;
+    --teal: #7c93ff;
+    --teal-deep: #4d6bfe;
+    --line: rgba(124, 147, 255, .26);
+    --panel: rgba(16, 25, 58, .78);
+    --panel-2: rgba(9, 14, 36, .85);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -23,17 +23,17 @@
     font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
     color: var(--ink);
     background:
-      radial-gradient(1100px 520px at 18% -10%, rgba(14, 116, 108, .34), transparent 62%),
-      radial-gradient(900px 460px at 92% 8%, rgba(56, 189, 248, .14), transparent 60%),
-      linear-gradient(180deg, #04161f 0%, #061f29 48%, #04141c 100%);
+      radial-gradient(1100px 520px at 18% -10%, rgba(29, 55, 160, .34), transparent 62%),
+      radial-gradient(900px 460px at 92% 8%, rgba(77, 107, 254, .20), transparent 60%),
+      linear-gradient(180deg, #060b1c 0%, #0b1230 48%, #070c20 100%);
   }
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(148, 233, 222, .045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 233, 222, .045) 1px, transparent 1px);
+      linear-gradient(rgba(160, 178, 255, .045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(160, 178, 255, .045) 1px, transparent 1px);
     background-size: 40px 40px;
     mask-image: linear-gradient(180deg, rgba(0,0,0,.7), rgba(0,0,0,.12));
     pointer-events: none;
@@ -79,7 +79,7 @@
     width: 24px; height: 24px; border-radius: 50%;
     border: 1px solid var(--line);
     display: grid; place-items: center; font-style: normal; font-size: 11px;
-    background: rgba(45, 212, 191, .08);
+    background: rgba(124, 147, 255, .08);
   }
   .stage h2 { font-size: 21px; margin: 0 0 4px; font-weight: 600; }
   .stage .hint { margin: 0 0 16px; color: var(--faint); font-size: 13px; }
@@ -87,8 +87,8 @@
     display: flex; align-items: center; gap: 10px;
     padding: 9px 12px; margin-bottom: 8px;
     border-radius: 11px;
-    background: rgba(148, 233, 222, .05);
-    border: 1px solid rgba(148, 233, 222, .09);
+    background: rgba(160, 178, 255, .05);
+    border: 1px solid rgba(160, 178, 255, .09);
     font-size: 14px;
   }
   .row b { font-weight: 600; }
@@ -97,32 +97,32 @@
   .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; }
   .chip {
     font-size: 12.5px; padding: 5px 10px; border-radius: 999px;
-    border: 1px solid rgba(45, 212, 191, .24);
-    background: rgba(45, 212, 191, .07);
-    color: #c8f3ee;
+    border: 1px solid rgba(124, 147, 255, .24);
+    background: rgba(124, 147, 255, .07);
+    color: #ccd8ff;
   }
   .decide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
   .branch {
     border-radius: 13px; padding: 12px 12px 11px;
-    border: 1px solid rgba(148, 233, 222, .12);
-    background: rgba(4, 22, 29, .6);
+    border: 1px solid rgba(160, 178, 255, .12);
+    background: rgba(6, 10, 26, .62);
   }
   .branch .tag { font-size: 13px; font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
   .branch p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
-  .branch.speak { border-color: rgba(45, 212, 191, .4); box-shadow: 0 0 0 1px rgba(45, 212, 191, .12) inset, 0 8px 24px rgba(13, 148, 136, .18); }
+  .branch.speak { border-color: rgba(124, 147, 255, .4); box-shadow: 0 0 0 1px rgba(124, 147, 255, .12) inset, 0 8px 24px rgba(77, 107, 254, .18); }
   .branch.speak .tag { color: var(--teal); }
   .gate {
     margin-top: 10px; padding: 10px 12px;
     border-radius: 11px;
-    background: rgba(13, 148, 136, .12);
-    border: 1px dashed rgba(45, 212, 191, .35);
-    font-size: 12.5px; color: #d8fbf6;
+    background: rgba(77, 107, 254, .12);
+    border: 1px dashed rgba(124, 147, 255, .35);
+    font-size: 12.5px; color: #dbe4ff;
     display: flex; align-items: center; gap: 8px;
   }
   .gate b { color: var(--teal); font-weight: 600; }
   .foot {
     margin-top: 26px; padding-top: 18px;
-    border-top: 1px solid rgba(148, 233, 222, .1);
+    border-top: 1px solid rgba(160, 178, 255, .1);
     display: flex; align-items: center; justify-content: space-between;
     color: var(--muted); font-size: 13.5px;
   }
@@ -140,9 +140,9 @@
     </div>
     <div class="whale">
       <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
-        <circle cx="17" cy="17" r="16" stroke="rgba(45,212,191,.45)"/>
-        <path d="M9 18c0-4 3.6-6.4 7.4-6.4 3.4 0 5.6 1.9 6.4 4.1l2.8-1.6.2 2.4 1.9-1.1c-.4 3.6-3 6.9-7.2 7.5-4.6.7-8.2-1.4-9.1-4.4-.4-1.4-.1-3.3 1.6-3.9-.1 1.4.4 2.4 1.4 2.8 1 .4 2.2.1 2.9-.7" stroke="#2dd4bf" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="22.6" cy="14.6" r=".95" fill="#2dd4bf"/>
+        <circle cx="17" cy="17" r="16" stroke="rgba(124,147,255,.45)"/>
+        <path d="M9 18c0-4 3.6-6.4 7.4-6.4 3.4 0 5.6 1.9 6.4 4.1l2.8-1.6.2 2.4 1.9-1.1c-.4 3.6-3 6.9-7.2 7.5-4.6.7-8.2-1.4-9.1-4.4-.4-1.4-.1-3.3 1.6-3.9-.1 1.4.4 2.4 1.4 2.8 1 .4 2.2.1 2.9-.7" stroke="#7c93ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="22.6" cy="14.6" r=".95" fill="#7c93ff"/>
       </svg>
       <span>XIAOJINGYU</span>
     </div>

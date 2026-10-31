@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>小鲸鱼 · 代码提案闭环</title>
+<style>
+  :root {
+    --ink: #eef2ff;
+    --muted: #a3b1d6;
+    --faint: #6b7aa8;
+    --accent: #7c93ff;
+    --accent-2: #4d6bfe;
+    --accent-3: #a9b8ff;
+    --you: #facc15;
+    --line: rgba(124, 147, 255, .24);
+    --panel: rgba(16, 25, 58, .78);
+    --panel-2: rgba(9, 14, 36, .85);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    width: 1600px;
+    min-height: 700px;
+    padding: 50px 64px 40px;
+    font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1100px 520px at 14% -12%, rgba(45, 74, 180, .42), transparent 62%),
+      radial-gradient(900px 460px at 94% 4%, rgba(77, 107, 254, .22), transparent 60%),
+      linear-gradient(180deg, #060b1c 0%, #0b1230 50%, #070c20 100%);
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(160, 178, 255, .045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(160, 178, 255, .045) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.7), rgba(0,0,0,.12));
+    pointer-events: none;
+  }
+  .canvas { position: relative; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 26px; }
+  .kicker {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 13px; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 10px;
+  }
+  h1 { font-size: 44px; line-height: 1.1; margin: 0 0 8px; letter-spacing: .01em; }
+  .sub { margin: 0; color: var(--muted); font-size: 18px; }
+  .whale {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--muted); font-size: 13px; letter-spacing: .16em;
+    font-family: "Cascadia Mono", Consolas, monospace;
+  }
+  .whale svg { display: block; }
+
+  .phases { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .phase { position: relative; z-index: 1; display: flex; flex-direction: column; }
+  .phase:not(:last-child)::before {
+    content: "";
+    position: absolute; top: 24px; right: -24px;
+    width: 24px; height: 2px;
+    background: linear-gradient(90deg, rgba(124,147,255,.18), var(--accent));
+  }
+  .phase:not(:last-child)::after {
+    content: "›";
+    position: absolute; top: 5px; right: -24px;
+    color: var(--accent); font-size: 30px; line-height: 1;
+    text-shadow: 0 0 14px rgba(124,147,255,.7);
+  }
+  .phase-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+  .phase-dot {
+    flex: none;
+    width: 50px; height: 50px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 15px; letter-spacing: .04em;
+    color: #dfe6ff;
+    background: radial-gradient(circle at 32% 26%, rgba(124,147,255,.45), rgba(20,32,78,.95) 70%);
+    border: 1px solid rgba(124,147,255,.55);
+    box-shadow: 0 0 0 6px rgba(6,11,28,.9), 0 0 26px rgba(77,107,254,.38);
+  }
+  .phase-head h2 { margin: 4px 0 2px; font-size: 20px; font-weight: 650; }
+  .phase-head p { margin: 0; color: var(--faint); font-size: 13px; }
+
+  .phase-body {
+    flex: 1;
+    display: flex; flex-direction: column; gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(19, 29, 66, .55), rgba(10, 16, 40, .62));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .step {
+    position: relative;
+    border: 1px solid rgba(124, 147, 255, .16);
+    border-left: 3px solid rgba(124, 147, 255, .55);
+    border-radius: 13px;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    padding: 13px 14px 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.22);
+  }
+  .step.you { border-left-color: rgba(250, 204, 21, .75); }
+  .step-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .step h3 { margin: 0; font-size: 16px; font-weight: 600; }
+  .tag {
+    margin-left: auto;
+    font-size: 10px; letter-spacing: .12em;
+    padding: 2px 7px; border-radius: 999px;
+    color: var(--accent-3);
+    background: rgba(77, 107, 254, .14);
+    border: 1px solid rgba(124, 147, 255, .26);
+  }
+  .tag.you { color: var(--you); background: rgba(250, 204, 21, .08); border-color: rgba(250, 204, 21, .26); }
+  .step p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.58; }
+  .step .quote {
+    margin-top: 8px;
+    color: #dbe4ff;
+    font-size: 13px;
+    padding-left: 9px;
+    border-left: 2px solid rgba(250, 204, 21, .55);
+  }
+  .step .code {
+    margin-top: 8px;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 11px; line-height: 1.5; color: #c7d4ff;
+    background: rgba(77, 107, 254, .09);
+    border: 1px solid rgba(124, 147, 255, .18);
+    border-radius: 8px;
+    padding: 6px 9px;
+    word-break: break-all;
+  }
+  .step.you .code { color: #f3e2a4; background: rgba(250, 204, 21, .05); border-color: rgba(250, 204, 21, .16); }
+
+  .gate {
+    margin-top: 18px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 20px;
+    border-radius: 14px;
+    border: 1px dashed rgba(124, 147, 255, .4);
+    background: rgba(77, 107, 254, .10);
+    font-size: 15px; color: #dbe4ff;
+  }
+  .gate b { color: var(--accent-3); font-weight: 650; }
+  .gate .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 14px var(--accent);
+    flex: none;
+  }
+  .foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 16px; color: var(--faint); font-size: 13px;
+  }
+  .foot .mark {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    letter-spacing: .2em; font-size: 12px; color: #7a8cc4;
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="head">
+    <div>
+      <p class="kicker">CODE PROPOSAL · 4 STAGES · 1 OWNER GATE</p>
+      <h1 data-en="From a complaint to a reversible merge">从一句抱怨到一次可控合并</h1>
+      <p class="sub" data-en="She writes the requirement down; your coding agent implements it in isolation; the merge stays in your hands.">她负责把需求写清楚，你的 agent 负责在隔离副本里实现，合并权始终在你手里。</p>
+    </div>
+    <div class="whale">
+      <svg width="46" height="46" viewBox="0 0 46 46" fill="none" aria-hidden="true">
+        <circle cx="23" cy="23" r="21" stroke="#7c93ff" stroke-opacity=".4"/>
+        <path d="M11 27c0-7 5-12 12-12h6c2 0 3 1 3 3s-1 3-3 3h-5" stroke="#7c93ff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M11 27c0 5 4 8 9 8 6 0 10-4 12-9" stroke="#7c93ff" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="30" cy="20" r="1.6" fill="#eef2ff"/>
+        <path d="M25 32c2 2 5 2 7 0" stroke="#a9b8ff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>XIAOJINGYU · 0.0.0</span>
+    </div>
+  </div>
+
+  <div class="phases">
+    <section class="phase">
+      <div class="phase-head">
+        <span class="phase-dot">01</span>
+        <div>
+          <h2 data-en="You speak">你说一句</h2>
+          <p data-en="A complaint is enough">抱怨就够，不用写规格</p>
+        </div>
+      </div>
+      <div class="phase-body">
+        <div class="step you">
+          <div class="step-top"><h3 data-en="Owner DM only">只认主人私聊</h3><span class="tag you" data-en="YOU">你</span></div>
+          <p data-en="Group members cannot trigger development. Say what feels wrong or what is missing.">群聊触发不了。直接说哪里不对、想要什么。</p>
+          <div class="quote" data-en="“Voice clips cut off the last word — fix it.”">「语音结尾总被截断，修一下」</div>
+        </div>
+        <div class="step">
+          <div class="step-top"><h3 data-en="She turns it into a brief">她整理成需求</h3><span class="tag" data-en="HER">她</span></div>
+          <p data-en="Title, symptom, expected result, evidence, scope, optional steps and acceptance criteria — each field has a hard length cap.">标题、现象、期望、复现证据、影响范围、可选步骤与验收标准，每个字段都有长度上限。</p>
+          <div class="code">qq_code_propose</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phase">
+      <div class="phase-head">
+        <span class="phase-dot">02</span>
+        <div>
+          <h2 data-en="She files it">她落成提案</h2>
+          <p data-en="Queue now, work later">先排队，不假装开工</p>
+        </div>
+      </div>
+      <div class="phase-body">
+        <div class="step">
+          <div class="step-top"><h3 data-en="Stable id, idempotent">稳定 id，重复提交不叠加</h3><span class="tag" data-en="HER">她</span></div>
+          <p data-en="The same content maps to the same proposal id, so re-sending feedback does not create duplicates.">同样内容对应同一个提案 id；补充反馈不会生成一堆重复任务。</p>
+          <div class="code">state/dev-proposals/&lt;id&gt;.json</div>
+        </div>
+        <div class="step">
+          <div class="step-top"><h3 data-en="Plan and queue">计划与队列一起落盘</h3><span class="tag" data-en="HER">她</span></div>
+          <p data-en="A pending_review task plus a readable plan: four standard steps, or the steps you supplied.">生成 pending_review 任务和可读计划：默认四步骨架，也可以带上你给的步骤。</p>
+          <div class="code">state/orchestrator/plans/&lt;id&gt;.md</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phase">
+      <div class="phase-head">
+        <span class="phase-dot">03</span>
+        <div>
+          <h2 data-en="Agent implements">agent 实现</h2>
+          <p data-en="Any coding agent, isolated">任意 agent，只在副本里</p>
+        </div>
+      </div>
+      <div class="phase-body">
+        <div class="step">
+          <div class="step-top"><h3 data-en="Isolated worktree">隔离副本里改</h3><span class="tag" data-en="AGENT">AGENT</span></div>
+          <p data-en="Your agent implements the plan in its own copy, keeps the diff small, and never touches the main worktree.">你的 agent 在独立副本里按计划实现，保持最小 diff，不碰主工作区。</p>
+          <div class="code">DEV_WORKTREE_DIR/&lt;id&gt; · npm run verify</div>
+        </div>
+        <div class="step">
+          <div class="step-top"><h3 data-en="Result contract">按约定回传</h3><span class="tag" data-en="AGENT">AGENT</span></div>
+          <p data-en="Status, worktree path, changed files, diff summary. Absolute paths and .. are rejected.">状态、副本路径、改动文件、diff 摘要；绝对路径和 `..` 会被拒绝。</p>
+          <div class="code">&lt;id&gt;.result.json · tested / failed</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="phase">
+      <div class="phase-head">
+        <span class="phase-dot">04</span>
+        <div>
+          <h2 data-en="You confirm">你确认合并</h2>
+          <p data-en="Backup, verify, rollback">先备份，再验证，失败回滚</p>
+        </div>
+      </div>
+      <div class="phase-body">
+        <div class="step you">
+          <div class="step-top"><h3 data-en="Review, then approve">看结果再拍板</h3><span class="tag you" data-en="YOU">你</span></div>
+          <p data-en="She DMs you the diff and test result. Nothing is merged until you say so; high-risk actions need a confirmation code.">她把 diff 和测试结论私聊给你；你不点头就不合并，高危动作还要 `/确认` 码。</p>
+          <div class="quote" data-en="“Merge &lt;id&gt;” / “Discard &lt;id&gt;”">「合并 &lt;id&gt;」/「丢弃 &lt;id&gt;」</div>
+        </div>
+        <div class="step">
+          <div class="step-top"><h3 data-en="Merge gate">合并门禁</h3><span class="tag" data-en="BRIDGE">桥接</span></div>
+          <p data-en="Backup each file, copy it in, run verify again. Any failure restores the previous files automatically.">逐文件备份后复制回来，再跑一次 verify；任何一步失败都自动恢复原文件。</p>
+          <div class="code">state/dev-backups/&lt;id&gt;</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="gate">
+    <span class="dot"></span>
+    <span data-en="The file contract and commands are agent-neutral: Qoder, Codex, Claude Code, Cursor, Aider or your own script all work. Only the merge gate is fixed — and it always belongs to the owner.">文件契约与命令不绑定具体 agent：Qoder、Codex、Claude Code、Cursor、Aider 或你自己的脚本都能接；固定的只有合并门禁——它永远属于主人。</span>
+  </div>
+
+  <div class="foot">
+    <span data-en="No controller wired yet? Proposals wait safely in state/orchestrator — she never fakes progress.">还没接 agent？提案会安全停在 <code>state/orchestrator</code> 待办，她不会假装已经开工。</span>
+    <span class="mark">AGENT-NEUTRAL · ISOLATED · REVERSIBLE</span>
+  </div>
+</div>
+<script>
+  if (new URLSearchParams(location.search).get('lang') === 'en') {
+    document.querySelectorAll('[data-en]').forEach((el) => { el.textContent = el.dataset.en; });
+  }
+</script>
+</body>
+</html>

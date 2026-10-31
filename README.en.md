@@ -30,7 +30,13 @@ and actually does things when you ask.</p>
 >
 > The default branch `main` **is** this version — a plain `git clone` gets it, no branch switching needed.
 
-**Contents**: [Who she is](#who-she-is) · [Scenes](#scenes) · [Life of a message](#life-of-a-message) · [A life of her own](#a-life-of-her-own) · [Capabilities](#capabilities) · [Live page](#live-status-page-live) · [Local console](#local-console) · [Architecture](#architecture) · [One-sentence deploy](#one-sentence-deploy-for-people-who-do-not-code) · [Quick start](#quick-start) · [Limitations](#limitations) · [Compatibility and extending](#compatibility-and-extending) · [Security](#security-notes) · [Layout](#repository-layout) · [Upstream](#upstream-and-license)
+**Contents**
+
+- **Meet her**: [Who she is](#who-she-is) · [Scenes](#scenes) · [Life of a message](#life-of-a-message) · [A life of her own](#a-life-of-her-own)
+- **Install her**: [Quick deploy (no coding)](#quick-deploy-no-coding-required) · [Manual deployment](#manual-deployment)
+- **Watch her**: [Live status page /live](#live-status-page-live) · [Local console](#local-console) · [Architecture](#architecture)
+- **Capabilities and boundaries**: [Code proposal loop](#code-proposals-ask-her-to-fix-or-build-something-in-a-dm) · [Capability map](#capability-map) · [Security notes](#security-notes) · [Limitations](#limitations)
+- **Going deeper**: [Compatibility and extending](#compatibility-and-extending) · [Documentation](#documentation) · [Testing](#testing) · [Repository layout](#repository-layout) · [Upstream and license](#upstream-and-license)
 
 ## Who she is
 
@@ -56,6 +62,91 @@ chatting as usual, and she is simply the member who occasionally says something 
 - she never drops raw DSH / SnowLuma errors into a group, only one plain sentence;
 - she does not send voice by default (AI voice has to be enabled by hand).
 
+## Quick deploy (no coding required)
+
+<p align="center">
+  <img src="assets/diagrams/deploy.en.png" width="100%" alt="Quick deploy: three phases, only two steps are yours">
+  <br>
+  <sub>Three phases: prepare the environment → hand it to an agent → sign in and accept</sub>
+</p>
+
+You do not need to understand Node, DSH or OneBot. Deployment has just three phases:
+**prepare an agent, hand it one sentence, then scan the QR code and accept.** Follow the order below;
+every step has a clear success marker.
+
+### Phase 1: prepare three things
+
+| What | How | Success marker |
+| --- | --- | --- |
+| **A Windows PC + a QQ account** | Windows 10 / 11; QQ can log in normally | — |
+| **DeepSeek Harness (DSH)** | Install it from the official channel and start it. DSH is her actual "brain" | `http://127.0.0.1:3080` opens in a browser |
+| **An agent that can run commands** | Codex, Claude Code, Qoder or DSH — anything that can read/write files and run commands | You can create a project in it and have it run a command |
+
+> Only DSH needs to be installed by you; Node.js, Git, dependencies, config and presets are the agent's job.
+> If DSH is not running yet, finish that first — every later step depends on it.
+
+### Phase 2: send this sentence to the agent
+
+> Deploy <https://github.com/Frostyume/xiaojingyu> for me on Windows. Read
+> `docs/guides/AGENT_DEPLOY.md` in the repository first and follow it exactly: check the environment,
+> install dependencies, write the config, run `install-dsh` and `doctor` until everything passes.
+> Except for signing in to SnowLuma by QR code and providing my QQ number / group numbers, do
+> everything yourself. Do not print or upload anything from `config.json` or `state/` — no tokens,
+> cookies or account numbers.
+
+It will check the environment, clone the repository and install dependencies, then **ask you four
+questions in order**:
+
+| # | Question | What to answer | Example |
+| --- | --- | --- | --- |
+| 1 | What is the owner QQ number? | The single owner the bot recognises | `12345678` |
+| 2 | Which QQ accounts and groups are allowed? | At least one of each; an empty whitelist means she **answers nobody** | DM `12345678`, group `87654321` |
+| 3 | SnowLuma ports and token? | Defaults are WS `3001`, HTTP `3000`; leave the token empty if unset | `ws://127.0.0.1:3001` |
+| 4 | Which model? | A model name that actually exists in your DSH | Check your DSH model list |
+
+The only part it will hand back to you is SnowLuma — that is phase 3.
+
+### Phase 3: sign in yourself, then accept
+
+**Only two things require your own hands**, because SnowLuma's licence does not allow scripts to
+install, sign in or start it:
+
+1. **Install SnowLuma and sign in by QR code.** Download
+   `SnowLuma-v<version>-win-x64.zip` from [SnowLuma Releases](https://github.com/SnowLuma/SnowLuma/releases/latest),
+   unzip it, run `launcher.bat`, open the WebUI address from the launch log, accept the terms, set a
+   password, scan the QQ QR code, then enable **WebSocket server** and **HTTP API** in the WebUI.
+2. **Tell the agent your QQ number / group numbers / ports / token** so it can write `config.json`.
+
+The agent then installs the DSH preset and MCP servers, **fully restarts DSH** (not a page refresh),
+starts the bridge and runs the health check. When you see `SnowLuma 已连接` in the log, send a private
+message to the bot from a whitelisted QQ account.
+
+**Acceptance checklist (all boxes must be ticked):**
+
+- [ ] `npm run doctor` has no `[FAIL]`; DSH / SnowLuma / preset / ports are all OK;
+- [ ] the log says `SnowLuma 已连接`;
+- [ ] a whitelisted private chat gets a reply;
+- [ ] `http://127.0.0.1:3100` opens and the overview shows both services healthy;
+- [ ] `http://127.0.0.1:3100/live` shows her status page;
+- [ ] no test message was sent to any group (a private chat is enough).
+
+### The first hour after deployment
+
+1. Open **Persona & roles** in the console, confirm the card is Xiaojingyu, and read both prompt layers;
+2. Open **Group Theatre** and tune wake rate, night silence and tool switches;
+3. **Allow only one group and one friend first**, observe for a day, then widen the whitelist;
+4. Try `内心状态` and `跑一次分享` in a private chat to sample her inner-life features;
+5. Back up `config.json`, `state/` and `personas/` — take them with you when changing machines.
+
+### If it gets stuck
+
+Paste the agent's full "where it stopped / the raw error / what it already tried" back to it and let
+it continue from the troubleshooting table in [AGENT_DEPLOY.md](docs/guides/AGENT_DEPLOY.md).
+**Do not** let it delete `state/`, disable the whitelist or turn off authentication to get past a
+problem — that is not a fix, it is just opening the door.
+
+> Prefer to do it yourself? [Manual deployment](#manual-deployment) runs the same flow step by step.
+
 ## Scenes
 
 <p align="center">
@@ -79,6 +170,13 @@ and you can browse, edit or delete any of it in the console.
 Duty rosters, research, reminders, tidying up chat logs — she reads group history, checks members,
 searches when needed, then sends the result as a few short messages. Anything private or out of bounds
 gets a question first, not an action.
+
+**④ If something is off, just tell her in a DM.**
+"Voice clips cut off the last word — fix it." "Can you add a Monday-morning group digest?" She turns
+the request into a code proposal and queues it for the development side; your own coding agent
+implements and tests it, reports the diff back to you, and only merges after your explicit
+confirmation. Full flow, outcomes and how to connect any agent:
+[Code proposals](#code-proposals-ask-her-to-fix-or-build-something-in-a-dm).
 
 More everyday jobs:
 
@@ -122,13 +220,14 @@ send, or whether to keep diving.
 - **Life skills**: weather, rock-paper-scissors / dice / daily whale fortune, scheduled reminders
   (owner DM and family group).
 
-The console's **Simulation** page turns every tool into an independent switch. Turning one off removes
-it from the DSH tool list; voice, sticker, collection and send tools can each be disabled separately.
+The console's **Group Theatre** page turns every tool into an independent switch. Turning one off
+removes it from the DSH tool list; voice, sticker, collection and send tools can each be disabled
+separately.
 
 <p align="center">
-  <img src="assets/screenshots/console-simulation.png" width="860" alt="Console simulation page">
+  <img src="assets/screenshots/console-simulation.png" width="860" alt="Console Group Theatre page">
   <br>
-  <sub>Simulation page: tool switches, wake suggestions and hard limits, send limits (offline demo data)</sub>
+  <sub>Group Theatre: tool switches, wake suggestions and hard limits, send limits (offline demo data)</sub>
 </p>
 
 ### Pacing and boundaries
@@ -159,26 +258,37 @@ at night.
 
 ### Inner life: moods are not random numbers
 
-- **Scheduled reflection**: every 1–8 hours she wakes at random to look back over recent chats,
-  relationships and her own state, then updates mood, energy, interests, things learned and verbal tics;
-- **Curious browsing**: 5–12 times a day she reads Bilibili trending, matches and RSS feeds, and turns
-  what she finds into candidate stories;
-- **Mood has inertia**: mood decays against real time with a half-life and energy follows Beijing time;
-  hourly and daily change budgets stop one sentence from flipping her from happy to broken;
+What follows are **default mechanisms and example settings**, not requirements every deployment must
+copy. Reflection intervals, browsing sources, frequencies and caps all come from your `config.json`.
+
+- **Scheduled reflection**: wakes on a configured interval (the example is every 1–8 hours at random),
+  looks back over recent chats, relationships and her own state, then updates mood, energy, interests,
+  things learned and verbal tics;
+- **Curious browsing**: browses the sources and frequency you configure (the example is 5–12 times a
+  day; Bilibili trending, a sports subscription and RSS are just built-in sample sources). Replace
+  them with your own feeds, remove some, or switch browsing off entirely;
+- **Mood has inertia**: mood decays against real time with a half-life and energy follows Beijing
+  time; hourly and daily change budgets have defaults, so one sentence cannot flip her from happy to
+  broken;
 - **Reflection never speaks**: it only updates state — whether to share is a separate decision;
 - **Observable**: the console shows mood curves and inner state, `/live` has an **inner life** panel,
   and a DM with `内心状态` prints it too.
 
 ### Proactive sharing: sometimes she wants to show you something
 
-- **Group share**: pick one candidate from curious browsing and post it to a chosen group; at most 20 a
-  day, 15 minutes between shares per group, the group must have been quiet for 2 minutes, and never
-  during night silence;
+These capabilities can be switched on or off individually, and the numbers below are only defaults.
+Targets, sources, frequency and enablement all come from configuration.
+
+- **Group share**: pick one candidate and post it to a chosen group; by default at most 20 a day,
+  15 minutes between shares per group, the group must have been quiet for 2 minutes, and never during
+  night silence. Caps and windows are configurable; configure a target group first — with no target
+  or no candidate, nothing is forced;
 - **Qzone posts**: friends-visible by default, at most 2 a day, optionally review-before-publish;
-- **Share modules**: 9 templates (findings, daily life, questions…); a new module starts on
-  **probation** — the first few go to your DM as drafts, and it only auto-posts after you reply
-  `验证通过 <id>`;
-- **AI tips**: off by default; when enabled, 2–5 a day between 09:00 and 22:00;
+- **Share modules**: 9 built-in templates (knowledge, news, fun, practical tips, custom…); a new
+  module starts on **probation** — the first few go to your DM as drafts, and it only auto-posts
+  after you reply `验证通过 <id>`;
+- **AI tips (sample module)**: an optional share module, off by default; when enabled it posts 2–5
+  tips a day between 09:00 and 22:00. If your deployment does not need it, leave it off or delete it;
 - **No spam**: every proactive message is bounded by daily caps, intervals and quiet hours; when the
   budget is gone she simply keeps diving.
 
@@ -194,33 +304,265 @@ Owner QQ only, private chat only. You can just say:
 | `发分享 <id>` / `不发分享 <id>` / `暂停分享 <id>` / `恢复分享 <id>` | Manage candidate stories |
 | `验证通过 <id>` | Promote a share module out of probation |
 | `关说说` / `开说说` / `关AI分享` / `开AI分享` | Toggle the matching capability |
-| `预览三个AI知识` / `用第N种` | Pick a wording for the AI tip |
+| `预览三个AI知识` / `用第N种` | Pick a wording for the AI tip; only meaningful when the AI tips module is enabled |
 | `删说说` / `改签名` / `收藏表情` | Everyday maintenance |
+| `修一下` / `加个功能` | File a code proposal into the controller queue; she never develops or merges it herself |
+| `你能做什么` | List current configurable / buildable abilities, status and examples |
+| `规则/频率是多少` | Read the real config value; an explicit "change it" uses `qq_config_set` after your confirmation |
 | Anything else | Treated as a revision note for the draft waiting for review |
 
 Risky actions (cross-session sends, sensitive operations) ask you to reply `/确认 <6-digit code>` in the
 same DM. This DM surface is **not a full admin panel**: editing config, restarting the process and
 running commands still happen only in the console or on the machine itself.
 
-## Capabilities
+## Code proposals: ask her to fix or build something in a DM
 
-| Area | Concrete behaviour |
+She does not write code herself. But she can turn "this feels off" into an executable development
+task for **your own coding agent**, and follow the whole chain: implement → test → you approve →
+merge → roll back on failure. The repository ships a Qoder wake-up adapter, but that is not a hard
+dependency: Codex, Claude Code, Cursor, Aider, or your own script can take over as long as it can
+read and write files and run commands.
+
+![Code proposal loop](assets/diagrams/proposal.en.png)
+<p align="center"><sub>Four stages: you ask → she files a proposal → an agent implements in isolation → you approve the merge</sub></p>
+
+### How one sentence becomes a reversible merge
+
+1. **You ask.** This only works in the owner's private chat. Group members and other friends cannot
+   trigger a proposal. "Voice clips cut off the last word — fix it" or "add a Monday group digest"
+   is enough; you do not need to write a spec first.
+2. **She turns it into a structured proposal.** She calls `qq_code_propose` and splits the request
+   into title, symptom, expected result, evidence, scope, optional steps and acceptance criteria.
+   Every field has a hard cap (title 60 chars, symptom / expected 800 each, evidence 1200, scope 300,
+   up to 8 steps of 120 chars), so one frustrated sentence cannot silently become an unbounded task.
+3. **Proposal and plan land together.** The bridge derives a stable id from the content hash, so
+   re-sending the same description updates idempotently. The proposal goes to
+   `state/dev-proposals/<id>.json`, the task to `state/orchestrator/tasks/<id>.json`, and a readable
+   plan to `state/orchestrator/plans/<id>.md`. The default plan is four steps — locate the change,
+   implement minimally, run verify, report back — or your own steps if you supplied them.
+4. **The queue is handed to a development agent.** The task starts as `pending_review`; it never
+   flips to "in progress" by itself. The built-in wake-up entry is
+   `state/orchestrator/controller.json`, where `controller-cli.js` drives the Qoder CLI. Swapping in
+   another agent leaves the queue, plan and merge gate untouched; you only replace who picks up work.
+5. **The agent works in an isolated copy.** `DEV_WORKTREE_DIR/<id>` names the copy (set it
+   explicitly; otherwise the code's built-in default path is used). Clone from the main workspace
+   while excluding `node_modules/`, `state/`, `audio/` and secret config. Changes stay there; the
+   main worktree is not touched.
+6. **The result comes back.** The agent runs `npm run verify` inside the copy, then writes status,
+   worktree path, changed files and diff summary to `state/dev-proposals/<id>.result.json`. The
+   bridge accepts repository-relative paths only; absolute paths, drive letters and `..` are
+   rejected, and `tested` must list at least one changed file.
+7. **Nothing merges until you approve.** She DMs you the diff and test result; you reply
+   "merge `<id>`", and high-risk actions also require `/confirm <6-digit code>` in the DM. The bridge
+   backs up each file to `state/dev-backups/<id>`, copies the changes in, runs `npm run verify`
+   again, and restores the previous files automatically on failure. Reply "discard `<id>`" to drop
+   the isolated copy — the main worktree was never touched.
+
+She only **records, queues and relays results**: she does not create development sessions, write
+business code or merge. Without a connected agent, proposals wait safely under `state/orchestrator/`
+and she will not pretend work has started.
+
+### What you can actually get
+
+| You say | What usually comes back |
 | --- | --- |
-| **Presence in group chats** | She reads unread messages, decides whether to speak, waits for the next wave, or keeps diving. 35 per-tool switches; wake triggers on @ / name / keyword / question / poke / probability; per-group initial prompt and group profile. |
-| **Human pacing** | Hard limits for sleep, rate, night silence and clingy follow-ups; sends are spread out at a human rhythm; after a long idle period a probability decides whether to start a topic. |
-| **Two prompt layers** | The **simulation prompt** owns the tool protocol and behaviour boundaries; the **persona prompt** owns character and voice. Role cards can be created, edited, renamed, duplicated and deleted, with per-mode filtering and an injection character cap. |
-| **Memory and relationships** | Active topics, pending thoughts, member impressions and cross-session personal memory; relationship axes per member, daily-report preview, mood / energy / interest and inner-life timelines. |
-| **A life of her own** | Scheduled reflection, curious browsing and evolving mood / energy / interests; group shares and Qzone posts capped per day, spaced out and silenced at night; new share modules go to the owner DM as drafts and only auto-post after approval. |
-| **DM as console** | The owner can check inner state, review post drafts, toggle sharing, promote candidates and change the signature from a private chat; risky actions need `/确认 <6-digit code>`. |
-| **Slang learning** | Candidates are extracted from group history; a human confirms meaning, usage, examples, risk and source before an entry enters the vocabulary. Confirmed entries are injected into the prompt and exposed through query / submit tools; thresholds and injection size are configurable. |
-| **Multimodal expression** | Images, emoji and animated images enter the context; sticker notes, tags and image understanding; quote replies, pokes and burst sends; voice library with TTS emotion; inbound voice ASR transcription (off by default). |
-| **Group insight** | Member relationship table with editable values, daily-report preview, active members and group profile; the daily report stays off until enabled. |
-| **Live status page** | `/live` is a single-page SSE view: pixel whale and mood bubble, bonds, mood / energy with a 7-day curve, interests and growth, inner life, current activity, sessions, recent events, service health, cumulative tokens, long-term memory and libraries. Read-only; suited to a second monitor. |
-| **Local console** | 13 task pages for mode switching, sessions and approvals, persona editing, tool switches, slang, libraries, cost, security, operations, reliability and tool reference; light / dark themes, responsive layout, cross-page search. |
-| **Reliability core** | SQLite/WAL; idempotent outbox with replay, inbox dedupe, job queue; messages queue per conversation while DSH is down and are replayed on recovery; `npm run doctor` health check. |
-| **Cost dashboard** | Priced with DeepSeek's official peak / off-peak table; drill-down per group, friend and turn; cache-hit vs miss split; 24-hour / 3-day / 7-day / 30-day trend. |
-| **Secure defaults** | An empty whitelist means no responses; simulation sessions have no local execution tools; sends require a whitelist hit plus sensitive-text audit; cross-session instructions require a confirmation code; internal errors never reach the group; `state/` can be ACL-hardened. |
-| **DSH adaptation** | Session Cookie minted offline from the persistent `~/.dsh` signing key; slash RPC plus `/api/remote.mux` event stream; preset bundle patch; three restricted MCP servers; one-command `install-dsh.mjs` install. |
+| "Voice clips cut off the last word — fix it." | The truncation point is located, the implementation fixed, a regression test added; you see the diff and verify result before merging |
+| "Add a Monday-morning group digest." | A scheduled job, summary generation and send boundaries; the existing whitelist, rate caps and quiet hours still apply |
+| "Reminders are awkward — let me change the time." | Parsing and storage are adjusted, edge cases added; other enabled features keep working |
+| "That console page feels cramped." | Layout and styling in `web/deck.html`, with console UI tests before the diff is reported |
+| "Tidy up this duplicated logic." | A small refactor that preserves behaviour; the bigger the change, the more it should be split |
+
+A successful proposal usually produces three private messages:
+
+```text
+[Code proposal] Voice clip truncation
+Symptom: the last half-sentence is swallowed
+Expected: the whole sentence plays
+Plan created (code_20261031_ab12cd34, 4 steps), handed to the controller…
+Plan: state/orchestrator/plans/code_20261031_ab12cd34.md
+If you do not hear back, say "process code_20261031_ab12cd34" in the controller session;
+the diff and test result will come back to you, and the merge still needs your confirmation.
+```
+
+```text
+[Code proposal done] code_20261031_ab12cd34
+Tests passed, 3 files changed.
+3 files changed, 42 insertions(+), 7 deletions(-)
+Reply "merge code_20261031_ab12cd34" to merge after confirmation, or "discard …" to drop it.
+```
+
+```text
+Code feature "code_20261031_ab12cd34" merged and passed verify.
+```
+
+**What it is not:**
+
+- It is not instant code editing. Proposal-to-merge depends on your agent and is a full development
+  task, not a chat reply;
+- It does not deploy or restart anything. A merge only changes files; DSH / bridge restarts still
+  follow [Manual deployment](#manual-deployment);
+- It is not a good fit for a giant cross-module rewrite. Larger proposals make isolation and verify
+  less reliable — split them;
+- Green `verify` means the existing tests pass, not that the feature matches your intent. Precise
+  symptom, expected result and acceptance criteria are what make the result usable;
+- Merge is a **file-by-file copy**, not a git merge. An agent that reformats unrelated files will
+  produce a dirty diff, and the copy can overwrite uncommitted changes in the same files — check
+  your worktree before approving.
+
+### Connect your own coding agent (not necessarily Qoder)
+
+**The only contract is "files + commands", not a vendor SDK.** The bundled `controller-cli.js`
+currently adapts the Qoder CLI (`--resume --fork-session` to wake a short-lived turn), but it only
+decides *who gets woken*. Proposals, plans, results and the merge gate do not depend on Qoder.
+Codex, Claude Code, Cursor, Aider or your own polling script can run the same loop.
+
+| Contract | Purpose |
+| --- | --- |
+| `state/orchestrator/tasks/<id>.json` | Queue task; `pending_review` means it is waiting for dispatch |
+| `state/orchestrator/plans/<id>.md` | Human-readable plan, acceptance criteria and boundaries |
+| `state/dev-proposals/<id>.json` | Original proposal (title, symptom, expected, evidence, scope) |
+| `state/dev-proposals/<id>.result.json` | Agent report: `tested` / `failed`, worktree, changed files, diff summary |
+| `DEV_WORKTREE_DIR/<id>` | Isolated copy, normally outside the repo; exclude dependencies, state, audio and secrets |
+| `npm run verify` | The single test gate; the agent runs it in the copy, the bridge runs it again during merge |
+
+**Your agent needs to do four things:**
+
+1. Read `plans/<id>.md` and `tasks/<id>.json`, including requirements, steps, acceptance and boundaries;
+2. Edit code only in the isolated copy; do not commit, push or deploy;
+3. Run `npm run verify` in the copy and keep the failure log if it fails;
+4. Write `result.json` in the agreed shape, then stop and wait for the owner.
+
+**Three ways to connect it:**
+
+| Mode | How | Best for |
+| --- | --- | --- |
+| **Built-in wake-up** | Configure `state/orchestrator/controller.json` (session / workspace / CLI path); `controller-cli.js` wakes the Qoder CLI to review the queue, and with `allowExecute: true` it implements in the copy during the same turn | People already using Qoder Desktop / CLI |
+| **Your agent watches the queue** | Have Codex, Claude Code, Cursor, Aider or a script poll `tasks/` for `pending_review`, or watch for new `plans/`; implement and write `result.json` | Teams with an existing coding agent they want to wire into QQ |
+| **Semi-automatic** | No controller: hand `plans/<id>.md` to any agent yourself; the agent writes `result.json`; the bridge still notifies, validates and enforces the merge gate | Occasional changes without a resident development process |
+
+> The built-in wake-up reads `sessionId` / `configDir` / `cwd` / `cliScript` / `permissionMode` /
+> `allowExecute` from `controller.json`, and requires an existing resumable Qoder session.
+> `allowExecute` defaults to false, so it only reviews the plan; set it to true to implement during
+> the same turn (still inside the copy, still no merge). Without a Qoder session, do not force it:
+> use the second or third mode — the merge gate and result notifications are identical.
+
+Minimal result file (use your real worktree path):
+
+```json
+{
+  "status": "tested",
+  "worktree": "D:/dev-worktrees/code_20261031_ab12cd34",
+  "changed": ["runtime/voice/tts.js", "tests/tts.test.mjs"],
+  "diffStat": "2 files changed, 18 insertions(+), 4 deletions(-)",
+  "logPath": "state/dev-logs/code_20261031_ab12cd34.log",
+  "error": ""
+}
+```
+
+**Boundaries and common traps:**
+
+- `changed` must contain repository-relative paths; absolute paths, drive letters and `..` are rejected;
+- The isolated copy is created by your agent: the bridge only validates the relative paths in
+  `result.json`, not whether the copy was truly isolated. Keep the agent inside the copy;
+- `status` accepts only `tested` / `failed`; `tested` requires at least one changed file;
+- The merge gate always runs `npm run verify`. If your project changes the test command, change the
+  merge side too, or "tests passed" from the agent will not be trusted;
+- Merging requires `simulation` mode, the owner's private chat and `confirm=true`; groups and ordinary
+  friends have no entry point;
+- When wake-ups are blocked by `login` / `quota` / SDK environment issues, events keep queuing instead
+  of retrying every proposal; trigger a wake-up manually once the problem is fixed;
+- `state/dev-backups/<id>` exists for rollback — do not delete it before or after merging.
+
+## Capability map
+
+Three signature abilities first, then the full grouped list.
+
+### Signature 1: say it once in a DM, she files the improvement
+
+She does not write code directly. She turns your sentence into a proposal with **symptom, expected
+result, evidence and acceptance criteria**, and queues it for development. Your own coding agent
+does the implementation, and the merge stays in your hands. Full flow, outcomes and how to connect
+Codex / Claude Code / Cursor / Aider:
+[Code proposals](#code-proposals-ask-her-to-fix-or-build-something-in-a-dm).
+
+**What she deliberately does not do:** create development sessions herself, merge by herself, touch
+the main worktree, or bypass the controller with an external CLI. Nobody in a group chat can trigger
+it. Without a controller, proposals wait safely in `state/orchestrator/` and she will not pretend
+work has started.
+
+### Signature 2: she decides whether to speak, not just what to say
+
+There is no "message in, reply out" loop. Every message enters an unread queue, and she weighs wake
+triggers, night silence, rate caps and current energy to decide: look now or not, speak or not, how
+many lines, or keep diving. All 35 tools can be switched off one by one; a disabled tool disappears
+from her tool list instead of being rejected at call time.
+
+### Signature 3: she remembers, and has a life of her own
+
+She keeps topics, pending thoughts, member impressions and cross-session personal memory — all
+viewable, editable and deletable in the console. When the room is quiet she does not stop existing:
+scheduled reflection, curious browsing, and mood / energy that evolve in real time, with daily caps,
+intervals and quiet hours governing what she shares.
+
+### Full capability list
+
+#### Chat and presence
+
+| Capability | What she can do | Default / boundary |
+| --- | --- | --- |
+| **Group presence** | Read unread, decide whether to speak, wait for the next wave, keep diving; wake on @ / name / keyword / question / poke / probability; per-group initial prompt and profile | Never messages outside the whitelist |
+| **Human pacing** | Hard caps for sleep, rate, night silence and clingy follow-ups; sends spread at a human rhythm; probability decides idle topic starts | Caps configurable |
+| **Multimodal expression** | Images, stickers and GIFs enter context; sticker notes and tags; quote replies, pokes, burst sends; voice library + TTS emotion; inbound ASR | ASR and AI voice off by default |
+| **Group insight** | Member relationship values, active members, group profile, daily-report preview | Daily report off by default |
+| **Life skills** | Weather, rock-paper-scissors / dice / daily fortune, scheduled reminders | Reminders only in owner DM and family group |
+
+#### Persona, memory and language
+
+| Capability | What she can do | Default / boundary |
+| --- | --- | --- |
+| **Two prompt layers** | Simulation prompt owns tool protocol and boundaries; persona prompt owns character and voice; create / edit / rename / duplicate / delete cards, per-mode filtering, injection cap | Injection cap 10,000 characters |
+| **Memory and relationships** | Topics, pending thoughts, member impressions, cross-session personal memory; view, edit, delete | Memory stays on this machine |
+| **Slang learning** | Extract candidates from group history; a human confirms meaning, usage and risk before it enters the vocabulary; confirmed entries are injected into the prompt | Thresholds and injection size configurable |
+| **Mood evolution** | Mood decays with a half-life and change budgets; energy follows Beijing time; one sentence cannot flip her from happy to broken | Reflection updates state only, never speaks |
+
+#### Life and proactive sharing
+
+| Capability | What she can do | Default / boundary |
+| --- | --- | --- |
+| **Inner life** | Reflection interval and browsing sources are configurable (example: every 1–8 hours, 5–12 times a day, Bilibili / matches / RSS) | Updates state only |
+| **Group sharing** | Pick one candidate story and post it to a chosen group | ≤20/day, 15 min per group, 2 min quiet, never during night silence |
+| **Qzone posts** | Post to Qzone, optionally review-before-publish | Friends-visible, ≤2/day |
+| **Share modules** | 9 templates; the owner can create / update / pause / delete modules from a DM (`qq_share_module_*`) | New modules start on probation: each draft goes to your DM, auto-post only after `验证通过 <id>` |
+| **AI tips** | Optional sample share module; generates 2–5 tips a day when enabled | Off by default; only 09:00–22:00 |
+
+#### Improvement, extension and development
+
+| Capability | What she can do | Default / boundary |
+| --- | --- | --- |
+| **Defect / feature proposals** | Say "fix this" or "add a feature" in a DM; she files a code proposal into the controller queue | Never develops, merges or touches the main worktree herself |
+| **Owner feature centre** | `qq_capabilities_list` shows abilities; `qq_feature_preview` previews schedule and wording; `qq_feature_apply` applies scheduled messages / auto-replies / Qzone posts / voice messages | Applies only after preview and confirmation |
+| **Persona cards and plugins** | Drop a card in `personas/`, a plugin in `features/<id>/`, extend `mcp/`, edit a preset | Loaded in-process; only load code you trust |
+| **Console pages** | Single-page `web/deck.html` plus `console/` routes | No plugin registration point yet; a new page means changing the main program |
+
+#### Observability, operations and cost
+
+| Capability | What she can do | Default / boundary |
+| --- | --- | --- |
+| **Live status page** | `/live` with SSE: pixel whale, bonds, mood / energy curves, interests, inner life, activity, sessions, health, tokens, memory, libraries | Read-only; suited to a second monitor |
+| **Local console** | 13 task pages: mode, sessions and approvals, persona, tool switches, slang, libraries, cost, security, operations, reliability, tool reference | Token auth; listens on `127.0.0.1` |
+| **Reliability core** | SQLite/WAL; idempotent outbox with replay, inbox dedupe, job queue; messages queue per conversation while DSH is down and replay on recovery | Queue caps apply; process exit loses the in-memory queue |
+| **Cost dashboard** | Priced with DeepSeek's peak / off-peak table; drill-down per group / friend / turn; cache-hit split; 24-hour to 30-day trend | Based on actual usage |
+| **DSH adaptation** | Offline Cookie minting from the persistent `~/.dsh` key; slash RPC + `/api/remote.mux`; preset bundle patch; three restricted MCP servers; one-command `install-dsh.mjs` | Adapted to 0.2.0-rc.2 |
+
+#### Secure defaults
+
+| Default | What it means |
+| --- | --- |
+| **Empty whitelist means silence** | `allow.allowAllWhenEmpty` is `false`; with no IDs filled in she answers nobody |
+| **No local tools in the chat preset** | No bash / file access / sub-agents; no amount of prompting gives group members machine access |
+| **Whitelist + audit on every send** | Sensitive paths, tokens and cookies are blocked; internal errors only reach logs |
+| **Confirmation code for risky actions** | Cross-session sends and sensitive operations need `/确认 <6-digit code>` in the owner DM |
+| **AI voice off by default** | Put audio in `audio/`, then enable it in the console |
 
 ## Live status page `/live`
 
@@ -266,7 +608,7 @@ when none is configured). Its 13 pages each cover one kind of task:
 | **Features** | Current capabilities grouped by persona, media, inner life, life skills and runtime; active groups, session count and boundaries. |
 | **Sessions & approvals** | QQ ↔ DSH session mapping, phase and unread per session, questions and tool approvals waiting for the owner. |
 | **Persona & roles** | Create / edit / rename / delete role cards, inspect and edit both prompt layers, injection cap, simulation-prompt sync state. |
-| **Simulation** | 35 tool switches, wake recommendations and hard limits, initial prompt, group profile, memory and state viewers, tool-call log, feedback, voice and sticker settings. |
+| **Group Theatre** | 35 tool switches, wake recommendations and hard limits, initial prompt, group profile, memory and state viewers, tool-call log, feedback, voice and sticker settings. |
 | **Group insights** | Member relationship table with editable values, daily-report preview, active members and group profiles. |
 | **Library** | Names, descriptions, notes and tags for QQ favourite stickers and the image library; filter and inspect. |
 | **Slang** | Candidate / confirmed / rejected columns; a confirmation dialog for meaning, usage, examples, risk and source; extraction thresholds and injection size. |
@@ -342,49 +684,30 @@ sequenceDiagram
   ribbon for DSH / SnowLuma / mode / sessions / pending approvals, an icon rail, cross-page search and a
   light / dark theme) plus the read-only `/live` SSE page.
 
-## Requirements
+## Manual deployment
 
-- Node.js >= 22.13
-- Windows 10 / 11 (both QQ and SnowLuma are Windows programs)
-- Running DeepSeek Harness Web (default `http://127.0.0.1:3080`)
-- Running SnowLuma with OneBot v11 WebSocket and HTTP API enabled
+Six steps, the same flow the agent runs, for people who want to control every step.
+Steps 3 and 4 are the easiest to miss — missing them does not crash anything, but QQ will simply
+appear unresponsive. To hand it all to an agent, go back to [Quick deploy](#quick-deploy-no-coding-required).
 
-## One-sentence deploy (for people who do not code)
+### 0. Requirements
 
-<p align="center">
-  <img src="assets/diagrams/deploy.en.png" width="100%" alt="One-sentence deploy: six steps, two of them yours">
-  <br>
-  <sub>Six steps; only two need your hands — signing in to SnowLuma, and providing QQ / group numbers</sub>
-</p>
+| Component | Requirement |
+| --- | --- |
+| **DeepSeek Harness** | Installed and running, default `http://127.0.0.1:3080` |
+| **SnowLuma** | Windows x64 build; can log in to QQ and expose OneBot WebSocket + HTTP API |
+| **Node.js** | ≥ 22.13 (CI runs Node 24) |
+| **OS** | Windows 10 / 11 (QQ and SnowLuma are both Windows programs) |
 
-You do not need to understand Node, DSH or OneBot. Open Codex, Claude Code, Qoder or DSH and send it:
-
-> Deploy <https://github.com/Frostyume/xiaojingyu> for me on Windows. Read
-> `docs/guides/AGENT_DEPLOY.md` in the repository first and follow it exactly: check the environment,
-> install dependencies, write the config, run `install-dsh` and `doctor` until everything passes.
-> Except for signing in to SnowLuma by QR code and providing my QQ number / group numbers, do
-> everything yourself. Do not print or upload anything from `config.json` or `state/` — no tokens,
-> cookies or account numbers.
-
-The agent handles the environment check, clone, dependencies, config, DSH-side install, start-up and
-health check. Only two things are yours:
-
-1. **Download SnowLuma and sign in by QR code** — its licence does not allow scripts to install or start it;
-2. **Tell the agent your QQ number, the group numbers to allow, and the OneBot token**.
-
-Done means `npm run doctor` is all green, a whitelisted DM gets a reply, and the console opens — not
-"the command finished". The full step-by-step contract, troubleshooting table and rollback live in
-[docs/guides/AGENT_DEPLOY.md](docs/guides/AGENT_DEPLOY.md).
-
-> Prefer doing it yourself? The six steps below are the same flow the agent runs.
-
-## Quick start
+### 1. Get the code and install dependencies
 
 ```bash
+git clone https://github.com/Frostyume/xiaojingyu.git
+cd xiaojingyu
 npm install        # postinstall automatically patches the @snowluma/sdk ESM packaging bug
 ```
 
-Copy `config.example.json` to `config.json`, then edit:
+### 2. Write the config
 
 ```bash
 cp config.example.json config.json
@@ -395,42 +718,71 @@ Key settings:
 | Field | Description |
 | --- | --- |
 | `dsh.baseUrl` | DSH Web API URL, default `http://127.0.0.1:3080` |
-| `dsh.authToken` | DSH launch token (a process-launch credential). **Normally leave this empty**: with no token the bridge mints the session cookie offline from the persistent signing key in `~/.dsh/.credentials.yaml`, which depends on no per-process state (since DSH 0.1.7 the launch token lives only in memory — the one in the old logs belongs to a previous process and only yields a 401). A value here is honoured first if you set one |
-| `dsh.authHeader` / `dsh.authPrefix` | Legacy fields kept for compatibility; the current path uses Cookie auth and does not send this header |
-| `snowluma.wsUrl` | SnowLuma OneBot **WebSocket** URL (e.g. `ws://127.0.0.1:3001`) |
-| `snowluma.accessToken` | OneBot access token, leave empty if not configured |
+| `dsh.model` | A model name that actually exists in your DSH |
+| `dsh.authToken` | DSH launch token. **Normally leave this empty**: with no token the bridge mints the session cookie offline from the persistent signing key in `~/.dsh`, which depends on no per-process state |
+| `snowluma.wsUrl` | OneBot **WebSocket** URL (e.g. `ws://127.0.0.1:3001`) |
 | `snowluma.httpUrl` | OneBot **HTTP API** URL (e.g. `http://127.0.0.1:3000`); do not point this at the WebSocket port or you will get HTTP 426 |
+| `snowluma.accessToken` | OneBot access token; leave empty if not configured |
 | `ownerQQ` | Administrator QQ (highest privilege) |
-| `allow.private` / `allow.groups` | Whitelist of QQ/group IDs |
-| `consolePort` | Local console port, default `3100` |
+| `allow.private` / `allow.groups` | Whitelist of QQ / group IDs |
+| `allow.allowAllWhenEmpty` | Keep `false` (fail-closed) |
+| `role.maxInjectChars` | Role-card injection cap (1000–20000), default 10000; cards are filtered by mode before truncation |
+| `consolePort` / `consoleToken` | Console port (default `3100`) and token (generated into `state/console-token` when empty) |
 
 An empty whitelist with `allowAllWhenEmpty: false` means she **answers nothing** — a deliberate
 fail-closed default.
 
-Start:
-
-```bash
-npm start
-```
-
-Or double-click `bin/boot.cmd` on Windows (guard mode with auto-restart).
-
-### DSH setup, once per machine
-
-The bridge and console can run without extra DSH setup, but the DSH chat preset (`qq-chat`) and the MCP servers must be installed into DSH once per machine:
+### 3. Install the DSH side (preset + MCP), then restart DSH
 
 ```bash
 node tools/install-dsh.mjs
 ```
 
-This installs:
+This installs the `agent-presets` bundle with the `qq-chat` preset and shared `qq-tool-restrict`
+guard, writes MCP entries into `~/.dsh/profiles/web/cordis.patch.yml`, registers `mode-console` and
+`agent-presets` in the profile, and sets the default DSH mode to `simulation` with a local
+`state/mode.json` fallback.
 
-- the `agent-presets` bundle, which generates the `@deepseek-ai/dsh-agent-preset` row (`qq-chat`) plus the shared `qq-tool-restrict` safety guard
-- MCP entries in `~/.dsh/profiles/web/cordis.patch.yml`
-- `mode-console` and `agent-presets` in the profile `package.json` (`bundles` + `link:` dependencies)
-- Default DSH mode set to `simulation`, with a local `state/mode.json` fallback
+**A full DSH restart is required** — presets and MCP servers only load at startup. Skipping this step
+does not crash anything, but sessions cannot get the preset and the bridge fails closed instead of
+falling back to a default preset with bash / file tools. See
+[docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for details.
 
-Then restart DSH. See [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) for details.
+### 4. Prepare SnowLuma
+
+1. Download `SnowLuma-v<version>-win-x64.zip` from
+   <https://github.com/SnowLuma/SnowLuma/releases/latest>;
+2. Unzip it anywhere and run `launcher.bat`;
+3. Open the WebUI address from the launch log, accept the terms, set a password and scan the QQ QR code;
+4. Enable **WebSocket server** and **HTTP API** in the WebUI and note the ports (default WS `3001`,
+   HTTP `3000`) and the access token, if set.
+
+### 5. Fill the `snowluma` block and whitelist
+
+```json
+"snowluma": {
+  "wsUrl": "ws://127.0.0.1:3001",
+  "httpUrl": "http://127.0.0.1:3000",
+  "accessToken": "the token you configured in the WebUI (leave empty if none)"
+},
+"allow": {
+  "private": [12345678],
+  "groups": [87654321]
+}
+```
+
+### 6. Start
+
+```bash
+npm start          # foreground, no auto-restart on crash
+```
+
+On Windows, use `bin/boot.cmd` for a guard window with auto-restart (closing the window stops it).
+When the log says `SnowLuma 已连接`, send a private message to the bot from a whitelisted account.
+
+```bash
+npm run doctor     # config, SQLite, DSH, SnowLuma, preset, ports
+```
 
 ## Limitations
 
@@ -525,7 +877,7 @@ For anything touching QQ sends, DSH sessions or a real account, cover it with th
 | Doc | What it covers |
 | --- | --- |
 | [docs/README.md](docs/README.md) | Documentation index (one line per page) |
-| [docs/guides/AGENT_DEPLOY.md](docs/guides/AGENT_DEPLOY.md) | One-sentence deploy: the agent's steps, boundaries, acceptance and rollback |
+| [docs/guides/AGENT_DEPLOY.md](docs/guides/AGENT_DEPLOY.md) | Quick deploy: the agent's steps, boundaries, acceptance and rollback |
 | [docs/guides/DSH_SETUP.md](docs/guides/DSH_SETUP.md) | DSH-side install: preset, MCP, restart |
 | [docs/guides/DSH_ADAPTATION.md](docs/guides/DSH_ADAPTATION.md) | DSH 0.2.0-rc.2 adaptation notes |
 | [docs/guides/SECURITY_BASELINE.md](docs/guides/SECURITY_BASELINE.md) | Security baseline and Windows ACL |

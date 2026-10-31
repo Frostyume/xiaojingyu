@@ -5,13 +5,13 @@
 <title>小鲸鱼 · 她住在哪里</title>
 <style>
   :root {
-    --ink: #eaf7f8;
-    --muted: #93b6bd;
-    --faint: #5f858d;
-    --teal: #2dd4bf;
-    --line: rgba(45, 212, 191, .24);
-    --panel: rgba(9, 38, 48, .78);
-    --panel-2: rgba(5, 25, 33, .86);
+    --ink: #eef2ff;
+    --muted: #a3b1d6;
+    --faint: #6b7aa8;
+    --teal: #7c93ff;
+    --line: rgba(124, 147, 255, .24);
+    --panel: rgba(15, 23, 54, .80);
+    --panel-2: rgba(7, 12, 32, .88);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -22,16 +22,16 @@
     font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
     color: var(--ink);
     background:
-      radial-gradient(1000px 500px at 12% -8%, rgba(14, 116, 108, .32), transparent 60%),
-      radial-gradient(820px 460px at 95% 0%, rgba(59, 130, 246, .16), transparent 58%),
-      linear-gradient(180deg, #04161f 0%, #061f29 52%, #04141c 100%);
+      radial-gradient(1000px 500px at 12% -8%, rgba(29, 55, 160, .32), transparent 60%),
+      radial-gradient(820px 460px at 95% 0%, rgba(77, 107, 254, .20), transparent 58%),
+      linear-gradient(180deg, #060b1c 0%, #0b1230 52%, #070c20 100%);
   }
   body::before {
     content: "";
     position: fixed; inset: 0;
     background-image:
-      linear-gradient(rgba(148, 233, 222, .04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 233, 222, .04) 1px, transparent 1px);
+      linear-gradient(rgba(160, 178, 255, .04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(160, 178, 255, .04) 1px, transparent 1px);
     background-size: 40px 40px;
     mask-image: linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,.1));
     pointer-events: none;
@@ -48,8 +48,8 @@
   .local {
     display: flex; align-items: center; gap: 9px;
     border: 1px solid var(--line); border-radius: 999px;
-    padding: 8px 15px; font-size: 12.5px; color: #c8f3ee;
-    background: rgba(45, 212, 191, .07);
+    padding: 8px 15px; font-size: 12.5px; color: #ccd8ff;
+    background: rgba(124, 147, 255, .07);
   }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 10px var(--teal); }
   .row { display: grid; gap: 22px; }
@@ -75,29 +75,29 @@
   }
   .link::before, .link::after {
     content: ""; height: 1px; width: 90px;
-    background: linear-gradient(90deg, transparent, rgba(45, 212, 191, .5));
+    background: linear-gradient(90deg, transparent, rgba(124, 147, 255, .5));
   }
-  .link::after { background: linear-gradient(90deg, rgba(45, 212, 191, .5), transparent); }
+  .link::after { background: linear-gradient(90deg, rgba(124, 147, 255, .5), transparent); }
   .core {
-    border: 1px solid rgba(45, 212, 191, .42);
+    border: 1px solid rgba(124, 147, 255, .42);
     background:
-      radial-gradient(520px 200px at 50% -20%, rgba(45, 212, 191, .16), transparent 70%),
-      linear-gradient(180deg, rgba(10, 46, 56, .92), rgba(4, 24, 31, .94));
-    box-shadow: 0 0 0 1px rgba(45, 212, 191, .08) inset, 0 24px 60px rgba(13, 148, 136, .14);
+      radial-gradient(520px 200px at 50% -20%, rgba(124, 147, 255, .16), transparent 70%),
+      linear-gradient(180deg, rgba(14, 22, 52, .93), rgba(7, 12, 30, .95));
+    box-shadow: 0 0 0 1px rgba(124, 147, 255, .08) inset, 0 24px 60px rgba(77, 107, 254, .14);
     padding: 20px 22px;
   }
   .core-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
   .core-head .tag { margin: 0; }
   .core-head h2 { font-size: 21px; margin: 0; }
   .core-head .badge {
-    margin-left: auto; font-size: 12px; color: #bff3ec;
-    border: 1px solid rgba(45, 212, 191, .3); border-radius: 999px;
-    padding: 4px 11px; background: rgba(45, 212, 191, .08);
+    margin-left: auto; font-size: 12px; color: #c7d4ff;
+    border: 1px solid rgba(124, 147, 255, .3); border-radius: 999px;
+    padding: 4px 11px; background: rgba(124, 147, 255, .08);
   }
   .modules { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
   .module {
-    border: 1px solid rgba(148, 233, 222, .14);
-    background: rgba(4, 24, 31, .55);
+    border: 1px solid rgba(160, 178, 255, .14);
+    background: rgba(7, 12, 30, .60);
     border-radius: 12px; padding: 11px 12px;
   }
   .module b { display: block; font-size: 13.5px; margin-bottom: 4px; }
@@ -105,10 +105,10 @@
   .kernel {
     margin-top: 12px; display: flex; align-items: center; gap: 10px;
     font-size: 11.5px; color: var(--faint);
-    border-top: 1px solid rgba(148, 233, 222, .1); padding-top: 11px;
+    border-top: 1px solid rgba(160, 178, 255, .1); padding-top: 11px;
     font-family: "Cascadia Mono", Consolas, monospace; letter-spacing: .04em;
   }
-  .kernel b { color: #a9d9d4; font-weight: 500; }
+  .kernel b { color: #aebfff; font-weight: 500; }
   .row-bottom { grid-template-columns: 1.35fr 1fr 1fr; }
   .mini { padding: 16px 18px; }
   .mini h3 { font-size: 15.5px; margin: 0 0 4px; font-weight: 600; }
@@ -117,7 +117,7 @@
   .foot {
     margin-top: 24px; display: flex; align-items: center; justify-content: space-between;
     color: var(--muted); font-size: 13px;
-    border-top: 1px solid rgba(148, 233, 222, .1); padding-top: 16px;
+    border-top: 1px solid rgba(160, 178, 255, .1); padding-top: 16px;
   }
   .mark { font-family: "Cascadia Mono", Consolas, monospace; font-size: 11px; letter-spacing: .18em; color: var(--faint); }
 </style>
