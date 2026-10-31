@@ -32,7 +32,7 @@ and actually does things when you ask.</p>
 
 **Contents**
 
-- **Meet her**: [Who she is](#who-she-is) · [Scenes](#scenes) · [Life of a message](#life-of-a-message) · [A life of her own](#a-life-of-her-own)
+- **Meet her**: [Who she is](#who-she-is) · [Why she is not just a chat window](#why-she-is-not-just-a-chat-window) · [Scenes](#scenes) · [Life of a message](#life-of-a-message) · [A life of her own](#a-life-of-her-own)
 - **Install her**: [Quick deploy (no coding)](#quick-deploy-no-coding-required) · [Manual deployment](#manual-deployment)
 - **Watch her**: [Live status page /live](#live-status-page-live) · [Local console](#local-console) · [Architecture](#architecture)
 - **Capabilities and boundaries**: [Code proposal loop](#code-proposals-ask-her-to-fix-or-build-something-in-a-dm) · [Capability map](#capability-map) · [Security notes](#security-notes) · [Limitations](#limitations)
@@ -61,6 +61,34 @@ chatting as usual, and she is simply the member who occasionally says something 
 - she never messages outside the whitelist, and has no mute / kick / upload / download group actions;
 - she never drops raw DSH / SnowLuma errors into a group, only one plain sentence;
 - she does not send voice by default (AI voice has to be enabled by hand).
+
+## Why she is not just a chat window
+
+Most AI chats are disposable: one message in, one reply out, and everything resets when you close the tab.
+Xiaojingyu lives inside QQ, closer to a member who has been in the group for a long time.
+
+**Continuous.** You only talk to her in groups and DMs, and you never have to remember which conversation
+last held which detail. A thread that started in a group today can continue in a DM tomorrow; she keeps
+the through-line across chats and days.
+
+**Present, not intrusive.** She does not surface on every message. Deterministic rules discard what is not
+worth waking her for, and then she decides whether to look up. What you see is "she happened to be there";
+what you do not see is that most of the time she chooses silence — and silence is still presence.
+
+**Proactive.** She has reflections, curiosity and things she wants to share. She schedules her own next
+waking, notices a quiet group, and settles down late at night. She is not a tool that only exists while
+you are typing a command.
+
+**Durable.** With the supervisor window open she stays online: crashes restart her, drops reconnect, and
+undelivered messages replay in order. Orchestration and state stay on your own machine; no extra hosted
+control plane is involved.
+
+| What you face | What is underneath |
+| --- | --- |
+| One her, in one group | One isolated context per group and per DM, so nothing bleeds across |
+| A sentence in plain language | Deterministic rules first, semantic judgement second |
+| She remembers you | Cross-chat memory, topics and summaries fetched by relevance |
+| She is always there | Process supervision, reconnects, queued replay |
 
 ## Quick deploy (no coding required)
 
@@ -192,15 +220,30 @@ More everyday jobs:
 
 ## Life of a message
 
-In `simulation` mode (the default) a message **does not** trigger one automatic reply. She only stores
-the QQ event reliably, then decides for herself whether to look, whether to speak, how many messages to
-send, or whether to keep diving.
+In `simulation` mode (the default), an incoming message does not immediately become a model call. It
+passes two very different gates.
+
+**The first gate is deterministic and costs no tokens.** The allowlist decides whether it may be seen at
+all; wake conditions decide whether it is worth waking her — @, name, keyword, question, poke,
+probability. Explicit commands such as `/reset` or a pending approval take a fast path and never reach
+the model. Most group chatter simply lands in the unread queue.
+
+**The second gate is semantic.** Only a matching message wakes her, and even then she does not process
+messages one by one: messages within an 8-second window merge into a single wake, and a busy session
+carries at most one batch of 12 unread messages / 6,000 characters. She reads a snapshot, then decides
+to reply, wait, mark as read, or keep diving.
+
+**Only then comes speech.** Her reply does not go straight out. It returns to the shared exit, passes the
+allowlist and audit again, is split, rate-limited and paced like a person, and only then appears in QQ.
 
 <p align="center">
   <img src="assets/diagrams/message-flow.en.png" width="100%" alt="The life of a message: trigger, think, act">
   <br>
   <sub>Trigger → think → act: before deciding what to say, she decides whether to speak at all</sub>
 </p>
+
+So the life of a message is not "in, reply out"; it is **receive → two gates → merge → act → one exit**.
+Whether she speaks at all, and how much, is still her call.
 
 ### Tools the agent holds
 
@@ -638,6 +681,25 @@ Interface details:
   <sub>Where she lives: every hop stays on your own machine</sub>
 </p>
 
+The whole path has just two roles, with a clear split.
+
+**The wiring layer** is the always-on front desk between her and the outside world. It stays light and
+prefers deterministic code: it receives QQ events, applies the allowlist and wake admission, merges
+messages that arrive close together, keeps the session map, memory and daily rhythm, and owns every
+outgoing message. It does not do heavy reasoning — most messages are not worth waking a model for.
+
+**The thinking layer** is where reasoning and tool use happen. On each wake it works inside an isolated
+context: reads messages, queries memory, decides what to say or do. It never speaks to a group directly;
+results go back to the wiring layer and leave through the same exit.
+
+Hence: **sessions are an implementation detail, not something you manage.** You deal with "her, in this
+group", not a list of sessions to tidy up. The split exists for three reasons:
+
+- most messages do not deserve a model call — rules filter them first, so spend goes where judgement is
+  actually needed;
+- every outgoing line passes one exit, so several sessions cannot talk over each other or double-reply;
+- each group and DM has its own context, so a joke in one group does not leak into another.
+
 A conversation runs roughly like this:
 
 <p align="center">
@@ -654,6 +716,37 @@ A conversation runs roughly like this:
   signing key in `~/.dsh`, so no DSH launch token is needed (it has lived only in memory since DSH 0.1.7);
 - **Persona and memory are local files**: who she is lives in `personas/`, what she remembers lives in
   `state/` — both can be backed up, moved or deleted.
+
+### Design trade-offs
+
+| Topic | Our choice | Why |
+| --- | --- | --- |
+| Sessions | One execution session per QQ group or DM; turns within a session are serial | Predictable order, no two replies racing in one group; other sessions keep their own queue |
+| Routing | Rules first, semantics second; a model is only involved after a wake condition fires | Most messages need no reasoning, and rules are fast and free |
+| Concurrency | Serial per session, plus an 8-second merge window; busy sessions queue their wake reasons | One prompt for a batch costs less than one prompt per message, and reads more like a person catching up |
+| Context | An always-on index, full text on demand; long material is kept as summaries and references | A window is a budget, not a warehouse |
+| Deployment | Everything local: QQ ↔ SnowLuma ↔ bridge ↔ DSH on `127.0.0.1` | Data stays home and failure boundaries stay clear |
+| Recovery | External restart, persistent queue replay, session recreation | On a machine that runs for months, exits and DSH restarts are normal, not exceptional |
+
+### Context is a budget, too
+
+A wake does not stuff the entire group history and every asset into the prompt. Context is organised as an
+always-on index plus full text on demand:
+
+- the persona kernel, tool protocol and current trigger are always present, because they define who she
+  is, what she can do, and why she woke up;
+- stickers and images contribute only an id, a name and a one-line note; the full asset is fetched by a
+  tool when needed;
+- memory contributes a short relevance-ranked summary first, with details looked up only if required;
+- long manuals load one or two relevant entries at a time;
+- unread messages arrive as one snapshot; if the snapshot is incomplete, she continues from where it
+  stopped instead of receiving the whole batch again;
+- when a threshold is crossed the context is compacted; if it is still too large, older material is
+  archived and a hand-off summary is carried into the next session (a designed fallback, not a claim that
+  every turn hits it).
+
+The principle is one sentence: **a window is a budget, not a warehouse.** She may remember a great deal,
+but each wake only pulls in the part this turn needs.
 
 ### DSH-side details (DSH 0.2.0-rc.2)
 
@@ -787,7 +880,13 @@ npm run doctor     # config, SQLite, DSH, SnowLuma, preset, ports
 - Agent Markdown replies are converted to plain text before sending (links keep the `text (url)` form);
 - Windows 10 / 11 only: both QQ and SnowLuma are Windows programs;
 - Only `simulation` / `closed-agent` are first-class modes; earlier `chat` / `reserved` need a
-  `qq-chat-legacy` preset that is not shipped.
+  `qq-chat-legacy` preset that is not shipped;
+- **No topic-level execution sessions**: several topics in one group share a single context; long
+  conversations rely on summaries and retrieval, and topics can still affect each other;
+- **No task-level progress supervision**: only process / port / lease probes and a "no action" counter
+  exist; whether a long task is actually advancing cannot be judged;
+- **Single-machine only**: no cross-device sync; moving machines means carrying `state/`, `personas/` and
+  `config.json` along.
 
 ## Compatibility and extending
 
