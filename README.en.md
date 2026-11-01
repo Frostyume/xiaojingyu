@@ -33,7 +33,7 @@ and actually does things when you ask.</p>
 **Contents**
 
 - **Meet her**: [Who she is](#who-she-is) · [Why she is not just a chat window](#why-she-is-not-just-a-chat-window) · [Scenes](#scenes) · [Life of a message](#life-of-a-message) · [A life of her own](#a-life-of-her-own)
-- **Install her**: [Quick deploy](#quick-deploy-no-coding-required) · [Manual deployment](docs/guides/MANUAL_DEPLOY.md) · [Run modes](docs/guides/MANUAL_DEPLOY.md#run-modes)
+- **Install her**: [Quick deploy](#quick-deploy-no-coding-required) · [Manual deployment](docs/guides/MANUAL_DEPLOY.md) · [Run modes](docs/guides/MANUAL_DEPLOY.md#run-modes) · [Make her yours](#make-her-yours)
 - **Watch her**: [Live status page /live](#live-status-page-live) · [Local console](#local-console) · [Architecture](#architecture)
 - **Capabilities and boundaries**: [Code proposals](#code-proposals-ask-her-to-fix-or-build-something-in-a-dm) · [Capability map](#capability-map) · [Full capability list](docs/guides/CAPABILITIES.md) · [Security notes](#security-notes) · [Limitations](#limitations)
 - **Going deeper**: [Troubleshooting](docs/guides/TROUBLESHOOTING.md) · [Compatibility and extending](docs/guides/EXTENDING.md) · [Documentation](#documentation) · [Repository layout](docs/FOLDER_MAP.md) · [Upstream and license](#upstream-and-license)
@@ -170,6 +170,27 @@ it continue from the troubleshooting table in [AGENT_DEPLOY.md](docs/guides/AGEN
 problem — that is not a fix, it is just opening the door.
 
 > Prefer to do it yourself? [Manual deployment](docs/guides/MANUAL_DEPLOY.md) runs the same flow step by step.
+
+## Make her yours
+
+Xiaojingyu is just the default card that ships with the repository. Her name, temperament, way of
+speaking and how she carries herself in each group are yours to change.
+
+1. **Know the two layers first.** The *persona prompt* defines who she is — identity, character,
+   tone, sore spots. The *simulation prompt* defines how she works — tools, message splitting,
+   diving and waking. When changing the character, edit only the former.
+2. **Change the character.** Copy `personas/小鲸鱼.md` to `personas/<new-name>.md` and rewrite it,
+   or create a card in the console under **Persona & roles**. Then select it in the console, or say
+   `进入角色扮演：<name>` in a group to switch.
+3. **Give each group its own manners.** In **Group Theatre**, write a per-group initial prompt,
+   group profile and style note, so she does not sound the same everywhere.
+4. **Verify in small steps.** Talk to her in a DM first, then put her in one group for a day. Edit
+   the file or save in the console and the next message picks it up — no DSH restart needed.
+
+Keep the persona card about character only, not tool usage; and keep the behaviour boundaries
+(no overreach, no flooding, no impersonation). Templates, per-mode injection and character limits
+are in [personas/README.md](personas/README.md); the mechanics are in the
+[full capability list](docs/guides/CAPABILITIES.md).
 
 ## Scenes
 
