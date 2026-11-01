@@ -52,8 +52,8 @@ git --version
 - 没有 Git：`winget install Git.Git`；
 - 检查 DSH：确认 `http://127.0.0.1:3080` 可访问、进程存在。未安装就停下来，
   让用户去 DeepSeek Harness 官方渠道安装并启动，**不要自行下载来源不明的安装包**；
-- 检查 SnowLuma：确认 3000 / 3001 端口有监听。没有就提醒用户按 README 第 4 步操作，
-  **不要代下载、代启动**。
+- 检查 SnowLuma：确认 3000 / 3001 端口有监听。没有就提醒用户按
+  [MANUAL_DEPLOY.md](MANUAL_DEPLOY.md) 第 4 步操作，**不要代下载、代启动**。
 
 ### 2. 获取代码并安装依赖
 
@@ -152,7 +152,7 @@ npm run doctor
 | DSH 报 bundle 解析失败 | `dsh plugin --profile web install` 后完整重启 DSH |
 | 改了配置不生效 | 桥接是否重启；DSH preset 改动是否需要重装并重启 |
 
-详细版见 README 的「排查手册」与 [`docs/guides/DSH_SETUP.md`](DSH_SETUP.md)。
+详细版见 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) 与 [`docs/guides/DSH_SETUP.md`](DSH_SETUP.md)。
 
 ---
 

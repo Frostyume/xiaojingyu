@@ -102,7 +102,7 @@
      - `receive path stale: … reporting good=false` —— 收不到数据（会自愈，也可能不自愈）
      - `process enumeration timed out after 4000ms` —— 连 QQ 进程都枚举不到
      - 正常应有 `login detected: PID=…` + `pipe connected: PID=…`
-  3. **再考虑升级 SnowLuma**（见 [../../README.md](../../README.md) 的「SnowLuma 版本与上游健康」）。⚠️ 但先别指望它：**实测注入用的原生组件在 1.14.9 与 1.14.20 之间逐字节完全相同**，升级只换 JS 层，**不会修「原生 hook 挂不上 QQ」**。**升级 SnowLuma 是你自己的事**——本桥接只探测、不部署。
+  3. **再考虑升级 SnowLuma**（见 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) 的「SnowLuma 版本与上游健康」）。⚠️ 但先别指望它：**实测注入用的原生组件在 1.14.9 与 1.14.20 之间逐字节完全相同**，升级只换 JS 层，**不会修「原生 hook 挂不上 QQ」**。**升级 SnowLuma 是你自己的事**——本桥接只探测、不部署。
   4. 顺带确认 QQ 客户端本身是登录状态、没有被顶号；较新的 SnowLuma（**1.14.20 已确认**）会通过 `bot_status` 事件把账号上下线告诉我们，桥接日志里会打「QQ 账号会话已离线」。
   > 桥接**没有**任何原生/注入面（依赖全纯 JS，源码里没有 `.dll`/`.node`/FFI/进程注入），也不启动、不控制 SnowLuma 或 QQ，所以「QQ 注入失败」不可能是本桥接造成的。
 - **看不到 `qq-mode` 设置卡片**：这是**已知限制**，不是配置错误。DSH 的 `settings.plugin.item` 槽位只渲染「host 已注册的命名空间 ∩ 声明了该 key 的卡片」，而卡片必须由插件的**浏览器半**（`package.json` 的 `dsh.client` + `lib/client.js`）注册；`plugins/mode-console` 目前只有 host 半。反复重跑 `install-dsh.mjs` 或重启 DSH 都不会让卡片出现。要真正修好需补一个 `lib/client.js`。

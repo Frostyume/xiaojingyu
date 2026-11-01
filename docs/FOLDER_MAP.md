@@ -116,10 +116,13 @@ DSH/                         ← 工作区根（不是仓库根）
 docs/
 ├── README.md     # 文档索引（只登记随仓库发布的文档）  ← 先看这个
 ├── FOLDER_MAP.md # 本文件
-└── guides/       # 面向使用者/运维：DSH_SETUP / DSH_ADAPTATION / SECURITY_BASELINE / RELIABILITY / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING / PRIVACY
+├── ARCHITECTURE.md # 两种角色、设计取舍与上下文预算
+└── guides/       # 面向使用者/运维：AGENT_DEPLOY / MANUAL_DEPLOY / TROUBLESHOOTING / CAPABILITIES /
+                  # CODE_PROPOSAL / INNER_LIFE / CONSOLE / EXTENDING / DSH_SETUP / DSH_ADAPTATION /
+                  # SECURITY_BASELINE / RELIABILITY / TOKEN_USAGE_CONSOLE / CONSOLE-UI-TESTING / PRIVACY
 ```
 
-> ⚠️ **哪些文档会进公开仓库**：只发布 `docs/README.md`、`docs/FOLDER_MAP.md` 与 `docs/guides/`。
+> ⚠️ **哪些文档会进公开仓库**：只发布 `docs/README.md`、`docs/FOLDER_MAP.md`、`docs/ARCHITECTURE.md` 与 `docs/guides/`。
 > 设计规划、审计/优化报告、调研记录、历史归档、项目总说明书、内部编排/交接文档都**不随仓库发布**
 > （它们含本机路径与真实账号，只在私有开发副本保留）。**要公开的新文档请放 `docs/guides/`。**
 

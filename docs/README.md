@@ -8,6 +8,14 @@
 | 文档 | 一句话说明 |
 | --- | --- |
 | [guides/AGENT_DEPLOY.md](guides/AGENT_DEPLOY.md) | 把部署整件事交给 Codex / Claude Code / Qoder / DSH：agent 的执行步骤、边界、验收与回滚 |
+| [guides/MANUAL_DEPLOY.md](guides/MANUAL_DEPLOY.md) | 手动部署六步（装依赖、写配置、装 DSH 端、准备 SnowLuma、启动）与运行模式 |
+| [guides/TROUBLESHOOTING.md](guides/TROUBLESHOOTING.md) | 体检与排查手册：没反应、收不到消息、1006、端点自愈、已知限制 |
+| [guides/CAPABILITIES.md](guides/CAPABILITIES.md) | 完整能力清单：35 个工具、唤醒与发送边界、分门别类的能力表、安全默认值 |
+| [guides/CODE_PROPOSAL.md](guides/CODE_PROPOSAL.md) | 代码提案闭环：七步流程、三条私聊回执、与任意 coding agent 的接入契约 |
+| [guides/INNER_LIFE.md](guides/INNER_LIFE.md) | 内心生活与主动分享的机制、示例频率，以及 owner 私聊里的完整指令表 |
+| [guides/CONSOLE.md](guides/CONSOLE.md) | `/live` 状态页面板与本地控制台 13 个任务页的逐页说明 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 两种角色的拆分、设计取舍、上下文预算与 DSH 侧细节 |
+| [guides/EXTENDING.md](guides/EXTENDING.md) | 兼容矩阵、扩展点（人格卡 / 插件 / MCP / preset）、开发闭环与测试命令 |
 | [guides/DSH_SETUP.md](guides/DSH_SETUP.md) | 在目标设备上把桥接接进 DSH：`qq-chat` preset 与三个 MCP server 怎么挂 |
 | [guides/DSH_ADAPTATION.md](guides/DSH_ADAPTATION.md) | 适配 DSH 0.2.0 的逐条改动记录（现象/原因/证据/验证）；升级 DSH 前先读最后一节的操作清单 |
 | [guides/SECURITY_BASELINE.md](guides/SECURITY_BASELINE.md) | 安全基线与威胁模型：准入、工具面、出站、控制台、落盘、网络，以及已知残余风险 —— **改动安全相关代码前必读** |
@@ -22,6 +30,14 @@
 | 我想…… | 看这个 |
 | --- | --- |
 | 让 agent 一句话把整套东西部署好 | [guides/AGENT_DEPLOY.md](guides/AGENT_DEPLOY.md) |
+| 自己一步步手动部署 | [guides/MANUAL_DEPLOY.md](guides/MANUAL_DEPLOY.md) |
+| 出问题了，先排查 | [guides/TROUBLESHOOTING.md](guides/TROUBLESHOOTING.md) |
+| 知道她到底能做什么 | [guides/CAPABILITIES.md](guides/CAPABILITIES.md) |
+| 让她把一句抱怨变成代码改动 | [guides/CODE_PROPOSAL.md](guides/CODE_PROPOSAL.md) |
+| 调心情、分享、私聊指令 | [guides/INNER_LIFE.md](guides/INNER_LIFE.md) |
+| 看懂 `/live` 和控制台 | [guides/CONSOLE.md](guides/CONSOLE.md) |
+| 理解整体架构与取舍 | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| 加插件 / 改 preset / 二次开发 | [guides/EXTENDING.md](guides/EXTENDING.md) |
 | 在新设备上把桥接接进 DSH | [guides/DSH_SETUP.md](guides/DSH_SETUP.md) |
 | 升级 DSH 前评估改动面 | [guides/DSH_ADAPTATION.md](guides/DSH_ADAPTATION.md) |
 | 动安全相关代码 / 做发布前检查 | [guides/SECURITY_BASELINE.md](guides/SECURITY_BASELINE.md)、[guides/PRIVACY.md](guides/PRIVACY.md) |
