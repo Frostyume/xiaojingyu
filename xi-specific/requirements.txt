@@ -1,0 +1,3 @@
+# Optional image preparation and encrypted backup helpers; no account access on install.
+Pillow==12.3.0
+cryptography==50.0.2

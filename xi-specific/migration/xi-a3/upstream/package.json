@@ -1,0 +1,26 @@
+{
+  "name": "xiaojingyu",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Bridge between SnowLuma (OneBot v11 / QQ) and DeepSeek Harness Web API: QQ messages become DSH agent prompts, agent replies go back to QQ. Targets the DSH Cookie-auth / slash-RPC / remote.mux protocol generation, so it deliberately names no DSH version here.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node app/whale.js",
+    "self-test": "node app/self-check.js",
+    "schema:config": "node tools/gen-config-schema.mjs",
+    "verify": "node --check app/whale.js && node tools/gen-config-schema.mjs --check"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-host-apiproxy": "0.1.1-rc.2",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@snowluma/mcp": "^1.14.20",
+    "@snowluma/sdk": "^1.14.20",
+    "js-yaml": "^4.3.2",
+    "zod": "^4.4.3"
+  }
+}

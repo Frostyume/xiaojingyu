@@ -1,0 +1,5985 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/xiaojingyu/config.schema.json",
+  "title": "xiaojingyu config",
+  "description": "xiaojingyu 运行配置。真实 config.json 不入库；本文件只描述结构、类型与范围。",
+  "type": "object",
+  "additionalProperties": true,
+  "x-config-version": 2,
+  "x-generated-from": "config.example.json",
+  "properties": {
+    "dsh": {
+      "type": "object",
+      "properties": {
+        "allowRemote": {
+          "title": "允许把 launch token 发往非回环地址",
+          "type": "boolean",
+          "default": false
+        },
+        "authHeader": {
+          "title": "鉴权 header",
+          "type": "string",
+          "default": "authorization"
+        },
+        "authPrefix": {
+          "title": "鉴权前缀",
+          "type": "string",
+          "default": "Bearer"
+        },
+        "baseUrl": {
+          "title": "DSH 地址",
+          "type": "string",
+          "default": "http://127.0.0.1:3080",
+          "description": "DSH 重启后端口会变，需要同步更新"
+        },
+        "model": {
+          "title": "模型",
+          "type": "string",
+          "default": "deepseek-flash"
+        },
+        "provider": {
+          "title": "模型 provider",
+          "type": "string",
+          "default": "deepseek-official"
+        },
+        "reasoningEffort": {
+          "title": "思考强度",
+          "type": "string",
+          "default": "max",
+          "enum": [
+            "off",
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        },
+        "authToken": {
+          "title": "DSH auth token",
+          "type": "string",
+          "x-secret": true,
+          "description": "密钥/标识：只存本地，控制台只显示是否已配置"
+        }
+      }
+    },
+    "snowluma": {
+      "type": "object",
+      "properties": {
+        "followDiscoveredEndpoint": {
+          "title": "跟随自动发现的端点",
+          "type": "boolean",
+          "default": true
+        },
+        "homeDir": {
+          "title": "SnowLuma 安装目录",
+          "type": "string",
+          "default": ""
+        },
+        "httpUrl": {
+          "title": "SnowLuma HTTP 地址",
+          "type": "string",
+          "default": "http://127.0.0.1:3000"
+        },
+        "launcherPath": {
+          "title": "SnowLuma 启动器路径",
+          "type": "string",
+          "default": ""
+        },
+        "silenceWarnMs": {
+          "title": "静默告警阈值（ms）",
+          "type": "number",
+          "default": 600000,
+          "minimum": 60000,
+          "maximum": 86400000
+        },
+        "wsUrl": {
+          "title": "SnowLuma WS 地址",
+          "type": "string",
+          "default": "ws://127.0.0.1:3001"
+        },
+        "accessToken": {
+          "title": "SnowLuma access token",
+          "type": "string",
+          "x-secret": true,
+          "description": "密钥/标识：只存本地，控制台只显示是否已配置"
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "properties": {
+        "maxInjectChars": {
+          "title": "人格注入上限（字符）",
+          "type": "number",
+          "default": 6000,
+          "minimum": 1000,
+          "maximum": 20000
+        }
+      }
+    },
+    "allow": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "default": []
+        },
+        "private": {
+          "title": "Private",
+          "type": "array",
+          "default": []
+        }
+      }
+    },
+    "deny": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "default": []
+        },
+        "private": {
+          "title": "Private",
+          "type": "array",
+          "default": []
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "properties": {
+        "interceptNotify": {
+          "title": "敏感回复拦截时通知管理员",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "slang": {
+      "type": "object",
+      "properties": {
+        "autoResearch": {
+          "title": "Auto Research",
+          "type": "boolean",
+          "default": true
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "extractCooldownMs": {
+          "title": "Extract Cooldown Ms",
+          "type": "number",
+          "default": 300000
+        },
+        "extractMinMessages": {
+          "title": "Extract Min Messages",
+          "type": "number",
+          "default": 10
+        },
+        "inferenceThresholds": {
+          "title": "Inference Thresholds",
+          "type": "array",
+          "default": [
+            2,
+            4,
+            8
+          ]
+        },
+        "injectMax": {
+          "title": "Inject Max",
+          "type": "number",
+          "default": 8
+        },
+        "learnerPreset": {
+          "title": "Learner Preset",
+          "type": "string",
+          "default": "qq-chat"
+        },
+        "researchBatchSize": {
+          "title": "Research Batch Size",
+          "type": "number",
+          "default": 2
+        },
+        "researchMaxPerRun": {
+          "title": "Research Max Per Run",
+          "type": "number",
+          "default": 6
+        },
+        "researchTimeoutMs": {
+          "title": "Research Timeout Ms",
+          "type": "number",
+          "default": 240000
+        },
+        "workspaceTitle": {
+          "title": "Workspace Title",
+          "type": "string",
+          "default": "QQ 黑话学习"
+        }
+      }
+    },
+    "social": {
+      "type": "object",
+      "properties": {
+        "activeCheckMaxMs": {
+          "title": "Active Check Max Ms",
+          "type": "number",
+          "default": 30000
+        },
+        "activeCheckMinMs": {
+          "title": "Active Check Min Ms",
+          "type": "number",
+          "default": 8000
+        },
+        "activeDurationEnabled": {
+          "title": "Active Duration Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "activeDurationMaxMs": {
+          "title": "Active Duration Max Ms",
+          "type": "number",
+          "default": 3000000
+        },
+        "activeDurationMinMs": {
+          "title": "Active Duration Min Ms",
+          "type": "number",
+          "default": 1200000
+        },
+        "activeReplyDelayMaxMs": {
+          "title": "Active Reply Delay Max Ms",
+          "type": "number",
+          "default": 5000
+        },
+        "activeReplyDelayMinMs": {
+          "title": "Active Reply Delay Min Ms",
+          "type": "number",
+          "default": 1000
+        },
+        "burstEnabled": {
+          "title": "Burst Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "burstIntervalMaxMs": {
+          "title": "Burst Interval Max Ms",
+          "type": "number",
+          "default": 3000
+        },
+        "burstIntervalMinMs": {
+          "title": "Burst Interval Min Ms",
+          "type": "number",
+          "default": 1000
+        },
+        "contextWindow": {
+          "title": "Context Window",
+          "type": "number",
+          "default": 20
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "idleRetryProbability": {
+          "title": "Idle Retry Probability",
+          "type": "number",
+          "default": 0.4
+        },
+        "idleRetryWaitMs": {
+          "title": "Idle Retry Wait Ms",
+          "type": "number",
+          "default": 120000
+        },
+        "idleWindowMs": {
+          "title": "Idle Window Ms",
+          "type": "number",
+          "default": 360000
+        },
+        "longGapMaxMs": {
+          "title": "Long Gap Max Ms",
+          "type": "number",
+          "default": 10000
+        },
+        "longGapMinMs": {
+          "title": "Long Gap Min Ms",
+          "type": "number",
+          "default": 5000
+        },
+        "longGapProbability": {
+          "title": "Long Gap Probability",
+          "type": "number",
+          "default": 0.2
+        },
+        "maxReplyChars": {
+          "title": "Max Reply Chars",
+          "type": "number",
+          "default": 500
+        },
+        "mustReplyKeywords": {
+          "title": "Must Reply Keywords",
+          "type": "array",
+          "default": [
+            "deepseek",
+            "小鲸鱼",
+            "大肥鱼",
+            "鲸鱼",
+            "d指导",
+            "在吗"
+          ]
+        },
+        "proactiveCheckMaxMs": {
+          "title": "Proactive Check Max Ms",
+          "type": "number",
+          "default": 5400000
+        },
+        "proactiveCheckMinMs": {
+          "title": "Proactive Check Min Ms",
+          "type": "number",
+          "default": 2700000
+        },
+        "proactiveEnabled": {
+          "title": "Proactive Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "proactiveIdleThresholdMs": {
+          "title": "Proactive Idle Threshold Ms",
+          "type": "number",
+          "default": 1800000
+        },
+        "proactiveProbability": {
+          "title": "Proactive Probability",
+          "type": "number",
+          "default": 0.2
+        },
+        "skipProbability": {
+          "title": "Skip Probability",
+          "type": "number",
+          "default": 0.05
+        },
+        "surrenderProbability": {
+          "title": "Surrender Probability",
+          "type": "number",
+          "default": 0
+        },
+        "triggerProbability": {
+          "title": "Trigger Probability",
+          "type": "number",
+          "default": 0.1
+        }
+      }
+    },
+    "simulation": {
+      "type": "object",
+      "properties": {
+        "agentPreset": {
+          "title": "仿真预设",
+          "type": "string",
+          "default": "qq-chat"
+        },
+        "autoReplyCheckMs": {
+          "title": "回复检查间隔（ms）",
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "maximum": 600000
+        },
+        "clingy": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean",
+              "default": true
+            },
+            "maxDelayMs": {
+              "title": "Max Delay Ms",
+              "type": "number",
+              "default": 600000
+            },
+            "maxFollowUps": {
+              "title": "Max Follow Ups",
+              "type": "number",
+              "default": 2
+            },
+            "minDelayMs": {
+              "title": "Min Delay Ms",
+              "type": "number",
+              "default": 120000
+            },
+            "probability": {
+              "title": "Probability",
+              "type": "number",
+              "default": 0.65
+            }
+          }
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "contextWindow": {
+              "title": "Context Window",
+              "type": "number",
+              "default": 20
+            },
+            "inlineWakeMessages": {
+              "title": "Inline Wake Messages",
+              "type": "boolean",
+              "default": true
+            },
+            "recentLimit": {
+              "title": "Recent Limit",
+              "type": "number",
+              "default": 100
+            },
+            "unreadLimit": {
+              "title": "Unread Limit",
+              "type": "number",
+              "default": 30
+            },
+            "wakeMaxChars": {
+              "title": "Wake Max Chars",
+              "type": "number",
+              "default": 6000
+            },
+            "wakeMessageLimit": {
+              "title": "Wake Message Limit",
+              "type": "number",
+              "default": 12
+            },
+            "wakeRecentLimit": {
+              "title": "Wake Recent Limit",
+              "type": "number",
+              "default": 4
+            },
+            "digestMaxChars": {
+              "title": "衔接摘要上限（字符）",
+              "type": "number",
+              "default": 1500,
+              "minimum": 300,
+              "maximum": 4000
+            },
+            "rotateAtTokens": {
+              "title": "会话旋转阈值（tokens）",
+              "type": "number",
+              "default": 120000,
+              "minimum": 0,
+              "maximum": 500000,
+              "description": "0=关闭；超过阈值时下一次唤醒归档旧会话并注入衔接摘要"
+            },
+            "wakeBudgetTokens": {
+              "title": "唤醒 prompt token 预算",
+              "type": "number",
+              "default": 10000,
+              "minimum": 300,
+              "maximum": 20000,
+              "description": "超出时按优先级丢可选段，核心人格/工具协议不丢"
+            }
+          }
+        },
+        "enabled": {
+          "title": "群聊仿真总开关",
+          "type": "boolean",
+          "default": true
+        },
+        "esportsFeed": {
+          "type": "object",
+          "properties": {
+            "maxItems": {
+              "title": "Max Items",
+              "type": "number",
+              "default": 12
+            },
+            "refreshMs": {
+              "title": "Refresh Ms",
+              "type": "number",
+              "default": 300000
+            },
+            "summaryMaxChars": {
+              "title": "Summary Max Chars",
+              "type": "number",
+              "default": 1400
+            },
+            "enabled": {
+              "title": "电竞资讯",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "feedback": {
+          "type": "object",
+          "properties": {
+            "maxLength": {
+              "title": "Max Length",
+              "type": "number",
+              "default": 500
+            },
+            "notifyOwnerOnError": {
+              "title": "Notify Owner On Error",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "imageLibrary": {
+          "type": "object",
+          "properties": {
+            "allowUrlSave": {
+              "title": "Allow Url Save",
+              "type": "boolean",
+              "default": true
+            },
+            "includeInPrompt": {
+              "title": "Include In Prompt",
+              "type": "boolean",
+              "default": true
+            },
+            "maxBytes": {
+              "title": "Max Bytes",
+              "type": "number",
+              "default": 20971520
+            },
+            "promptMaxImages": {
+              "title": "Prompt Max Images",
+              "type": "number",
+              "default": 8
+            },
+            "dir": {
+              "title": "图片库目录",
+              "type": "string",
+              "default": "state/media/images"
+            },
+            "enabled": {
+              "title": "通用图片库",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "initialPromptMaxChars": {
+          "title": "初始提示词上限（字符）",
+          "type": "number",
+          "default": 2000,
+          "minimum": 100,
+          "maximum": 8000
+        },
+        "innerLife": {
+          "type": "object",
+          "properties": {
+            "aiTips": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": false
+                },
+                "images": {
+                  "title": "Images",
+                  "type": "boolean",
+                  "default": true
+                },
+                "links": {
+                  "title": "Links",
+                  "type": "boolean",
+                  "default": true
+                },
+                "maxChars": {
+                  "title": "Max Chars",
+                  "type": "number",
+                  "default": 320
+                },
+                "maxHistory": {
+                  "title": "Max History",
+                  "type": "number",
+                  "default": 500
+                },
+                "maxLinks": {
+                  "title": "Max Links",
+                  "type": "number",
+                  "default": 3
+                },
+                "maxPerDay": {
+                  "title": "Max Per Day",
+                  "type": "number",
+                  "default": 5
+                },
+                "minGapMs": {
+                  "title": "Min Gap Ms",
+                  "type": "number",
+                  "default": 4500000
+                },
+                "minPerDay": {
+                  "title": "Min Per Day",
+                  "type": "number",
+                  "default": 2
+                },
+                "target": {
+                  "title": "Target",
+                  "type": "string",
+                  "default": ""
+                },
+                "webImages": {
+                  "title": "Web Images",
+                  "type": "boolean",
+                  "default": true
+                },
+                "windowEndHour": {
+                  "title": "Window End Hour",
+                  "type": "number",
+                  "default": 22
+                },
+                "windowStartHour": {
+                  "title": "Window Start Hour",
+                  "type": "number",
+                  "default": 9
+                }
+              }
+            },
+            "approvalTimeoutMs": {
+              "title": "Approval Timeout Ms",
+              "type": "number",
+              "default": 7200000
+            },
+            "browserPath": {
+              "title": "Browser Path",
+              "type": "string",
+              "default": ""
+            },
+            "curiosity": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": true
+                },
+                "maxCandidates": {
+                  "title": "Max Candidates",
+                  "type": "number",
+                  "default": 10
+                },
+                "maxPerDay": {
+                  "title": "Max Per Day",
+                  "type": "number",
+                  "default": 12
+                },
+                "minPerDay": {
+                  "title": "Min Per Day",
+                  "type": "number",
+                  "default": 5
+                },
+                "refreshMs": {
+                  "title": "Refresh Ms",
+                  "type": "number",
+                  "default": 7200000
+                },
+                "sources": {
+                  "type": "object",
+                  "properties": {
+                    "bilibili": {
+                      "title": "Bilibili",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "rss": {
+                      "title": "Rss",
+                      "type": "array",
+                      "default": [
+                        "https://sspai.com/feed",
+                        "https://www.ithome.com/rss/"
+                      ]
+                    },
+                    "s16": {
+                      "title": "S16",
+                      "type": "boolean",
+                      "default": true
+                    }
+                  }
+                },
+                "webSearch": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "title": "Enabled",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "maxQueries": {
+                      "title": "Max Queries",
+                      "type": "number",
+                      "default": 1
+                    },
+                    "maxResults": {
+                      "title": "Max Results",
+                      "type": "number",
+                      "default": 5
+                    }
+                  }
+                }
+              }
+            },
+            "groupShare": {
+              "type": "object",
+              "properties": {
+                "idleMs": {
+                  "title": "Idle Ms",
+                  "type": "number",
+                  "default": 120000
+                },
+                "maxChars": {
+                  "title": "Max Chars",
+                  "type": "number",
+                  "default": 500
+                },
+                "maxPerDay": {
+                  "title": "Max Per Day",
+                  "type": "number",
+                  "default": 20
+                },
+                "minGapMs": {
+                  "title": "Min Gap Ms",
+                  "type": "number",
+                  "default": 900000
+                },
+                "requireApproval": {
+                  "title": "Require Approval",
+                  "type": "boolean",
+                  "default": false
+                },
+                "target": {
+                  "title": "Target",
+                  "type": "string",
+                  "default": ""
+                },
+                "targets": {
+                  "title": "主动分享目标群",
+                  "type": "array",
+                  "default": [],
+                  "description": "可多选；每次只挑一个群分享，按最近分享时间轮换"
+                },
+                "enabled": {
+                  "title": "群内分享",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "mood": {
+              "type": "object",
+              "properties": {
+                "budgets": {
+                  "type": "object",
+                  "properties": {
+                    "maxDay": {
+                      "title": "Max Day",
+                      "type": "number",
+                      "default": 0.6
+                    },
+                    "maxHour": {
+                      "title": "Max Hour",
+                      "type": "number",
+                      "default": 0.35
+                    }
+                  }
+                },
+                "circadian": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "title": "Enabled",
+                      "type": "boolean",
+                      "default": true
+                    }
+                  }
+                },
+                "decay": {
+                  "type": "object",
+                  "properties": {
+                    "arousalHalfLifeH": {
+                      "title": "Arousal Half Life H",
+                      "type": "number",
+                      "default": 6
+                    },
+                    "energyHalfLifeH": {
+                      "title": "Energy Half Life H",
+                      "type": "number",
+                      "default": 10
+                    },
+                    "valenceNegativeHalfLifeH": {
+                      "title": "Valence Negative Half Life H",
+                      "type": "number",
+                      "default": 20
+                    },
+                    "valencePositiveHalfLifeH": {
+                      "title": "Valence Positive Half Life H",
+                      "type": "number",
+                      "default": 30
+                    }
+                  }
+                },
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": true
+                },
+                "eventNudge": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "title": "Enabled",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "maxDelta": {
+                      "title": "Max Delta",
+                      "type": "number",
+                      "default": 0.2
+                    },
+                    "maxPerDay": {
+                      "title": "Max Per Day",
+                      "type": "number",
+                      "default": 6
+                    },
+                    "maxPerHour": {
+                      "title": "Max Per Hour",
+                      "type": "number",
+                      "default": 2
+                    },
+                    "minIntensity": {
+                      "title": "Min Intensity",
+                      "type": "number",
+                      "default": 3
+                    }
+                  }
+                },
+                "history": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "title": "Enabled",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "keepDays": {
+                      "title": "Keep Days",
+                      "type": "number",
+                      "default": 180
+                    },
+                    "maxBytes": {
+                      "title": "Max Bytes",
+                      "type": "number",
+                      "default": 5242880
+                    }
+                  }
+                },
+                "includeOwnerPrivate": {
+                  "title": "Include Owner Private",
+                  "type": "boolean",
+                  "default": true
+                },
+                "maxEventsPerReflection": {
+                  "title": "Max Events Per Reflection",
+                  "type": "number",
+                  "default": 3
+                },
+                "maxReflectionDelta": {
+                  "title": "Max Reflection Delta",
+                  "type": "number",
+                  "default": 0.3
+                },
+                "mode": {
+                  "title": "Mode",
+                  "type": "string",
+                  "default": "v2"
+                },
+                "noise": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "title": "Enabled",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "sigma": {
+                      "title": "Sigma",
+                      "type": "number",
+                      "default": 0.02
+                    }
+                  }
+                },
+                "setPoint": {
+                  "type": "object",
+                  "properties": {
+                    "alpha": {
+                      "title": "Alpha",
+                      "type": "number",
+                      "default": 0.02
+                    },
+                    "enabled": {
+                      "title": "Enabled",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "max": {
+                      "title": "Max",
+                      "type": "number",
+                      "default": 0.3
+                    },
+                    "min": {
+                      "title": "Min",
+                      "type": "number",
+                      "default": 0
+                    }
+                  }
+                }
+              }
+            },
+            "qzone": {
+              "type": "object",
+              "properties": {
+                "approvalFirst": {
+                  "title": "Approval First",
+                  "type": "number",
+                  "default": 0
+                },
+                "commentReply": {
+                  "type": "object",
+                  "properties": {
+                    "approvalTimeoutMs": {
+                      "title": "Approval Timeout Ms",
+                      "type": "number",
+                      "default": 7200000
+                    },
+                    "enabled": {
+                      "title": "Enabled",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "maxPerDay": {
+                      "title": "Max Per Day",
+                      "type": "number",
+                      "default": 5
+                    },
+                    "mentionEnabled": {
+                      "title": "Mention Enabled",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "mentionMaxPerDay": {
+                      "title": "Mention Max Per Day",
+                      "type": "number",
+                      "default": 5
+                    },
+                    "mentionNames": {
+                      "title": "Mention Names",
+                      "type": "array",
+                      "default": [
+                        "小鲸鱼",
+                        "DeepSeek"
+                      ]
+                    },
+                    "pollMs": {
+                      "title": "Poll Ms",
+                      "type": "number",
+                      "default": 300000
+                    },
+                    "requireApproval": {
+                      "title": "Require Approval",
+                      "type": "boolean",
+                      "default": true
+                    }
+                  }
+                },
+                "maxChars": {
+                  "title": "Max Chars",
+                  "type": "number",
+                  "default": 150
+                },
+                "maxPerDay": {
+                  "title": "Max Per Day",
+                  "type": "number",
+                  "default": 2
+                },
+                "minGapMs": {
+                  "title": "Min Gap Ms",
+                  "type": "number",
+                  "default": 14400000
+                },
+                "requireApproval": {
+                  "title": "Require Approval",
+                  "type": "boolean",
+                  "default": false
+                },
+                "skipProbability": {
+                  "title": "Skip Probability",
+                  "type": "number",
+                  "default": 0.15
+                },
+                "visibility": {
+                  "title": "Visibility",
+                  "type": "number",
+                  "default": 4
+                },
+                "enabled": {
+                  "title": "QQ 空间",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "reflection": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": true
+                },
+                "maxIntervalMs": {
+                  "title": "Max Interval Ms",
+                  "type": "number",
+                  "default": 28800000
+                },
+                "minIntervalMs": {
+                  "title": "Min Interval Ms",
+                  "type": "number",
+                  "default": 3600000
+                }
+              }
+            },
+            "dryRun": {
+              "title": "内心生活演练模式",
+              "type": "boolean",
+              "default": false
+            },
+            "enabled": {
+              "title": "内心生活",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "media": {
+          "type": "object",
+          "properties": {
+            "maxBytes": {
+              "title": "Max Bytes",
+              "type": "number",
+              "default": 8388608
+            },
+            "maxCount": {
+              "title": "Max Count",
+              "type": "number",
+              "default": 5
+            },
+            "maxPixels": {
+              "title": "Max Pixels",
+              "type": "number",
+              "default": 64000000
+            }
+          }
+        },
+        "memory": {
+          "type": "object",
+          "properties": {
+            "personalMaxChars": {
+              "title": "Personal Max Chars",
+              "type": "number",
+              "default": 600
+            },
+            "personalTopK": {
+              "title": "Personal Top K",
+              "type": "number",
+              "default": 6
+            },
+            "enabled": {
+              "title": "分层长期记忆",
+              "type": "boolean",
+              "default": true
+            },
+            "maxChars": {
+              "title": "记忆注入上限（字符）",
+              "type": "number",
+              "default": 800,
+              "minimum": 100,
+              "maximum": 4000
+            },
+            "minConfidence": {
+              "title": "记忆最低置信度",
+              "type": "number",
+              "default": 0.5,
+              "minimum": 0,
+              "maximum": 1
+            },
+            "topK": {
+              "title": "记忆检索条数",
+              "type": "number",
+              "default": 6,
+              "minimum": 1,
+              "maximum": 30
+            }
+          }
+        },
+        "nightQuiet": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean",
+              "default": true
+            },
+            "end": {
+              "title": "End",
+              "type": "string",
+              "default": "08:30"
+            },
+            "start": {
+              "title": "Start",
+              "type": "string",
+              "default": "23:30"
+            }
+          }
+        },
+        "ownerFeatures": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "proactive": {
+          "type": "object",
+          "properties": {
+            "checkIntervalMaxMs": {
+              "title": "Check Interval Max Ms",
+              "type": "number",
+              "default": 5400000
+            },
+            "checkIntervalMinMs": {
+              "title": "Check Interval Min Ms",
+              "type": "number",
+              "default": 1800000
+            },
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean",
+              "default": true
+            },
+            "idleThresholdMs": {
+              "title": "Idle Threshold Ms",
+              "type": "number",
+              "default": 900000
+            },
+            "probability": {
+              "title": "Probability",
+              "type": "number",
+              "default": 0.3
+            }
+          }
+        },
+        "provideRecommendations": {
+          "title": "提供推荐参数",
+          "type": "boolean",
+          "default": true
+        },
+        "reminders": {
+          "type": "object",
+          "properties": {
+            "allowedKeys": {
+              "title": "Allowed Keys",
+              "type": "array",
+              "default": []
+            },
+            "maxPerDayPerKey": {
+              "title": "Max Per Day Per Key",
+              "type": "number",
+              "default": 5
+            },
+            "enabled": {
+              "title": "提醒",
+              "type": "boolean",
+              "default": true
+            },
+            "overdueGraceMs": {
+              "title": "过期容忍（ms）",
+              "type": "number",
+              "default": 21600000,
+              "minimum": 60000,
+              "maximum": 86400000
+            }
+          }
+        },
+        "send": {
+          "type": "object",
+          "properties": {
+            "burstEnabled": {
+              "title": "Burst Enabled",
+              "type": "boolean",
+              "default": true
+            },
+            "burstIntervalMaxMs": {
+              "title": "Burst Interval Max Ms",
+              "type": "number",
+              "default": 3000
+            },
+            "burstIntervalMinMs": {
+              "title": "Burst Interval Min Ms",
+              "type": "number",
+              "default": 1000
+            },
+            "burstMaxMessages": {
+              "title": "Burst Max Messages",
+              "type": "number",
+              "default": 8
+            },
+            "gapBaseMs": {
+              "title": "Gap Base Ms",
+              "type": "number",
+              "default": 800
+            },
+            "gapPerCharMs": {
+              "title": "Gap Per Char Ms",
+              "type": "number",
+              "default": 20
+            },
+            "longGapMaxMs": {
+              "title": "Long Gap Max Ms",
+              "type": "number",
+              "default": 10000
+            },
+            "longGapMinMs": {
+              "title": "Long Gap Min Ms",
+              "type": "number",
+              "default": 5000
+            },
+            "longGapProbability": {
+              "title": "Long Gap Probability",
+              "type": "number",
+              "default": 0.2
+            },
+            "maxGapMs": {
+              "title": "Max Gap Ms",
+              "type": "number",
+              "default": 10000
+            },
+            "maxMessageChars": {
+              "title": "单条最大字数",
+              "type": "number",
+              "default": 500,
+              "minimum": 1,
+              "maximum": 4000
+            },
+            "maxSendPerHour": {
+              "title": "每小时发送上限",
+              "type": "number",
+              "default": 120,
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "maxSendPerMinute": {
+              "title": "每分钟发送上限",
+              "type": "number",
+              "default": 12,
+              "minimum": 0,
+              "maximum": 120
+            },
+            "recommendedHint": {
+              "title": "Recommended Hint",
+              "type": "string",
+              "default": "单条消息不要用空格断句，中文短句用逗号/顿号或直接连写；分条时每条都要读起来完整，不要把同一句话拆到两条里；普通闲聊建议一次 1~3 条，条间 1~3 秒；讲故事/回忆可以 5~10 秒间隔；不要连续刷屏。"
+            }
+          }
+        },
+        "shareModules": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean",
+              "default": true
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "crossModuleGapMs": {
+                  "title": "Cross Module Gap Ms",
+                  "type": "number",
+                  "default": 900000
+                },
+                "moduleMaxPerDay": {
+                  "title": "Module Max Per Day",
+                  "type": "number",
+                  "default": 3
+                },
+                "perGroupPerDay": {
+                  "title": "Per Group Per Day",
+                  "type": "number",
+                  "default": 8
+                },
+                "perGroupPerHour": {
+                  "title": "Per Group Per Hour",
+                  "type": "number",
+                  "default": 3
+                }
+              }
+            }
+          }
+        },
+        "signature": {
+          "type": "object",
+          "properties": {
+            "approvalTimeoutMs": {
+              "title": "Approval Timeout Ms",
+              "type": "number",
+              "default": 7200000
+            },
+            "requireApproval": {
+              "title": "Require Approval",
+              "type": "boolean",
+              "default": true
+            },
+            "dryRun": {
+              "title": "只预览不更新",
+              "type": "boolean",
+              "default": false
+            },
+            "enabled": {
+              "title": "自动个性签名",
+              "type": "boolean",
+              "default": true,
+              "description": "根据心情/精力/兴趣生成短签名并更新 QQ personal_note；不发群消息"
+            },
+            "firstDelayMs": {
+              "title": "首次延迟（ms）",
+              "type": "number",
+              "default": 600000,
+              "minimum": 60000,
+              "maximum": 86400000
+            },
+            "maxChars": {
+              "title": "签名最大字数",
+              "type": "number",
+              "default": 40,
+              "minimum": 8,
+              "maximum": 60
+            },
+            "maxIntervalHours": {
+              "title": "最长间隔（小时）",
+              "type": "number",
+              "default": 48,
+              "minimum": 1,
+              "maximum": 720
+            },
+            "minIntervalHours": {
+              "title": "最短间隔（小时）",
+              "type": "number",
+              "default": 12,
+              "minimum": 1,
+              "maximum": 720
+            }
+          }
+        },
+        "speech": {
+          "type": "object",
+          "properties": {
+            "asr": {
+              "type": "object",
+              "properties": {
+                "cacheTtlMs": {
+                  "title": "Cache Ttl Ms",
+                  "type": "number",
+                  "default": 3600000
+                },
+                "provider": {
+                  "title": "Provider",
+                  "type": "string",
+                  "default": "snowluma"
+                },
+                "enabled": {
+                  "title": "语音转写（ASR）",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；开启后收到的语音会附加 [语音转写]"
+                },
+                "timeoutMs": {
+                  "title": "转写超时（ms）",
+                  "type": "number",
+                  "default": 15000,
+                  "minimum": 1000,
+                  "maximum": 120000
+                }
+              }
+            }
+          }
+        },
+        "sticker": {
+          "type": "object",
+          "properties": {
+            "collect": {
+              "type": "object",
+              "properties": {
+                "maxPerHour": {
+                  "title": "Max Per Hour",
+                  "type": "number",
+                  "default": 60
+                },
+                "maxPerMinute": {
+                  "title": "Max Per Minute",
+                  "type": "number",
+                  "default": 10
+                },
+                "maxRemarkChars": {
+                  "title": "Max Remark Chars",
+                  "type": "number",
+                  "default": 20
+                },
+                "enabled": {
+                  "title": "允许收藏表情",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "includeInPrompt": {
+              "title": "Include In Prompt",
+              "type": "boolean",
+              "default": true
+            },
+            "maxListCount": {
+              "title": "Max List Count",
+              "type": "number",
+              "default": 100
+            },
+            "promptMaxStickers": {
+              "title": "Prompt Max Stickers",
+              "type": "number",
+              "default": 8
+            },
+            "syncTtlMs": {
+              "title": "Sync Ttl Ms",
+              "type": "number",
+              "default": 60000
+            },
+            "enabled": {
+              "title": "表情包体系",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "subscriptions": {
+          "title": "Subscriptions",
+          "type": "array",
+          "default": []
+        },
+        "tools": {
+          "type": "object",
+          "properties": {
+            "collectSticker": {
+              "title": "工具 collectSticker",
+              "type": "boolean",
+              "default": true
+            },
+            "deleteImage": {
+              "title": "工具 deleteImage",
+              "type": "boolean",
+              "default": true
+            },
+            "deleteSticker": {
+              "title": "工具 deleteSticker",
+              "type": "boolean",
+              "default": true
+            },
+            "feedback": {
+              "title": "工具 feedback",
+              "type": "boolean",
+              "default": true
+            },
+            "getActiveMembers": {
+              "title": "工具 getActiveMembers",
+              "type": "boolean",
+              "default": true
+            },
+            "getForwardMsg": {
+              "title": "工具 getForwardMsg",
+              "type": "boolean",
+              "default": true
+            },
+            "getImages": {
+              "title": "工具 getImages",
+              "type": "boolean",
+              "default": true
+            },
+            "getMessageDetail": {
+              "title": "工具 getMessageDetail",
+              "type": "boolean",
+              "default": true
+            },
+            "getMyRecent": {
+              "title": "工具 getMyRecent",
+              "type": "boolean",
+              "default": true
+            },
+            "getPrompt": {
+              "title": "工具 getPrompt",
+              "type": "boolean",
+              "default": true
+            },
+            "getRecent": {
+              "title": "工具 getRecent",
+              "type": "boolean",
+              "default": true
+            },
+            "getSelfImage": {
+              "title": "工具 getSelfImage",
+              "type": "boolean",
+              "default": true
+            },
+            "getStickerImage": {
+              "title": "工具 getStickerImage",
+              "type": "boolean",
+              "default": true
+            },
+            "getUnread": {
+              "title": "工具 getUnread",
+              "type": "boolean",
+              "default": true
+            },
+            "listImages": {
+              "title": "工具 listImages",
+              "type": "boolean",
+              "default": true
+            },
+            "listStickers": {
+              "title": "工具 listStickers",
+              "type": "boolean",
+              "default": true
+            },
+            "markRead": {
+              "title": "工具 markRead",
+              "type": "boolean",
+              "default": true
+            },
+            "memory": {
+              "title": "工具 memory",
+              "type": "boolean",
+              "default": true
+            },
+            "reply": {
+              "title": "工具 reply",
+              "type": "boolean",
+              "default": true
+            },
+            "saveImage": {
+              "title": "工具 saveImage",
+              "type": "boolean",
+              "default": true
+            },
+            "sendBurst": {
+              "title": "工具 sendBurst",
+              "type": "boolean",
+              "default": true
+            },
+            "sendGroup": {
+              "title": "工具 sendGroup",
+              "type": "boolean",
+              "default": true
+            },
+            "sendImage": {
+              "title": "工具 sendImage",
+              "type": "boolean",
+              "default": true
+            },
+            "sendMessage": {
+              "title": "工具 sendMessage",
+              "type": "boolean",
+              "default": true
+            },
+            "sendPoke": {
+              "title": "工具 sendPoke",
+              "type": "boolean",
+              "default": true
+            },
+            "sendPrivate": {
+              "title": "工具 sendPrivate",
+              "type": "boolean",
+              "default": true
+            },
+            "sendSticker": {
+              "title": "工具 sendSticker",
+              "type": "boolean",
+              "default": true
+            },
+            "sendVoice": {
+              "title": "工具 sendVoice",
+              "type": "boolean",
+              "default": false
+            },
+            "setStickerRemark": {
+              "title": "工具 setStickerRemark",
+              "type": "boolean",
+              "default": false
+            },
+            "setWakeConfig": {
+              "title": "工具 setWakeConfig",
+              "type": "boolean",
+              "default": true
+            },
+            "slangQuery": {
+              "title": "工具 slangQuery",
+              "type": "boolean",
+              "default": true
+            },
+            "slangSubmit": {
+              "title": "工具 slangSubmit",
+              "type": "boolean",
+              "default": true
+            },
+            "socialState": {
+              "title": "工具 socialState",
+              "type": "boolean",
+              "default": true
+            },
+            "stickerNote": {
+              "title": "工具 stickerNote",
+              "type": "boolean",
+              "default": true
+            },
+            "waitMessages": {
+              "title": "工具 waitMessages",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "wait": {
+          "type": "object",
+          "properties": {
+            "defaultMs": {
+              "title": "Default Ms",
+              "type": "number",
+              "default": 30000
+            },
+            "defaultQuietMs": {
+              "title": "Default Quiet Ms",
+              "type": "number",
+              "default": 8000
+            },
+            "maxMs": {
+              "title": "Max Ms",
+              "type": "number",
+              "default": 600000
+            },
+            "minMs": {
+              "title": "Min Ms",
+              "type": "number",
+              "default": 5000
+            },
+            "minQuietAfterNewMs": {
+              "title": "Min Quiet After New Ms",
+              "type": "number",
+              "default": 10000
+            }
+          }
+        },
+        "wake": {
+          "type": "object",
+          "properties": {
+            "batchWindowMs": {
+              "title": "Batch Window Ms",
+              "type": "number",
+              "default": 8000
+            },
+            "defaultMode": {
+              "title": "Default Mode",
+              "type": "string",
+              "default": "diving"
+            },
+            "maxWakeConfigReminders": {
+              "title": "Max Wake Config Reminders",
+              "type": "number",
+              "default": 2
+            },
+            "maxWakePerHour": {
+              "title": "每小时唤醒上限",
+              "type": "number",
+              "default": 12,
+              "minimum": 0,
+              "maximum": 600
+            },
+            "maxWakePerMinute": {
+              "title": "每分钟唤醒上限",
+              "type": "number",
+              "default": 1,
+              "minimum": 0,
+              "maximum": 60
+            },
+            "noActionLimit": {
+              "title": "No Action Limit",
+              "type": "number",
+              "default": 3
+            },
+            "preSleepWaitEnabled": {
+              "title": "Pre Sleep Wait Enabled",
+              "type": "boolean",
+              "default": true
+            },
+            "preSleepWaitMs": {
+              "title": "Pre Sleep Wait Ms",
+              "type": "number",
+              "default": 300000
+            },
+            "recommendedAtMention": {
+              "title": "Recommended At Mention",
+              "type": "boolean",
+              "default": true
+            },
+            "recommendedDefaultInfinite": {
+              "title": "Recommended Default Infinite",
+              "type": "boolean",
+              "default": true
+            },
+            "recommendedHint": {
+              "title": "Recommended Hint",
+              "type": "string",
+              "default": "如果你要潜水，推荐先调用 qq_wait_for_messages(timeoutMs=300000) 完成一次沉睡前观察：5 分钟内没人说话就可以设置下一次唤醒并沉睡；若期间有人发新消息，先查看 newMessages，判断不需要你参与可直接沉睡，若参与了则下次想睡需再等观察窗口。潜水时长推荐 5~120 分钟，普通消息概率 0.05；@/名字/关键词/提问唤醒建议保持开启。需要等特定某人/某几人时，可额外设置 triggers.speakerIds。"
+            },
+            "recommendedKeywords": {
+              "title": "Recommended Keywords",
+              "type": "array",
+              "default": [
+                "小鲸鱼",
+                "DeepSeek",
+                "deepseek",
+                "DS",
+                "D老师",
+                "d老师",
+                "D指导",
+                "d指导",
+                "D师傅",
+                "d师傅",
+                "深度求索",
+                "大肥鱼",
+                "鲸鱼",
+                "DeepSeek V3",
+                "DeepSeek R1",
+                "R1"
+              ]
+            },
+            "recommendedNameMention": {
+              "title": "Recommended Name Mention",
+              "type": "boolean",
+              "default": true
+            },
+            "recommendedPoke": {
+              "title": "Recommended Poke",
+              "type": "boolean",
+              "default": true
+            },
+            "recommendedProbability": {
+              "title": "Recommended Probability",
+              "type": "number",
+              "default": 0.05
+            },
+            "recommendedQuestion": {
+              "title": "Recommended Question",
+              "type": "boolean",
+              "default": true
+            },
+            "recommendedSleepMaxMs": {
+              "title": "Recommended Sleep Max Ms",
+              "type": "number",
+              "default": 7200000
+            },
+            "recommendedSleepMinMs": {
+              "title": "Recommended Sleep Min Ms",
+              "type": "number",
+              "default": 300000
+            },
+            "sleepMaxMs": {
+              "title": "Sleep Max Ms",
+              "type": "number",
+              "default": 0
+            },
+            "sleepMinMs": {
+              "title": "Sleep Min Ms",
+              "type": "number",
+              "default": 60000
+            }
+          }
+        },
+        "weather": {
+          "type": "object",
+          "properties": {
+            "timeoutMs": {
+              "title": "Timeout Ms",
+              "type": "number",
+              "default": 15000
+            },
+            "defaultCity": {
+              "title": "默认城市",
+              "type": "string",
+              "default": ""
+            },
+            "enabled": {
+              "title": "天气",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "valueScore": {
+          "type": "object",
+          "properties": {
+            "deferThreshold": {
+              "title": "延后阈值",
+              "type": "number",
+              "default": 0.32,
+              "minimum": 0,
+              "maximum": 1
+            },
+            "enabled": {
+              "title": "价值评分",
+              "type": "boolean",
+              "default": true,
+              "description": "只影响泛监听（任意消息/概率），@/引用/私聊/提问永不降级"
+            },
+            "wakeThreshold": {
+              "title": "唤醒阈值",
+              "type": "number",
+              "default": 0.55,
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "controlTiers": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "控制面分层",
+              "type": "boolean",
+              "default": true,
+              "description": "关闭后恢复旧行为：群会话不能跨会话发消息/读上下文"
+            },
+            "groupEscalationNotify": {
+              "title": "群里高危被拒时私聊提醒主人",
+              "type": "boolean",
+              "default": true
+            },
+            "ownerDirectiveTtlMs": {
+              "title": "群内主人指令有效期（ms）",
+              "type": "number",
+              "default": 600000,
+              "minimum": 60000,
+              "maximum": 86400000
+            },
+            "requireConfirmForHighRisk": {
+              "title": "高危动作需私聊确认",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "relationships": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "群友关系（galgame）",
+              "type": "boolean",
+              "default": true,
+              "description": "默认开启；家人群自动排除；可按群开关"
+            },
+            "excludeFamily": {
+              "title": "自动排除家人群",
+              "type": "boolean",
+              "default": true
+            },
+            "excludedGroups": {
+              "title": "额外排除的群",
+              "type": "array",
+              "default": []
+            },
+            "liveLimit": {
+              "title": "实时页展示人数",
+              "type": "number",
+              "default": 6,
+              "minimum": 1,
+              "maximum": 12
+            },
+            "promptLimit": {
+              "title": "prompt 关系卡人数",
+              "type": "number",
+              "default": 5,
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
+        },
+        "dailyReport": {
+          "type": "object",
+          "properties": {
+            "at": {
+              "title": "发送时间（HH:MM）",
+              "type": "string",
+              "default": "21:30"
+            },
+            "enabled": {
+              "title": "群日报",
+              "type": "boolean",
+              "default": false,
+              "description": "默认关闭；按群开启，每天固定时间发送本地统计摘要（不调用模型）"
+            },
+            "groups": {
+              "title": "开启日报的群",
+              "type": "array",
+              "default": []
+            },
+            "maxItems": {
+              "title": "摘录条数",
+              "type": "number",
+              "default": 8,
+              "minimum": 1,
+              "maximum": 20
+            }
+          }
+        },
+        "voice": {
+          "type": "object",
+          "properties": {
+            "allowAbsolutePath": {
+              "title": "允许绝对路径",
+              "type": "boolean",
+              "default": false
+            },
+            "autoReadback": {
+              "title": "语音后自动朗读",
+              "type": "boolean",
+              "default": true
+            },
+            "defaultVolume": {
+              "title": "默认音量倍数",
+              "type": "number",
+              "default": 1,
+              "minimum": 0.1,
+              "maximum": 4
+            },
+            "dir": {
+              "title": "语音库目录",
+              "type": "string",
+              "default": "state/media/audio"
+            },
+            "enabled": {
+              "title": "语音发送",
+              "type": "boolean",
+              "default": false
+            },
+            "ffmpegPath": {
+              "title": "ffmpeg 路径",
+              "type": "string",
+              "default": ""
+            },
+            "loudness": {
+              "title": "智能音量",
+              "type": "string",
+              "default": "normal",
+              "enum": [
+                "quiet",
+                "normal",
+                "loud"
+              ]
+            },
+            "maxBytes": {
+              "title": "单条最大字节",
+              "type": "number",
+              "default": 20971520,
+              "minimum": 1024,
+              "maximum": 104857600
+            },
+            "maxPerHour": {
+              "title": "每小时上限",
+              "type": "number",
+              "default": 60,
+              "minimum": 0,
+              "maximum": 600
+            },
+            "maxPerMinute": {
+              "title": "每分钟上限",
+              "type": "number",
+              "default": 6,
+              "minimum": 0,
+              "maximum": 60
+            },
+            "maxSeconds": {
+              "title": "单条最长（秒）",
+              "type": "number",
+              "default": 300,
+              "minimum": 1,
+              "maximum": 600
+            },
+            "normalize": {
+              "title": "响度归一",
+              "type": "boolean",
+              "default": true,
+              "description": "开启后按目标 LUFS 统一语音响度（-16 为日常）"
+            }
+          }
+        },
+        "budget": {
+          "type": "object",
+          "properties": {
+            "blockNonExplicitOnly": {
+              "title": "只压制非显式唤醒",
+              "type": "boolean",
+              "default": true
+            },
+            "dailyTokensGlobal": {
+              "title": "全局每日 token",
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 1000000000
+            },
+            "dailyTokensPerKey": {
+              "title": "每会话每日 token",
+              "type": "number",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 100000000
+            },
+            "enabled": {
+              "title": "token 预算",
+              "type": "boolean",
+              "default": false,
+              "description": "超预算只压制非显式唤醒；@/引用/私聊/提问/关键词仍会回"
+            }
+          }
+        }
+      }
+    },
+    "webSearch": {
+      "type": "object",
+      "properties": {
+        "apiKeyEnv": {
+          "title": "API Key 环境变量名",
+          "type": "string",
+          "default": "DEEPSEEK_API_KEY"
+        },
+        "baseURL": {
+          "title": "搜索 API 地址",
+          "type": "string",
+          "default": ""
+        },
+        "maxResults": {
+          "title": "最多结果数",
+          "type": "number",
+          "default": 8,
+          "minimum": 1,
+          "maximum": 50
+        },
+        "maxTokens": {
+          "title": "Max Tokens",
+          "type": "number",
+          "default": 4096
+        },
+        "maxUses": {
+          "title": "单轮最多搜索次数",
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 50
+        },
+        "model": {
+          "title": "搜索模型",
+          "type": "string",
+          "default": "deepseek-v4-flash"
+        },
+        "provider": {
+          "title": "搜索 provider",
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "deepseek",
+            "bing",
+            "chatanywhere"
+          ],
+          "description": "auto=DeepSeek 优先、失败回退 Bing；chatanywhere=OpenAI 兼容搜索模型（需 key 支持 web_search_options）"
+        },
+        "timeoutMs": {
+          "title": "搜索超时（ms）",
+          "type": "number",
+          "default": 35000,
+          "minimum": 1000,
+          "maximum": 120000
+        },
+        "apiKey": {
+          "title": "搜索 API Key",
+          "type": "string",
+          "x-secret": true,
+          "description": "密钥/标识：只存本地，控制台只显示是否已配置"
+        }
+      }
+    },
+    "tts": {
+      "type": "object",
+      "properties": {
+        "autoStart": {
+          "title": "Auto Start",
+          "type": "boolean",
+          "default": false
+        },
+        "baseUrl": {
+          "title": "TTS 服务地址",
+          "type": "string",
+          "default": "http://127.0.0.1:9880"
+        },
+        "breeze": {
+          "type": "object",
+          "properties": {
+            "baseInstruction": {
+              "title": "Base Instruction",
+              "type": "string",
+              "default": ""
+            },
+            "baseUrl": {
+              "title": "Base Url",
+              "type": "string",
+              "default": "http://127.0.0.1:17861"
+            },
+            "cfgScale": {
+              "title": "Cfg Scale",
+              "type": "number",
+              "default": 3.5
+            },
+            "darkDelivery": {
+              "title": "Dark Delivery",
+              "type": "string",
+              "default": ""
+            },
+            "darkInstruction": {
+              "title": "Dark Instruction",
+              "type": "string",
+              "default": ""
+            },
+            "darkLoudness": {
+              "title": "Dark Loudness",
+              "type": "string",
+              "default": "loud"
+            },
+            "darkRecoverValence": {
+              "title": "Dark Recover Valence",
+              "type": "number",
+              "default": -0.1
+            },
+            "darkValenceThreshold": {
+              "title": "Dark Valence Threshold",
+              "type": "number",
+              "default": -0.35
+            },
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean",
+              "default": false
+            },
+            "moodCfgScale": {
+              "type": "object",
+              "properties": {
+                "happy": {
+                  "title": "Happy",
+                  "type": "number",
+                  "default": 3.2
+                },
+                "playful": {
+                  "title": "Playful",
+                  "type": "number",
+                  "default": 3.2
+                },
+                "sad": {
+                  "title": "Sad",
+                  "type": "number",
+                  "default": 2.8
+                },
+                "sleepy": {
+                  "title": "Sleepy",
+                  "type": "number",
+                  "default": 2.5
+                }
+              }
+            },
+            "opusBitrate": {
+              "title": "Opus Bitrate",
+              "type": "string",
+              "default": "32k"
+            },
+            "opusTimeoutMs": {
+              "title": "Opus Timeout Ms",
+              "type": "number",
+              "default": 45000
+            },
+            "opusUrl": {
+              "title": "Opus Url",
+              "type": "string",
+              "default": "http://127.0.0.1:17862"
+            },
+            "preferOpus": {
+              "title": "Prefer Opus",
+              "type": "boolean",
+              "default": true
+            },
+            "seed": {
+              "title": "Seed",
+              "type": "number",
+              "default": 12345
+            },
+            "softDelivery": {
+              "title": "Soft Delivery",
+              "type": "string",
+              "default": ""
+            },
+            "softInstruction": {
+              "title": "Soft Instruction",
+              "type": "string",
+              "default": ""
+            },
+            "softLoudness": {
+              "title": "Soft Loudness",
+              "type": "string",
+              "default": "normal"
+            },
+            "timeoutMs": {
+              "title": "Timeout Ms",
+              "type": "number",
+              "default": 120000
+            }
+          }
+        },
+        "enabled": {
+          "title": "TTS 合成",
+          "type": "boolean",
+          "default": false
+        },
+        "keepFiles": {
+          "title": "保留合成文件数",
+          "type": "number",
+          "default": 60,
+          "minimum": 0,
+          "maximum": 500
+        },
+        "maxChars": {
+          "title": "单条最大字数",
+          "type": "number",
+          "default": 60,
+          "minimum": 1,
+          "maximum": 500
+        },
+        "maxSeconds": {
+          "title": "单条最长（秒）",
+          "type": "number",
+          "default": 45,
+          "minimum": 1,
+          "maximum": 600
+        },
+        "promptLang": {
+          "title": "参考音频语言",
+          "type": "string",
+          "default": "ja"
+        },
+        "promptText": {
+          "title": "参考音频文本",
+          "type": "string",
+          "default": ""
+        },
+        "refAudio": {
+          "title": "参考音频",
+          "type": "string",
+          "default": ""
+        },
+        "speedFactor": {
+          "title": "语速倍数",
+          "type": "number",
+          "default": 1,
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "startScript": {
+          "title": "Start Script",
+          "type": "string",
+          "default": ""
+        },
+        "temperature": {
+          "title": "Temperature",
+          "type": "number",
+          "default": 1
+        },
+        "textLang": {
+          "title": "合成语言",
+          "type": "string",
+          "default": "ja"
+        },
+        "textSplitMethod": {
+          "title": "Text Split Method",
+          "type": "string",
+          "default": "cut0"
+        },
+        "timeoutMs": {
+          "title": "合成超时（ms）",
+          "type": "number",
+          "default": 180000,
+          "minimum": 1000,
+          "maximum": 300000
+        },
+        "topK": {
+          "title": "Top K",
+          "type": "number",
+          "default": 5
+        },
+        "topP": {
+          "title": "Top P",
+          "type": "number",
+          "default": 1
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "backupDir": {
+          "title": "备份目录",
+          "type": "string",
+          "default": "state/backups"
+        },
+        "backupKeepDays": {
+          "title": "备份保留天数",
+          "type": "number",
+          "default": 7,
+          "minimum": 1,
+          "maximum": 90
+        },
+        "configStrict": {
+          "title": "配置非法时拒绝启动",
+          "type": "boolean",
+          "default": false
+        },
+        "dbPath": {
+          "title": "数据库路径",
+          "type": "string",
+          "default": "state/db/bridge.db"
+        },
+        "enabled": {
+          "title": "启用 SQLite 可靠性层",
+          "type": "boolean",
+          "default": true
+        },
+        "inboxEnabled": {
+          "title": "入站消息去重与恢复",
+          "type": "boolean",
+          "default": true
+        },
+        "inboxReplayMaxAgeMs": {
+          "title": "入站重放窗口（ms）",
+          "type": "number",
+          "default": 120000,
+          "minimum": 1000,
+          "maximum": 3600000
+        },
+        "jobsEnabled": {
+          "title": "统一任务队列",
+          "type": "boolean",
+          "default": true
+        },
+        "logJsonl": {
+          "title": "结构化日志（JSONL）",
+          "type": "boolean",
+          "default": true
+        },
+        "outboxEnabled": {
+          "title": "出站消息先落盘",
+          "type": "boolean",
+          "default": true
+        },
+        "outboxMaxAttempts": {
+          "title": "出站重试次数",
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20
+        },
+        "outboxRetryBaseMs": {
+          "title": "出站重试基数（ms）",
+          "type": "number",
+          "default": 5000,
+          "minimum": 500,
+          "maximum": 300000
+        },
+        "outboxRetryMaxMs": {
+          "title": "出站重试上限（ms）",
+          "type": "number",
+          "default": 600000,
+          "minimum": 1000,
+          "maximum": 3600000
+        },
+        "retentionDays": {
+          "title": "数据保留天数",
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 365
+        }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "模型/effort 路由",
+          "type": "boolean",
+          "default": true
+        },
+        "fallback": {
+          "title": "Fallback",
+          "type": "array",
+          "default": []
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "properties": {
+        "models": {
+          "type": "object",
+          "properties": {
+            "my-relay-model": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "title": "Label",
+                  "type": "string",
+                  "default": "我的中转模型"
+                },
+                "off": {
+                  "type": "object",
+                  "properties": {
+                    "cacheHit": {
+                      "title": "Cache Hit",
+                      "type": "number",
+                      "default": 0.5
+                    },
+                    "cacheMiss": {
+                      "title": "Cache Miss",
+                      "type": "number",
+                      "default": 3
+                    },
+                    "output": {
+                      "title": "Output",
+                      "type": "number",
+                      "default": 9
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ackMessage": {
+      "title": "思考中回执",
+      "type": "string",
+      "default": ""
+    },
+    "agentPreset": {
+      "title": "默认 agent preset",
+      "type": "string",
+      "default": "qq-chat-legacy"
+    },
+    "allowAllWhenEmpty": {
+      "title": "白名单为空时放行所有",
+      "type": "boolean",
+      "default": false
+    },
+    "configVersion": {
+      "title": "Config Version",
+      "type": "number",
+      "default": 2
+    },
+    "consoleAuth": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "控制台要求访问令牌",
+          "type": "boolean",
+          "default": false,
+          "description": "默认关闭：仅本机回环 + Host/CSRF 防护；开启后浏览器需输入令牌"
+        }
+      }
+    },
+    "consolePort": {
+      "title": "控制台端口",
+      "type": "number",
+      "default": 3100,
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "questionTimeoutMs": {
+      "title": "提问超时（ms）",
+      "type": "number",
+      "default": 300000,
+      "minimum": 5000,
+      "maximum": 3600000
+    },
+    "sendDelayMs": {
+      "title": "发送间隔（ms）",
+      "type": "number",
+      "default": 300,
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "sessionCwd": {
+      "title": "会话工作目录",
+      "type": "string",
+      "default": ""
+    },
+    "workspaceTitle": {
+      "title": "工作区标题",
+      "type": "string",
+      "default": "QQ 聊天"
+    },
+    "transport": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "title": "传输类型",
+          "type": "string",
+          "default": "snowluma",
+          "enum": [
+            "snowluma",
+            "onebot"
+          ],
+          "description": "onebot = 通用 OneBot v11 HTTP（NapCat 等）；入站仍按 SnowLuma WS"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "disabled": {
+          "title": "禁用的 feature",
+          "type": "array",
+          "default": []
+        }
+      }
+    },
+    "consoleToken": {
+      "title": "控制台令牌",
+      "type": "string",
+      "x-secret": true,
+      "description": "密钥/标识：只存本地，控制台只显示是否已配置"
+    },
+    "ownerQQ": {
+      "title": "管理员 QQ",
+      "type": "string",
+      "x-secret": true,
+      "description": "密钥/标识：只存本地，控制台只显示是否已配置"
+    }
+  },
+  "x-fields": [
+    {
+      "key": "dsh.allowRemote",
+      "label": "允许把 launch token 发往非回环地址",
+      "group": "DSH 连接与模型",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "dsh.authHeader",
+      "label": "鉴权 header",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "dsh.authPrefix",
+      "label": "鉴权前缀",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "dsh.baseUrl",
+      "label": "DSH 地址",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "dsh.model",
+      "label": "模型",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "dsh.provider",
+      "label": "模型 provider",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "dsh.reasoningEffort",
+      "label": "思考强度",
+      "group": "DSH 连接与模型",
+      "type": "string",
+      "restart": "none",
+      "advanced": false,
+      "enum": [
+        "off",
+        "low",
+        "medium",
+        "high",
+        "max"
+      ]
+    },
+    {
+      "key": "snowluma.followDiscoveredEndpoint",
+      "label": "跟随自动发现的端点",
+      "group": "SnowLuma / QQ",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "snowluma.homeDir",
+      "label": "SnowLuma 安装目录",
+      "group": "SnowLuma / QQ",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "snowluma.httpUrl",
+      "label": "SnowLuma HTTP 地址",
+      "group": "SnowLuma / QQ",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "snowluma.launcherPath",
+      "label": "SnowLuma 启动器路径",
+      "group": "SnowLuma / QQ",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "snowluma.silenceWarnMs",
+      "label": "静默告警阈值（ms）",
+      "group": "SnowLuma / QQ",
+      "type": "number",
+      "restart": "bridge",
+      "advanced": true,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "snowluma.wsUrl",
+      "label": "SnowLuma WS 地址",
+      "group": "SnowLuma / QQ",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "role.maxInjectChars",
+      "label": "人格注入上限（字符）",
+      "group": "人格注入",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1000,
+      "max": 20000
+    },
+    {
+      "key": "allow.groups",
+      "label": "Groups",
+      "group": "发送白名单",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "allow.private",
+      "label": "Private",
+      "group": "发送白名单",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "deny.groups",
+      "label": "Groups",
+      "group": "发送黑名单",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "deny.private",
+      "label": "Private",
+      "group": "发送黑名单",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "security.interceptNotify",
+      "label": "敏感回复拦截时通知管理员",
+      "group": "安全",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "slang.autoResearch",
+      "label": "Auto Research",
+      "group": "黑话学习",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.enabled",
+      "label": "Enabled",
+      "group": "黑话学习",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.extractCooldownMs",
+      "label": "Extract Cooldown Ms",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.extractMinMessages",
+      "label": "Extract Min Messages",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.inferenceThresholds",
+      "label": "Inference Thresholds",
+      "group": "黑话学习",
+      "type": "array",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.injectMax",
+      "label": "Inject Max",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.learnerPreset",
+      "label": "Learner Preset",
+      "group": "黑话学习",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.researchBatchSize",
+      "label": "Research Batch Size",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.researchMaxPerRun",
+      "label": "Research Max Per Run",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.researchTimeoutMs",
+      "label": "Research Timeout Ms",
+      "group": "黑话学习",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "slang.workspaceTitle",
+      "label": "Workspace Title",
+      "group": "黑话学习",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeCheckMaxMs",
+      "label": "Active Check Max Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeCheckMinMs",
+      "label": "Active Check Min Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeDurationEnabled",
+      "label": "Active Duration Enabled",
+      "group": "旧版仿真（reserved）",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeDurationMaxMs",
+      "label": "Active Duration Max Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeDurationMinMs",
+      "label": "Active Duration Min Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeReplyDelayMaxMs",
+      "label": "Active Reply Delay Max Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.activeReplyDelayMinMs",
+      "label": "Active Reply Delay Min Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.burstEnabled",
+      "label": "Burst Enabled",
+      "group": "旧版仿真（reserved）",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.burstIntervalMaxMs",
+      "label": "Burst Interval Max Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.burstIntervalMinMs",
+      "label": "Burst Interval Min Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.contextWindow",
+      "label": "Context Window",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.enabled",
+      "label": "Enabled",
+      "group": "旧版仿真（reserved）",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.idleRetryProbability",
+      "label": "Idle Retry Probability",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.idleRetryWaitMs",
+      "label": "Idle Retry Wait Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.idleWindowMs",
+      "label": "Idle Window Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.longGapMaxMs",
+      "label": "Long Gap Max Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.longGapMinMs",
+      "label": "Long Gap Min Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.longGapProbability",
+      "label": "Long Gap Probability",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.maxReplyChars",
+      "label": "Max Reply Chars",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.mustReplyKeywords",
+      "label": "Must Reply Keywords",
+      "group": "旧版仿真（reserved）",
+      "type": "array",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveCheckMaxMs",
+      "label": "Proactive Check Max Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveCheckMinMs",
+      "label": "Proactive Check Min Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveEnabled",
+      "label": "Proactive Enabled",
+      "group": "旧版仿真（reserved）",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveIdleThresholdMs",
+      "label": "Proactive Idle Threshold Ms",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.proactiveProbability",
+      "label": "Proactive Probability",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.skipProbability",
+      "label": "Skip Probability",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.surrenderProbability",
+      "label": "Surrender Probability",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "social.triggerProbability",
+      "label": "Trigger Probability",
+      "group": "旧版仿真（reserved）",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.agentPreset",
+      "label": "仿真预设",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "dsh",
+      "advanced": false
+    },
+    {
+      "key": "simulation.autoReplyCheckMs",
+      "label": "回复检查间隔（ms）",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1000,
+      "max": 600000
+    },
+    {
+      "key": "simulation.clingy.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.clingy.maxDelayMs",
+      "label": "Max Delay Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.clingy.maxFollowUps",
+      "label": "Max Follow Ups",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.clingy.minDelayMs",
+      "label": "Min Delay Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.clingy.probability",
+      "label": "Probability",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.context.contextWindow",
+      "label": "Context Window",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.context.inlineWakeMessages",
+      "label": "Inline Wake Messages",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.context.recentLimit",
+      "label": "Recent Limit",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.context.unreadLimit",
+      "label": "Unread Limit",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.context.wakeMaxChars",
+      "label": "Wake Max Chars",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.context.wakeMessageLimit",
+      "label": "Wake Message Limit",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.context.wakeRecentLimit",
+      "label": "Wake Recent Limit",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.enabled",
+      "label": "群聊仿真总开关",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.esportsFeed.maxItems",
+      "label": "Max Items",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.esportsFeed.refreshMs",
+      "label": "Refresh Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.esportsFeed.summaryMaxChars",
+      "label": "Summary Max Chars",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.feedback.maxLength",
+      "label": "Max Length",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.feedback.notifyOwnerOnError",
+      "label": "Notify Owner On Error",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.imageLibrary.allowUrlSave",
+      "label": "Allow Url Save",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.imageLibrary.includeInPrompt",
+      "label": "Include In Prompt",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.imageLibrary.maxBytes",
+      "label": "Max Bytes",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.imageLibrary.promptMaxImages",
+      "label": "Prompt Max Images",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.initialPromptMaxChars",
+      "label": "初始提示词上限（字符）",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 100,
+      "max": 8000
+    },
+    {
+      "key": "simulation.innerLife.aiTips.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.images",
+      "label": "Images",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.links",
+      "label": "Links",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.maxChars",
+      "label": "Max Chars",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.maxHistory",
+      "label": "Max History",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.maxLinks",
+      "label": "Max Links",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.maxPerDay",
+      "label": "Max Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.minGapMs",
+      "label": "Min Gap Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.minPerDay",
+      "label": "Min Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.target",
+      "label": "Target",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.webImages",
+      "label": "Web Images",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.windowEndHour",
+      "label": "Window End Hour",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.aiTips.windowStartHour",
+      "label": "Window Start Hour",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.approvalTimeoutMs",
+      "label": "Approval Timeout Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.browserPath",
+      "label": "Browser Path",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.maxCandidates",
+      "label": "Max Candidates",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.maxPerDay",
+      "label": "Max Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.minPerDay",
+      "label": "Min Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.refreshMs",
+      "label": "Refresh Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.sources.bilibili",
+      "label": "Bilibili",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.sources.rss",
+      "label": "Rss",
+      "group": "群聊仿真",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.sources.s16",
+      "label": "S16",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.webSearch.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.webSearch.maxQueries",
+      "label": "Max Queries",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.curiosity.webSearch.maxResults",
+      "label": "Max Results",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.groupShare.idleMs",
+      "label": "Idle Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.groupShare.maxChars",
+      "label": "Max Chars",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.groupShare.maxPerDay",
+      "label": "Max Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.groupShare.minGapMs",
+      "label": "Min Gap Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.groupShare.requireApproval",
+      "label": "Require Approval",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.groupShare.target",
+      "label": "Target",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.budgets.maxDay",
+      "label": "Max Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.budgets.maxHour",
+      "label": "Max Hour",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.circadian.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.decay.arousalHalfLifeH",
+      "label": "Arousal Half Life H",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.decay.energyHalfLifeH",
+      "label": "Energy Half Life H",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.decay.valenceNegativeHalfLifeH",
+      "label": "Valence Negative Half Life H",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.decay.valencePositiveHalfLifeH",
+      "label": "Valence Positive Half Life H",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.eventNudge.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.eventNudge.maxDelta",
+      "label": "Max Delta",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.eventNudge.maxPerDay",
+      "label": "Max Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.eventNudge.maxPerHour",
+      "label": "Max Per Hour",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.eventNudge.minIntensity",
+      "label": "Min Intensity",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.history.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.history.keepDays",
+      "label": "Keep Days",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.history.maxBytes",
+      "label": "Max Bytes",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.includeOwnerPrivate",
+      "label": "Include Owner Private",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.maxEventsPerReflection",
+      "label": "Max Events Per Reflection",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.maxReflectionDelta",
+      "label": "Max Reflection Delta",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.mode",
+      "label": "Mode",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.noise.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.noise.sigma",
+      "label": "Sigma",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.setPoint.alpha",
+      "label": "Alpha",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.setPoint.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.setPoint.max",
+      "label": "Max",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.setPoint.min",
+      "label": "Min",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.approvalFirst",
+      "label": "Approval First",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.commentReply.approvalTimeoutMs",
+      "label": "Approval Timeout Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.commentReply.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.commentReply.maxPerDay",
+      "label": "Max Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.commentReply.mentionEnabled",
+      "label": "Mention Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.commentReply.mentionMaxPerDay",
+      "label": "Mention Max Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.commentReply.mentionNames",
+      "label": "Mention Names",
+      "group": "群聊仿真",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.commentReply.pollMs",
+      "label": "Poll Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.commentReply.requireApproval",
+      "label": "Require Approval",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.maxChars",
+      "label": "Max Chars",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.maxPerDay",
+      "label": "Max Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.minGapMs",
+      "label": "Min Gap Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.requireApproval",
+      "label": "Require Approval",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.skipProbability",
+      "label": "Skip Probability",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.visibility",
+      "label": "Visibility",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.reflection.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.reflection.maxIntervalMs",
+      "label": "Max Interval Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.reflection.minIntervalMs",
+      "label": "Min Interval Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.media.maxBytes",
+      "label": "Max Bytes",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.media.maxCount",
+      "label": "Max Count",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.media.maxPixels",
+      "label": "Max Pixels",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.memory.personalMaxChars",
+      "label": "Personal Max Chars",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.memory.personalTopK",
+      "label": "Personal Top K",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.nightQuiet.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.nightQuiet.end",
+      "label": "End",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.nightQuiet.start",
+      "label": "Start",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.ownerFeatures.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.proactive.checkIntervalMaxMs",
+      "label": "Check Interval Max Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.proactive.checkIntervalMinMs",
+      "label": "Check Interval Min Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.proactive.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.proactive.idleThresholdMs",
+      "label": "Idle Threshold Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.proactive.probability",
+      "label": "Probability",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.provideRecommendations",
+      "label": "提供推荐参数",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.reminders.allowedKeys",
+      "label": "Allowed Keys",
+      "group": "群聊仿真",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.reminders.maxPerDayPerKey",
+      "label": "Max Per Day Per Key",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.burstEnabled",
+      "label": "Burst Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.burstIntervalMaxMs",
+      "label": "Burst Interval Max Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.burstIntervalMinMs",
+      "label": "Burst Interval Min Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.burstMaxMessages",
+      "label": "Burst Max Messages",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.gapBaseMs",
+      "label": "Gap Base Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.gapPerCharMs",
+      "label": "Gap Per Char Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.longGapMaxMs",
+      "label": "Long Gap Max Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.longGapMinMs",
+      "label": "Long Gap Min Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.longGapProbability",
+      "label": "Long Gap Probability",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.maxGapMs",
+      "label": "Max Gap Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.send.maxMessageChars",
+      "label": "单条最大字数",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 4000
+    },
+    {
+      "key": "simulation.send.maxSendPerHour",
+      "label": "每小时发送上限",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 2000
+    },
+    {
+      "key": "simulation.send.maxSendPerMinute",
+      "label": "每分钟发送上限",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 120
+    },
+    {
+      "key": "simulation.send.recommendedHint",
+      "label": "Recommended Hint",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.shareModules.enabled",
+      "label": "Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.shareModules.limits.crossModuleGapMs",
+      "label": "Cross Module Gap Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.shareModules.limits.moduleMaxPerDay",
+      "label": "Module Max Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.shareModules.limits.perGroupPerDay",
+      "label": "Per Group Per Day",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.shareModules.limits.perGroupPerHour",
+      "label": "Per Group Per Hour",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.signature.approvalTimeoutMs",
+      "label": "Approval Timeout Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.signature.requireApproval",
+      "label": "Require Approval",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.speech.asr.cacheTtlMs",
+      "label": "Cache Ttl Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.speech.asr.provider",
+      "label": "Provider",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.sticker.collect.maxPerHour",
+      "label": "Max Per Hour",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.sticker.collect.maxPerMinute",
+      "label": "Max Per Minute",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.sticker.collect.maxRemarkChars",
+      "label": "Max Remark Chars",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.sticker.includeInPrompt",
+      "label": "Include In Prompt",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.sticker.maxListCount",
+      "label": "Max List Count",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.sticker.promptMaxStickers",
+      "label": "Prompt Max Stickers",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.sticker.syncTtlMs",
+      "label": "Sync Ttl Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.subscriptions",
+      "label": "Subscriptions",
+      "group": "群聊仿真",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.tools.collectSticker",
+      "label": "工具 collectSticker",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.deleteImage",
+      "label": "工具 deleteImage",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.deleteSticker",
+      "label": "工具 deleteSticker",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.feedback",
+      "label": "工具 feedback",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getActiveMembers",
+      "label": "工具 getActiveMembers",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getForwardMsg",
+      "label": "工具 getForwardMsg",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getImages",
+      "label": "工具 getImages",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getMessageDetail",
+      "label": "工具 getMessageDetail",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getMyRecent",
+      "label": "工具 getMyRecent",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getPrompt",
+      "label": "工具 getPrompt",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getRecent",
+      "label": "工具 getRecent",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getSelfImage",
+      "label": "工具 getSelfImage",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getStickerImage",
+      "label": "工具 getStickerImage",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.getUnread",
+      "label": "工具 getUnread",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.listImages",
+      "label": "工具 listImages",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.listStickers",
+      "label": "工具 listStickers",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.markRead",
+      "label": "工具 markRead",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.memory",
+      "label": "工具 memory",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.reply",
+      "label": "工具 reply",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.saveImage",
+      "label": "工具 saveImage",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.sendBurst",
+      "label": "工具 sendBurst",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.sendGroup",
+      "label": "工具 sendGroup",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.sendImage",
+      "label": "工具 sendImage",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.sendMessage",
+      "label": "工具 sendMessage",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.sendPoke",
+      "label": "工具 sendPoke",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.sendPrivate",
+      "label": "工具 sendPrivate",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.sendSticker",
+      "label": "工具 sendSticker",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.sendVoice",
+      "label": "工具 sendVoice",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.setStickerRemark",
+      "label": "工具 setStickerRemark",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.setWakeConfig",
+      "label": "工具 setWakeConfig",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.slangQuery",
+      "label": "工具 slangQuery",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.slangSubmit",
+      "label": "工具 slangSubmit",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.socialState",
+      "label": "工具 socialState",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.stickerNote",
+      "label": "工具 stickerNote",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.tools.waitMessages",
+      "label": "工具 waitMessages",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.wait.defaultMs",
+      "label": "Default Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wait.defaultQuietMs",
+      "label": "Default Quiet Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wait.maxMs",
+      "label": "Max Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wait.minMs",
+      "label": "Min Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wait.minQuietAfterNewMs",
+      "label": "Min Quiet After New Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.batchWindowMs",
+      "label": "Batch Window Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.defaultMode",
+      "label": "Default Mode",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.maxWakeConfigReminders",
+      "label": "Max Wake Config Reminders",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.maxWakePerHour",
+      "label": "每小时唤醒上限",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 600
+    },
+    {
+      "key": "simulation.wake.maxWakePerMinute",
+      "label": "每分钟唤醒上限",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 60
+    },
+    {
+      "key": "simulation.wake.noActionLimit",
+      "label": "No Action Limit",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.preSleepWaitEnabled",
+      "label": "Pre Sleep Wait Enabled",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.preSleepWaitMs",
+      "label": "Pre Sleep Wait Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedAtMention",
+      "label": "Recommended At Mention",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedDefaultInfinite",
+      "label": "Recommended Default Infinite",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedHint",
+      "label": "Recommended Hint",
+      "group": "群聊仿真",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedKeywords",
+      "label": "Recommended Keywords",
+      "group": "群聊仿真",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedNameMention",
+      "label": "Recommended Name Mention",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedPoke",
+      "label": "Recommended Poke",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedProbability",
+      "label": "Recommended Probability",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedQuestion",
+      "label": "Recommended Question",
+      "group": "群聊仿真",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedSleepMaxMs",
+      "label": "Recommended Sleep Max Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.recommendedSleepMinMs",
+      "label": "Recommended Sleep Min Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.sleepMaxMs",
+      "label": "Sleep Max Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.wake.sleepMinMs",
+      "label": "Sleep Min Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.weather.timeoutMs",
+      "label": "Timeout Ms",
+      "group": "群聊仿真",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "webSearch.apiKeyEnv",
+      "label": "API Key 环境变量名",
+      "group": "联网搜索",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "webSearch.baseURL",
+      "label": "搜索 API 地址",
+      "group": "联网搜索",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "webSearch.maxResults",
+      "label": "最多结果数",
+      "group": "联网搜索",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 50
+    },
+    {
+      "key": "webSearch.maxTokens",
+      "label": "Max Tokens",
+      "group": "联网搜索",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "webSearch.maxUses",
+      "label": "单轮最多搜索次数",
+      "group": "联网搜索",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 50
+    },
+    {
+      "key": "webSearch.model",
+      "label": "搜索模型",
+      "group": "联网搜索",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "webSearch.provider",
+      "label": "搜索 provider",
+      "group": "联网搜索",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false,
+      "enum": [
+        "auto",
+        "deepseek",
+        "bing",
+        "chatanywhere"
+      ]
+    },
+    {
+      "key": "webSearch.timeoutMs",
+      "label": "搜索超时（ms）",
+      "group": "联网搜索",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1000,
+      "max": 120000
+    },
+    {
+      "key": "tts.autoStart",
+      "label": "Auto Start",
+      "group": "TTS 语音合成",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.baseUrl",
+      "label": "TTS 服务地址",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.baseInstruction",
+      "label": "Base Instruction",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.baseUrl",
+      "label": "Base Url",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.cfgScale",
+      "label": "Cfg Scale",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.darkDelivery",
+      "label": "Dark Delivery",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.darkInstruction",
+      "label": "Dark Instruction",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.darkLoudness",
+      "label": "Dark Loudness",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.darkRecoverValence",
+      "label": "Dark Recover Valence",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.darkValenceThreshold",
+      "label": "Dark Valence Threshold",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.enabled",
+      "label": "Enabled",
+      "group": "TTS 语音合成",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.moodCfgScale.happy",
+      "label": "Happy",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.moodCfgScale.playful",
+      "label": "Playful",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.moodCfgScale.sad",
+      "label": "Sad",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.moodCfgScale.sleepy",
+      "label": "Sleepy",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.opusBitrate",
+      "label": "Opus Bitrate",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.opusTimeoutMs",
+      "label": "Opus Timeout Ms",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.opusUrl",
+      "label": "Opus Url",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.preferOpus",
+      "label": "Prefer Opus",
+      "group": "TTS 语音合成",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.seed",
+      "label": "Seed",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.softDelivery",
+      "label": "Soft Delivery",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.softInstruction",
+      "label": "Soft Instruction",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.softLoudness",
+      "label": "Soft Loudness",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.breeze.timeoutMs",
+      "label": "Timeout Ms",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.enabled",
+      "label": "TTS 合成",
+      "group": "TTS 语音合成",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.keepFiles",
+      "label": "保留合成文件数",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 500
+    },
+    {
+      "key": "tts.maxChars",
+      "label": "单条最大字数",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 500
+    },
+    {
+      "key": "tts.maxSeconds",
+      "label": "单条最长（秒）",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 600
+    },
+    {
+      "key": "tts.promptLang",
+      "label": "参考音频语言",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "tts.promptText",
+      "label": "参考音频文本",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "tts.refAudio",
+      "label": "参考音频",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "tts.speedFactor",
+      "label": "语速倍数",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0.5,
+      "max": 2
+    },
+    {
+      "key": "tts.startScript",
+      "label": "Start Script",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.temperature",
+      "label": "Temperature",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.textLang",
+      "label": "合成语言",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.textSplitMethod",
+      "label": "Text Split Method",
+      "group": "TTS 语音合成",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.timeoutMs",
+      "label": "合成超时（ms）",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1000,
+      "max": 300000
+    },
+    {
+      "key": "tts.topK",
+      "label": "Top K",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "tts.topP",
+      "label": "Top P",
+      "group": "TTS 语音合成",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "storage.backupDir",
+      "label": "备份目录",
+      "group": "存储与可靠性",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "storage.backupKeepDays",
+      "label": "备份保留天数",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 90
+    },
+    {
+      "key": "storage.configStrict",
+      "label": "配置非法时拒绝启动",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "storage.dbPath",
+      "label": "数据库路径",
+      "group": "存储与可靠性",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "storage.enabled",
+      "label": "启用 SQLite 可靠性层",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.inboxEnabled",
+      "label": "入站消息去重与恢复",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.inboxReplayMaxAgeMs",
+      "label": "入站重放窗口（ms）",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1000,
+      "max": 3600000
+    },
+    {
+      "key": "storage.jobsEnabled",
+      "label": "统一任务队列",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.logJsonl",
+      "label": "结构化日志（JSONL）",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.outboxEnabled",
+      "label": "出站消息先落盘",
+      "group": "存储与可靠性",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "storage.outboxMaxAttempts",
+      "label": "出站重试次数",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 20
+    },
+    {
+      "key": "storage.outboxRetryBaseMs",
+      "label": "出站重试基数（ms）",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 500,
+      "max": 300000
+    },
+    {
+      "key": "storage.outboxRetryMaxMs",
+      "label": "出站重试上限（ms）",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1000,
+      "max": 3600000
+    },
+    {
+      "key": "storage.retentionDays",
+      "label": "数据保留天数",
+      "group": "存储与可靠性",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 365
+    },
+    {
+      "key": "routing.enabled",
+      "label": "模型/effort 路由",
+      "group": "模型路由",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "routing.fallback",
+      "label": "Fallback",
+      "group": "模型路由",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "pricing.models.my-relay-model.label",
+      "label": "Label",
+      "group": "价目表",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "pricing.models.my-relay-model.off.cacheHit",
+      "label": "Cache Hit",
+      "group": "价目表",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "pricing.models.my-relay-model.off.cacheMiss",
+      "label": "Cache Miss",
+      "group": "价目表",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "pricing.models.my-relay-model.off.output",
+      "label": "Output",
+      "group": "价目表",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "ackMessage",
+      "label": "思考中回执",
+      "group": "基础",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "agentPreset",
+      "label": "默认 agent preset",
+      "group": "基础",
+      "type": "string",
+      "restart": "dsh",
+      "advanced": false
+    },
+    {
+      "key": "allowAllWhenEmpty",
+      "label": "白名单为空时放行所有",
+      "group": "基础",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "configVersion",
+      "label": "Config Version",
+      "group": "基础",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "consoleAuth.enabled",
+      "label": "控制台要求访问令牌",
+      "group": "基础",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "consolePort",
+      "label": "控制台端口",
+      "group": "基础",
+      "type": "number",
+      "restart": "bridge",
+      "advanced": false,
+      "min": 1,
+      "max": 65535
+    },
+    {
+      "key": "questionTimeoutMs",
+      "label": "提问超时（ms）",
+      "group": "基础",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 5000,
+      "max": 3600000
+    },
+    {
+      "key": "sendDelayMs",
+      "label": "发送间隔（ms）",
+      "group": "基础",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "key": "sessionCwd",
+      "label": "会话工作目录",
+      "group": "基础",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": true
+    },
+    {
+      "key": "workspaceTitle",
+      "label": "工作区标题",
+      "group": "基础",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "simulation.context.digestMaxChars",
+      "label": "衔接摘要上限（字符）",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 300,
+      "max": 4000
+    },
+    {
+      "key": "simulation.context.rotateAtTokens",
+      "label": "会话旋转阈值（tokens）",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 500000
+    },
+    {
+      "key": "simulation.context.wakeBudgetTokens",
+      "label": "唤醒 prompt token 预算",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 300,
+      "max": 20000
+    },
+    {
+      "key": "simulation.memory.enabled",
+      "label": "分层长期记忆",
+      "group": "上下文与成本",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.memory.maxChars",
+      "label": "记忆注入上限（字符）",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 100,
+      "max": 4000
+    },
+    {
+      "key": "simulation.memory.minConfidence",
+      "label": "记忆最低置信度",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "simulation.memory.topK",
+      "label": "记忆检索条数",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 30
+    },
+    {
+      "key": "simulation.valueScore.deferThreshold",
+      "label": "延后阈值",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "simulation.valueScore.enabled",
+      "label": "价值评分",
+      "group": "上下文与成本",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.valueScore.wakeThreshold",
+      "label": "唤醒阈值",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "simulation.signature.dryRun",
+      "label": "只预览不更新",
+      "group": "个性签名",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.signature.enabled",
+      "label": "自动个性签名",
+      "group": "个性签名",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.signature.firstDelayMs",
+      "label": "首次延迟（ms）",
+      "group": "个性签名",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "simulation.signature.maxChars",
+      "label": "签名最大字数",
+      "group": "个性签名",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 8,
+      "max": 60
+    },
+    {
+      "key": "simulation.signature.maxIntervalHours",
+      "label": "最长间隔（小时）",
+      "group": "个性签名",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 720
+    },
+    {
+      "key": "simulation.signature.minIntervalHours",
+      "label": "最短间隔（小时）",
+      "group": "个性签名",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 720
+    },
+    {
+      "key": "transport.kind",
+      "label": "传输类型",
+      "group": "传输",
+      "type": "string",
+      "restart": "bridge",
+      "advanced": false,
+      "enum": [
+        "snowluma",
+        "onebot"
+      ]
+    },
+    {
+      "key": "simulation.innerLife.groupShare.targets",
+      "label": "主动分享目标群",
+      "group": "内容引擎",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.dryRun",
+      "label": "内心生活演练模式",
+      "group": "内心生活",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.enabled",
+      "label": "内心生活",
+      "group": "内心生活",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.groupShare.enabled",
+      "label": "群内分享",
+      "group": "内心生活",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.qzone.enabled",
+      "label": "QQ 空间",
+      "group": "内心生活",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.disabled",
+      "label": "禁用的 feature",
+      "group": "扩展",
+      "type": "array",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "simulation.controlTiers.enabled",
+      "label": "控制面分层",
+      "group": "控制面分层",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.controlTiers.groupEscalationNotify",
+      "label": "群里高危被拒时私聊提醒主人",
+      "group": "控制面分层",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.controlTiers.ownerDirectiveTtlMs",
+      "label": "群内主人指令有效期（ms）",
+      "group": "控制面分层",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "simulation.controlTiers.requireConfirmForHighRisk",
+      "label": "高危动作需私聊确认",
+      "group": "控制面分层",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.esportsFeed.enabled",
+      "label": "电竞资讯",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.reminders.enabled",
+      "label": "提醒",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.reminders.overdueGraceMs",
+      "label": "过期容忍（ms）",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "simulation.weather.defaultCity",
+      "label": "默认城市",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.weather.enabled",
+      "label": "天气",
+      "group": "提醒 / 天气 / 订阅",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.relationships.enabled",
+      "label": "群友关系（galgame）",
+      "group": "群友关系",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.relationships.excludeFamily",
+      "label": "自动排除家人群",
+      "group": "群友关系",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.relationships.excludedGroups",
+      "label": "额外排除的群",
+      "group": "群友关系",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.relationships.liveLimit",
+      "label": "实时页展示人数",
+      "group": "群友关系",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 12
+    },
+    {
+      "key": "simulation.relationships.promptLimit",
+      "label": "prompt 关系卡人数",
+      "group": "群友关系",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 12
+    },
+    {
+      "key": "simulation.dailyReport.at",
+      "label": "发送时间（HH:MM）",
+      "group": "群日报",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.dailyReport.enabled",
+      "label": "群日报",
+      "group": "群日报",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.dailyReport.groups",
+      "label": "开启日报的群",
+      "group": "群日报",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.dailyReport.maxItems",
+      "label": "摘录条数",
+      "group": "群日报",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 20
+    },
+    {
+      "key": "simulation.imageLibrary.dir",
+      "label": "图片库目录",
+      "group": "表情与图片",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.imageLibrary.enabled",
+      "label": "通用图片库",
+      "group": "表情与图片",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.sticker.collect.enabled",
+      "label": "允许收藏表情",
+      "group": "表情与图片",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.sticker.enabled",
+      "label": "表情包体系",
+      "group": "表情与图片",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.speech.asr.enabled",
+      "label": "语音转写（ASR）",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.speech.asr.timeoutMs",
+      "label": "转写超时（ms）",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1000,
+      "max": 120000
+    },
+    {
+      "key": "simulation.voice.allowAbsolutePath",
+      "label": "允许绝对路径",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.voice.autoReadback",
+      "label": "语音后自动朗读",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.voice.defaultVolume",
+      "label": "默认音量倍数",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0.1,
+      "max": 4
+    },
+    {
+      "key": "simulation.voice.dir",
+      "label": "语音库目录",
+      "group": "语音",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.voice.enabled",
+      "label": "语音发送",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.voice.ffmpegPath",
+      "label": "ffmpeg 路径",
+      "group": "语音",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.voice.loudness",
+      "label": "智能音量",
+      "group": "语音",
+      "type": "string",
+      "restart": "none",
+      "advanced": false,
+      "enum": [
+        "quiet",
+        "normal",
+        "loud"
+      ]
+    },
+    {
+      "key": "simulation.voice.maxBytes",
+      "label": "单条最大字节",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1024,
+      "max": 104857600
+    },
+    {
+      "key": "simulation.voice.maxPerHour",
+      "label": "每小时上限",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 600
+    },
+    {
+      "key": "simulation.voice.maxPerMinute",
+      "label": "每分钟上限",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 60
+    },
+    {
+      "key": "simulation.voice.maxSeconds",
+      "label": "单条最长（秒）",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 600
+    },
+    {
+      "key": "simulation.voice.normalize",
+      "label": "响度归一",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.budget.blockNonExplicitOnly",
+      "label": "只压制非显式唤醒",
+      "group": "预算",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.budget.dailyTokensGlobal",
+      "label": "全局每日 token",
+      "group": "预算",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 1000000000
+    },
+    {
+      "key": "simulation.budget.dailyTokensPerKey",
+      "label": "每会话每日 token",
+      "group": "预算",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 100000000
+    },
+    {
+      "key": "simulation.budget.enabled",
+      "label": "token 预算",
+      "group": "预算",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    }
+  ]
+}

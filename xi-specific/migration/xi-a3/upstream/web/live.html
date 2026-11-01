@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小鲸鱼 · 实时状态</title>
+<style>
+:root{
+  --bg:#070b14;--panel:#0d1526;--panel2:#111c33;--line:#233456;--line2:#314a75;
+  --text:#dbe7ff;--muted:#7f93b8;--cyan:#5eead4;--blue:#60a5fa;--pink:#f472b6;
+  --amber:#fbbf24;--red:#f87171;--green:#34d399;--violet:#a78bfa;--shadow:4px 4px 0 #02050c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:"Courier New",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(96,165,250,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,.055) 1px,transparent 1px);
+  background-size:26px 26px;mask-image:radial-gradient(ellipse at 50% 0%,#000 35%,transparent 85%)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opacity:.05;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.35) 0 1px,transparent 1px 3px)}
+.app{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:20px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:14px}
+.card{position:relative;background:linear-gradient(180deg,var(--panel),#0a1120);border:2px solid var(--line);box-shadow:var(--shadow);padding:14px;min-width:0}
+.card::before{content:"";position:absolute;left:-2px;top:-2px;width:9px;height:9px;background:var(--cyan)}
+.card::after{content:"";position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;background:var(--line2)}
+.span-12{grid-column:span 12}.span-7{grid-column:span 7}.span-5{grid-column:span 5}
+.span-4{grid-column:span 4}.span-6{grid-column:span 6}
+.card h2{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px;font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;font-weight:700}
+.card h2 .tag{color:var(--cyan);letter-spacing:.08em;font-size:9px;border:1px solid var(--line);padding:2px 5px;background:#0a1424}
+.mono{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:10px;line-height:1.5}
+/* hero */
+.hero{display:grid;grid-template-columns:190px 1fr auto;gap:18px;align-items:center;padding:18px}
+.sprite-wrap{position:relative;width:170px;height:170px;border:2px solid var(--line2);background:
+  radial-gradient(circle at 50% 70%,rgba(96,165,250,.18),transparent 62%),
+  repeating-linear-gradient(45deg,#0a1324 0 6px,#0c172b 6px 12px);overflow:hidden}
+.sprite-wrap::after{content:"";position:absolute;left:16%;right:16%;bottom:8px;height:10px;border-radius:50%;background:rgba(0,0,0,.55);filter:blur(2px)}
+.sprite{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);object-fit:contain;image-rendering:pixelated;z-index:1;animation:bob 3.4s steps(2,end) infinite;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
+.sprite.idle{animation-duration:4.4s}
+.sprite.happy{animation-duration:2.8s}
+.sprite.excited{animation-duration:1.5s}
+.sprite.pout{animation-duration:3.2s}
+.sprite.tired{animation-duration:5.2s;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35)) saturate(.72) brightness(.94)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.bubble{position:absolute;z-index:2;width:4px;height:4px;background:var(--cyan);opacity:.7;animation:rise 4.5s linear infinite}
+.bubble.b1{left:22%;bottom:14%;animation-delay:0s}.bubble.b2{left:70%;bottom:18%;width:3px;height:3px;background:var(--blue);animation-delay:1.4s}.bubble.b3{left:48%;bottom:10%;width:5px;height:5px;background:var(--pink);animation-delay:2.8s}
+@keyframes rise{0%{transform:translateY(0);opacity:0}12%{opacity:.8}100%{transform:translateY(-120px);opacity:0}}
+.identity h1{margin:0 0 4px;font-size:24px;letter-spacing:.06em}
+.identity h1 .jp{font-size:11px;color:var(--muted);letter-spacing:.18em;margin-left:8px}
+.speech{display:inline-block;margin-top:8px;padding:7px 10px;border:1px solid var(--line);background:#0a1424;color:var(--text);font-size:12px;line-height:1.5;position:relative;max-width:520px}
+.speech::before{content:"";position:absolute;left:-7px;top:10px;width:6px;height:6px;background:#0a1424;border-left:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)}
+.hero-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#0a1424;padding:3px 7px;font-size:9px;letter-spacing:.08em;color:var(--muted)}
+.pill b{color:var(--text);font-weight:700}
+.dot{width:7px;height:7px;background:var(--muted);box-shadow:0 0 6px currentColor;display:inline-block}
+.dot.ok{background:var(--green);color:var(--green)}.dot.bad{background:var(--red);color:var(--red)}.dot.warn{background:var(--amber);color:var(--amber)}
+.live-dot{width:8px;height:8px;background:var(--red);display:inline-block;margin-left:8px;box-shadow:0 0 10px var(--red);animation:pulse 1.2s steps(2,end) infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.conn{display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-size:10px;color:var(--muted);letter-spacing:.06em;text-align:right}
+.conn .now{color:var(--text);font-size:12px}
+/* flow */
+.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:12px 14px}
+.stat{border-left:2px solid var(--line2);padding-left:10px;min-width:0}
+.stat .k{font-size:9px;letter-spacing:.12em;color:var(--muted);white-space:nowrap}
+.stat .v{font-size:20px;margin-top:2px;color:var(--text);line-height:1.15;white-space:nowrap}
+.stat .v small{font-size:10px;color:var(--muted);margin-left:3px}
+.stat.hot .v{color:var(--red)}.stat.good .v{color:var(--green)}.stat.warn .v{color:var(--amber)}
+/* mood */
+.compass{position:relative;width:100%;max-width:248px;aspect-ratio:1/1;margin:2px auto 10px;border:2px solid var(--line);
+  background-image:linear-gradient(rgba(96,165,250,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,.10) 1px,transparent 1px);
+  background-size:25% 25%,25% 25%;background-color:#081020;overflow:hidden}
+.compass .axis-x,.compass .axis-y{position:absolute;background:var(--line2);opacity:.8}
+.compass .axis-x{left:0;right:0;top:50%;height:1px}.compass .axis-y{top:0;bottom:0;left:50%;width:1px}
+.compass .lab{position:absolute;font-size:9px;color:var(--muted);letter-spacing:.08em}
+.compass .lab.top{top:5px;left:50%;transform:translateX(-50%)}.compass .lab.bottom{bottom:5px;left:50%;transform:translateX(-50%)}
+.compass .lab.left{left:6px;top:50%;transform:translateY(-50%)}.compass .lab.right{right:6px;top:50%;transform:translateY(-50%)}
+.mood-dot{position:absolute;width:14px;height:14px;background:var(--amber);border:2px solid #02050c;transform:translate(-50%,-50%);
+  box-shadow:0 0 0 2px rgba(251,191,36,.25),0 0 18px rgba(251,191,36,.65);transition:left .7s steps(6,end),top .7s steps(6,end);z-index:2}
+.mood-dot::after{content:"";position:absolute;inset:-7px;border:1px dashed rgba(251,191,36,.35)}
+.mood-line{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.mood-label{font-size:15px;color:var(--amber);line-height:1.4}
+.energy{display:flex;gap:3px;margin-top:10px}
+.energy .seg{flex:1;height:12px;border:1px solid var(--line);background:#081020}
+.energy .seg.on{background:var(--green);border-color:var(--green);box-shadow:0 0 8px rgba(52,211,153,.35)}
+.energy .seg.mid{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px rgba(251,191,36,.3)}
+.energy .seg.low{background:var(--red);border-color:var(--red);box-shadow:0 0 8px rgba(248,113,113,.3)}
+.mood-note{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;font-size:10px;line-height:1.55;color:var(--muted)}
+.mood-note .row{padding:2px 0;color:var(--text)}
+.mood-curve{width:100%;height:34px;margin-top:6px;display:block;background:rgba(255,255,255,.02);border-radius:4px}
+.mood-curve polyline{fill:none;stroke-width:1.2;vector-effect:non-scaling-stroke}
+/* interests */
+.interest{display:flex;align-items:center;gap:8px;margin:9px 0}
+.interest .name{width:78px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.interest .bar{flex:1;height:10px;border:1px solid var(--line);background:#081020;position:relative;overflow:hidden}
+.interest .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));box-shadow:0 0 8px rgba(96,165,250,.35)}
+.interest .w{width:34px;text-align:right;color:var(--muted);font-size:10px}
+.learn{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}
+.learn .row{display:flex;gap:7px;margin:6px 0;color:var(--text);font-size:11px;line-height:1.45}
+.learn .row::before{content:"▸";color:var(--cyan);flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.chip{border:1px solid var(--line);background:#0a1424;padding:2px 6px;font-size:10px;color:var(--violet)}
+.chip.muted{color:var(--muted)}
+/* inner life */
+.timeline{display:flex;flex-direction:column;gap:9px}
+.tl{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 9px;border:1px solid var(--line);background:#0a1424}
+.tl .l{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tl .l b{font-size:11px;font-weight:700}.tl .l span{font-size:9px;color:var(--muted)}
+.tl .r{font-size:15px;color:var(--cyan);white-space:nowrap;text-align:right}
+.counts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+.count{border:1px solid var(--line);background:#081020;padding:7px;text-align:center}
+.count b{display:block;font-size:18px;color:var(--text)}.count span{font-size:9px;color:var(--muted)}
+.note{margin-top:10px;padding:8px 9px;border:1px dashed var(--line);background:#0a1424;font-size:10px;line-height:1.55;color:var(--muted)}
+.note b{color:var(--text)}
+#signals{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+#signals .row{padding:9px 10px;border:1px solid var(--line);background:#0a1424;border-radius:8px;font-size:11px;line-height:1.5}
+#signals .muted{margin-top:3px}
+/* bonds */
+.bonds-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.bonds-tabs button{background:#0a1424;border:1px solid var(--line);color:var(--muted);padding:4px 9px;font:inherit;font-size:10px;cursor:pointer}
+.bonds-tabs button.on{border-color:var(--pink);color:var(--pink);box-shadow:0 0 8px rgba(244,114,182,.25)}
+.bond-spot{border:1px dashed var(--line2);background:linear-gradient(90deg,rgba(244,114,182,.08),transparent);padding:8px 10px;margin-bottom:10px;font-size:11px;color:var(--text);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bond-spot b{color:var(--pink)}
+.bond-owner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;border:1px solid var(--pink);background:linear-gradient(90deg,rgba(244,114,182,.10),transparent);padding:8px 10px;margin-bottom:10px;font-size:11px;color:var(--text)}
+.bond-owner b{color:var(--pink)}
+.bond-owner .ox{font-size:9px;color:var(--muted)}
+.bond-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px}
+.bond-card{border:1px solid var(--line);background:#0a1424;padding:10px;min-width:0}
+.bond-card .bh{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.bond-name{font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bond-stage{font-size:9px;border:1px solid var(--line2);padding:1px 5px;color:var(--muted);white-space:nowrap}
+.bond-stage.s1{color:var(--blue);border-color:var(--blue)}
+.bond-stage.s2{color:var(--cyan);border-color:var(--cyan)}
+.bond-stage.s3{color:var(--green);border-color:var(--green)}
+.bond-stage.s4{color:var(--pink);border-color:var(--pink)}
+.bond-stage.s5{color:var(--amber);border-color:var(--amber);box-shadow:0 0 6px rgba(251,191,36,.25)}
+.bond-gauge{height:6px;background:#0d1a2e;border:1px solid var(--line);margin:8px 0 4px;overflow:hidden}
+.bond-gauge i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--amber));transition:width .6s steps(8,end)}
+.bond-meta{display:flex;justify-content:space-between;font-size:9px;color:var(--muted)}
+.bond-axes{margin-top:8px;display:grid;gap:3px}
+.bond-axis{display:grid;grid-template-columns:30px 1fr 26px;gap:5px;align-items:center;font-size:9px;color:var(--muted)}
+.bond-axis .bar{height:4px;background:#0d1a2e;border:1px solid var(--line);overflow:hidden}
+.bond-axis .bar i{display:block;height:100%;background:var(--cyan)}
+.bond-axis.trust .bar i{background:var(--blue)}
+.bond-axis.fam .bar i{background:var(--green)}
+.bond-axis.rap .bar i{background:var(--violet)}
+.bond-spark{display:flex;align-items:flex-end;gap:2px;height:22px;margin-top:8px}
+.bond-spark i{flex:1;background:var(--line2);min-height:2px}
+.bond-spark i.hot{background:var(--pink)}
+.bond-delta{margin-top:6px;font-size:9px;color:var(--muted);line-height:1.45}
+.bond-delta .up{color:var(--green)}
+.bond-delta .down{color:var(--red)}
+.bond-tone{margin-top:4px;font-size:9px;color:var(--muted);border-top:1px dashed var(--line);padding-top:5px}
+/* sessions */
+.session{border:1px solid var(--line);background:#0a1424;padding:10px;margin-bottom:8px;position:relative}
+.session:last-child{margin-bottom:0}
+.session .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.session .tname{font-size:13px;font-weight:700;line-height:1.3;word-break:break-all}
+.session .tkey{font-size:9px;color:var(--muted);margin-top:2px}
+.session .badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.badge{font-size:9px;border:1px solid var(--line);padding:2px 5px;color:var(--muted);background:#081020}
+.badge.on{color:var(--green);border-color:rgba(52,211,153,.35)}
+.badge.off{color:var(--muted)}
+.badge.busy{color:var(--amber);border-color:rgba(251,191,36,.4)}
+.badge.pk{color:var(--violet);border-color:rgba(167,139,250,.35)}
+.unread{min-width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);background:#081020;color:var(--muted);font-size:12px;font-weight:700}
+.unread.hot{color:#fff;background:rgba(248,113,113,.22);border-color:var(--red);box-shadow:0 0 10px rgba(248,113,113,.25)}
+.session .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;border-top:1px dashed var(--line);padding-top:7px}
+.session .m{min-width:0}.session .m span{display:block;font-size:8px;color:var(--muted);letter-spacing:.06em}.session .m b{display:block;font-size:10px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+/* activity */
+.feed{max-height:360px;overflow:auto;padding-right:3px}
+.feed::-webkit-scrollbar{width:6px}.feed::-webkit-scrollbar-thumb{background:var(--line2)}
+.ev{display:grid;grid-template-columns:44px 54px 1fr;gap:6px;align-items:baseline;padding:5px 0;border-bottom:1px dashed rgba(35,52,86,.65);font-size:10px}
+.ev .t{color:var(--muted)}.ev .tag{font-size:8px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);padding:1px 3px;text-align:center;color:var(--muted)}
+.ev .x{color:var(--text);line-height:1.4;word-break:break-all}
+.ev.wake .tag{color:var(--cyan);border-color:rgba(94,234,212,.3)}.ev.send .tag{color:var(--green);border-color:rgba(52,211,153,.3)}
+.ev.voice .tag{color:var(--pink);border-color:rgba(244,114,182,.35)}.ev.qzone .tag{color:var(--amber);border-color:rgba(251,191,36,.35)}
+.ev.share .tag{color:var(--violet);border-color:rgba(167,139,250,.35)}.ev.guard .tag{color:var(--red);border-color:rgba(248,113,113,.4)}
+.ev.ack .tag{color:var(--blue);border-color:rgba(96,165,250,.35)}.ev.error .tag{color:var(--red);border-color:rgba(248,113,113,.4)}
+.ev.health .tag{color:var(--green);border-color:rgba(52,211,153,.3)}
+.empty{color:var(--muted);font-size:10px;padding:10px 0}
+/* health */
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed rgba(35,52,86,.65);font-size:11px}
+.hrow:last-child{border-bottom:0}.hrow .hl{display:flex;align-items:center;gap:7px;min-width:0}.hrow .hr{color:var(--muted);font-size:9px;text-align:right;word-break:break-all}
+/* usage / libraries */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.st{border:1px solid var(--line);background:#081020;padding:8px}
+.st span{display:block;font-size:9px;color:var(--muted);letter-spacing:.06em}.st b{display:block;font-size:17px;margin-top:3px}
+.st b small{font-size:9px;color:var(--muted);margin-left:3px}
+/* login */
+.login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(4,8,15,.94)}
+.login.hidden{display:none}
+.login-card{width:min(420px,92vw);background:linear-gradient(180deg,var(--panel),#0a1120);border:2px solid var(--line2);box-shadow:var(--shadow);padding:22px}
+.login-card h2{font-size:16px;letter-spacing:.08em;margin:0 0 6px;color:var(--text)}
+.login-card p{color:var(--muted);font-size:11px;line-height:1.6;margin:0 0 14px}
+.login-card input{width:100%;background:#081020;border:1px solid var(--line2);color:var(--text);padding:10px;font-family:inherit;font-size:12px;outline:none}
+.login-card input:focus{border-color:var(--cyan)}
+.login-card button{margin-top:10px;width:100%;background:var(--cyan);color:#041018;border:0;padding:10px;font-family:inherit;font-weight:700;letter-spacing:.08em;cursor:pointer}
+.login-card .err{color:var(--red);font-size:10px;min-height:14px;margin-top:8px}
+/* responsive */
+@media (max-width:1100px){.span-7,.span-5,.span-4{grid-column:span 6}.flow{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:760px){.app{padding:12px}.hero{grid-template-columns:1fr;justify-items:start}.conn{align-items:flex-start;text-align:left}.span-7,.span-5,.span-4,.span-6{grid-column:span 12}.flow{grid-template-columns:repeat(2,1fr)}.session .metrics{grid-template-columns:repeat(2,1fr)}.sprite-wrap{width:140px;height:140px}}
+@media (prefers-reduced-motion:reduce){.sprite,.bubble,.live-dot{animation:none}.mood-dot{transition:none}}
+.memory-row{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--line);font-size:11px}
+.memory-row .tag{flex:none}
+</style>
+</head>
+<body>
+<main class="app" id="app" hidden>
+  <div class="grid">
+  <section class="card hero span-12">
+    <div class="sprite-wrap">
+      <img id="sprite" class="sprite" src="/live-assets/whale-pixel-wave.png" alt="像素小鲸鱼">
+      <i class="bubble b1"></i><i class="bubble b2"></i><i class="bubble b3"></i>
+    </div>
+    <div class="identity">
+      <h1>小鲸鱼<span class="jp">WHALE-01</span><span class="live-dot" title="实时"></span></h1>
+      <div class="muted small" id="selfLine">--</div>
+      <div class="speech" id="moodSpeech">正在读取她的状态…</div>
+      <div class="hero-meta" id="heroPills"></div>
+    </div>
+    <div class="conn">
+      <div class="now mono" id="lastUpdate">--:--:--</div>
+      <div id="connState">连接中</div>
+      <div class="muted">只读 · 本地</div>
+    </div>
+  </section>
+
+  <section class="card flow span-12" id="flow"></section>
+
+  <section class="card span-12">
+    <h2>羁绊 <span class="tag">BONDS</span></h2>
+    <div id="bondOwner"></div>
+    <div id="bonds"></div>
+  </section>
+
+  <section class="card span-4">
+    <h2>心情 / 精力 <span class="tag">MOOD</span></h2>
+    <div class="compass" id="compass">
+      <i class="axis-x"></i><i class="axis-y"></i>
+      <span class="lab top">兴奋</span><span class="lab bottom">平静</span>
+      <span class="lab left">低落</span><span class="lab right">开心</span>
+      <i class="mood-dot" id="moodDot" style="left:57%;top:55%"></i>
+    </div>
+    <div class="mood-line"><div class="mood-label" id="moodLabel">--</div><div class="muted small mono" id="moodUpdated">--</div></div>
+    <div class="muted small" id="moodCause">--</div>
+    <svg class="mood-curve" id="moodCurve" viewBox="0 0 100 30" preserveAspectRatio="none" aria-label="7 天心情曲线"></svg>
+    <div class="energy" id="energy"></div>
+    <div class="muted small" id="energyText">精力 --</div>
+    <div class="mood-note" id="moodNote">状态稳定，等待下一次反思</div>
+  </section>
+
+  <section class="card span-4">
+    <h2>兴趣 / 成长 <span class="tag">GROWTH</span></h2>
+    <div id="interests"></div>
+    <div class="learn" id="learnings"></div>
+    <div class="chips" id="quirks"></div>
+  </section>
+
+  <section class="card span-4">
+    <h2>内心生活 <span class="tag">INNER</span></h2>
+    <div class="timeline" id="timeline"></div>
+    <div class="counts" id="innerCounts"></div>
+    <div class="note" id="innerNote">--</div>
+  </section>
+
+  <section class="card span-12">
+    <h2>动向 <span class="tag">SIGNAL</span></h2>
+    <div id="signals"></div>
+  </section>
+
+  <section class="card span-7">
+    <h2>会话 <span class="tag" id="sessionTag">--</span></h2>
+    <div id="sessions"></div>
+  </section>
+
+  <section class="card span-5">
+    <h2>最近活动 <span class="tag">EVENTS</span></h2>
+    <div class="feed" id="feed"></div>
+  </section>
+
+  <section class="card span-4">
+    <h2>服务健康 <span class="tag">HEALTH</span></h2>
+    <div id="health"></div>
+  </section>
+
+  <section class="card span-4">
+    <h2>累计用量 <span class="tag">TOKENS</span></h2>
+    <div class="stats" id="usage"></div>
+    <div class="muted small" style="margin-top:8px" id="usageNote">--</div>
+  </section>
+
+  <section class="card span-6">
+    <h2>长期记忆 <span class="tag">MEMORY</span></h2>
+    <div class="muted small" id="memoryFacts">--</div>
+  </section>
+
+  <section class="card span-4">
+    <h2>资源库 <span class="tag">LIBRARY</span></h2>
+    <div class="stats" id="libraries"></div>
+    <div class="muted small" style="margin-top:8px">只读监控 · 数据来自桥接内存与状态文件</div>
+  </section>
+
+  </div>
+
+  <div class="muted small" style="text-align:center;padding:18px 0 6px">小鲸鱼 · 实时状态 · 127.0.0.1 · 每 1 秒刷新</div>
+</main>
+
+<div class="login hidden" id="login">
+  <div class="login-card">
+    <h2>进入实时状态</h2>
+    <p>需要控制台访问令牌。它会保存在本机 localStorage，与 QQ 控制台共用。</p>
+    <input id="tokenInput" type="password" placeholder="控制台访问令牌" autocomplete="current-password">
+    <button id="loginBtn" type="button">进入</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const TOKEN_KEY = 'consoleToken';
+  const params = new URLSearchParams(location.search);
+  const STATIC_MODE = params.get('static') === '1';
+  let token = params.get('token') || localStorage.getItem(TOKEN_KEY) || '';
+  if (params.get('token')) {
+    localStorage.setItem(TOKEN_KEY, params.get('token'));
+    history.replaceState({}, '', location.pathname);
+  }
+  let es = null;
+  let lastSseAt = 0;
+  let lastSnapshot = null;
+  let fallbackTimer = null;
+
+  const SPRITES = {
+    excited: '/live-assets/whale-pixel-excited.png',
+    happy: '/live-assets/whale-pixel-wave.png',
+    idle: '/live-assets/whale-pixel-idle.png',
+    tired: '/live-assets/whale-pixel-sit.png',
+    pout: '/live-assets/whale-pixel-pout.png'
+  };
+  const SPRITE_LABELS = { excited: '兴奋', happy: '开心', idle: '平静', tired: '困倦', pout: '闹别扭' };
+  for (const src of Object.values(SPRITES)) { const preload = new Image(); preload.src = src; }
+  function pickSpriteState({ energy, valence, arousal, night, busy }) {
+    // 夜间没被喊时优先显示困倦；正在说话时按真实心情走，别把她画成睡着了。
+    if (night && !busy) return 'tired';
+    if (energy != null && energy < 0.38) return 'tired';
+    if (valence != null && valence < -0.20) return 'pout';
+    if (valence != null && valence >= 0.30 && (arousal == null || arousal >= 0.62) && (energy == null || energy > 0.40)) return 'excited';
+    if (valence != null && valence > 0.12) return 'happy';
+    return 'idle';
+  }
+
+  function showLogin(msg) {
+    $('app').hidden = true;
+    $('login').classList.remove('hidden');
+    $('loginErr').textContent = msg || '';
+    setTimeout(() => $('tokenInput').focus(), 30);
+  }
+  function showApp() {
+    $('login').classList.add('hidden');
+    $('app').hidden = false;
+  }
+  function escText(v) { return v == null ? '' : String(v); }
+  function fmtTime(ts) {
+    if (!ts) return '--:--:--';
+    const d = new Date(ts);
+    return d.toLocaleTimeString('zh-CN', { hour12: false });
+  }
+  function ago(ts) {
+    if (!ts) return '—';
+    const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+    if (s < 5) return '刚刚';
+    if (s < 60) return s + ' 秒前';
+    const m = Math.round(s / 60);
+    if (m < 60) return m + ' 分钟前';
+    const h = Math.round(m / 60);
+    if (h < 24) return h + ' 小时前';
+    return Math.round(h / 24) + ' 天前';
+  }
+  function countdown(ts) {
+    if (!ts) return '未安排';
+    const s = Math.round((ts - Date.now()) / 1000);
+    if (s <= 0) return '已到期';
+    if (s < 60) return s + ' 秒';
+    const m = Math.round(s / 60);
+    if (m < 60) return m + ' 分';
+    const h = Math.floor(m / 60), mm = m % 60;
+    if (h < 24) return h + ' 小时' + (mm ? ' ' + mm + ' 分' : '');
+    return Math.floor(h / 24) + ' 天 ' + (h % 24) + ' 小时';
+  }
+  function fmtInt(n) {
+    if (n == null || !Number.isFinite(Number(n))) return '—';
+    return Number(n).toLocaleString('zh-CN');
+  }
+  function fmtCost(n) {
+    if (n == null || !Number.isFinite(Number(n))) return '—';
+    return '¥' + Number(n).toFixed(2);
+  }
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = escText(text);
+    return n;
+  }
+  function pill(label, ok, text) {
+    const p = el('span', 'pill');
+    const d = el('i', 'dot ' + (ok === true ? 'ok' : ok === false ? 'bad' : 'warn'));
+    p.appendChild(d);
+    p.appendChild(el('b', null, label));
+    p.appendChild(document.createTextNode(text ? ' ' + text : ''));
+    return p;
+  }
+
+  let bondGroupId = null;
+  function renderRelationships(rel) {
+    const box = $('bonds'); clear(box);
+    const ownerBox = $('bondOwner'); clear(ownerBox);
+    if (!rel || rel.enabled === false) { box.appendChild(el('div', 'empty', '关系模型未启用')); return; }
+    if (rel.owner) {
+      const o = rel.owner;
+      const strip = el('div', 'bond-owner');
+      strip.appendChild(el('span', 'muted small', '与主人'));
+      strip.appendChild(el('b', null, '羁绊 ' + Number(o.bond || 0).toFixed(1)));
+      strip.appendChild(el('span', 'ox', `好感 ${o.affection} / 信任 ${o.trust} / 熟悉 ${o.familiarity} / 默契 ${o.rapport}`));
+      if (o.lastDelta) {
+        const d = Number(o.lastDelta.affection) || 0;
+        strip.appendChild(el('span', 'ox', `最近 ${o.lastDelta.label || ''} ${d >= 0 ? '+' : ''}${d}`));
+      }
+      ownerBox.appendChild(strip);
+    }
+    const groups = Array.isArray(rel.groups) ? rel.groups : [];
+    if (!groups.length) { box.appendChild(el('div', 'empty', '还在积累互动，暂时没有羁绊记录')); return; }
+    if (!bondGroupId || !groups.some((g) => g.id === bondGroupId)) bondGroupId = groups[0].id;
+    const tabs = el('div', 'bonds-tabs');
+    for (const g of groups) {
+      const b = el('button', g.id === bondGroupId ? 'on' : '', g.name || '群聊');
+      b.addEventListener('click', () => { bondGroupId = g.id; renderRelationships(rel); });
+      tabs.appendChild(b);
+    }
+    box.appendChild(tabs);
+    if (rel.spotlight) {
+      const spot = el('div', 'bond-spot');
+      spot.appendChild(el('span', 'muted small', '此刻最在意'));
+      spot.appendChild(el('b', null, rel.spotlight.name));
+      spot.appendChild(el('span', null, '· ' + (rel.spotlight.stageLabel || '') + ' · ' + (rel.spotlight.tone || '')));
+      box.appendChild(spot);
+    }
+    const group = groups.find((g) => g.id === bondGroupId) || groups[0];
+    if (!group.members || !group.members.length) {
+      box.appendChild(el('div', 'empty', '这个群还在积累互动，暂时没有羁绊记录'));
+      return;
+    }
+    const grid = el('div', 'bond-grid');
+    for (const m of (group.members || [])) {
+      const card = el('div', 'bond-card');
+      const head = el('div', 'bh');
+      head.appendChild(el('span', 'bond-name', m.name || '群友'));
+      head.appendChild(el('span', 'bond-stage s' + (m.stage ?? 0), m.stageLabel || '—'));
+      card.appendChild(head);
+      const gauge = el('div', 'bond-gauge');
+      const fill = el('i'); fill.style.width = Math.max(0, Math.min(100, Number(m.bond) || 0)) + '%';
+      gauge.appendChild(fill); card.appendChild(gauge);
+      const meta = el('div', 'bond-meta');
+      meta.appendChild(el('span', null, '羁绊 ' + (Number(m.bond) || 0).toFixed(1)));
+      meta.appendChild(el('span', null, '互动 ' + (Number(m.interactions) || 0) + ' 次'));
+      card.appendChild(meta);
+      const axes = el('div', 'bond-axes');
+      const axis = (label, value, cls) => {
+        const row = el('div', 'bond-axis ' + (cls || ''));
+        row.appendChild(el('span', null, label));
+        const bar = el('span', 'bar'); const i = el('i');
+        i.style.width = Math.max(0, Math.min(100, Number(value) || 0)) + '%';
+        bar.appendChild(i); row.appendChild(bar);
+        row.appendChild(el('span', null, String(Math.round(Number(value) || 0))));
+        axes.appendChild(row);
+      };
+      axis('好感', m.affection, '');
+      axis('信任', m.trust, 'trust');
+      axis('熟悉', m.familiarity, 'fam');
+      axis('默契', m.rapport, 'rap');
+      card.appendChild(axes);
+      const spark = el('div', 'bond-spark');
+      for (const p of (m.sparkline || [])) {
+        const i = el('i', (Number(p.bond) || 0) >= 45 ? 'hot' : '');
+        i.style.height = Math.max(2, Math.round(Math.min(100, Number(p.bond) || 0) / 100 * 22)) + 'px';
+        i.title = p.day + '：' + (p.bond == null ? '无记录' : p.bond) + ' · 互动 ' + (p.interactions || 0);
+        spark.appendChild(i);
+      }
+      card.appendChild(spark);
+      const d = m.lastDelta;
+      const delta = el('div', 'bond-delta');
+      if (d) {
+        const aff = Number(d.affection) || 0;
+        const cls = aff > 0 ? 'up' : aff < 0 ? 'down' : '';
+        delta.appendChild(el('span', cls, (aff > 0 ? '+' : '') + aff.toFixed(1) + ' 好感'));
+        delta.appendChild(document.createTextNode(' · ' + (d.reason || d.label || '') + ' · ' + ago(d.at)));
+      } else {
+        delta.textContent = '还没有关系变化';
+      }
+      card.appendChild(delta);
+      card.appendChild(el('div', 'bond-tone', '语气：' + (m.tone || '—')));
+      grid.appendChild(card);
+    }
+    box.appendChild(grid);
+  }
+
+  function render(data) {
+    lastSnapshot = data;
+    $('lastUpdate').textContent = fmtTime(data.ts);
+    $('connState').textContent = '● LIVE';
+    $('selfLine').textContent = (data.self?.name || '小鲸鱼') + (data.self?.userId ? ' · QQ ' + data.self.userId : '') + ' · ' + (data.mode || '--') + (data.paused ? ' · 已暂停' : '');
+    const p = data.persona || {};
+    const mood = p.mood || {};
+    const energy = Number.isFinite(Number(p.energy)) ? Math.max(0, Math.min(1, Number(p.energy))) : null;
+    const valence = Number.isFinite(Number(mood.valence)) ? Math.max(-1, Math.min(1, Number(mood.valence))) : null;
+    const arousal = Number.isFinite(Number(mood.arousal)) ? Math.max(0, Math.min(1, Number(mood.arousal))) : null;
+    const busy = Array.isArray(data.sessions) && data.sessions.some((s) => s && s.busy);
+    const spriteState = pickSpriteState({ energy, valence, arousal, night: data.nightQuiet?.active === true, busy });
+    const spriteNode = $('sprite');
+    if (spriteNode.getAttribute('src') !== SPRITES[spriteState]) spriteNode.setAttribute('src', SPRITES[spriteState]);
+    if (spriteNode.dataset.state !== spriteState) {
+      spriteNode.dataset.state = spriteState;
+      spriteNode.className = 'sprite ' + spriteState;
+      spriteNode.title = '当前状态：' + SPRITE_LABELS[spriteState];
+      spriteNode.alt = '像素小鲸鱼（' + SPRITE_LABELS[spriteState] + '）';
+    }
+    $('moodSpeech').textContent = mood.label ? '今天心情：' + mood.label : '正在读取她的状态…';
+    $('moodLabel').textContent = mood.label || '—';
+    $('moodUpdated').textContent = p.updatedAt ? '更新于 ' + ago(p.updatedAt) : '—';
+    $('moodCause').textContent = p.cause
+      ? `因为：${p.cause}${p.setPoint ? ' · 设定点 ' + Number(p.setPoint).toFixed(2) : ''}`
+      : (p.setPoint ? '设定点 ' + Number(p.setPoint).toFixed(2) : '还没有明显心情事件');
+    (() => {
+      const svg = $('moodCurve');
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      const hist = Array.isArray(p.history) ? p.history.filter((x) => Number.isFinite(Number(x.v))) : [];
+      if (hist.length < 2) {
+        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        t.setAttribute('x', '4');
+        t.setAttribute('y', '18');
+        t.setAttribute('fill', '#5b6b82');
+        t.setAttribute('font-size', '8');
+        t.textContent = '攒够几次状态更新后显示曲线';
+        svg.appendChild(t);
+        return;
+      }
+      const line = (key, color, width, min, max) => {
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        poly.setAttribute('stroke', color);
+        poly.setAttribute('stroke-width', String(width));
+        poly.setAttribute('points', hist.map((h, i) => {
+          const x = (i / (hist.length - 1)) * 100;
+          const y = (1 - (Number(h[key]) - min) / (max - min)) * 30;
+          return x.toFixed(2) + ',' + y.toFixed(2);
+        }).join(' '));
+        svg.appendChild(poly);
+      };
+      line('a', 'rgba(147,197,253,.28)', 1, 0, 1);
+      line('v', 'rgba(251,191,36,.85)', 1.4, -1, 1);
+    })();
+    if (valence != null && arousal != null) {
+      $('moodDot').style.left = Math.round(((valence + 1) / 2) * 100) + '%';
+      $('moodDot').style.top = Math.round((1 - arousal) * 100) + '%';
+    }
+    const energyNode = $('energy'); clear(energyNode);
+    const filled = energy == null ? 0 : Math.round(energy * 10);
+    for (let i = 0; i < 10; i++) {
+      const seg = el('i', 'seg');
+      if (i < filled) seg.className += energy < 0.3 ? ' on low' : energy < 0.6 ? ' on mid' : ' on';
+      energyNode.appendChild(seg);
+    }
+    $('energyText').textContent = '精力 ' + (energy == null ? '—' : Math.round(energy * 100) + '%');
+    const moodNote = $('moodNote'); clear(moodNote);
+    const moodChanges = (p.changelog || []).filter((c) => c && Array.isArray(c.changes) && c.changes.length).slice(-2).reverse();
+    if (moodChanges.length) {
+      moodNote.appendChild(el('div', 'k muted small', '最近变化'));
+      for (const c of moodChanges) moodNote.appendChild(el('div', 'row', ago(c.at) + ' · ' + c.changes.join(' / ')));
+    } else {
+      moodNote.textContent = '状态稳定，等待下一次反思';
+    }
+    const nextReflection = Number(data.innerLife?.next?.reflection) || 0;
+    if (nextReflection) moodNote.appendChild(el('div', 'row', '下次状态刷新：' + countdown(nextReflection)));
+    if (data.nightQuiet?.active) moodNote.appendChild(el('div', 'row', '夜间静默中：只回应被喊'));
+
+    const heroPills = $('heroPills'); clear(heroPills);
+    heroPills.appendChild(pill('DSH', data.health?.dsh?.ok === true, data.health?.dsh?.ok ? '就绪' : '离线'));
+    if (data.persona?.mode?.label) heroPills.appendChild(pill('MODE', true, data.persona.mode.label));
+    heroPills.appendChild(pill('SNOWLUMA', data.health?.snowluma?.connected === true, data.health?.snowluma?.connected ? '在线' : '离线'));
+    heroPills.appendChild(pill('TTS', data.health?.tts?.ok === true, data.health?.tts?.ok ? '在线' : '离线'));
+    heroPills.appendChild(pill('BRIDGE', data.health?.bridge?.ok === true, data.health?.bridge?.ok ? '运行中' : '离线'));
+
+    const flow = $('flow'); clear(flow);
+    const f = data.flow || {};
+    const addStat = (k, v, cls, sub) => {
+      const d = el('div', 'stat' + (cls ? ' ' + cls : ''));
+      d.appendChild(el('div', 'k', k));
+      const vv = el('div', 'v', v);
+      if (sub) vv.appendChild(el('small', null, sub));
+      d.appendChild(vv);
+      flow.appendChild(d);
+    };
+    addStat('未读总计', fmtInt(f.unreadTotal), f.unreadTotal > 0 ? 'hot' : 'good', '条');
+    addStat('待补唤醒', fmtInt(f.pendingWakes), f.pendingWakes > 0 ? 'warn' : 'good', '个');
+    addStat('首答延迟', f.replyLatency?.p50 != null ? (f.replyLatency.p50 / 1000).toFixed(1) + 's' : '—', '', f.replyLatency?.p95 != null ? 'p95 ' + (f.replyLatency.p95 / 1000).toFixed(1) + 's' : '');
+    addStat('长等待拦截', fmtInt(f.guardHits), f.guardHits > 0 ? 'warn' : '', '次');
+    addStat('自动销账', fmtInt(f.autoAcks), '', '条');
+    addStat('错误', fmtInt(f.errors), f.errors > 0 ? 'hot' : 'good', '次');
+
+    const ints = $('interests'); clear(ints);
+    const interests = Array.isArray(p.interests) ? p.interests.slice(0, 5) : [];
+    if (!interests.length) ints.appendChild(el('div', 'empty', '还没有兴趣记录'));
+    for (const it of interests) {
+      const w = Math.max(0.04, Math.min(1, Number(it.weight) || 0));
+      const row = el('div', 'interest');
+      row.appendChild(el('span', 'name', it.topic || '—'));
+      const bar = el('span', 'bar'); const fill = el('i'); fill.style.width = Math.round(w * 100) + '%'; bar.appendChild(fill);
+      row.appendChild(bar);
+      row.appendChild(el('span', 'w', w.toFixed(2)));
+      ints.appendChild(row);
+    }
+    const learn = $('learnings'); clear(learn);
+    const ls = Array.isArray(p.learnings) ? p.learnings.slice(0, 3) : [];
+    if (ls.length) {
+      learn.appendChild(el('div', 'k muted small', '最近学到'));
+      for (const l of ls) learn.appendChild(el('div', 'row', l.text || l));
+    } else {
+      learn.appendChild(el('div', 'empty', '还没有新的见识记录'));
+    }
+    const quirks = $('quirks'); clear(quirks);
+    if ((p.quirks || []).length) for (const q of p.quirks.slice(0, 3)) quirks.appendChild(el('span', 'chip', q));
+    else quirks.appendChild(el('span', 'chip muted', '暂无口癖'));
+
+    const tl = $('timeline'); clear(tl);
+    const inner = data.innerLife || {};
+    const next = inner.next || {};
+    const addTl = (label, hint, ts) => {
+      const d = el('div', 'tl');
+      const l = el('div', 'l'); l.appendChild(el('b', null, label)); l.appendChild(el('span', null, hint));
+      d.appendChild(l); d.appendChild(el('div', 'r', countdown(ts)));
+      tl.appendChild(d);
+    };
+    addTl('反思', '整理今天的见识', next.reflection);
+    addTl('好奇', '刷一刷候选见闻', next.curiosity);
+    addTl('空间说说', inner.qzone?.paused ? '已暂停' : '随缘发一条', next.qzone);
+    const counts = $('innerCounts'); clear(counts);
+    const addCount = (n, label) => { const d = el('div', 'count'); d.appendChild(el('b', null, fmtInt(n))); d.appendChild(el('span', null, label)); counts.appendChild(d); };
+    addCount(inner.counts?.curiosity, '好奇');
+    addCount(inner.counts?.groupShare, '群分享');
+    addCount(inner.counts?.qzone, '空间');
+    const note = $('innerNote'); clear(note);
+    const qz = inner.qzone || {};
+    const bits = [];
+    const contentQz = data.content?.qzone || {};
+    bits.push(qz.paused ? '空间：已暂停' : '空间：' + ((contentQz.requireApproval !== false) ? '先审后发' : (qz.auto ? '自动发布' : '前 ' + (contentQz.approvalFirst || 5) + ' 条需审核')));
+    if (qz.approvedCount != null) bits.push('已通过 ' + qz.approvedCount + ' 条');
+    if (inner.pendingShare) bits.push('待审群分享：' + (inner.pendingShare.text || '').slice(0, 46));
+    if (inner.pendingDraft) bits.push('待审草稿' + (inner.pendingDraft.imageName ? ' · 配图 ' + inner.pendingDraft.imageName : '') + '：' + (inner.pendingDraft.text || '').slice(0, 46));
+    else if (inner.lastQzone) bits.push('最近说说（' + ago(inner.lastQzone.at) + '）：' + (inner.lastQzone.text || '').slice(0, 46));
+    else bits.push('还没有说说记录');
+    note.textContent = bits.join(' · ');
+
+    const signals = $('signals'); clear(signals);
+    const c = data.content || {};
+    const addSignal = (label, main, sub) => {
+      const row = el('div', 'row');
+      const left = el('div');
+      left.appendChild(el('div', 'muted small', label));
+      left.appendChild(el('div', null, main || '—'));
+      if (sub) left.appendChild(el('div', 'muted small', sub));
+      row.appendChild(left);
+      signals.appendChild(row);
+    };
+    const sig = c.signature || {};
+    addSignal('个性签名', sig.lastText || '—', `${sig.enabled ? '自动更新' : '已关闭'}${sig.minIntervalHours ? ` · 间隔 ${sig.minIntervalHours}–${sig.maxIntervalHours}h` : ''}${sig.nextAt ? ' · 下次 ' + countdown(sig.nextAt) : ''}${sig.lastError ? ' · 错误 ' + sig.lastError : ''}`);
+    addSignal('时间感知', new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }), '分享/说说按真实时间校对，避免把凌晨说成早上、把几小时前说成刚刚');
+    const vs = c.voiceStyle || {};
+    addSignal('声线', `${vs.effective === 'dark' ? '黑化' : '软萌'}${vs.mode === 'auto' ? ' · 自动' : ' · 手动'}`, `心情 valence ${Number(vs.valence ?? 0).toFixed(2)} · ${vs.transport?.mode === 'opus' ? '传输 Opus ' + (vs.transport?.bitrate || '32k') : '传输 WAV'}${vs.transport?.normalize ? ' · 响度归一 ' + (vs.transport?.loudness || 'normal') : ''}；主人私聊可说「黑化模式 / 软萌模式 / 自动声线」`);
+    const ex = c.expression || {};
+    const cap = ex.caps || {};
+    const lastTxt = (t) => (t ? ago(t) : '还没发过');
+    addSignal('表达节奏', `表情 ${lastTxt(ex.lastStickerAt)} · 图 ${lastTxt(ex.lastImageAt)} · 语音 ${lastTxt(ex.lastVoiceAt)}`, `上限：消息 ${cap.sendPerMinute ?? 12}/分 · 语音 ${cap.voicePerMinute ?? 6}/分 · 群分享 ${cap.sharePerDay ?? 20}/天 · 说说 ${cap.qzonePerDay ?? 10}/天`);
+    const esp = c.esports || {};
+    const espMain = esp.title ? `${esp.kind === 'result' ? '[赛果] ' : '[资讯] '}${esp.title}` : (esp.error ? '抓取失败：' + esp.error : '暂无 S16 资讯');
+    const espSub = [esp.updatedAt ? '更新 ' + ago(esp.updatedAt) : '', esp.date || '', esp.source === 'search' ? '联网搜索' : esp.source === 'zhibo8' ? '直播吧' : '', esp.loading ? '抓取中' : '', esp.broadcastInfo ? '播报：' + esp.broadcastInfo : '', esp.schedule?.next ? `下一场 ${esp.schedule.next.date.slice(5)} ${esp.schedule.next.time || ''} ${esp.schedule.next.teamA} vs ${esp.schedule.next.teamB}` : ''].filter(Boolean).join(' · ');
+    addSignal('S16 赛事', espMain, espSub);
+    const sh = c.share || {};
+    addSignal('主动分享', `今日 ${sh.today ?? 0}/${sh.maxPerDay || 0} 条${inner.pendingShare ? ' · 待审核' : ''}`, `${sh.targets?.length ? sh.targets.length + ' 个群轮流' : '单群'}${sh.last ? ` · 上次 ${ago(sh.last.at)}：${String(sh.last.text || '').slice(0, 70)}` : ' · 还没有分享记录'}`);
+    const qzSig = inner.qzone || {};
+    addSignal('空间说说', qzSig.paused ? '已暂停' : (inner.pendingDraft ? '待审核' : '随缘发'), `今日 ${inner.counts?.qzone ?? 0} 条${inner.lastQzone ? ` · 最近 ${ago(inner.lastQzone.at)}：${String(inner.lastQzone.text || '').slice(0, 60)}` : ''}${inner.pendingDraft ? ' · 草稿等你确认' : ''}`);
+    const cw = c.qzone?.commentWatch || {};
+    addSignal('空间评论', `今日已回 ${cw.repliedToday ?? 0}/${cw.maxPerDay ?? c.qzone?.commentReplyMaxPerDay ?? 5} 条 · @ ${cw.mentionRepliedToday ?? 0}/${cw.mentionMaxPerDay ?? 5}${cw.pendingReply ? ' · 待确认' : ''}`, cw.pendingReply ? `拟回复 ${cw.pendingReply.commentName || '说说正文'}：${String(cw.pendingReply.reply || '').slice(0, 60)} · 私聊回「发回复」确认` : (cw.lastCheckAt ? `上次检查 ${ago(cw.lastCheckAt)}${cw.lastResult ? ' · ' + cw.lastResult : ''}` : '尚未检查'));
+    const ai = c.aiTips || {};
+    if (ai.target) {
+      const aiState = !ai.enabled ? '未启用' : (ai.paused ? '已暂停' : `今日 ${ai.today ?? 0}/${ai.dailyTarget || `${ai.minPerDay ?? 2}-${ai.maxPerDay ?? 5}`}`);
+      addSignal('AI 小知识', `${aiState} · ${ai.targetLabel || ai.target}`, ai.last ? `最近 [${ai.last.categoryLabel || ai.last.category}] ${String(ai.last.title || ai.last.topic || '').slice(0, 40)} · 下次 ${ai.nextAt ? new Date(ai.nextAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '未安排'}` : `每天 ${ai.minPerDay ?? 2}–${ai.maxPerDay ?? 5} 条 · 还没讲过`);
+    const sm = c.shareModules || {};
+    const smList = Array.isArray(sm.modules) ? sm.modules : [];
+    if (smList.length) {
+      const active = smList.filter((m) => m.enabled !== false).length;
+      const detail = smList.slice(0, 4).map((m) => {
+        const st = !m.enabled ? '关' : (m.paused ? '暂停' : (m.pending ? '待确认' : (m.verification === 'approved' ? '开' : '验证')));
+        const next = m.nextAt ? new Date(m.nextAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : (m.facets?.[0]?.trigger === 'feed-event' ? '事件' : '—');
+        const engineCount = Number(m.engineFacetCount) || 0;
+        const legacyCount = Math.max(0, (Array.isArray(m.facets) ? m.facets.length : 0) - engineCount);
+        const runtime = [engineCount ? `${engineCount} 个引擎 facet` : '', legacyCount ? `${legacyCount} 个旧链路 facet` : ''].filter(Boolean).join(' + ') || '未配置 facet';
+        return `${m.label} ${st} · ${runtime} · ${next}`;
+      }).join(' ｜ ');
+      const pendingCount = smList.filter((m) => m.pending).length;
+      addSignal('分享模块', `${active}/${smList.length} 个启用${pendingCount ? ` · ${pendingCount} 个待确认` : ''}`, detail);
+    }
+    const of = c.ownerFeatures || {};
+    const ofFeatures = Array.isArray(of.features) ? of.features : [];
+    if (ofFeatures.length || (Array.isArray(of.capabilities) && of.capabilities.length)) {
+      const caps = Array.isArray(of.capabilities) ? of.capabilities : [];
+      const ready = caps.filter((x) => x.status === 'ready').length;
+      const proposalCount = Array.isArray(of.proposals) ? of.proposals.length : 0;
+      const codePending = (Array.isArray(of.proposals) ? of.proposals : []).filter((p) => ['proposed', 'tested'].includes(p.status)).length;
+      const queued = Number(of.orchestrator?.pending) || 0;
+      const detail = ofFeatures.length
+        ? ofFeatures.slice(0, 4).map((f) => `${f.label} ${f.enabled ? '开' : '暂停'}${f.canRollback ? ' · 可回滚' : ''}`).join(' ｜ ')
+        : (proposalCount ? `${proposalCount} 个代码提案` : '私聊可创建定时消息/提醒等功能');
+      addSignal('功能中心', `${ready}/${caps.length} 项能力就绪 · ${ofFeatures.length} 个功能${codePending ? ` · ${codePending} 个代码提案待处理` : ''}${queued ? ` · ${queued} 个任务等主控` : ''}`, detail);
+    }
+    }
+    const libSig = c.library || {};
+    addSignal('资源库', `${libSig.stickers ?? 0} 表情 / ${libSig.images ?? 0} 图片`, '收藏表情与配图库');
+    const cc = c.crossChat || {};
+    addSignal('跨会话', `${cc.groups?.length ?? 0} 群 / ${cc.privates?.length ?? 0} 好友`, '主人私聊可跨会话读取/发送');
+    const se = c.search || {};
+    addSignal('联网搜索', `${se.provider || 'auto'} / ${se.model || '默认'}`, `${se.configured ? '凭据已配置' : '未配置凭据'} · 上限 ${se.maxResults ?? '—'} 条`);
+    const mem = c.memory || {};
+    const scopeText = mem.byScope && typeof mem.byScope === 'object' ? Object.entries(mem.byScope).map(([k, v]) => `${k} ${v}`).join(' · ') : '';
+    addSignal('长期记忆', `${mem.total ?? 0} 条 · 跨会话 ${mem.personalCount ?? 0}`, `${mem.ftsReady === false ? 'FTS 降级 LIKE' : 'FTS5 正常'}${scopeText ? ' · ' + scopeText : ''}`);
+    const dr = c.dailyReport || {};
+    addSignal('群日报', dr.enabled ? '已开启' : '未开启', `每天 ${dr.at || '21:30'}${dr.groups ? ' · 指定 ' + dr.groups + ' 个群' : ''}`);
+
+    const sessionsNode = $('sessions'); clear(sessionsNode);
+    const sessions = Array.isArray(data.sessions) ? data.sessions : [];
+    $('sessionTag').textContent = sessions.length + ' 个会话';
+    if (!sessions.length) sessionsNode.appendChild(el('div', 'empty', '暂无会话'));
+    for (const s of sessions) {
+      const card = el('div', 'session');
+      const top = el('div', 'top');
+      const left = el('div');
+      left.appendChild(el('div', 'tname', s.name || (s.kind === 'group' ? '群 ' + s.id : '私聊')));
+      left.appendChild(el('div', 'tkey', (s.kind === 'group' ? 'group:' : 'private:') + s.id));
+      const badges = el('div', 'badges');
+      badges.appendChild(el('span', 'badge ' + (s.wakeMode === 'active' ? 'on' : 'off'), s.wakeMode === 'active' ? '活跃' : '潜水'));
+      if (s.busy) badges.appendChild(el('span', 'badge busy', '回合中'));
+      if (s.pendingWakes > 0) badges.appendChild(el('span', 'badge pk', '待补 ' + s.pendingWakes));
+      if (s.lastWakeReason) {
+        const reasonLabel = { bootstrap: '首次接入', atMention: '@', question: '提问', replyCheck: '回复检查', timeout: '定时', proactiveCheck: '主动机会', poke: '拍一拍', probability: '概率' };
+        badges.appendChild(el('span', 'badge', reasonLabel[s.lastWakeReason] || String(s.lastWakeReason).slice(0, 18)));
+      }
+      left.appendChild(badges);
+      top.appendChild(left);
+      const unread = el('div', 'unread' + (s.unread > 0 ? ' hot' : ''), s.unread);
+      top.appendChild(unread);
+      card.appendChild(top);
+      const metrics = el('div', 'metrics');
+      const addM = (label, value) => { const m = el('div', 'm'); m.appendChild(el('span', null, label)); m.appendChild(el('b', null, value)); metrics.appendChild(m); };
+      addM('最后来信', ago(s.lastIncomingAt));
+      addM('最后回复', ago(s.lastAiReplyAt));
+      addM('发送', s.sendPerMinute + '/m · ' + s.sendPerHour + '/h');
+      addM('唤醒', s.wakePerHour + '/h · p=' + (s.probability != null ? s.probability : '—'));
+      card.appendChild(metrics);
+      sessionsNode.appendChild(card);
+    }
+
+    renderRelationships(data.relationships);
+
+    const feed = $('feed'); clear(feed);
+    const events = Array.isArray(data.activity) ? data.activity : [];
+    if (!events.length) feed.appendChild(el('div', 'empty', '暂无活动'));
+    const tagLabel = { wake:'WAKE', send:'SEND', voice:'VOICE', qzone:'QZONE', share:'SHARE', guard:'GUARD', ack:'ACK', error:'ERR', health:'HEALTH' };
+    for (const ev of events) {
+      const row = el('div', 'ev ' + (ev.type || ''));
+      row.appendChild(el('span', 't', fmtTime(ev.ts)));
+      row.appendChild(el('span', 'tag', tagLabel[ev.type] || String(ev.type || 'EV')));
+      row.appendChild(el('span', 'x', ev.text || ''));
+      feed.appendChild(row);
+    }
+
+    const health = $('health'); clear(health);
+    const addH = (label, ok, detail) => {
+      const row = el('div', 'hrow');
+      const l = el('div', 'hl'); l.appendChild(el('i', 'dot ' + (ok === true ? 'ok' : ok === false ? 'bad' : 'warn'))); l.appendChild(el('span', null, label));
+      row.appendChild(l); row.appendChild(el('div', 'hr', detail || (ok ? '正常' : '离线')));
+      health.appendChild(row);
+    };
+    const h = data.health || {};
+    addH('桥接', h.bridge?.ok === true, 'PID ' + (h.bridge?.pid ?? '—') + ' · ' + Math.floor((h.bridge?.uptimeMs || 0) / 60000) + ' 分钟');
+    addH('DSH', h.dsh?.ok === true, h.dsh?.baseUrl || '—');
+    addH('SnowLuma', h.snowluma?.connected === true, h.snowluma?.good === false ? '连接但未确认' : (h.snowluma?.connected ? '已连接' : '离线'));
+    addH('TTS ' + (h.tts?.provider === 'breeze' ? 'Breeze' : '9880'), h.tts?.ok === true, h.tts?.checkedAt ? '检查于 ' + ago(h.tts.checkedAt) : '—');
+
+    const usage = $('usage'); clear(usage);
+    const u = data.usage || {};
+    const addS = (label, value, sub) => { const d = el('div', 'st'); d.appendChild(el('span', null, label)); const b = el('b', null, value); if (sub) b.appendChild(el('small', null, sub)); d.appendChild(b); usage.appendChild(d); };
+    addS('TOKENS', fmtInt(u.tokens), u.estimated ? '估算' : '');
+    addS('COST', fmtCost(u.cost), u.turns != null ? u.turns + ' turns' : '');
+    addS('INPUT', fmtInt(u.input));
+    addS('OUTPUT', fmtInt(u.output));
+    $('usageNote').textContent = u.tokens == null ? '账本暂无可读数据' : '累计口径 · 来自桥接 token 账本 · 30 秒刷新';
+
+    const libs = $('libraries'); clear(libs);
+    const l = data.libraries || {};
+    const addL = (label, value) => { const d = el('div', 'st'); d.appendChild(el('span', null, label)); d.appendChild(el('b', null, fmtInt(value))); libs.appendChild(d); };
+    addL('收藏表情', l.stickers);
+    addL('图片库', l.images);
+    addL('黑话总数', l.slangTotal);
+    addL('已确认黑话', l.slangConfirmed);
+    addL('语音库', l.voices);
+    addL('历史说说', l.qzonePosts);
+
+    const memNode = $('memoryFacts');
+    clear(memNode);
+    const memData = data.content?.memory || {};
+    const facts = Array.isArray(memData.recentFacts) ? memData.recentFacts : [];
+    if (!facts.length) {
+      memNode.textContent = '还没有长期记忆';
+    } else {
+      for (const f of facts.slice(0, 8)) {
+        const row = el('div', 'memory-row');
+        row.appendChild(el('span', 'tag', f.scope || 'fact'));
+        const body = el('div', null, (f.topic ? f.topic + '：' : '') + f.fact);
+        body.style.flex = '1';
+        body.style.minWidth = '0';
+        body.style.wordBreak = 'break-word';
+        row.appendChild(body);
+        row.appendChild(el('span', 'muted small', f.lastSeenAt ? ago(f.lastSeenAt) : ''));
+        memNode.appendChild(row);
+      }
+    }
+  }
+
+  async function fetchSnapshot() {
+    try {
+      const suffix = token ? ('?token=' + encodeURIComponent(token)) : '';
+      const res = await fetch('/api/live/snapshot' + suffix, { cache: 'no-store' });
+      if (res.status === 401) { stop(); showLogin('令牌无效或已变更，请重新输入'); return false; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data && data.ok) render(data);
+      return true;
+    } catch (e) {
+      $('connState').textContent = '离线';
+      return false;
+    }
+  }
+
+  function connect() {
+    if (es) { try { es.close(); } catch {} es = null; }
+    try {
+      const suffix = token ? ('?token=' + encodeURIComponent(token)) : '';
+      es = new EventSource('/api/live/stream' + suffix);
+      es.onopen = () => { lastSseAt = Date.now(); $('connState').textContent = '● LIVE'; };
+      es.onmessage = (ev) => {
+        lastSseAt = Date.now();
+        try { const data = JSON.parse(ev.data); if (data) render(data); } catch {}
+      };
+      es.onerror = () => { $('connState').textContent = '重连中…'; };
+    } catch {
+      $('connState').textContent = '离线';
+    }
+  }
+
+  function stop() {
+    if (es) { try { es.close(); } catch {} es = null; }
+    if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+  }
+
+  async function start() {
+    showApp();
+    const ok = await fetchSnapshot();
+    if (!ok) return;
+    if (STATIC_MODE) { $('connState').textContent = 'SNAPSHOT'; return; }
+    connect();
+    if (fallbackTimer) clearInterval(fallbackTimer);
+    fallbackTimer = setInterval(() => {
+      if (Date.now() - lastSseAt > 8000) fetchSnapshot();
+    }, 5000);
+  }
+
+  $('loginBtn').addEventListener('click', () => {
+    const v = $('tokenInput').value.trim();
+    if (!v) { $('loginErr').textContent = '请输入令牌'; return; }
+    token = v;
+    localStorage.setItem(TOKEN_KEY, v);
+    $('loginErr').textContent = '';
+    start();
+  });
+  $('tokenInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('loginBtn').click(); });
+
+  start();
+})();
+</script>
+</body>
+</html>

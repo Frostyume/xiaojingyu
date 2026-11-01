@@ -1,0 +1,7 @@
+{
+  "template": true,
+  "version": "operator-reviewed decoder version",
+  "binary": "",
+  "binary_sha256": "",
+  "instructions": "Optional template only. Copy outside the publication tree, set the absolute binary path and independently reviewed SHA-256, remove template=true, and set XI_VIDEO_DECODER_CONFIG to that private file. Native AppContainer proof remains separately required."
+}

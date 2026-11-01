@@ -1,0 +1,102 @@
+{
+  "format": "xi-assets-a2-v1",
+  "ddl": {
+    "media": {
+      "scoped_media": "CREATE TABLE scoped_media(id TEXT PRIMARY KEY,owner TEXT NOT NULL,mime TEXT NOT NULL,sha TEXT NOT NULL,bytes BLOB NOT NULL,source TEXT NOT NULL,created INTEGER NOT NULL)",
+      "image_analysis": "CREATE TABLE image_analysis(id TEXT,owner TEXT,result TEXT,at INTEGER,PRIMARY KEY(id,owner))",
+      "image_sends": "CREATE TABLE image_sends(owner TEXT,id TEXT,event TEXT,at INTEGER,PRIMARY KEY(owner,id,event))"
+    },
+    "workroom": {
+      "wr_projects": "CREATE TABLE wr_projects(id TEXT PRIMARY KEY,scope TEXT,title TEXT,origin TEXT,head INTEGER,deleted INTEGER DEFAULT 0,created TEXT,updated TEXT)",
+      "wr_versions": "CREATE TABLE wr_versions(project TEXT,version INTEGER,files TEXT,digest TEXT,reason TEXT,at TEXT,PRIMARY KEY(project,version))",
+      "wr_releases": "CREATE TABLE wr_releases(project TEXT PRIMARY KEY,version INTEGER,title TEXT,origin TEXT,publisher TEXT,at TEXT)",
+      "wr_tasks": "CREATE TABLE wr_tasks(id TEXT PRIMARY KEY,scope TEXT,title TEXT,brief TEXT,state TEXT,project TEXT,result TEXT,updated TEXT)",
+      "wr_submissions": "CREATE TABLE wr_submissions(id TEXT PRIMARY KEY,project TEXT,version INTEGER,task TEXT,summary TEXT,checks TEXT,state TEXT,at TEXT)",
+      "wr_hidden": "CREATE TABLE wr_hidden(project TEXT PRIMARY KEY,at TEXT)",
+      "wr_checks": "CREATE TABLE wr_checks(project TEXT,version INTEGER,result TEXT,at TEXT,PRIMARY KEY(project,version))"
+    }
+  },
+  "columns": {
+    "media": {
+      "scoped_media": [
+        "id",
+        "owner",
+        "mime",
+        "sha",
+        "bytes",
+        "source",
+        "created"
+      ],
+      "image_analysis": [
+        "id",
+        "owner",
+        "result",
+        "at"
+      ],
+      "image_sends": [
+        "owner",
+        "id",
+        "event",
+        "at"
+      ]
+    },
+    "workroom": {
+      "wr_projects": [
+        "id",
+        "scope",
+        "title",
+        "origin",
+        "head",
+        "deleted",
+        "created",
+        "updated"
+      ],
+      "wr_versions": [
+        "project",
+        "version",
+        "files",
+        "digest",
+        "reason",
+        "at"
+      ],
+      "wr_releases": [
+        "project",
+        "version",
+        "title",
+        "origin",
+        "publisher",
+        "at"
+      ],
+      "wr_tasks": [
+        "id",
+        "scope",
+        "title",
+        "brief",
+        "state",
+        "project",
+        "result",
+        "updated"
+      ],
+      "wr_submissions": [
+        "id",
+        "project",
+        "version",
+        "task",
+        "summary",
+        "checks",
+        "state",
+        "at"
+      ],
+      "wr_hidden": [
+        "project",
+        "at"
+      ],
+      "wr_checks": [
+        "project",
+        "version",
+        "result",
+        "at"
+      ]
+    }
+  }
+}

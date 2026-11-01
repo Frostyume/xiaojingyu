@@ -1,0 +1,1268 @@
+{
+  "format": "xi-public-source-manifest-v1",
+  "upstream_base": "e8de286bed0ef7f34931a0e55ad78445397cdb5b",
+  "release_kind": "sanitized-source-overlay",
+  "native_or_account_proof": false,
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 293,
+      "sha256": "6b19f52354fc99769cad6b3cdebb481dfc39acdd98314a3bacca8c726f754b27"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4824,
+      "sha256": "c3811acc10b26a76787c2ba466d9d1da986c2946dbb31d0b60e79ee40b43fec2"
+    },
+    {
+      "path": "companion/archive.py",
+      "bytes": 4645,
+      "sha256": "fea0327008067821e1e4906153b62759aa953ecc8f247625e6227a8fb3ff96c5"
+    },
+    {
+      "path": "companion/audio-worker.cjs",
+      "bytes": 7393,
+      "sha256": "cc99044ad4e288635297979720faeeec6bfe45b8a99ae0a5ea43e47de5b2c612"
+    },
+    {
+      "path": "companion/bilibili-comments.mjs",
+      "bytes": 9903,
+      "sha256": "7d1d240a11924c4784d8e1bc73b1d1b715fb056c2495496105f4c8681ffeb77d"
+    },
+    {
+      "path": "companion/bilibili-links.mjs",
+      "bytes": 4235,
+      "sha256": "4235daf1d9589ca04d5d26c43eeae76d44956489a54879c81d4d961bd6c213f1"
+    },
+    {
+      "path": "companion/bilibili-public.mjs",
+      "bytes": 11080,
+      "sha256": "1b0dbde081c8f0cae190d441a7744a4b02846c83c913429966f18d1e28e3a040"
+    },
+    {
+      "path": "companion/bilibili-speech.mjs",
+      "bytes": 6555,
+      "sha256": "4b5d111c736d863901a9052f273a9fb29b8ef4b3a005cd6ea0ce688cae862071"
+    },
+    {
+      "path": "companion/cognition-tools.mjs",
+      "bytes": 14714,
+      "sha256": "107f9583d98674d32edb9e26fd1a4874630aeccd2f173697e529346abcf74f2f"
+    },
+    {
+      "path": "companion/conversation-errors.mjs",
+      "bytes": 1663,
+      "sha256": "ecd13f7691f9d772ee300c705852e20634d4b9a16c18f63b6e595b84be71c5bc"
+    },
+    {
+      "path": "companion/conversation-presentation.mjs",
+      "bytes": 1718,
+      "sha256": "13a7b7839af2d2d380c38b61ce871bb8977bac2b63603b8dbed0ac0db0533451"
+    },
+    {
+      "path": "companion/conversation-scope.mjs",
+      "bytes": 3039,
+      "sha256": "f73d7bc3fdd33fb3b78c652c464c2c30d318a91c84a3fab8f9039bc4c4f8835a"
+    },
+    {
+      "path": "companion/conversation-time.mjs",
+      "bytes": 12229,
+      "sha256": "9171df1279d9bebb9f59919a74286db7e5f292b73ec1fe7af610dd5312480a00"
+    },
+    {
+      "path": "companion/deepseek-public-search.mjs",
+      "bytes": 1866,
+      "sha256": "72fa8313cf32d481f7c7973a0c30175f0bb3c5e5e7969654f52f480c6d142a55"
+    },
+    {
+      "path": "companion/dsh-context.mjs",
+      "bytes": 4662,
+      "sha256": "26f1ef7fd8093f7c6bad24e1ce5080f93aad463d69dcb0d24f0b8d3ec02fe07a"
+    },
+    {
+      "path": "companion/dsh/AppContainerRunner.cs",
+      "bytes": 12877,
+      "sha256": "e6cc2896b6142abcb91fe69873741d09f5eac2e193c2117058db5b5da4291edf"
+    },
+    {
+      "path": "companion/event-ledger.mjs",
+      "bytes": 803,
+      "sha256": "90e9b52b449e04a435e8687e2ed4c8e44638b219112b3510dc8edc8a0d0a1568"
+    },
+    {
+      "path": "companion/experience-attribution.mjs",
+      "bytes": 6596,
+      "sha256": "b3b5c505cc0ff8b1dc90be557fcf96446d3086acf07c06aa5d5b2f93354661e3"
+    },
+    {
+      "path": "companion/experience-memory.mjs",
+      "bytes": 47045,
+      "sha256": "d26cd480e055ee433ad57b29e5c7841a1604946e976e649880ba22ae01c892bb"
+    },
+    {
+      "path": "companion/generation-options.mjs",
+      "bytes": 593,
+      "sha256": "50af4a6c5813b4367355d2c6072ce88ec9e909db6355792367d455232a5e5ade"
+    },
+    {
+      "path": "companion/group-message.mjs",
+      "bytes": 2684,
+      "sha256": "8c758aa3e049eeb21c0054835c04f22714c64b832cb2d5d8d21be35569169d17"
+    },
+    {
+      "path": "companion/guarded-client.mjs",
+      "bytes": 7928,
+      "sha256": "fd74006432829b249ea1e4c1dc969e6374a981a436429b7f0dacc75b71a9932d"
+    },
+    {
+      "path": "companion/home/workroom_view.py",
+      "bytes": 12302,
+      "sha256": "3b4e0b0443e53a0bd45053e447a2cfea41b8531c389cb6c43f41e611113f0d36"
+    },
+    {
+      "path": "companion/image-analysis.mjs",
+      "bytes": 4986,
+      "sha256": "d247ea1a7902f253aca9ca1640edce8b183e35d62372f7aba4ff722001441f33"
+    },
+    {
+      "path": "companion/installation-config.mjs",
+      "bytes": 1706,
+      "sha256": "55bb2e8625cb54494ea64f0fe1f7ee494344ab6faa4c6998aef931770d4fb069"
+    },
+    {
+      "path": "companion/journal-context.mjs",
+      "bytes": 6678,
+      "sha256": "9823b913d2d500f128cd676f6d50b87815156b9bd3e4a8b1de3bfcc27d0062ba"
+    },
+    {
+      "path": "companion/life-day-context.mjs",
+      "bytes": 13094,
+      "sha256": "4b23c645d99220ec8244a38160e522795ca870f498618748659065e71bb42f47"
+    },
+    {
+      "path": "companion/life-journal.mjs",
+      "bytes": 14797,
+      "sha256": "f4d6794a41fc6e97372963b0e38ec5774d9ae5270cda9fd51aa4b38994a102c3"
+    },
+    {
+      "path": "companion/life-progress.mjs",
+      "bytes": 16729,
+      "sha256": "7bb8d3d2ae4c8a606a2d7a5dd565d753adade4c137fc50a8c9af1428b08d8ffe"
+    },
+    {
+      "path": "companion/local-image-ocr.ps1",
+      "bytes": 2983,
+      "sha256": "e9f83e8b00f70578883e4ce1eb2cb4915ef14741a57a62a9eb12c24fb9540607"
+    },
+    {
+      "path": "companion/person-impressions.mjs",
+      "bytes": 17352,
+      "sha256": "d8fd74cd2577d0d4f8efce8845d47dbac7de6df6f573a9b45cf7550d0ce21624"
+    },
+    {
+      "path": "companion/prepare-image.py",
+      "bytes": 2576,
+      "sha256": "54cb2606f305c05238fc776034139a1e5a17b167f317ff6c4142bad3ea6fe00b"
+    },
+    {
+      "path": "companion/private-conversation.mjs",
+      "bytes": 23647,
+      "sha256": "a6cecd9dfb6c1e8816d2ef0ca8f473cf909adf0e6ec2e203b0f4cdb5c459c908"
+    },
+    {
+      "path": "companion/provider-diagnostics.mjs",
+      "bytes": 2410,
+      "sha256": "7682cd57ca05824594a6b088ab408422f1b3bd2f265ba5d49187a4d2bfcd48db"
+    },
+    {
+      "path": "companion/public-exploration.mjs",
+      "bytes": 12760,
+      "sha256": "367e382070cb8db1b22c89c685aeac098f6a60fa98710bde41513a83b87d906d"
+    },
+    {
+      "path": "companion/qq-bubbles.mjs",
+      "bytes": 4514,
+      "sha256": "32bcb373218a0df0329114cc32516513af5d04c01811c138990137fce7d74afc"
+    },
+    {
+      "path": "companion/qq-face-map.json",
+      "bytes": 10479,
+      "sha256": "cf22ac5bf50c5d904ffef60761e6d3619d9590b337423ba0f0fd22a92b1f3aab"
+    },
+    {
+      "path": "companion/qq-recall.mjs",
+      "bytes": 3450,
+      "sha256": "b17efb0c52f5878a548db19919848845ef10b2ecbf1116b7368a98781a2c053e"
+    },
+    {
+      "path": "companion/qq-segment-details.mjs",
+      "bytes": 16901,
+      "sha256": "646ec443bcd2fabc899d4b4caafdc3ed57e2140a6ee4946ad96549e8f2a850a3"
+    },
+    {
+      "path": "companion/qq-self-qzone.mjs",
+      "bytes": 26612,
+      "sha256": "c85619938cfbea7e515e32406842b65ffc0a27ceac8cfc5c7a590e48f501586c"
+    },
+    {
+      "path": "companion/qzone-experiences.mjs",
+      "bytes": 4861,
+      "sha256": "17b12e0ab98cdcd03a8f701f60cb705d8c241ed6324fdc77beab06287887ca42"
+    },
+    {
+      "path": "companion/qzone-readback.mjs",
+      "bytes": 4142,
+      "sha256": "76201acb3723f41f63734820dfa252718e71663dbf97e30a7e63fc379be7a153"
+    },
+    {
+      "path": "companion/recent-exchange.mjs",
+      "bytes": 2101,
+      "sha256": "99b653e33b5875a38d5cae2d8707136803a59b14dcbd6e3805ac2d2418c425bb"
+    },
+    {
+      "path": "companion/scoped-history.mjs",
+      "bytes": 2982,
+      "sha256": "4664e22cca4388e23b3490bc3a57f2a83e290d1215e792beeac2afe283bc81ca"
+    },
+    {
+      "path": "companion/scoped-media.mjs",
+      "bytes": 4926,
+      "sha256": "1430806e274658b1bd039d467393d77ba15fb6410fca35aabb653b2c52aae9be"
+    },
+    {
+      "path": "companion/scoped-tools.mjs",
+      "bytes": 10073,
+      "sha256": "509b77564598cd2a82438625e71081a948104e133ea5dee5e2440f7e7a040456"
+    },
+    {
+      "path": "companion/tieba-claw.mjs",
+      "bytes": 21362,
+      "sha256": "b302636218f359d55a4c93d85e8d10f46c3d4ad1741e793f1c37a4932d1e52fe"
+    },
+    {
+      "path": "companion/tool-feedback.mjs",
+      "bytes": 6505,
+      "sha256": "a52b6bd3576d3dce1f3982ff262c9c6f5eb1eab15d15bdb3b8cc35f1a2cff041"
+    },
+    {
+      "path": "companion/video-audio.mjs",
+      "bytes": 14462,
+      "sha256": "d252936fa5ba97cac5dd5d5a2d6280e4155bbdb17428f1fb3aadd9ae8fba4f73"
+    },
+    {
+      "path": "companion/video-decoder-config.mjs",
+      "bytes": 1043,
+      "sha256": "7659e8914357611d1abbf41f016fbb2303fb98e741c93e0aacbfd4cedd74111e"
+    },
+    {
+      "path": "companion/video-decoder.json",
+      "bytes": 395,
+      "sha256": "19851b1887dbdaf497cfa34e078bdc1dc0b9cf95095660e67feb00f186211e6d"
+    },
+    {
+      "path": "companion/video-frames.mjs",
+      "bytes": 6269,
+      "sha256": "f103892bacc8fb6a388f01621f90b3a15d652b0d5fe52245c80ffbc99b80bbca"
+    },
+    {
+      "path": "companion/workroom.mjs",
+      "bytes": 21401,
+      "sha256": "1040acca9c1d245400498d26755e85db67d04de89fdaf2bbbbe99e192d3ce894"
+    },
+    {
+      "path": "companion/workshop-dsh.mjs",
+      "bytes": 11252,
+      "sha256": "a46fac090e682a6fc4840b27742586645aee3f4e64b732374b808cb91ae3fc54"
+    },
+    {
+      "path": "companion/workshop-native.mjs",
+      "bytes": 8244,
+      "sha256": "c25e8d62093cc0dfa4014ee74e481eece8a4a566c27ed1d946f2e3fb2550c68f"
+    },
+    {
+      "path": "companion/workshop.mjs",
+      "bytes": 15495,
+      "sha256": "7a834ac77c1a554425527dd5dbcfb6f998e29a67cc371f61e125d8c344cdcef1"
+    },
+    {
+      "path": "install-dependencies.ps1",
+      "bytes": 2243,
+      "sha256": "c571d3cb05c1278639f90518b0552a472451ddb16679fa1ddc6c7b502544c07c"
+    },
+    {
+      "path": "migration/xi-a1/legacy/experience-attribution.mjs",
+      "bytes": 6596,
+      "sha256": "b3b5c505cc0ff8b1dc90be557fcf96446d3086acf07c06aa5d5b2f93354661e3"
+    },
+    {
+      "path": "migration/xi-a1/legacy/experience-memory.mjs",
+      "bytes": 47045,
+      "sha256": "d26cd480e055ee433ad57b29e5c7841a1604946e976e649880ba22ae01c892bb"
+    },
+    {
+      "path": "migration/xi-a1/xi-reader.mjs",
+      "bytes": 4065,
+      "sha256": "baf8a21d0281b51b90dfca0ac841c24230c06406a12c465ee0ef8dde50953ba2"
+    },
+    {
+      "path": "migration/xi-a2/assets/schema.json",
+      "bytes": 2937,
+      "sha256": "f2500bd2243184f4d16934da6a9a8b45d04c391fd08f3d45d01fb22279c406b2"
+    },
+    {
+      "path": "migration/xi-a2/memory/server.mjs",
+      "bytes": 6265,
+      "sha256": "9e42b1eb5b1c21f0cec5a93619d100f7a345443290330b0baac37bd4dd397a2f"
+    },
+    {
+      "path": "migration/xi-a2/memory/stdio.mjs",
+      "bytes": 2866,
+      "sha256": "b041f6f116c787b0ecc4e28014b6e135794a56a2cafc3b74bc1cb298d676841b"
+    },
+    {
+      "path": "migration/xi-a2/package-lock.json",
+      "bytes": 69521,
+      "sha256": "906d07fd041cf80a8b1a0c184b4659bc749c83a94ed1c9421bdfa88dc6ef9931"
+    },
+    {
+      "path": "migration/xi-a2/package.json",
+      "bytes": 649,
+      "sha256": "a40b87cb3e1ce98f38f626ffbc0a6b0f26eeb1a5602b487ead071820d0c05ee1"
+    },
+    {
+      "path": "migration/xi-a2/tools/patch-snowluma-sdk.mjs",
+      "bytes": 1797,
+      "sha256": "cc3b9da52bb0dbd23e63683b207d6a41584004eaff71229ece9eb1b74bd2ecd6"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/catalog.mjs",
+      "bytes": 569,
+      "sha256": "f5a843e615264a0e97bb0fa64b1121e16b2726a838aed510f433348f1e5813b5"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/delivery.mjs",
+      "bytes": 5867,
+      "sha256": "647a6be7b52419bbc3582d1d59709ad6d77e7e2ad9798e61e179396f6c116a79"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/media-intake.mjs",
+      "bytes": 2541,
+      "sha256": "1f27dfc4436a1da641e5eaecbdaeff28540c027d866c67c63cc6a6e799874d38"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/paths.mjs",
+      "bytes": 4093,
+      "sha256": "7c94950f8f06cf37c3bd5a6c58110bfc477a17588e7f2e8af462e2cd9c86f163"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/server.mjs",
+      "bytes": 6205,
+      "sha256": "0755ce22ab840b0f9eeb0cae2dabe3c32bb5a1b8a57bb6f9fab9e1a75cfa74e5"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/stdio.mjs",
+      "bytes": 1567,
+      "sha256": "84a2b7c754a4ebc9e8d2197da26c84bc0d4c9cf925071c72a18f4daef2a9fe9a"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/store.mjs",
+      "bytes": 6618,
+      "sha256": "51ab4730decfe6565024a1259c912ad3bb3a165d4d277c0c1b2be4db8be876d5"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/viewer.mjs",
+      "bytes": 4095,
+      "sha256": "1a3fd2a34158b1349d4d7f459a65747ca64c8132331c608b276b704b9d575fb7"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/viewer.py",
+      "bytes": 4999,
+      "sha256": "787912c697010ea5f32b9d7d2b1520283db166e20c5b65c66d2f0f94c82280b1"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/workshop-admission.mjs",
+      "bytes": 826,
+      "sha256": "bbd5e7e8cb38ddc812531e293d45dfe5a3d8192a4fc916c0fdfbf007bb97fb2a"
+    },
+    {
+      "path": "migration/xi-a3/assets-runtime/workshop.mjs",
+      "bytes": 8229,
+      "sha256": "cffcfb3e214925905b8748100ccd5ab4431ae4ee7d6140032838d6363d96758f"
+    },
+    {
+      "path": "migration/xi-a3/compatibility/autonomous-outgoing.mjs",
+      "bytes": 5977,
+      "sha256": "5e05da03cdda485096de263a913c82b25459d05edd752e814687361c33a18de3"
+    },
+    {
+      "path": "migration/xi-a3/compatibility/open-stores.mjs",
+      "bytes": 5900,
+      "sha256": "708c5091ccf4be35967a847bf7e77b109fa04a1f0ad25cb78bad52e8b36059ed"
+    },
+    {
+      "path": "migration/xi-a3/compatibility/writer.mjs",
+      "bytes": 15223,
+      "sha256": "8828cc598cf8708be365ea8d03b5ff1041910c7f729db5a56cb4edbec5dc7989"
+    },
+    {
+      "path": "migration/xi-a3/coordinator-mailbox/catalog.mjs",
+      "bytes": 87,
+      "sha256": "719359df2bd096933f48bdda45a9910ba932893494a1eab57157bf68ea74f761"
+    },
+    {
+      "path": "migration/xi-a3/coordinator-mailbox/cli.mjs",
+      "bytes": 1581,
+      "sha256": "4f9c62f73c18386551a780b7cf6c624a14df392c607f8e63d3d31b325471d4df"
+    },
+    {
+      "path": "migration/xi-a3/coordinator-mailbox/server.mjs",
+      "bytes": 1756,
+      "sha256": "27e0252dd368af627004a1173cfde4b70b0ff7d847b6e6c3247ad476395db344"
+    },
+    {
+      "path": "migration/xi-a3/coordinator-mailbox/stdio.mjs",
+      "bytes": 916,
+      "sha256": "b45eac5e0b666196cf296ffa01c58db67158ed69b55248dc5231b21e65d0004e"
+    },
+    {
+      "path": "migration/xi-a3/coordinator-mailbox/store.mjs",
+      "bytes": 6664,
+      "sha256": "0567266e62fb5dfafb1fd5043dff05030e87b14b3ebde5a002ca64b9fbd6297b"
+    },
+    {
+      "path": "migration/xi-a3/deployment/archive-owned-lock.ps1",
+      "bytes": 3879,
+      "sha256": "b1c702b6d26ec6e7d46ed0a2b880f5f27028cd3137ee058c339ad22116c39305"
+    },
+    {
+      "path": "migration/xi-a3/deployment/config-candidate.mjs",
+      "bytes": 5601,
+      "sha256": "b70e00a4f4877f705a3873387f1d4c060df754c89be6d50be4242939df92d265"
+    },
+    {
+      "path": "migration/xi-a3/deployment/credentials.mjs",
+      "bytes": 7791,
+      "sha256": "55495aea69743435ac385962f97eb5e0f15b8725a757ea6577af606d95226adf"
+    },
+    {
+      "path": "migration/xi-a3/deployment/friend-admission.mjs",
+      "bytes": 2042,
+      "sha256": "4912c2c7cf5fef25c6317c7a314234a9b12fbc4784d5c62a82f2e64ffd832008"
+    },
+    {
+      "path": "migration/xi-a3/deployment/handoff-gate.mjs",
+      "bytes": 28289,
+      "sha256": "dc3d66753ea151d954a182ae39ebdd0545d6cf7cd85a9e424a8af0265f0cc24e"
+    },
+    {
+      "path": "migration/xi-a3/deployment/handoff-probe.ps1",
+      "bytes": 5121,
+      "sha256": "c969ba7cb08144a686acdb3516549aac211d9c280bb5e5bcb9ff7f271a89694e"
+    },
+    {
+      "path": "migration/xi-a3/deployment/launch-owned.mjs",
+      "bytes": 13855,
+      "sha256": "f9ff8cb493d45c43c2e787241c0aba8be4aa9fc2274d7c061f2ba80aacf11a21"
+    },
+    {
+      "path": "migration/xi-a3/deployment/peer-admission.mjs",
+      "bytes": 2294,
+      "sha256": "f43f0a291ff125f843c4e12e5afcf299588a971de7a0f669cc408d7a826148a3"
+    },
+    {
+      "path": "migration/xi-a3/deployment/preflight.py",
+      "bytes": 17744,
+      "sha256": "e9b4de0f94685a590c3d348e8b6240b587432f6169a5dd9b8c6de0e342d05e52"
+    },
+    {
+      "path": "migration/xi-a3/deployment/production_snapshot.py",
+      "bytes": 13338,
+      "sha256": "34a41b5f0c0b4d0fb48e9c6ff0203240770ebb86d2a55c4e291ce0c85ca3be58"
+    },
+    {
+      "path": "migration/xi-a3/deployment/retained-state.mjs",
+      "bytes": 4410,
+      "sha256": "0b607e279668e3c0d620c93f0d29aecfd740a94c92038d77d00e53613d1001e9"
+    },
+    {
+      "path": "migration/xi-a3/deployment/snapshot-source-gate.mjs",
+      "bytes": 564,
+      "sha256": "3a51e37374522a82dd106e53e29b6080f11e3eb2b98d0e2212ed242cad7bb035"
+    },
+    {
+      "path": "migration/xi-a3/deployment/start-owned.ps1",
+      "bytes": 2019,
+      "sha256": "1cb40e51e117cdeab8dfa975168ea9d69b0bfb0171685c3f108ca065096df2ad"
+    },
+    {
+      "path": "migration/xi-a3/deployment/stop-owned.ps1",
+      "bytes": 1234,
+      "sha256": "8d92983b897a1b5606de2f43c027685a68c1d32912746fc3fee2e24b9e4fa275"
+    },
+    {
+      "path": "migration/xi-a3/dsh/bridge-client.mjs",
+      "bytes": 7339,
+      "sha256": "24d3993b577b6292755512e1c18a7b612c4717fc7c4854bd0700753d5274967e"
+    },
+    {
+      "path": "migration/xi-a3/dsh/owned/accounting-ipc.mjs",
+      "bytes": 3332,
+      "sha256": "ef9aae21161d991c3254802f0f454e08702275e7850caf3bbeae4deaddb9abf8"
+    },
+    {
+      "path": "migration/xi-a3/dsh/owned/accounting.mjs",
+      "bytes": 13875,
+      "sha256": "e1a84156b78781376f70445068dac84da9ba4695615c0795e1cb42d54e81c2f8"
+    },
+    {
+      "path": "migration/xi-a3/dsh/owned/adapter.mjs",
+      "bytes": 17181,
+      "sha256": "fbd8fa7eac95c955276bf783fcb31f9e9fee7ee020c9c6e625da9189aa334bac"
+    },
+    {
+      "path": "migration/xi-a3/dsh/owned/mcp-entry.mjs",
+      "bytes": 2781,
+      "sha256": "74563c21a56a169b390e09362734344d7857286411bbc361b350821df4fa37ca"
+    },
+    {
+      "path": "migration/xi-a3/dsh/owned/paths.mjs",
+      "bytes": 2799,
+      "sha256": "274d9baa62eb9ea9aff0df62719da4835dd24b9baf9cd4729ff8becfa5ac90a7"
+    },
+    {
+      "path": "migration/xi-a3/dsh/owned/preset-guard.mjs",
+      "bytes": 2566,
+      "sha256": "cc3ed02b7f2badd0dc203c056ebfa659c265c3e46b86f9ff97635905c5d32401"
+    },
+    {
+      "path": "migration/xi-a3/dsh/owned/profile.mjs",
+      "bytes": 8516,
+      "sha256": "f8acb99b7c237520c70360fba4ad9885f38e401bfcf84fa44be0f2f20390d557"
+    },
+    {
+      "path": "migration/xi-a3/dsh/owned/runtime.mjs",
+      "bytes": 2012,
+      "sha256": "e74b153a9acefa89265d917702dc0725a7cbeecee6cd760a40e9a50e147ca125"
+    },
+    {
+      "path": "migration/xi-a3/dsh/owned/web-credentials.mjs",
+      "bytes": 4693,
+      "sha256": "0ac188d029ecd0678493cf5b74f9da9886f64a29bcfc331d2453d0a04afcf245"
+    },
+    {
+      "path": "migration/xi-a3/experience/writer.mjs",
+      "bytes": 8394,
+      "sha256": "9df4e42c37479ef242ecc3c78dbf58ed69788b9955a8f638f9e6bd4394bf2c3d"
+    },
+    {
+      "path": "migration/xi-a3/life-runtime/context.mjs",
+      "bytes": 20285,
+      "sha256": "b447396b070f8b8d4676059cd93f4739efaa368c064d84b5e69e77bb93639849"
+    },
+    {
+      "path": "migration/xi-a3/life-runtime/server.mjs",
+      "bytes": 1240,
+      "sha256": "5ba7ae73de5adf42f6861888aea1be8fd49f4473e009960a1bf738162bfc7b8d"
+    },
+    {
+      "path": "migration/xi-a3/life-runtime/stdio.mjs",
+      "bytes": 1067,
+      "sha256": "4ebac705b2d3d059e8d1db703a551b438f5fdd3c72d75128e7293c8ac6c61084"
+    },
+    {
+      "path": "migration/xi-a3/lifecycle/lab-runtime.mjs",
+      "bytes": 4681,
+      "sha256": "76dc44707291ee289fb040cc9e33373064b6b895039e157216b8c30c68308018"
+    },
+    {
+      "path": "migration/xi-a3/lifecycle/outgoing-receipts.mjs",
+      "bytes": 4374,
+      "sha256": "68edc28efc5f9938042307ba1979763aca3324ae353ed804a40f56896872d056"
+    },
+    {
+      "path": "migration/xi-a3/lifecycle/owned-generation.mjs",
+      "bytes": 8589,
+      "sha256": "84c7134c7da86daf0c2bcb79daf998d74c6c7c18ec3d66f76b8ee1da82c8d38f"
+    },
+    {
+      "path": "migration/xi-a3/lifecycle/owned-reminder.mjs",
+      "bytes": 1589,
+      "sha256": "69317bb489b2e1bb1b0fe84e95b8cf329dc118712c20f76b919766ad3b72b91b"
+    },
+    {
+      "path": "migration/xi-a3/lifecycle/owned-runtime.mjs",
+      "bytes": 5685,
+      "sha256": "70c2e4bf3764e3f407b876048b6830727707682946b3b33f631408c7ac8e9f66"
+    },
+    {
+      "path": "migration/xi-a3/lifecycle/resource-scope.mjs",
+      "bytes": 1671,
+      "sha256": "17a155dcab9e0f0d40a793aa97bdf9d08c37952288a805ba2ad42d9cf5717376"
+    },
+    {
+      "path": "migration/xi-a3/lifecycle/send-context.mjs",
+      "bytes": 2848,
+      "sha256": "109ca534295e38fdd969b0b7dd335dabb9b3e8456db7a6afc53f95d0b7fd904d"
+    },
+    {
+      "path": "migration/xi-a3/lifecycle/start-owned.mjs",
+      "bytes": 3700,
+      "sha256": "bbba6cc3a85e88a2dc713c4dea3c9703951d0d8ed6464afab5c241cca0b5656a"
+    },
+    {
+      "path": "migration/xi-a3/persona/build-profile.mjs",
+      "bytes": 1825,
+      "sha256": "3e172036d2a4cf794fff08dea4bb032b8cd1f179b45c2a8c66f44b524b5b7347"
+    },
+    {
+      "path": "migration/xi-a3/recovery/multi-root-probe.ps1",
+      "bytes": 3108,
+      "sha256": "631b2ab7f99a6aac1c9a8e4a1f6052b2dee84fb1a7be67cc27b09775d2c5d34a"
+    },
+    {
+      "path": "migration/xi-a3/recovery/multi_root_snapshot.py",
+      "bytes": 24422,
+      "sha256": "fed9f4625a455d84c43c0de58edc0a06d2b93f679d982afcc7bef4c29370a794"
+    },
+    {
+      "path": "migration/xi-a3/recovery/qoder_multi_root_manifest.py",
+      "bytes": 6620,
+      "sha256": "819639b84444d0566e8cb7245142b73d0bd10722fd262cc9b50dbb1880a7ec56"
+    },
+    {
+      "path": "migration/xi-a3/recovery/seal-restored-acl.ps1",
+      "bytes": 1312,
+      "sha256": "29e7d47c871118028cf4f4406f0baa54d910a1c217b6e1002180700b259d18ad"
+    },
+    {
+      "path": "migration/xi-a3/recovery/seal_restored_acl.py",
+      "bytes": 2275,
+      "sha256": "a62e5bb250a1348f2cc298a4276e6e91c5a734a4b50b68763e695491e59e7f22"
+    },
+    {
+      "path": "migration/xi-a3/upstream/.github/workflows/ci.yml",
+      "bytes": 1899,
+      "sha256": "7b6a380f618bbe32692aaf52f0bac5a8afc07c1b937fb909f5b7ba53f648b89e"
+    },
+    {
+      "path": "migration/xi-a3/upstream/LICENSE",
+      "bytes": 1099,
+      "sha256": "f1d37b662ad12bc08123bf1c06a60e5b3777efa699920cff741f2d591ad5f30b"
+    },
+    {
+      "path": "migration/xi-a3/upstream/NOTICE",
+      "bytes": 12322,
+      "sha256": "8d0f3531aa71df32cd21c7219d43f1daa9be77ca5ab0b819a3cb4e07241cebc5"
+    },
+    {
+      "path": "migration/xi-a3/upstream/app/self-check.js",
+      "bytes": 5009,
+      "sha256": "0a3623b0c7eac1e3dbe05040e3df8407b073ca6997c3a101d5702d84fca46a95"
+    },
+    {
+      "path": "migration/xi-a3/upstream/app/whale.js",
+      "bytes": 1059202,
+      "sha256": "fbbe449c844f5bfe201ad7b9948edd040a7b1ea6d7a1842236eb1f88c7e676ea"
+    },
+    {
+      "path": "migration/xi-a3/upstream/channels/dsh/client.js",
+      "bytes": 45935,
+      "sha256": "836ce94994f0e69c16484684de2cbc2e5c46521466a011e26e5c97765d5aff8a"
+    },
+    {
+      "path": "migration/xi-a3/upstream/channels/qq/gateway.js",
+      "bytes": 10140,
+      "sha256": "4ddd6b17eecff31441ac3371eaef5a41cbcabfc2ebdad10146ccf6351766b7e4"
+    },
+    {
+      "path": "migration/xi-a3/upstream/config.example.json",
+      "bytes": 14755,
+      "sha256": "88d194488f9523697d6b37dad26e060fd638ec532aae5ea6fe26a90ce8ddba71"
+    },
+    {
+      "path": "migration/xi-a3/upstream/config.schema.json",
+      "bytes": 160017,
+      "sha256": "8bf346e2aaf45aa70992a5815d1c3f2bb125e2805276e7725b9900312998efe0"
+    },
+    {
+      "path": "migration/xi-a3/upstream/console/auth.js",
+      "bytes": 6055,
+      "sha256": "17d53fbe8d9a31fe9f5bee6c559aaccecec29bb8b8a9c3d743e1f6e90ad037ac"
+    },
+    {
+      "path": "migration/xi-a3/upstream/console/live.js",
+      "bytes": 2271,
+      "sha256": "cd7a3cb572750a7aa891234e9e139b0bfc43bdeb3896b55da5e469ed009980ca"
+    },
+    {
+      "path": "migration/xi-a3/upstream/console/policy.js",
+      "bytes": 4776,
+      "sha256": "cf455f89b450088aa1f4d2e21b7f35f54b9c246a96fefdfe51e9988e16987e44"
+    },
+    {
+      "path": "migration/xi-a3/upstream/features/daily-report/index.js",
+      "bytes": 849,
+      "sha256": "ca163663933c90d4400a9a0d83194b36464b7c1eee924f3300964b27a84515c6"
+    },
+    {
+      "path": "migration/xi-a3/upstream/features/rich-cards/index.js",
+      "bytes": 677,
+      "sha256": "3a8420205627f3394cf43c2acaf0b664a42c62287f059e97317364a2ba6a5b77"
+    },
+    {
+      "path": "migration/xi-a3/upstream/integrations/dsh/agent-presets/package.json",
+      "bytes": 403,
+      "sha256": "d929b5a507656be4e8998e62c3f6cdb183d310272c2ac5494adaa7752310823b"
+    },
+    {
+      "path": "migration/xi-a3/upstream/integrations/dsh/agent-presets/presets/qq-chat.patch.yml",
+      "bytes": 31492,
+      "sha256": "5de43f091b6af7a549661908dde0b7d9357abb621affadaef67979bba5cf6e66"
+    },
+    {
+      "path": "migration/xi-a3/upstream/integrations/dsh/agent-presets/qq-tool-restrict.mjs",
+      "bytes": 13089,
+      "sha256": "c00955f383fafa5f3fe987ce96c70ded9b5d9baf596f636f8b7ed0b05b778e20"
+    },
+    {
+      "path": "migration/xi-a3/upstream/integrations/dsh/mode-console/cordis.patch.yml",
+      "bytes": 662,
+      "sha256": "f13f33d7e9129e31fd24054f81a6377e6fdb46e01e8b0240c77451f7682dbf1c"
+    },
+    {
+      "path": "migration/xi-a3/upstream/integrations/dsh/mode-console/lib/index.js",
+      "bytes": 7014,
+      "sha256": "16c42936d588d715b8511552a5d3f2218da3f59c0f168d9d5e24d7592f3d0539"
+    },
+    {
+      "path": "migration/xi-a3/upstream/integrations/dsh/mode-console/package.json",
+      "bytes": 382,
+      "sha256": "9270150457cf85fe00c8b75269e31656a6752123bcbd3ee654770ba3f366ed18"
+    },
+    {
+      "path": "migration/xi-a3/upstream/integrations/dsh/presets/qq-chat/agent.cordis.yml",
+      "bytes": 32204,
+      "sha256": "74adb4f34b0bc8e8603aedece6afd40746e6552c4beb6a34445c2f8a31f5d259"
+    },
+    {
+      "path": "migration/xi-a3/upstream/integrations/dsh/presets/qq-chat/preset.yml",
+      "bytes": 197,
+      "sha256": "1f9d1a50ed869b83e887484f49a10c2f7e802f37be9d222464c5faeb5904bf48"
+    },
+    {
+      "path": "migration/xi-a3/upstream/integrations/dsh/presets/qq-chat/qq-tool-restrict.mjs",
+      "bytes": 523,
+      "sha256": "a2a58ccaaa067875af6e7a640daf7b8013603edbb7719d246675e660451f5b70"
+    },
+    {
+      "path": "migration/xi-a3/upstream/mcp/host.js",
+      "bytes": 4554,
+      "sha256": "8b7579ab44c501a9ef1fd2ed86918e8be7c0f131338606a1fa8235f9e0f2a1b6"
+    },
+    {
+      "path": "migration/xi-a3/upstream/mcp/qq-actions.js",
+      "bytes": 147656,
+      "sha256": "069266eebce8a93a62f76de05c6d860d4665a79b1c909699d0dcd1b6258014de"
+    },
+    {
+      "path": "migration/xi-a3/upstream/mcp/web-search.js",
+      "bytes": 4059,
+      "sha256": "087049350aba3b6e6cf4fd0abcfc9744ac46984cab5ac7a5ecd3e82d690836f7"
+    },
+    {
+      "path": "migration/xi-a3/upstream/package-lock.json",
+      "bytes": 67128,
+      "sha256": "7e2cadd053ccafcbf9b65b580a8d5162d7157f6f1d48944b4d9354827e664ac2"
+    },
+    {
+      "path": "migration/xi-a3/upstream/package.json",
+      "bytes": 972,
+      "sha256": "69e2bcb74ef599c0a6b05387842495fc73a17e7f1d7f9ad3e044cbc92df37279"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/control/control-tiers.js",
+      "bytes": 10189,
+      "sha256": "efb5a8a4579b227161daf112712cd624a4dfe5ffbaab39a82ff14fbd0ff9fd74"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/control/controller-cli.js",
+      "bytes": 20741,
+      "sha256": "832813508db4107374f38c7945a315e774570229cfddd3ae4390d8f9a049ce53"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/control/owner-capabilities.js",
+      "bytes": 4398,
+      "sha256": "1a3ff282900aaa9adb0992e4a9bb6cf659d40b67cb81ee4334b7c645f7fbe8d3"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/control/owner-config.js",
+      "bytes": 7389,
+      "sha256": "24c8b823568f17a21f3f0efada9cca9c41edf86140267d17039b9c3b92deb007"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/control/owner-features.js",
+      "bytes": 7422,
+      "sha256": "dab2e47d3a297dd130be845e2250a1c1c7bac286ebc6dd3a5c07569d7f51da67"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/budget.js",
+      "bytes": 4946,
+      "sha256": "ff36fdca1d8513d10c26fd948324a3df657fb58a553dc406d56df9ef3f11a53a"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/config-backup.js",
+      "bytes": 2337,
+      "sha256": "2139473ae2a698323c9a82e5370cd91bb8e67f747337c3ce9fbf0db6ece13887"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/config-schema.js",
+      "bytes": 30504,
+      "sha256": "0f801dca89b7ba1bdd9f6b926c43fe4014a575f00c17b9c7bd510429e558ba82"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/config-store.js",
+      "bytes": 3087,
+      "sha256": "16e202ee86300eeb3c5540cf36989727b825d4e83bfb90102022e237747ac5c3"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/db.js",
+      "bytes": 16356,
+      "sha256": "d0760d4fb7981e2fdbbf00a0420524bc1396284e4c58b513c340e65dfcd9eb31"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/event-bus.js",
+      "bytes": 2954,
+      "sha256": "40197beea6a5232159c6702297238894b360a8a16952340b8605316c939c9967"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/feature-loader.js",
+      "bytes": 6699,
+      "sha256": "ad0a741bdabd5dcf98fa6457ad7ff16af647f99762bb19052437f911d035be75"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/health.js",
+      "bytes": 5610,
+      "sha256": "a2c724f4d8e3330410502164fcdc4d5540bf6002fca508c35979bb6f409b4468"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/inbox.js",
+      "bytes": 5069,
+      "sha256": "0c8eef501fe3d80c05fb0db2f9fe392d746ba37572ecd162eabaecc8881586f3"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/jobs.js",
+      "bytes": 10053,
+      "sha256": "168eaa6fde79f576e91e637837a77d3e1c2f355b141b075413710d6e17761de3"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/logger.js",
+      "bytes": 4982,
+      "sha256": "97c1cd58069037edefeb136b6984600d6641e23400110db6c940c5062b56e046"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/memory.js",
+      "bytes": 11309,
+      "sha256": "bac6e945924de7f5b5ae25e40e3bb740e812a8bd1973f95e8206bb596033dfd6"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/model-routing.js",
+      "bytes": 2516,
+      "sha256": "fbdc61103cbd4791ba8a027f13ba6301f2a89a8fd4c35eacf2f8f2e3eb3087a9"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/outbox.js",
+      "bytes": 12156,
+      "sha256": "b390ee5217c0a6d778607a4bbaf45804718558594300670c875f342e59837371"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/prompt-budget.js",
+      "bytes": 4415,
+      "sha256": "2ebb4cde51c7a6ce320cb6e16e966c3fc5c759d27673337c7bc1d4cc66369755"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/sensitive.js",
+      "bytes": 1740,
+      "sha256": "5b995729e191a33e89aa41028ab6aa3c7598dffe0aaa1081c326af4dff1ebe1e"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/session-map.js",
+      "bytes": 2565,
+      "sha256": "3127679e1490525823da83b11f72b5d21780afe5475abf8f56259ba50652bc3b"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/session-router.mjs",
+      "bytes": 27052,
+      "sha256": "771ab59c56d8ed545fc8c4f149debf4fcb74bce3fdf3e1a0391cddf30bdc4e3f"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/state-acl.mjs",
+      "bytes": 6757,
+      "sha256": "26b6d769668e9579432fa22c7feb4d4f13e33e63635dc719ac7d231274148eb8"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/state-file.js",
+      "bytes": 2855,
+      "sha256": "e1235a93103a6adb1f948b3c37fe201c6c1cae921bed8022236cdbe3579a8cec"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/time-awareness.js",
+      "bytes": 3151,
+      "sha256": "b3da1a942855b3122d57d2a89a0cd77ddad01f2a1d008d94bb9c5e963fd47531"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/transport.js",
+      "bytes": 4002,
+      "sha256": "d6da83803c7994896a488ac8b18ed1829b866209fb2523b9150ce7d6df66230c"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/wake-score.js",
+      "bytes": 5681,
+      "sha256": "137f75eafdc27e5a05a232abc99897c53e3425bb26ce08abd4fd99a287c78a53"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/xi/owned-paths.mjs",
+      "bytes": 3076,
+      "sha256": "fc4c8239cb587caaad44631047d04f68951c34450246d5fbf6050be70cd93e0a"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/xi/runtime-context.mjs",
+      "bytes": 261,
+      "sha256": "b31c9d24c2b580ab5609a37d4a45d8776b22a5e5eebe14c27c9c8935108dc461"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/kernel/xi/runtime-policy.mjs",
+      "bytes": 3252,
+      "sha256": "23b13202990e1ce76f94fbd75765703740ddf7faefee7df4dfc9781734bc9944"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/orchestration/assignment.js",
+      "bytes": 5233,
+      "sha256": "410c4c7ffd661f36952f33e2f846e3b507713ed1289583bf07faa6131e3b3916"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/orchestration/code-proposal.js",
+      "bytes": 8272,
+      "sha256": "646a199dd72eda5f67186549fd43ac0e9085c03d9a942244620934ae8337dacf"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/orchestration/daily-report.js",
+      "bytes": 4857,
+      "sha256": "ec23db2a1defba5c195879f70df773d34fa3be533026fbdebc01b59bf5600827"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/orchestration/dev-proposals.js",
+      "bytes": 9213,
+      "sha256": "becbd7c94ad3511270388950e682cb6b00ed52e7ad52ec6a5fad53b4e57a1304"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/orchestration/feature-voice.js",
+      "bytes": 4402,
+      "sha256": "d6df93ea2182c2e04af095a558ef72c2f3bfe8ed25550d573afa1bd161f9d4a5"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/orchestration/orchestrator-queue.js",
+      "bytes": 6615,
+      "sha256": "de8bebfc0811e33e5f3e1877d169270d456b5a7426e1241b12c11b511676ab08"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/orchestration/orchestrator-wake.js",
+      "bytes": 3632,
+      "sha256": "1757d714961b9149fcc5aaa67f5b8810d017d09ce5054fe00c2d307a44da6e23"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/orchestration/qoder-sessions.js",
+      "bytes": 7795,
+      "sha256": "750743cdafdbf447e4acf7d0c5bcbca93c885685221aad42417bd9f8af465303"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/ai-tips.js",
+      "bytes": 12566,
+      "sha256": "13f43d326141527a932090a1469eb2acff749fa89ea1c547ece6b21e4b38afd6"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/mood-history.js",
+      "bytes": 3831,
+      "sha256": "b03db8c9bb3c6ef23fb8c87d74cdc6a81be5471f59339d231bc7ae175e232d16"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/persona-mode.js",
+      "bytes": 2764,
+      "sha256": "30feb85a52a16918fe4597c16bdf7e0748f69ed3f7c3d8f527378a61af765938"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/persona-pack.js",
+      "bytes": 6274,
+      "sha256": "0c093248e09c1368474ef4222ce798633ab9a85b079e3d1ab2e2e5b10bb7c156"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/persona-voice.js",
+      "bytes": 3022,
+      "sha256": "53d99775830b0dfc9e64166328155eb858bb7c7afc60a103cadb265b9994d3bb"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/relationship-model.js",
+      "bytes": 12834,
+      "sha256": "3cc69995469c8ce841a1e49463f1fb34d54c29c36014b9a8944fb805ec5559cd"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/relationships.js",
+      "bytes": 32699,
+      "sha256": "57dac2343d5b4c47c2344cd6cc087c7267074d04c6d7f60b8f039ecc60cf0128"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/rich-card.js",
+      "bytes": 5877,
+      "sha256": "5abeb541902ddf3a42f1c2345a4d77ded4c3ddd1350db20fdc62bad367e89a8e"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/signature.js",
+      "bytes": 10222,
+      "sha256": "e362e244169c4c45325c33a0b1a03f1c93978ec402b50b1ec8336f458632f11c"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/speech.js",
+      "bytes": 2222,
+      "sha256": "cee53e658c2edd974f67a2c4c7ac02b59ef5f76679b62f7da3b6986edeab446c"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/tts-busy-retry.js",
+      "bytes": 2402,
+      "sha256": "32cdd0404ac44d2666347a3e80ae40e42f81653204b8b04294196c971dcf050d"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/tts-emotion.js",
+      "bytes": 3158,
+      "sha256": "97588c89d7d6ad9bcb15b0831caa8e5355a7deb48ebafba11113b0810c72d522"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/persona/xi-identity.mjs",
+      "bytes": 3408,
+      "sha256": "352831fc4992d38bf23efb02ab8b38caa91ac9294dece63684e369c9803c7307"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/share/share-format.js",
+      "bytes": 3263,
+      "sha256": "9dfaa8b03f425ff8c488d82b3398981fd58b155aa393dd128667402690221b0a"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/share/share-modules.js",
+      "bytes": 16155,
+      "sha256": "6cf100cdbbd2c8420d9c067bb09580b6f0bdcb92742fcd72ad01fef37fdbcde9"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/share/share-prompts.js",
+      "bytes": 10309,
+      "sha256": "1dd5185822dcd4a2ee7e19df8f108a7273a1043a83d4be5a9d76de2961fee920"
+    },
+    {
+      "path": "migration/xi-a3/upstream/runtime/share/share-state.js",
+      "bytes": 9253,
+      "sha256": "43a0f06bd0373a2e470452238da57cfb11e5ad81caaf257b85007d8f6bc4c064"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/media/forward.js",
+      "bytes": 9372,
+      "sha256": "6b4fe6533125bc3057108f452e291bf63e083a0b0b13664612cf60384c97a833"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/media/image-lib.js",
+      "bytes": 12211,
+      "sha256": "2fa110d3b1a7fe5bb4eac104ec25d93d1d31f69a2c9e39f74de49cbb6d748077"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/media/md-to-plain.js",
+      "bytes": 5856,
+      "sha256": "1ab840390f7a5d666fdec6ef7475598becfe33e24bef9b252dfc55760a888c6e"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/media/send-voice-lib.js",
+      "bytes": 922,
+      "sha256": "4b4089a5560a62dc0f3f987b3c38a5e8169485753b01a304483cdde95112c993"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/media/sticker-lib.js",
+      "bytes": 17555,
+      "sha256": "f9c139b708fdba59bac90831ab0785d62162c746fbcafd967faca218bc8f74ee"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/media/vision.js",
+      "bytes": 3186,
+      "sha256": "deb3abae8ee01248e1d63c17d12c93df759e24a4a6807e0a6c17ce646cbe9df7"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/media/voice-core.js",
+      "bytes": 23952,
+      "sha256": "d57e683baf1af74804b7fe9a3cf30860e18a400417025c0054d242800c90835b"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/persona/curiosity.js",
+      "bytes": 14294,
+      "sha256": "bee79df129d26cd67ff68784c5fc366a71ddd80ceeb63e6673e71c1776bd3523"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/persona/inner-life.js",
+      "bytes": 217326,
+      "sha256": "4aae49f6ff9b84180eecd6ec9b8f985931239ecb165bd3ed2163a05e9baf6e45"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/persona/persona-state.js",
+      "bytes": 27646,
+      "sha256": "53390dbe925f7b4d02bbd6209842b408ef62c92516072afd5e4c416263b1aefd"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/persona/preset-prompt.js",
+      "bytes": 8322,
+      "sha256": "0ac2c43b5737f768499720f3a2ed9a33124b13ad9ca795e84892f63be04de099"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/persona/quiet-hours.js",
+      "bytes": 1681,
+      "sha256": "4a906e84d47b533bc93c8adfb27ae040f0184ab2b55651f8f1402431b7edc9dd"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/persona/role-card.js",
+      "bytes": 4441,
+      "sha256": "36cc35167bccdb811246345e21858f9b43543e8c26f13f80d2305393fe1967e9"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/persona/simulation-wait.js",
+      "bytes": 1377,
+      "sha256": "cb8893fd52af1a37326d56c33bd66fa774a508ab5e94f6bfb2c05350b0cfc327"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/esports-feed.js",
+      "bytes": 12135,
+      "sha256": "e21b43fc1b666f7067687a5e902acc786d2e86a1006ce91746738b6fac73180b"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/esports-schedule.js",
+      "bytes": 9182,
+      "sha256": "69b272dec4035bcca87c10895b701bf2a071847393a4943be396bdba2d1b0fe1"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/model-prices.js",
+      "bytes": 12990,
+      "sha256": "06d717cff7967f54b93077d3e631d656466c5df72fce083212fab44ab7e6e91b"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/qq-model-view.js",
+      "bytes": 3011,
+      "sha256": "60cf9fbd1aa1b85c90885efd66c72f9c23fd663c4d7b7ff509bc494a151072b9"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/qzone.js",
+      "bytes": 16101,
+      "sha256": "ab83560c6e4be2d4441a6dee335b3b27845598c14ce1196ad103003c10af6b8b"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/reminders.js",
+      "bytes": 4393,
+      "sha256": "d9e5ec358d9a615cbd1207c1b22746fe52e6daa34483c88f961161d503cda12e"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/safe-fetch.js",
+      "bytes": 16384,
+      "sha256": "8f39ee9761542b24a6d809384cd87e42297b7c6e7b7c7275cb44e1695b4b3e9d"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/slang-learner.js",
+      "bytes": 18263,
+      "sha256": "ff128b086327b52b6794919a479758000d5aa6ae90612222acb463f8ff60755d"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/token-ledger.js",
+      "bytes": 39568,
+      "sha256": "4d9141ce36cf037671fd65529f1aef2cbb7f732566749b0706ceceb0e7679507"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/weather.js",
+      "bytes": 4628,
+      "sha256": "b730495e8c0a5ec5300020a49db06ab87a3c9e220faac588fe33e213d70d4633"
+    },
+    {
+      "path": "migration/xi-a3/upstream/services/social/web-search.js",
+      "bytes": 28824,
+      "sha256": "40d9893f98f2dc7bc4a34de35b376926f6ecb48f83337e840b86bcb6af08ca20"
+    },
+    {
+      "path": "migration/xi-a3/upstream/tools/gen-config-schema.mjs",
+      "bytes": 4145,
+      "sha256": "1d113b1ee85c644caed4b1305af02ce92805df11ef792d59516cb2f72043e8f0"
+    },
+    {
+      "path": "migration/xi-a3/upstream/web/deck.html",
+      "bytes": 390442,
+      "sha256": "511ad2605cc4104e86d9f8a35794f62524e6a40e7080c814c3b04be26fee9e70"
+    },
+    {
+      "path": "migration/xi-a3/upstream/web/live.html",
+      "bytes": 56348,
+      "sha256": "76b6d4ee3d61938fc968788d18fe4c6eca288065fe1907cac7ac820b82e76432"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/bilibili-frames.mjs",
+      "bytes": 7801,
+      "sha256": "0e204895cfeee021c2e17692e0deb19cfc2e68b62264d2df6724798c543ba8ec"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/catalog.mjs",
+      "bytes": 17261,
+      "sha256": "89a5e13b275deccb6a47c1f24766999aabc6bd4fe521caa1d584f68267d14c57"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/parent-proxy.mjs",
+      "bytes": 4818,
+      "sha256": "2a38822bd8927292289b4acdb014880fc6281ad789af624b3b78ce27bdc812d5"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/production-factory.mjs",
+      "bytes": 8538,
+      "sha256": "25885a63a9b1535c7a661588d1a4122530d29dd06b4cd0b3b3f237bcd138360b"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/server.mjs",
+      "bytes": 3675,
+      "sha256": "17a4ba328f2bafdf991c940f34ef74c0a47857880e34d8ae1668662cc8076971"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/stdio.mjs",
+      "bytes": 1410,
+      "sha256": "eba7d2fcba4f0c3fa56facde52c7a3d707765af743592943c869d4ae3197b6fe"
+    },
+    {
+      "path": "requirements.txt",
+      "bytes": 125,
+      "sha256": "763bcc1c68fbbcbcfa0769e57254d880ff92bb98d071fb933b122ed49ac116f1"
+    },
+    {
+      "path": "scripts/backup_personal_data.py",
+      "bytes": 9405,
+      "sha256": "2afcdcda597a2c8b5180d725af706d804fb09cbadae1595f20ac433aad948d49"
+    },
+    {
+      "path": "scripts/backup_site_source.py",
+      "bytes": 3436,
+      "sha256": "a9a2d84ab44df7d2a4079308239438a3a6a4ffa0ac116d92fbbaebbcb24bf1af"
+    },
+    {
+      "path": "scripts/portable_backup.py",
+      "bytes": 8877,
+      "sha256": "06255a45f4303dc17b41d797a0bcbe36d9230e4fa5458eaed9311cf101302ffb"
+    },
+    {
+      "path": "tools/no-account-check.mjs",
+      "bytes": 4040,
+      "sha256": "c2c942b44476a5caac277db3da791e2cce59d8cddd65be12284cf0a52564b067"
+    },
+    {
+      "path": "tools/verify-source.mjs",
+      "bytes": 939,
+      "sha256": "99c77a98193a505485f4f6d0db74762da50a7325c92a51e5e2e9fc01a580d064"
+    },
+    {
+      "path": "workflows/xi/conatus_client.py",
+      "bytes": 9907,
+      "sha256": "7781e7d7cf074b054723339f74a2f3e294c6ef0ebeed61e96f9a19e69c690833"
+    }
+  ]
+}
