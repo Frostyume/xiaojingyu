@@ -17,6 +17,8 @@ and actually does things when you ask.</p>
 </p>
 
 <p align="center">
+  <a href="https://github.com/Frostyume/xiaojingyu">GitHub</a> ·
+  <a href="https://gitee.com/frostyume/xiaojingyu">Gitee mirror</a> ·
   <a href="README.md">中文</a> ·
   <a href="docs/README.md">Docs</a> ·
   <a href="RULES.md">Rules</a> ·
@@ -111,7 +113,8 @@ every step has a clear success marker.
 
 ### Phase 2: send this sentence to the agent
 
-> Deploy <https://github.com/Frostyume/xiaojingyu> for me on Windows. Read
+> Deploy <https://github.com/Frostyume/xiaojingyu> for me on Windows (use the Gitee mirror
+> <https://gitee.com/frostyume/xiaojingyu> if GitHub is slow). Read
 > `docs/guides/AGENT_DEPLOY.md` in the repository first and follow it exactly: check the environment,
 > install dependencies, write the config, run `install-dsh` and `doctor` until everything passes.
 > Except for signing in to SnowLuma by QR code and providing my QQ number / group numbers, do

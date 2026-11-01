@@ -16,6 +16,8 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Frostyume/xiaojingyu">GitHub</a> ·
+  <a href="https://gitee.com/frostyume/xiaojingyu">Gitee 镜像</a> ·
   <a href="README.en.md">English</a> ·
   <a href="docs/README.md">文档索引</a> ·
   <a href="RULES.md">权限规则</a> ·
@@ -100,7 +102,8 @@
 
 ### 阶段二：把这句话原样发给 agent
 
-> 帮我在 Windows 上部署 <https://github.com/Frostyume/xiaojingyu>：先读仓库里的
+> 帮我在 Windows 上部署 <https://github.com/Frostyume/xiaojingyu>（国内访问 GitHub 慢就用
+> Gitee 镜像 <https://gitee.com/frostyume/xiaojingyu>）：先读仓库里的
 > `docs/guides/AGENT_DEPLOY.md` 并严格照着做，自己检查环境、装依赖、写配置、跑
 > `install-dsh` 和 `doctor`，直到全部通过；除了 SnowLuma 扫码登录和提供 QQ 号 / 群号，
 > 其余都自己完成；不要打印或上传 `config.json`、`state/` 里的任何令牌、Cookie 和号码。

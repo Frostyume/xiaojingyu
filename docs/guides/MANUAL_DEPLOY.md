@@ -18,6 +18,8 @@
 
 ```bash
 git clone https://github.com/Frostyume/xiaojingyu.git
+# 国内访问 GitHub 慢时，改用 Gitee 镜像：
+# git clone https://gitee.com/frostyume/xiaojingyu.git
 cd xiaojingyu
 npm install
 ```

@@ -3,7 +3,8 @@
 这份文档是写给 **Codex / Claude Code / Qoder / DSH 等能执行命令的 agent** 看的。
 你不需要读懂它，只需要把下面这句话发给 agent：
 
-> 帮我在 Windows 上部署 <https://github.com/Frostyume/xiaojingyu>：先读仓库里的
+> 帮我在 Windows 上部署 <https://github.com/Frostyume/xiaojingyu>（国内访问 GitHub 慢就用
+> Gitee 镜像 <https://gitee.com/frostyume/xiaojingyu>）：先读仓库里的
 > `docs/guides/AGENT_DEPLOY.md` 并严格照着做，自己检查环境、装依赖、写配置、
 > 跑 `install-dsh` 和 `doctor`，直到全部通过；除了 SnowLuma 扫码登录和提供
 > QQ 号 / 群号，其余都自己完成；不要打印或上传 `config.json`、`state/` 里的任何
@@ -59,6 +60,8 @@ git --version
 
 ```powershell
 git clone https://github.com/Frostyume/xiaojingyu.git
+# 国内访问 GitHub 慢时，改用 Gitee 镜像：
+# git clone https://gitee.com/frostyume/xiaojingyu.git
 cd xiaojingyu
 npm install
 ```
