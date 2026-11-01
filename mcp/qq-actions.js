@@ -1839,7 +1839,7 @@ if (ttsCfg().enabled === true) {
         if (clean.length > maxChars) throw new Error(`一次最多说 ${maxChars} 个字（现在 ${clean.length} 个），说短点`);
         if (SENSITIVE_RE.test(clean)) throw new Error('这句话里含本机路径/凭据特征，语音通道同样不允许发出');
 
-        // 中文声源固定为 A6000 上的 BreezeTTS2（Voice Design）；
+        // 中文声源固定为 BreezeTTS2（Voice Design），地址见 tts.breeze.baseUrl；
         // 软萌/黑化由 style 显式指定，或按人格情绪与主人设置自动选择。
         // 日语声源已下线：Breeze 不可用时直接报错，不再回退本机 ATRI（会让中文带上日语腔）。
         if (t.breeze?.enabled === false || !String(t.breeze?.baseUrl || '').trim()) {

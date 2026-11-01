@@ -52,7 +52,7 @@ chatting as usual, and she is simply the member who occasionally says something 
 | **A persona**: two prompt layers, one for behaviour boundaries and one for character and tone, both editable in the console | **Take over the account**: she is an ordinary member with no admin powers |
 | **Memory**: topics, pending thoughts, member impressions, cross-session personal memory — all viewable and deletable | **Flood the chat**: wake rate, night silence and clingy follow-ups all have hard caps |
 | **Pacing**: she decides whether to look, wait, speak or keep diving | **Reach your machine**: no amount of prompting gives group members local tools |
-| **A toolbox**: read, speak, stickers, search, reminders — each switchable | **Ship data out**: the whole link runs on `127.0.0.1` |
+| **A toolbox**: read, speak, stickers, search, reminders — each switchable | **Run its own cloud**: local components stay on `127.0.0.1`; messages still go through DSH to the model you choose (see the data-egress list in [NOTICE](NOTICE)) |
 
 **What she deliberately does not do:**
 
@@ -874,7 +874,7 @@ npm run doctor     # config, SQLite, DSH, SnowLuma, preset, ports
 - Images, stickers and merged forwards enter the multimodal context; inbound voice is transcribed only
   when `simulation.speech.asr.enabled` is on (off by default, otherwise a placeholder is shown); video
   messages currently show a placeholder;
-- **AI voice is off by default** (`simulation.voice.enabled` and `tools.sendVoice` are both `false`):
+- **AI voice is off by default** (`simulation.voice.enabled` and `simulation.tools.sendVoice` are both `false`):
   put audio into `audio/`, then enable it in the console. Sample clips live in
   [`assets/voice/`](assets/voice/);
 - Agent Markdown replies are converted to plain text before sending (links keep the `text (url)` form);

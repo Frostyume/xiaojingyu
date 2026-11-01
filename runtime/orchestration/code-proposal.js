@@ -2,6 +2,7 @@
 // 只做校验、落盘与入队；唤醒与回执由调用方注入，方便单测不触达真实 state 与 CLI。
 
 import crypto from 'node:crypto';
+import os from 'node:os';
 import path from 'node:path';
 import { createProposal, readProposal, buildQoderTaskPrompt } from './dev-proposals.js';
 import { enqueueTask, readTask, updateTask } from './orchestrator-queue.js';
@@ -113,7 +114,7 @@ export function stageCodeProposal({
 }) {
   const created = createProposal({ dir, id, feature });
   if (!created.ok) return { ok: false, error: created.error };
-  const worktreeDir = process.env.DEV_WORKTREE_DIR || 'D:/MyApps/deepseek-harness/dev-worktrees';
+  const worktreeDir = process.env.DEV_WORKTREE_DIR || path.join(os.homedir(), 'dsh-dev-worktrees');
   const qoderPrompt = buildQoderTaskPrompt({ id, feature, root, worktreeDir });
   const queued = enqueueTask(orchestratorDir, {
     id,

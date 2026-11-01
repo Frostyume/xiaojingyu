@@ -1,5 +1,6 @@
-// 启动时确保 A6000 的 Breeze/Opus 隧道在线；已在跑就不动它。
+// 启动时确保远程语音主机（Breeze/Opus）的 SSH 隧道在线；已在跑就不动它。
 // 隧道是 ad-hoc ssh 转发，重启后不会自己回来；语音要它才能用。
+// 远程主机通过环境变量 BREEZE_SSH_HOST 指定（未设置则跳过，不做任何连接）。
 // 旧隧道会僵死（本地端口仍 LISTENING，但 SSH 传输已断），必须按端口找到并先杀掉，否则新 ssh 绑定失败、自愈永久失效。
 // 跳板链路会间歇性在 banner 阶段超时，所以单次失败不放弃：用 `ssh -f` 后台化并重试几次。
 
@@ -21,7 +22,11 @@ const base = String(breeze.baseUrl || '').trim();
 const opus = String(breeze.opusUrl || '').trim();
 if (!base) process.exit(0);
 const urls = [base, opus].filter(Boolean);
-const sshHost = String(process.env.BREEZE_SSH_HOST || 'aistation');
+const sshHost = String(process.env.BREEZE_SSH_HOST || '').trim();
+if (!sshHost) {
+  console.log('[breeze] 未设置 BREEZE_SSH_HOST，跳过隧道自愈');
+  process.exit(0);
+}
 const remoteHost = '127.0.0.1';
 
 const localPort = (u) => Number(new URL(u).port) || 80;
