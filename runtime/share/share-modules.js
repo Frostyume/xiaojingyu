@@ -7,8 +7,28 @@ export const SHARE_LIMITS_DEFAULTS = {
   perGroupPerDay: 8,
   perGroupPerHour: 3,
   crossModuleGapMs: 15 * 60 * 1000,
-  moduleMaxPerDay: 3
+  moduleMaxPerDay: 3,
+  globalMaxPerDay: 2,
+  windows: [
+    { start: 7, end: 12 },
+    { start: 12, end: 21 }
+  ]
 };
+
+/** 分享总闸的时间窗：左闭右开，按开始小时排序；非法窗口丢弃，全部无效时回退默认。 */
+export function normalizeShareWindows(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  const out = [];
+  for (const item of list) {
+    const start = Number(item?.start);
+    const end = Number(item?.end);
+    if (!Number.isInteger(start) || !Number.isInteger(end)) continue;
+    if (start < 0 || start > 23 || end < 1 || end > 24 || end <= start) continue;
+    out.push({ start, end });
+  }
+  if (!out.length) return SHARE_LIMITS_DEFAULTS.windows.map((item) => ({ ...item }));
+  return out.sort((a, b) => a.start - b.start);
+}
 
 const TEMPLATE_BASE = {
   textMin: 20,
@@ -249,9 +269,15 @@ export function normalizeShareConfig(raw) {
     const normalized = normalizeShareModule(item, id);
     if (normalized.id) modules[normalized.id] = normalized;
   }
+  const limits = merge(SHARE_LIMITS_DEFAULTS, value.limits);
+  const globalMax = Number(limits.globalMaxPerDay);
+  limits.globalMaxPerDay = Number.isFinite(globalMax)
+    ? Math.max(0, Math.min(10, Math.floor(globalMax)))
+    : SHARE_LIMITS_DEFAULTS.globalMaxPerDay;
+  limits.windows = normalizeShareWindows(limits.windows);
   return {
     enabled: value.enabled !== false,
-    limits: merge(SHARE_LIMITS_DEFAULTS, value.limits),
+    limits,
     modules
   };
 }

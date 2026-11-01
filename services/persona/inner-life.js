@@ -28,7 +28,7 @@ import { DEFAULT_QUIET_HOURS, normalizeQuietHours, isQuietNow, quietEndAt } from
 import { SENSITIVE_RE } from '../../runtime/kernel/sensitive.js';
 import { AI_TIP_CATEGORIES, categoryById, inWindow, isDuplicateTip, nextSlotAt, pickCategory, pickTipLinks, parseTipOutput, rollDailyTarget } from '../../runtime/persona/ai-tips.js';
 import { normalizeShareConfig, normalizeShareModule, moduleFacets, engineFacets, hasEngineFacets, facetRuntime, pickShareFacet, parseShareOutput, validateShareOutput, verificationPending, moduleDayTarget, nextFacetAt, inWindowAt, topicTooSimilar, recentShareUrls, urlAlreadyShared, SHARE_TEMPLATES } from '../../runtime/share/share-modules.js';
-import { loadShareState, saveShareState, groupBudgetCheck, recordGroupSend, recordModuleSend, recordModuleFailure, setVerification, migrateAiTipsState, localDayKey as shareDayKey } from '../../runtime/share/share-state.js';
+import { loadShareState, saveShareState, groupBudgetCheck, recordGroupSend, recordModuleSend, recordModuleFailure, setVerification, migrateAiTipsState, localDayKey as shareDayKey, globalBudgetCheck, recordGlobalSend, nextGlobalWindowAt } from '../../runtime/share/share-state.js';
 import { buildShareTask } from '../../runtime/share/share-prompts.js';
 import { formatShareCaption, formatShareLinksText, formatAiTipLinks, formatTipCaption } from '../../runtime/share/share-format.js';
 
@@ -1266,6 +1266,12 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     return true;
   }
 
+  function recordLegacyShareSend(now = Date.now()) {
+    const shareState = loadShareModulesState();
+    recordGlobalSend(shareState, now, shareModulesConfig().limits);
+    saveShareModulesState(shareState);
+  }
+
   async function sendQzoneDraft(text, image = null) {
     const il = ilCfg();
     const state = loadInner();
@@ -2110,7 +2116,23 @@ ${othersLine}拟回复：${reply}
         legacy: true
       });
     }
-    return { enabled: conf.enabled, limits: conf.limits, modules };
+    const now = Date.now();
+    const maxPerDay = Math.max(0, Number(conf.limits.globalMaxPerDay) || 0);
+    const windows = Array.isArray(conf.limits.windows) ? conf.limits.windows : [];
+    const daily = state.daily && state.daily.day === shareDayKey(now) ? state.daily : { day: shareDayKey(now), sent: 0, windows: {} };
+    const sentToday = Math.max(0, Number(daily.sent) || 0);
+    const global = {
+      maxPerDay,
+      sentToday,
+      windows: windows.map((window) => ({
+        start: Number(window.start),
+        end: Number(window.end),
+        sent: Math.max(0, Number(daily.windows?.[String(window.start)]) || 0),
+        max: 1
+      })),
+      nextWindowAt: nextGlobalWindowAt(now, conf.limits, { afterDay: sentToday >= maxPerDay })
+    };
+    return { enabled: conf.enabled, limits: conf.limits, global, modules };
   }
 
   function aiTipsStatusLine() {
@@ -2426,6 +2448,12 @@ ${othersLine}拟回复：${reply}
       saveShareModulesState(state);
       return { status: 'expired' };
     }
+    const global = globalBudgetCheck(state, Date.now(), conf.limits);
+    if (!global.ok && !force) {
+      m.nextAt = Number(global.nextAt) || nextGlobalWindowAt(Date.now(), conf.limits, { afterDay: global.reason === 'global-daily-limit' });
+      saveShareModulesState(state);
+      return { status: 'global-budget', reason: global.reason, sentToday: global.sentToday, nextAt: m.nextAt };
+    }
     const budget = groupBudgetCheck(state, pending.target, Date.now(), conf.limits);
     if (!budget.ok) return { status: 'budget', ...budget };
     const parsed = {
@@ -2455,6 +2483,7 @@ ${othersLine}拟回复：${reply}
     const linksText = formatShareLinksText(pending.links || [], { imageHosts: imageSent ? imageHosts : '', sourceUrl: parsed.sourceUrl });
     if (linksText) await sendToQQ(pending.target, linksText);
     recordGroupSend(state, pending.target, Date.now());
+    recordGlobalSend(state, Date.now(), conf.limits);
     recordModuleSend(state, moduleId, pending.facetId, Date.now(), {
       ...parsed,
       links: pending.links || [],
@@ -2498,6 +2527,7 @@ ${othersLine}拟回复：${reply}
     const now = Date.now();
     const status = String(result?.status || '');
     if (!module.enabled || m.paused) m.nextAt = 0;
+    else if (status === 'global-budget') m.nextAt = Number(result?.nextAt) || nextGlobalWindowAt(now, conf.limits, { afterDay: result?.reason === 'global-daily-limit' });
     else if (status === 'pending-approval' || m.pending) m.nextAt = now + 2 * 3600 * 1000;
     else if (status === 'daily-done') m.nextAt = nextShareMorning(module);
     else if (status === 'budget') m.nextAt = Number(result?.retryAt) || (now + 30 * 60 * 1000);
@@ -2603,6 +2633,15 @@ ${othersLine}拟回复：${reply}
     if (!force && state.counts.curiosity >= (Number(il.curiosity.maxPerDay) || DEFAULTS.curiosity.maxPerDay)) {
       return { status: 'daily-limit' };
     }
+    if (!dryRun) {
+      const conf = shareModulesConfig();
+      const global = globalBudgetCheck(loadShareModulesState(), Date.now(), conf.limits);
+      if (!global.ok) {
+        state.next.curiosity = Number(global.nextAt) || nextGlobalWindowAt(Date.now(), conf.limits, { afterDay: global.reason === 'global-daily-limit' });
+        saveInner(state);
+        return { status: 'global-budget', reason: global.reason, sentToday: global.sentToday, nextAt: state.next.curiosity };
+      }
+    }
     if (!force && isQuiet(il)) return { status: 'quiet' };
     const target = pickShareTarget(il, state);
     if (!target) return { status: 'not-sent' };
@@ -2697,6 +2736,7 @@ ${share.text}${share.item?.url ? `
       return { status: 'pending-approval', text: share.text };
     }
     const sent = await sendGroupShare(target, share.text, share.item ? [share.item] : [], { force });
+    if (sent) recordLegacyShareSend();
     if (sent && share.item) {
       markSeen(share.item);
       try {
@@ -3114,6 +3154,14 @@ ${share.text}${share.item?.url ? `
     }
     if (!m.dailyTarget) m.dailyTarget = moduleDayTarget(module);
     if (!force && m.sentToday >= m.dailyTarget) return { status: 'daily-done' };
+    if (!dryRun && !draftOnly) {
+      const global = globalBudgetCheck(state, Date.now(), conf.limits);
+      if (!global.ok) {
+        m.nextAt = Number(global.nextAt) || nextGlobalWindowAt(Date.now(), conf.limits, { afterDay: global.reason === 'global-daily-limit' });
+        saveShareModulesState(state);
+        return { status: 'global-budget', reason: global.reason, sentToday: global.sentToday, nextAt: m.nextAt };
+      }
+    }
 
     const ordered = module.targets.length
       ? (module.rotateTargets
@@ -3333,6 +3381,7 @@ ${share.text}${share.item?.url ? `
       }
     }
     recordGroupSend(state, target, Date.now());
+    recordGlobalSend(state, Date.now(), conf.limits);
     recordModuleSend(state, moduleId, facet.id, Date.now(), {
       ...parsed,
       url: chosenCandidate?.url || parsed.sourceUrl || '',
@@ -3381,6 +3430,11 @@ ${share.text}${share.item?.url ? `
     const max = Number(il.aiTips.maxPerDay ?? DEFAULTS.aiTips.maxPerDay);
     if (!tips.dailyTarget) tips.dailyTarget = rollDailyTarget(min, max);
     if (!dryRun && !force && tips.sentToday >= tips.dailyTarget) return { status: 'daily-done', sentToday: tips.sentToday, dailyTarget: tips.dailyTarget };
+    if (!dryRun) {
+      const conf = shareModulesConfig();
+      const global = globalBudgetCheck(loadShareModulesState(), Date.now(), conf.limits);
+      if (!global.ok) return { status: 'global-budget', reason: global.reason, sentToday: global.sentToday, nextAt: global.nextAt };
+    }
 
     let recentChat = '';
     try { recentChat = digest(getSimulationState(target), 8).slice(0, 700); } catch {}
@@ -3496,6 +3550,7 @@ ${share.text}${share.item?.url ? `
       }
       const linksText = formatAiTipLinks(links, imageSent ? imageHosts : '');
       if (linksText) await sendToQQ(target, linksText);
+      recordLegacyShareSend();
       tips.sentToday += 1;
       tips.lastSentAt = Date.now();
       tips.lastCategory = category.id;
@@ -3602,7 +3657,9 @@ ${formatTipCaption(item)}`;
       else if (result?.status === 'skip' || result?.status === 'invalid') state.next.reflection = now + rand(60 * 60 * 1000, 3 * 3600 * 1000);
       else state.next.reflection = nextReflectionAt(il, now);
     } else if (name === 'curiosity') {
-      if (state.pendingShare) {
+      if (result?.status === 'global-budget') {
+        state.next.curiosity = Number(result?.nextAt) || nextGlobalWindowAt(now, shareModulesConfig().limits, { afterDay: result?.reason === 'global-daily-limit' });
+      } else if (state.pendingShare) {
         // 等主人审核期间不要继续生成新的分享草稿。
         state.next.curiosity = now + Math.min(2 * 3600 * 1000, Math.max(10 * 60 * 1000, Number(state.pendingShare.expiresAt || now) - now));
       } else if (state.counts.curiosity >= (Number(il.curiosity.maxPerDay) || DEFAULTS.curiosity.maxPerDay)) {
@@ -3640,6 +3697,8 @@ ${formatTipCaption(item)}`;
       const tips = loadAiTips();
       if (!aiTipsReady(il) || tips.paused) {
         state.next.aiTips = 0;
+      } else if (result?.status === 'global-budget') {
+        state.next.aiTips = Number(result?.nextAt) || nextGlobalWindowAt(now, shareModulesConfig().limits, { afterDay: result?.reason === 'global-daily-limit' });
       } else if (result?.status === 'daily-done' || tips.sentToday >= tips.dailyTarget) {
         state.next.aiTips = aiTipMorning(il);
       } else if (isQuiet(il)) {
@@ -4099,6 +4158,7 @@ ${formatTipCaption(item)}`;
       const item = pendingShare.item || null;
       const sent = await sendGroupShare(target, pendingShare.text, item ? [item] : [], { force: true });
       if (sent) {
+        recordLegacyShareSend();
         if (item) markSeen(item);
         const latest = loadInner();
         latest.pendingShare = null;

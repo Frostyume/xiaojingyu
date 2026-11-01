@@ -77,7 +77,7 @@ import { formatRichSegment } from '../runtime/persona/rich-card.js';
 import { loadPersonaPack, renderPersonaPack, savePersonaPack, validatePersonaPack, personaPackPath } from '../runtime/persona/persona-pack.js';
 import { buildDailyReport, nextDailyAt, localDateKey, dailyReportEnabled } from '../runtime/orchestration/daily-report.js';
 import { createSnowLumaAsr } from '../runtime/persona/speech.js';
-import { generateSignature, normalizeSignatureState, appendSignatureHistory, randomSignatureIntervalMs } from '../runtime/persona/signature.js';
+import { generateSignature, normalizeSignatureState, appendSignatureHistory, randomSignatureIntervalMs, isSignatureAdjustCommand, isDuplicateSignatureInstruction } from '../runtime/persona/signature.js';
 import { beijingParts, timeOfDayLabel } from '../runtime/kernel/time-awareness.js';
 import { loadFeatures } from '../runtime/kernel/feature-loader.js';
 import { createTransport } from '../runtime/kernel/transport.js';
@@ -2202,7 +2202,7 @@ async function main() {
     return true;
   }
 
-  async function handleSignatureOwnerCommand(text, { kind, isOwner, explicitOnly = false } = {}) {
+  async function handleSignatureOwnerCommand(text, { kind, isOwner, explicitOnly = false, replyToId = '' } = {}) {
     if (!isOwner || kind !== 'private') return false;
     const command = String(text ?? '').trim();
     if (!command) return false;
@@ -2245,37 +2245,60 @@ async function main() {
       await sendOwnerPrivate('好，这次不更新签名。');
       return true;
     }
-    const explicit = command.match(/^改签名\s*([\s\S]+)$/);
-    let instruction = explicit?.[1]?.trim() || '';
-    if (!instruction && !explicitOnly) {
-      // 空间草稿也在等审核时，不强抢主人的自由文本；用「改签名 …」明确指定。
-      if (!qzonePending) instruction = command;
+    // 只有显式「改签名 …」或引用这条草稿时才当成修改要求；
+    // 其他消息（抱怨、提问、闲聊）必须继续走正常回复，不能被签名流程吞掉。
+    const adjust = isSignatureAdjustCommand(command, pending, { replyToId, explicitOnly, qzonePending });
+    if (!adjust.ok) return false;
+    if (isDuplicateSignatureInstruction(pending, adjust.instruction)) {
+      log(`[signature] 相同修改指令重复，跳过：${adjust.instruction.slice(0, 40)}`);
+      return true;
     }
-    if (!instruction) return false;
+    pending.lastInstruction = adjust.instruction;
+    pending.lastInstructionText = pending.text;
+    pending.lastInstructionAt = Date.now();
+    saveSignatureState();
     const target = { ...pending };
     void (async () => {
       try {
         const refined = await innerLife.refineText({
           kind: 'signature',
           current: target.text,
-          instruction,
+          instruction: adjust.instruction,
           maxChars: Math.max(8, Math.min(60, Number(cfg.simulation?.signature?.maxChars) || 40))
         });
         const latest = signatureState.pending;
         if (!latest) { await sendOwnerPrivate('签名草稿已经不在了，这次没改。'); return; }
+        // 期间又来了更新的修改指令：这一版结果已经过时，直接丢弃，避免连出两版草稿。
+        if (latest.lastInstruction !== adjust.instruction) return;
+        if (refined === latest.text) {
+          await sendOwnerPrivate(`这版没变：\n${latest.text}\n\n回复「发签名」更新，回复「不发签名」放弃。`);
+          return;
+        }
         latest.text = refined;
         latest.createdAt = Date.now();
         latest.expiresAt = Date.now() + Math.max(60 * 1000, Number(cfg.simulation?.signature?.approvalTimeoutMs) || 2 * 3600 * 1000);
         signatureState.nextAt = latest.expiresAt;
         saveSignatureState();
         const timeoutMin = Math.round(Math.max(60 * 1000, Number(cfg.simulation?.signature?.approvalTimeoutMs) || 2 * 3600 * 1000) / 60000);
-        await sendOwnerPrivate(`【个性签名草稿·已改】\n${refined}\n\n回复「发签名」更新，回复「不发签名」放弃；还想改就继续说（${timeoutMin} 分钟内有效）`);
+        const sent = await sendOwnerPrivate(`【个性签名草稿·已改】\n${refined}\n\n回复「发签名」更新，回复「不发签名」放弃；还想改就引用这条草稿说，或发「改签名 …」（${timeoutMin} 分钟内有效）`);
+        const messageId = String(sent?.message_id ?? sent?.messageId ?? '');
+        if (messageId) {
+          latest.messageId = messageId;
+          latest.messageIds = [...new Set([...(Array.isArray(latest.messageIds) ? latest.messageIds : []), messageId])].slice(-5);
+          saveSignatureState();
+        }
         log(`[signature] 签名草稿已按主人要求修改：${refined}`);
       } catch (error) {
+        const latest = signatureState.pending;
+        if (latest) {
+          latest.lastInstruction = '';
+          latest.lastInstructionText = '';
+          latest.lastInstructionAt = 0;
+          saveSignatureState();
+        }
         await sendOwnerPrivate(`唔，这次没改成功：${error?.message ?? error}，再跟我说一次？`);
       }
     })();
-    await sendOwnerPrivate('好，我按你说的改一下，改好再发你看。');
     return true;
   }
 
@@ -2315,14 +2338,16 @@ async function main() {
       }
       const timeoutMs = Math.max(60 * 1000, Number(sig.approvalTimeoutMs) || 2 * 3600 * 1000);
       const timeoutMin = Math.round(timeoutMs / 60000);
-      const body = `【个性签名草稿】\n${text}\n\n回复「发签名」更新，回复「不发签名」放弃；想改就直接回我，比如「短一点」「别写猫，换成米饭」；也可以说「改签名 …」（${timeoutMin} 分钟内有效）`;
+      const body = `【个性签名草稿】\n${text}\n\n回复「发签名」更新，回复「不发签名」放弃；想改请引用这条草稿回我，比如「短一点」「别写猫，换成米饭」；也可以直接说「改签名 …」（${timeoutMin} 分钟内有效）`;
       try {
         const sent = await onebotSend('private', Number(cfg.ownerQQ), body);
+        const messageId = String(sent?.message_id ?? sent?.messageId ?? '');
         signatureState.pending = {
           text,
           createdAt: Date.now(),
           expiresAt: Date.now() + timeoutMs,
-          messageId: String(sent?.message_id ?? sent?.messageId ?? '')
+          messageId,
+          messageIds: messageId ? [messageId] : []
         };
         signatureState.nextAt = signatureState.pending.expiresAt;
         saveSignatureState();
@@ -16737,7 +16762,7 @@ async function main() {
     }
 
     // 签名草稿的显式命令（发签名/不发签名/改签名 …）优先处理；空间草稿的「发/不发」仍由内心生活处理。
-    if (await handleSignatureOwnerCommand(plainContent, { kind, isOwner, explicitOnly: true })) {
+    if (await handleSignatureOwnerCommand(plainContent, { kind, isOwner, explicitOnly: true, replyToId: quotedMessageId })) {
       log(`[signature] 主人签名命令已处理：${plainContent.slice(0, 40)}`);
       return;
     }
@@ -16752,8 +16777,8 @@ async function main() {
       log(`[inner] 主人命令已处理：${plainContent.slice(0, 40)}`);
       return;
     }
-    // 只有签名草稿在等审核时，主人的自由文本才当作对签名的微调。
-    if (await handleSignatureOwnerCommand(plainContent, { kind, isOwner, explicitOnly: false })) {
+    // 只有引用签名草稿的那条回复才算微调；其他自由文本继续走正常回复。
+    if (await handleSignatureOwnerCommand(plainContent, { kind, isOwner, explicitOnly: false, replyToId: quotedMessageId })) {
       log(`[signature] 主人签名微调已处理：${plainContent.slice(0, 40)}`);
       return;
     }

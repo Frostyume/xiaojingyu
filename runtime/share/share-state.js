@@ -3,6 +3,7 @@
 
 import fs from 'node:fs';
 import { atomicWriteJson } from '../kernel/state-file.js';
+import { SHARE_LIMITS_DEFAULTS, normalizeShareWindows } from './share-modules.js';
 
 export function localDayKey(date = new Date()) {
   const d = date instanceof Date ? date : new Date(date);
@@ -90,6 +91,22 @@ export function loadShareState(file, { now = Date.now(), moduleIds = [] } = {}) 
     }
     state.modules[id] = m;
   }
+  const dailyRaw = state.daily && typeof state.daily === 'object' ? state.daily : {};
+  const dailyWindows = {};
+  if (dailyRaw.windows && typeof dailyRaw.windows === 'object') {
+    for (const [key, value] of Object.entries(dailyRaw.windows)) {
+      const count = Number(value);
+      if (Number.isFinite(count) && count > 0) dailyWindows[String(key)] = Math.floor(count);
+    }
+  }
+  state.daily = {
+    day: String(dailyRaw.day || day),
+    sent: Number.isFinite(Number(dailyRaw.sent)) ? Math.max(0, Math.floor(Number(dailyRaw.sent))) : 0,
+    windows: dailyWindows
+  };
+  if (state.daily.day !== day) {
+    state.daily = { day, sent: 0, windows: {} };
+  }
   return state;
 }
 
@@ -120,6 +137,107 @@ export function recordGroupSend(state, key, now) {
   const sentToday = String(cur.day || day) === day ? Number(cur.sentToday) || 0 : 0;
   const hourCount = Number(cur.hour) === hour ? Number(cur.hourCount) || 0 : 0;
   state.groups[key] = { day, sentToday: sentToday + 1, hour, hourCount: hourCount + 1, lastAt: now };
+}
+
+function globalLimits(limits = {}) {
+  const configured = Number(limits?.globalMaxPerDay);
+  const maxPerDay = Number.isFinite(configured)
+    ? Math.max(0, Math.min(10, Math.floor(configured)))
+    : SHARE_LIMITS_DEFAULTS.globalMaxPerDay;
+  return { maxPerDay, windows: normalizeShareWindows(limits?.windows) };
+}
+
+function windowAt(now, windows) {
+  const d = new Date(now);
+  const hour = d.getHours() + d.getMinutes() / 60;
+  return windows.find((item) => hour >= item.start && hour < item.end) || null;
+}
+
+function nextWindowStartMs(now, windows, { afterDay = false } = {}) {
+  const startOf = (date, window) => {
+    const d = new Date(date);
+    d.setHours(window.start, 0, 0, 0);
+    return d.getTime();
+  };
+  const d = new Date(now);
+  if (afterDay) {
+    d.setDate(d.getDate() + 1);
+    return startOf(d, windows[0]);
+  }
+  for (const window of windows) {
+    const at = startOf(d, window);
+    if (at > now) return at;
+  }
+  d.setDate(d.getDate() + 1);
+  return startOf(d, windows[0]);
+}
+
+/** 下一个可用窗口的开始时间；afterDay=true 时直接给次日首个窗口（每日总闸已满）。 */
+export function nextGlobalWindowAt(now, limits = {}, options = {}) {
+  const { windows } = globalLimits(limits);
+  return nextWindowStartMs(now, windows, options);
+}
+
+/**
+ * 所有分享模块共用的每日总闸：全天最多 globalMaxPerDay 条，
+ * 每个时间窗最多 1 条（默认上午 7–12、下午 12–21），窗口外不发。
+ */
+export function globalBudgetCheck(state, now, limits = {}) {
+  const { maxPerDay, windows } = globalLimits(limits);
+  const day = localDayKey(now);
+  const daily = state?.daily && typeof state.daily === 'object' ? state.daily : {};
+  const sameDay = String(daily.day || '') === day;
+  const sentToday = sameDay ? Math.max(0, Number(daily.sent) || 0) : 0;
+  const counts = sameDay && daily.windows && typeof daily.windows === 'object' ? daily.windows : {};
+  const window = windowAt(now, windows);
+  if (sentToday >= maxPerDay) {
+    return {
+      ok: false,
+      reason: 'global-daily-limit',
+      sentToday,
+      window: window ? window.start : null,
+      nextAt: nextWindowStartMs(now, windows, { afterDay: true })
+    };
+  }
+  if (!window) {
+    return {
+      ok: false,
+      reason: 'global-outside-window',
+      sentToday,
+      window: null,
+      nextAt: nextWindowStartMs(now, windows)
+    };
+  }
+  const windowSent = Math.max(0, Number(counts[String(window.start)]) || 0);
+  if (windowSent >= 1) {
+    return {
+      ok: false,
+      reason: 'global-window-limit',
+      sentToday,
+      window: window.start,
+      nextAt: nextWindowStartMs(now, windows)
+    };
+  }
+  return { ok: true, reason: '', sentToday, window: window.start, nextAt: 0 };
+}
+
+/** 只有确认发送成功后才调用：全局 +1，并给当时所在窗口 +1。 */
+export function recordGlobalSend(state, now = Date.now(), limits = {}) {
+  if (!state || typeof state !== 'object') return null;
+  const { windows } = globalLimits(limits);
+  const day = localDayKey(now);
+  const daily = state.daily && typeof state.daily === 'object' ? state.daily : {};
+  if (String(daily.day || '') !== day) {
+    daily.day = day;
+    daily.sent = 0;
+    daily.windows = {};
+  }
+  daily.sent = Math.max(0, Number(daily.sent) || 0) + 1;
+  if (!daily.windows || typeof daily.windows !== 'object') daily.windows = {};
+  const window = windowAt(now, windows);
+  if (window) daily.windows[String(window.start)] = Math.max(0, Number(daily.windows[String(window.start)]) || 0) + 1;
+  state.daily = daily;
+  return daily;
 }
 
 export function recordModuleSend(state, moduleId, facetId, now, entry) {

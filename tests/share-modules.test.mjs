@@ -12,7 +12,8 @@ import {
   moduleDayTarget,
   inWindowAt,
   recentShareUrls,
-  urlAlreadyShared
+  urlAlreadyShared,
+  SHARE_LIMITS_DEFAULTS
 } from '../runtime/share/share-modules.js';
 import {
   localDayKey,
@@ -21,7 +22,10 @@ import {
   recordGroupSend,
   recordModuleSend,
   migrateAiTipsState,
-  setVerification
+  setVerification,
+  globalBudgetCheck,
+  recordGlobalSend,
+  nextGlobalWindowAt
 } from '../runtime/share/share-state.js';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -207,4 +211,116 @@ test('模块记账保留 url/source，供跨期去重与 UI 使用', () => {
   recordModuleSend(state, 's16', 'fun', at(10), { text: 'x', url: 'https://a.example.com/1', source: 's16', links: [] });
   assert.equal(state.modules.s16.history[0].url, 'https://a.example.com/1');
   assert.equal(state.modules.s16.history[0].source, 's16');
+});
+
+const nextDayAt = (h, m = 0) => new Date(2026, 9, 30, h, m, 0, 0).getTime();
+const globalState = (day = at(8)) => ({ daily: { day: localDayKey(day), sent: 0, windows: {} } });
+
+test('全局总闸默认值：每天 2 条，上午/下午各 1 条', () => {
+  assert.equal(SHARE_LIMITS_DEFAULTS.globalMaxPerDay, 2);
+  const cfg = normalizeShareConfig({});
+  assert.equal(cfg.limits.globalMaxPerDay, 2);
+  assert.deepEqual(cfg.limits.windows, [{ start: 7, end: 12 }, { start: 12, end: 21 }]);
+  const custom = normalizeShareConfig({ limits: { globalMaxPerDay: 99, windows: [{ start: 9, end: 11 }] } });
+  assert.equal(custom.limits.globalMaxPerDay, 10);
+  assert.deepEqual(custom.limits.windows, [{ start: 9, end: 11 }]);
+  assert.deepEqual(normalizeShareConfig({ limits: { windows: [{ start: 12, end: 12 }] } }).limits.windows, [{ start: 7, end: 12 }, { start: 12, end: 21 }]);
+});
+
+test('全局总闸：窗口外不发，窗口内放行', () => {
+  const limits = normalizeShareConfig({}).limits;
+  const state = globalState();
+  const early = globalBudgetCheck(state, at(6), limits);
+  assert.equal(early.ok, false);
+  assert.equal(early.reason, 'global-outside-window');
+  assert.equal(early.nextAt, at(7));
+  assert.equal(globalBudgetCheck(state, at(6, 50), limits).nextAt, at(7));
+  const morning = globalBudgetCheck(state, at(8), limits);
+  assert.equal(morning.ok, true);
+  assert.equal(morning.window, 7);
+  assert.equal(morning.sentToday, 0);
+  const evening = globalBudgetCheck(state, at(21), limits);
+  assert.equal(evening.reason, 'global-outside-window');
+  assert.equal(evening.nextAt, nextDayAt(7));
+});
+
+test('全局总闸：每个窗口最多 1 条，用满后推到下一个窗口', () => {
+  const limits = normalizeShareConfig({}).limits;
+  const state = globalState();
+  recordGlobalSend(state, at(8), limits);
+  assert.equal(state.daily.sent, 1);
+  assert.equal(state.daily.windows['7'], 1);
+  const blocked = globalBudgetCheck(state, at(9), limits);
+  assert.equal(blocked.ok, false);
+  assert.equal(blocked.reason, 'global-window-limit');
+  assert.equal(blocked.sentToday, 1);
+  assert.equal(blocked.nextAt, at(12));
+  const afternoon = globalBudgetCheck(state, at(12), limits);
+  assert.equal(afternoon.ok, true);
+  assert.equal(afternoon.window, 12);
+});
+
+test('全局总闸：全天用满后不再发，nextAt 跨到次日首窗', () => {
+  const limits = normalizeShareConfig({}).limits;
+  const state = globalState();
+  recordGlobalSend(state, at(8), limits);
+  recordGlobalSend(state, at(13), limits);
+  assert.equal(state.daily.sent, 2);
+  const blocked = globalBudgetCheck(state, at(14), limits);
+  assert.equal(blocked.reason, 'global-daily-limit');
+  assert.equal(blocked.sentToday, 2);
+  assert.equal(blocked.nextAt, nextDayAt(7));
+  const limited = { ...limits, globalMaxPerDay: 1 };
+  const one = globalState();
+  recordGlobalSend(one, at(8), limited);
+  assert.equal(globalBudgetCheck(one, at(13), limited).reason, 'global-daily-limit');
+});
+
+test('全局总闸：跨天归零，老状态缺字段按空处理', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'share-global-'));
+  const file = path.join(dir, 'share-modules.json');
+  fs.writeFileSync(file, JSON.stringify({
+    version: 1,
+    groups: {},
+    modules: {},
+    daily: { day: localDayKey(at(8)), sent: 2, windows: { 7: 1, 12: 1 } }
+  }));
+  const sameDay = loadShareState(file, { now: at(10), moduleIds: [] });
+  assert.equal(sameDay.daily.sent, 2);
+  assert.equal(sameDay.daily.windows['7'], 1);
+  const nextDay = loadShareState(file, { now: nextDayAt(8), moduleIds: [] });
+  assert.equal(nextDay.daily.day, localDayKey(nextDayAt(8)));
+  assert.equal(nextDay.daily.sent, 0);
+  assert.deepEqual(nextDay.daily.windows, {});
+  fs.writeFileSync(file, JSON.stringify({ version: 1, groups: {}, modules: {} }));
+  const legacy = loadShareState(file, { now: at(10), moduleIds: [] });
+  assert.deepEqual(legacy.daily, { day: localDayKey(at(10)), sent: 0, windows: {} });
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('nextGlobalWindowAt：跨窗口与跨天', () => {
+  const limits = normalizeShareConfig({}).limits;
+  assert.equal(nextGlobalWindowAt(at(6), limits), at(7));
+  assert.equal(nextGlobalWindowAt(at(8), limits), at(12));
+  assert.equal(nextGlobalWindowAt(at(12), limits), nextDayAt(7));
+  assert.equal(nextGlobalWindowAt(at(12), limits, { afterDay: true }), nextDayAt(7));
+  assert.equal(nextGlobalWindowAt(at(22), limits), nextDayAt(7));
+  const single = { ...limits, windows: [{ start: 9, end: 11 }] };
+  assert.equal(nextGlobalWindowAt(at(12), single), nextDayAt(9));
+});
+
+test('recordGlobalSend：成功后计数并给所在窗口 +1，旧日期自动重置', () => {
+  const limits = normalizeShareConfig({}).limits;
+  const state = { daily: { day: '2000-01-01', sent: 5, windows: { 7: 9 } } };
+  recordGlobalSend(state, at(8), limits);
+  assert.equal(state.daily.day, localDayKey(at(8)));
+  assert.equal(state.daily.sent, 1);
+  assert.deepEqual(state.daily.windows, { 7: 1 });
+  recordGlobalSend(state, at(13), limits);
+  assert.equal(state.daily.sent, 2);
+  assert.deepEqual(state.daily.windows, { 7: 1, 12: 1 });
+  // 窗口外强制发送只累加全天，不伪造窗口计数。
+  recordGlobalSend(state, at(23), limits);
+  assert.equal(state.daily.sent, 3);
+  assert.deepEqual(state.daily.windows, { 7: 1, 12: 1 });
 });

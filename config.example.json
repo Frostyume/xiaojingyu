@@ -509,7 +509,18 @@
         "perGroupPerDay": 8,
         "perGroupPerHour": 3,
         "crossModuleGapMs": 900000,
-        "moduleMaxPerDay": 3
+        "moduleMaxPerDay": 3,
+        "globalMaxPerDay": 2,
+        "windows": [
+          {
+            "start": 7,
+            "end": 12
+          },
+          {
+            "start": 12,
+            "end": 21
+          }
+        ]
       },
       "modules": {}
     },

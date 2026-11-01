@@ -202,6 +202,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     setReady(value) { dshReady = value; },
     setPresets(value) { dshPresetIds = value; dshDefaultPreset = 'standard'; },
     setSnowlumaConnected(value) { snowlumaHealth.connected = value === true; },
+    setInnerLife(value) { innerLife = value; },
     resetEpoch() { sessionEpoch++; },
     closeStorage() {
       try { outbox?.stop(); } catch {}

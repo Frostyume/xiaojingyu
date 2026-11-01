@@ -1310,6 +1310,11 @@
                   "type": "number",
                   "default": 900000
                 },
+                "globalMaxPerDay": {
+                  "title": "Global Max Per Day",
+                  "type": "number",
+                  "default": 2
+                },
                 "moduleMaxPerDay": {
                   "title": "Module Max Per Day",
                   "type": "number",
@@ -1324,6 +1329,20 @@
                   "title": "Per Group Per Hour",
                   "type": "number",
                   "default": 3
+                },
+                "windows": {
+                  "title": "Windows",
+                  "type": "array",
+                  "default": [
+                    {
+                      "start": 7,
+                      "end": 12
+                    },
+                    {
+                      "start": 12,
+                      "end": 21
+                    }
+                  ]
                 }
               }
             }
@@ -4218,6 +4237,14 @@
       "advanced": false
     },
     {
+      "key": "simulation.shareModules.limits.globalMaxPerDay",
+      "label": "Global Max Per Day",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "simulation.shareModules.limits.moduleMaxPerDay",
       "label": "Module Max Per Day",
       "group": "群聊剧场",
@@ -4238,6 +4265,14 @@
       "label": "Per Group Per Hour",
       "group": "群聊剧场",
       "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.shareModules.limits.windows",
+      "label": "Windows",
+      "group": "群聊剧场",
+      "type": "array",
       "restart": "none",
       "advanced": false
     },

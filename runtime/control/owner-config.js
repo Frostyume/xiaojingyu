@@ -98,6 +98,10 @@ const specs = [
   {
     key: 'share.minGapMinutes', label: '主动分享最小间隔', type: 'number', min: 10, max: 1440, unit: '分钟',
     description: '两次主动分享之间至少隔多久', storedPath: 'simulation.innerLife.groupShare.minGapMs', fromStored: (v) => Math.round(Number(v) / 60000), toStored: (v) => Math.round(Number(v) * 60000)
+  },
+  {
+    key: 'shareModule.globalMaxPerDay', label: '分享模块每日总上限', type: 'number', min: 0, max: 10, unit: '条',
+    description: '所有分享模块每天合计最多发几条；上午/下午各限 1 条', storedPath: 'simulation.shareModules.limits.globalMaxPerDay'
   }
 ];
 

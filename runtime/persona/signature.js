@@ -82,6 +82,10 @@ function clean(text, maxChars) {
   return s;
 }
 
+function cleanInstruction(text) {
+  return String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, 200);
+}
+
 const VOICE_RE = /尾巴|鲸鱼|米饭|摸鱼|懒|嘴硬|水里|游|饭/;
 const VOICE_TAILS = ['，尾巴还在', '，摸鱼中', '，米饭要紧', '，懒得动', '，慢慢来嘛'];
 
@@ -180,6 +184,10 @@ export function normalizeSignatureState(raw, now = Date.now()) {
     : [];
   const pendingRaw = obj.pending && typeof obj.pending === 'object' && !Array.isArray(obj.pending) ? obj.pending : null;
   const pendingText = clean(pendingRaw?.text, 200);
+  const pendingMessageId = String(pendingRaw?.messageId || '');
+  const pendingMessageIds = Array.isArray(pendingRaw?.messageIds)
+    ? pendingRaw.messageIds.map((id) => String(id || '')).filter(Boolean).slice(-5)
+    : [];
   return {
     lastText: clean(obj.lastText ?? history.at(-1)?.text ?? '', 200),
     lastAppliedAt: Number(obj.lastAppliedAt) || 0,
@@ -190,8 +198,39 @@ export function normalizeSignatureState(raw, now = Date.now()) {
       text: pendingText,
       createdAt: Number(pendingRaw.createdAt) || 0,
       expiresAt: Number(pendingRaw.expiresAt) || 0,
-      messageId: String(pendingRaw.messageId || '')
+      messageId: pendingMessageId,
+      messageIds: pendingMessageIds.length ? pendingMessageIds : (pendingMessageId ? [pendingMessageId] : []),
+      lastInstruction: cleanInstruction(pendingRaw.lastInstruction),
+      lastInstructionText: clean(pendingRaw.lastInstructionText, 200),
+      lastInstructionAt: Number(pendingRaw.lastInstructionAt) || 0
     } : null,
     updatedAt: Number(obj.updatedAt) || now
   };
+}
+
+/**
+ * 只有显式的「改签名 …」或引用/回复签名草稿的消息，才允许改草稿。
+ * 其余自由文本必须放行给正常对话，不能被签名流程吞掉。
+ */
+export function isSignatureAdjustCommand(command, pending, { replyToId = '', explicitOnly = false, qzonePending = false } = {}) {
+  const text = String(command ?? '').trim();
+  if (!text) return { ok: false, instruction: '' };
+  const explicit = text.match(/^改签名(?:[\s:：,，]+([\s\S]+))?$/);
+  if (explicit) {
+    return { ok: true, instruction: cleanInstruction(explicit[1]) || '换一版，别和现在这版一样' };
+  }
+  if (explicitOnly || qzonePending) return { ok: false, instruction: '' };
+  const ids = new Set([pending?.messageId, ...(Array.isArray(pending?.messageIds) ? pending.messageIds : [])]
+    .map((id) => String(id || ''))
+    .filter(Boolean));
+  if (replyToId && ids.has(String(replyToId))) return { ok: true, instruction: cleanInstruction(text) };
+  return { ok: false, instruction: '' };
+}
+
+/** 同一句修改指令对同一版草稿重复发送时不再生成新草稿（并发重试也覆盖）。 */
+export function isDuplicateSignatureInstruction(pending, instruction) {
+  const text = cleanInstruction(instruction);
+  if (!text || !pending) return false;
+  return text === cleanInstruction(pending.lastInstruction)
+    && String(pending.text ?? '') === String(pending.lastInstructionText ?? '');
 }
