@@ -18,6 +18,8 @@ const tests = [
   // Stage 1 可靠性底座：SQLite 迁移/outbox 幂等与重放/jobs/inbox/配置 schema/结构化日志，
   // 以及 doctor 的端口解析与 DSH 识别（纯离线，不碰生产 state）。
   'core-storage.test.mjs', 'doctor.test.mjs',
+  // 提醒存储：key/时间校验、按会话隔离、取消归属、到期排序与损坏文件不清库。
+  'reminders.test.mjs',
   // Stage 2：prompt 预算、价值评分、模型路由、分层记忆、会话映射影子副本；
   // 桥接层集成（评分接入唤醒、上下文旋转/摘要、预算、tier 路由、FTS 记忆注入）。
   'stage2.test.mjs', 'stage2-bridge.test.mjs',
