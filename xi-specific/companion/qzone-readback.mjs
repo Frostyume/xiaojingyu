@@ -1,5 +1,7 @@
 // Pure fixed-self QZone receipt checks. No API calls, persistence, clocks or text
-// in the result. The bridge may remove CRLF/CR/LF; no other rewriting is allowed.
+// in the result. The bridge may remove CRLF/CR/LF, or U+0020 spaces immediately
+// before CRLF/CR/LF as well; no other rewriting (EOF spaces, tabs, NBSP, interior
+// spaces, words, punctuation) is allowed.
 import {trustedSelfId} from './installation-config.mjs';
 const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const validId=value=>typeof value==='string'&&value.length>0&&value.length<=200&&!/[\u0000-\u001f\u007f]/.test(value);
@@ -7,6 +9,8 @@ const own=(value,key)=>record(value)&&Object.getOwnPropertyDescriptor(value,key)
 const fixedTarget=(value,selfId)=>value===selfId||value===Number(selfId);
 const integer=value=>Number.isSafeInteger(value)&&value>=0;
 const fold=value=>value.replace(/\r\n|[\r\n]/g,'');
+const lineEndSpace=value=>value.replace(/ +\r\n| +[\r\n]|\r\n|[\r\n]/g,lineBreak=>lineBreak.trimStart());
+const sameText=(expected,actual)=>expected===actual||fold(expected)===fold(actual)||lineEndSpace(expected)===lineEndSpace(actual);
 
 function counts(value){
  if(typeof value!=='string')return null;
@@ -19,7 +23,8 @@ function counts(value){
 
 export function compareQzoneText(expected,actual){
  const strings=typeof expected==='string'&&typeof actual==='string';
- const mode=!strings?'different':expected===actual?'exact':fold(expected)===fold(actual)?'line-break-folding':'different';
+ const mode=!strings?'different':expected===actual?'exact':fold(expected)===fold(actual)?'line-break-folding'
+  :lineEndSpace(expected)===lineEndSpace(actual)?'line-end-space-folding':'different';
  return {matches:mode!=='different',mode,expected:counts(expected),actual:counts(actual)};
 }
 
@@ -68,6 +73,6 @@ export function qzoneReadback({postId,expectedContent,detail,list}={}, {selfId:c
   sources:{detail:detailSource.summary,list:listSource.summary},
   source_checks:{detail:detailSource.checks,list:listSource.checks},
   reason:verified?'detail-and-own-list-confirmed':Object.entries(checks).find(([,valid])=>!valid)?.[0]??'unconfirmed',
-  text_basis:'exact-or-CRLF-CR-LF-removal-only',privacy_verified:false,images_verified:false,
+  text_basis:'exact-CRLF-CR-LF-removal-or-line-end-space-folding',privacy_verified:false,images_verified:false,
   publication_time_verified:false,automatic_retry:false};
 }
