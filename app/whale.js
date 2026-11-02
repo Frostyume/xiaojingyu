@@ -14750,7 +14750,7 @@ async function main() {
       if (opts.farewell) social.exitingSessions.delete(sessionId);
       const errText = `${accepted.result.error.code}: ${accepted.result.error.message}`;
       const safeErrText = shouldAuditKey(key) && SENSITIVE_RE.test(errText) ? '（含敏感信息，已隐藏）' : errText;
-      if (!opts.silent) await sendToQQ(key, `⚠️ 消息未被接受：${safeErrText}`);
+      if (!opts.silent) await sendToQQ(key, '⚠️ 消息没有被接收，稍后再试一下');
       return { ok: false, error: safeErrText };
     }
     // prompt 已被 DSH 接受，此时才消费一次性内容（角色卡版本、摘要、订阅播报）。
@@ -17472,7 +17472,8 @@ async function main() {
     if (!accepted.result.ok) {
       const errText = `${accepted.result.error.code}: ${accepted.result.error.message}`;
       const safeErrText = shouldAuditKey(key) && SENSITIVE_RE.test(errText) ? '（含敏感信息，已隐藏）' : errText;
-      await sendToQQ(key, `⚠️ 消息未被接受：${safeErrText}`);
+      log(`⚠️ 消息未被接受 (${key})：${safeErrText}`);
+      await sendToQQ(key, '⚠️ 消息没有被接收，稍后再试一下');
       return;
     }
     if (accepted.result.value.command) {
@@ -18053,7 +18054,7 @@ async function main() {
                     }
                   }
                 } else {
-                  await sendToQQ(key, `⚠️ agent 处理出错：${safeMsg}`);
+                  await sendToQQ(key, '⚠️ agent 处理出错了，稍后再试一下');
                 }
                 if (isFarewell) {
                   const st = socialState(key);
@@ -18583,6 +18584,7 @@ async function main() {
       if (!roleState.role) return '';
       try { return fs.readFileSync(roleFilePath(roleState.role), 'utf8'); } catch { return ''; }
     },
+    getRoleName: currentRoleName,
     isDshReady: () => dshReady,
     getMode: () => currentMode,
     isPaused: () => simulation.paused,

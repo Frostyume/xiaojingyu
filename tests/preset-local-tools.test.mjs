@@ -197,20 +197,22 @@ test('守卫导出的名单与本测试的清单一致（防两份名单各自�
   }
 });
 
-test('守卫名单里的每个名字都是 DSH 真实注册的工具（防拼错假名静默失效）', async () => {
+test('守卫名单里的每个名字都是 DSH 真实注册的工具（防拼错假名静默失效）', async (t) => {
   // 为什么必须测：`tools.restrict()` 对未知名字会**抛错**，而守卫逐个 try/catch
   // 只打日志 ⇒ 拼错的名字 = **静默 no-op**。这正是本名单初版的真实缺陷：
   // pwsh_persistent / bash_persistent / cordis / goal_write / goal_read 五个假名
   // 让整批限制悄悄少生效，而套件当时全绿。
+  // 找不到 DSH 时必须报 skip（而不是 return 当通过）：干净 clone 里这条用例没执行，
+  // 不能和「已核对过工具名」混为一谈。
   let dshNames = null;
   try {
     dshNames = collectDshToolNames();
   } catch (error) {
-    console.log(`  ⏭  跳过：无法定位 DSH 工具包（${error?.message ?? error}）；设 DSH_INSTALL_MODULES 指向 <DSH>/node_modules 可启用`);
+    t.skip(`无法定位 DSH 工具包（${error?.message ?? error}）；设 DSH_INSTALL_MODULES 指向 <DSH>/node_modules 可启用`);
     return;
   }
   if (dshNames === null) {
-    console.log('  ⏭  跳过：未找到 DSH 工具包（设 DSH_TOOL_PACKAGES 指向 @deepseek-ai 目录即可启用）');
+    t.skip('未找到 DSH 工具包（设 DSH_TOOL_PACKAGES 指向 @deepseek-ai 目录即可启用）');
     return;
   }
   for (const id of SIMULATION_PRESETS) {

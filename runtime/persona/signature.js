@@ -75,6 +75,50 @@ const TEMPLATES = Object.freeze({
   ]
 });
 
+// 自定义角色没有「小鲸鱼」的身体和生活，签名用这套中性模板，避免串味。
+const NEUTRAL_TEMPLATES = Object.freeze({
+  bright: [
+    '今天精神不错，想多说几句话，谁有话题都可以抛过来',
+    '刚晒过太阳，心情亮亮的，今天想多聊几句，别嫌我话多就好',
+    '电量满格，谁来都能接住，今天适合热闹一点，也适合认真听人说话',
+    '今天状态挺好，慢慢来，等你们把话题抛过来，我接着就好',
+    '有件小事让我高兴了半天，想分你一点好心情，今天看什么都顺眼',
+    '今天话会多一点，但不会抢别人的话头，想聊随时开口',
+    '心情挺轻快，今天不打算潜水，遇到有意思的就接一句',
+    '状态在线，适合把攒着的话说开，也适合认真听人讲话'
+  ],
+  calm: [
+    '慢慢来，慢慢想，今天也不急着给答案，事情一件一件来就好',
+    '安静待着，偶尔说一句证明我还在，想聊就叫一声',
+    '今天安静听大家说话，想到什么再接一句，不想抢别人的话头',
+    '不急，事情一件一件来，话也一句一句说，今天想把节奏放慢',
+    '今天话不多，耳朵一直开着，慢慢来就好，不用急着找话题',
+    '在整理最近听到的零碎，攒够了再讲给你，现在先安静待一会儿',
+    '今天适合把听到的故事慢慢理一理，理清楚了再讲给你',
+    '安安静静也挺好，不妨碍接梗，想聊就叫我，我一直在'
+  ],
+  low: [
+    '今天电量不太够，说话会慢一点，但你说的话我都在听',
+    '有点困，先歇一会儿，有急事就戳我一下，缓过来我就回',
+    '状态一般，脑子转得慢，但不妨碍听你说，重要的事不会漏掉',
+    '给自己放个慢速档，急事请多等我一会儿，缓过来就正常说话',
+    '今天慢半拍，别催我，重要的事不会忘，只是回得没那么快',
+    '没力气说漂亮话，但你说的话我都记着，等我缓过来再慢慢聊',
+    '先躺一会儿，晚点再聊，今天想把自己调成静音',
+    '今天想少说两句，不是不理你，等缓过来再好好聊'
+  ],
+  late: [
+    '夜里安静，适合想事情，也适合小声聊天，不用急着把话说完',
+    '这个点还没睡，醒着，顺便看看还有谁醒着',
+    '夜深了，声音放轻一点，有什么话慢慢说',
+    '半夜很适合把没想完的事想完，想不完就留到明天',
+    '睡不着，出来冒个泡，看看还有谁醒着，没人的话就继续待着',
+    '夜里的问题先记下，白天脑子清楚了再答，晚上不钻牛角尖',
+    '灯关了，脑子还亮着，过一会儿就睡，明天再接着想',
+    '这个点适合说点真心话，说完就去睡，不留到第二天反悔'
+  ]
+});
+
 function clean(text, maxChars) {
   let s = String(text ?? '').replace(/\s+/g, ' ').trim();
   s = s.replace(/[。．.]+$/u, '');
@@ -116,37 +160,46 @@ export function generateSignature({
   const energy = Number.isFinite(Number(state.energy)) ? Number(state.energy) : 0.6;
   const hour = hourInShanghai(now);
   const recent = new Set((Array.isArray(history) ? history : []).map((h) => clean(typeof h === 'string' ? h : h?.text, maxChars)));
-  const pool = [];
-  if (hour >= 23 || hour < 6) pool.push(...TEMPLATES.late);
-  if (energy <= 0.35 || valence <= -0.25) pool.push(...TEMPLATES.low);
-  else if (energy >= 0.7 || valence >= 0.4) pool.push(...TEMPLATES.bright);
-  else pool.push(...TEMPLATES.calm);
-  // 不论心情都混入一组“小鲸鱼本人”的生活签名；自定义角色不套用默认鲸鱼生活记号。
+  // 自定义角色不套用默认鲸鱼生活记号，整池换成中性模板。
   const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
+  const source = customRole ? NEUTRAL_TEMPLATES : TEMPLATES;
+  const finish = (text, seed) => (customRole ? clean(text, maxChars) : ensureVoice(text, seed, maxChars));
+  const pool = [];
+  if (hour >= 23 || hour < 6) pool.push(...source.late);
+  if (energy <= 0.35 || valence <= -0.25) pool.push(...source.low);
+  else if (energy >= 0.7 || valence >= 0.4) pool.push(...source.bright);
+  else pool.push(...source.calm);
+  // 不论心情都混入一组“小鲸鱼本人”的生活签名；自定义角色不套用默认鲸鱼生活记号。
   if (!customRole) pool.push(...TEMPLATES.identity);
   // 心情普通时也混入 calm，避免只有一句
-  if (!pool.length) pool.push(...TEMPLATES.calm);
+  if (!pool.length) pool.push(...source.calm);
 
   const topics = (Array.isArray(interests) && interests.length ? interests : (state.interests || []))
     .map((i) => String(typeof i === 'string' ? i : i?.topic ?? '').trim().slice(0, 12))
     .filter(Boolean);
   if (topics.length) {
     for (const t of topics.slice(0, 2)) {
-      for (const tpl of TEMPLATES.interest) pool.push(tpl.replace('{topic}', t));
+      for (const tpl of TEMPLATES.interest) {
+        const text = tpl.replace('{topic}', t);
+        if (customRole && VOICE_RE.test(text)) continue;
+        pool.push(text);
+      }
     }
   }
   const candidates = [...new Set(pool.map((t) => clean(t, maxChars)).filter(Boolean))]
     .filter((t) => !recent.has(t));
   if (!candidates.length) {
     // 全用过时用「长句 + 短尾」组合，避免退化回几个字的短签名
-    const tails = ['，慢慢来就好', '，想到什么再补', '，今天也不急', '，先游一圈再说'];
-    for (const base of TEMPLATES.calm) {
+    const tails = customRole
+      ? ['，慢慢来就好', '，想到什么再补', '，今天也不急', '，先缓一缓再说']
+      : ['，慢慢来就好', '，想到什么再补', '，今天也不急', '，先游一圈再说'];
+    for (const base of source.calm) {
       for (const tail of tails) {
         const t = clean(`${base}${tail}`, maxChars);
-        if (!recent.has(t)) return ensureVoice(t, now, maxChars);
+        if (!recent.has(t)) return finish(t, now);
       }
     }
-    return ensureVoice(TEMPLATES.calm[0], now, maxChars);
+    return finish(source.calm[0], now);
   }
   // 优先 18 字以上；如果配置把上限压得很短，则至少不要选最短的那批。
   const minChars = Math.min(MIN_CHARS, maxChars);
@@ -158,7 +211,7 @@ export function generateSignature({
       : candidates);
   // 用当天日期做稳定轮换：同一天多次预览不会跳来跳去
   const day = Math.floor(Number(now) / 86400000);
-  return ensureVoice(usable[Math.abs(day + Math.floor(Number(now) / 3600000)) % usable.length], Math.floor(Number(now) / 3600000), maxChars);
+  return finish(usable[Math.abs(day + Math.floor(Number(now) / 3600000)) % usable.length], Math.floor(Number(now) / 3600000));
 }
 
 export function appendSignatureHistory(history, text, now = Date.now()) {

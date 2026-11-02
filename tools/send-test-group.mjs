@@ -1,5 +1,6 @@
 // 向指定名称的 QQ 群发送一条测试消息（从桥接侧主动发送，验证 群聊 方向）。
-// 用法：node tools/send-test-group.mjs <群名关键词> [消息内容]
+// 用法：node tools/send-test-group.mjs <群名关键词> [消息内容] [--yes]
+// 默认只做预演：连上网关、列出匹配目标，但不发送；确认无误后加 --yes 才会真的发。
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,8 +10,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cfg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'config.json'), 'utf8'));
 const { wsUrl, accessToken } = cfg.snowluma;
 
-const keyword = process.argv[2] ?? '机器人测试';
-const message = process.argv[3] ?? '【桥接测试】我是 DSH agent，通过 SnowLuma 桥接接入本群。收到请回复～';
+const argv = process.argv.slice(2);
+const confirmed = argv.includes('--yes');
+const positional = argv.filter((a) => a !== '--yes');
+if (!positional[0]) {
+  console.error('用法：node tools/send-test-group.mjs <群名关键词> [消息内容] [--yes]');
+  console.error('  默认只预演（不发）；加 --yes 才发送。');
+  process.exit(1);
+}
+const keyword = positional[0];
+const message = positional[1] ?? '【桥接测试】我是 DSH agent，通过 SnowLuma 桥接接入本群。收到请回复～';
 
 const bot = new SnowLumaWebSocketClient({ url: wsUrl, accessToken: accessToken || undefined, reconnect: false });
 const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('超时')), 10_000));
@@ -29,9 +38,14 @@ try {
     process.exit(1);
   }
 
-  const result = await bot.sendGroupMessage(target.group_id, text(message));
-  console.log(`✅ 已发送到群 ${target.group_id}（${target.group_name}）: ${message}`);
-  console.log('  响应:', JSON.stringify(result));
+  if (!confirmed) {
+    console.log(`🔍 预演：将发送到群 ${target.group_id}（${target.group_name}）: ${message}`);
+    console.log('   未发送。确认无误后加 --yes 重新执行。');
+  } else {
+    const result = await bot.sendGroupMessage(target.group_id, text(message));
+    console.log(`✅ 已发送到群 ${target.group_id}（${target.group_name}）: ${message}`);
+    console.log('  响应:', JSON.stringify(result));
+  }
 } catch (error) {
   console.error('❌ 发送失败:', error?.message ?? error);
   process.exit(1);

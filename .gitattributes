@@ -1,2 +1,4 @@
 # 人格卡按 LF 存储：桥接与测试按字符计长，CRLF 会把换行符也算进去
-roles/*.md text eol=lf
+personas/*.md text eol=lf
+# preset patch 由生成器按 LF 写出；锁 LF 避免 Windows 检出后与生成结果逐字节不一致
+integrations/dsh/agent-presets/presets/*.patch.yml text eol=lf

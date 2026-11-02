@@ -16,10 +16,14 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let pass = 0;
 let fail = 0;
+let skipped = 0;
 const ok = (cond, name, extra = '') => {
   if (cond) { pass += 1; console.log(`  ✅ ${name}${extra ? ' — ' + extra : ''}`); }
   else { fail += 1; console.error(`  ❌ ${name}${extra ? ' — ' + extra : ''}`); }
 };
+// 显式跳过：外部依赖（ffmpeg/ffprobe）缺失时不能当作"通过"，否则整段功能等于没测。
+const skip = (name, why) => { skipped += 1; console.log(`  ⏭  SKIP ${name} — ${why}`); };
+let ffmpegAvailable = false;
 
 // 外部进程跑一次（stdio ignore，兼容受限沙箱）
 function run(bin, args, timeoutMs = 60000) {
@@ -112,8 +116,9 @@ console.log('## 原样不加处理');
   const src = path.join(tmp, 'tone.wav');
   const r = await ffmpeg(['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=1', '-ac', '1', '-ar', '24000', src]);
   if (r.code !== 0) {
-    console.log(`  ⏭  跳过：本环境无法运行 ffmpeg（${r.error ?? r.code}）`);
+    skip('真实音量处理', `本环境无法运行 ffmpeg（${r.error ?? r.code}）`);
   } else {
+    ffmpegAvailable = true;
     const same = await processAudioVolume(src, { volume: 1 });
     ok(same.converted === false && same.path === src, 'volume=1 直接复用原文件（不转码）');
     ok(same.mode === 'original', 'mode=original');
@@ -140,7 +145,7 @@ console.log('## 原样不加处理');
     const up = wavRms(louder.path);
     const down = wavRms(quieter.path);
     if (base === null || up === null || down === null) {
-      console.log(`  ⏭  跳过：拿不到 PCM（base=${base} up=${up} down=${down}）`);
+      skip('增益实测', `拿不到 PCM（base=${base} up=${up} down=${down}）`);
     } else {
       // 3 倍 ≈ +9.54 dB；0.3 倍 ≈ -10.46 dB。给 ±2.5dB 容差覆盖重采样/量化误差。
       const upDelta = up - base;
@@ -172,17 +177,21 @@ console.log('## 原样不加处理');
 }
 
 console.log('## 源文件异常');
-{
+if (!ffmpegAvailable) {
+  skip('损坏音频被拒', 'ffmpeg 不可用，无法区分“源损坏”和“工具缺失”');
+} else {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vol-bad-'));
   const junk = path.join(tmp, 'junk.mp3');
   fs.writeFileSync(junk, Buffer.alloc(2048, 7));
   let threw = false;
   let msg = '';
   try { await processAudioVolume(junk, { volume: 2, tmpDir: tmp }); } catch (e) { threw = true; msg = e.message; }
-  if (/ffmpeg/.test(msg) || threw) ok(threw, '损坏音频被拒（给出可读错误）', msg.slice(0, 60));
-  else ok(false, '损坏音频被拒', '竟然成功了？');
+  // 必须是"解码/处理失败"这条路径；ffmpeg 自身缺失（找不到/不可用/启动失败）不算通过。
+  const genuine = threw && /退出码|损坏|空文件/.test(msg) && !/找不到 ffmpeg|ffmpeg 不可用|启动失败/.test(msg);
+  ok(genuine, '损坏音频被拒（给出可读错误）', msg.slice(0, 60));
   fs.rmSync(tmp, { recursive: true, force: true });
 }
 
-console.log(`\n结果：${pass} 通过，${fail} 失败`);
+console.log(`\n结果：${pass} 通过，${fail} 失败，${skipped} 跳过`);
+if (skipped > 0) console.log('⚠️  有跳过项：这些断言本次没有执行，报告全绿不代表它们通过。');
 if (fail > 0) process.exit(1);

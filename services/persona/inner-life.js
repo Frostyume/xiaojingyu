@@ -126,6 +126,7 @@ export function createInnerLife(deps) {
     resolvePresetName,
     unwrap,
     getRoleText,
+    getRoleName,
     isDshReady,
     getMode,
     isPaused,
@@ -594,7 +595,7 @@ export function createInnerLife(deps) {
     fs.mkdirSync(dir, { recursive: true });
     const wsValue = unwrap(await api.workspace.create({ path: dir }), 'inner workspace.create');
     if (wsValue.created) {
-      try { await api.workspace.rename({ workspaceId: wsValue.workspaceId, title: '小鲸鱼的内心生活' }); } catch {}
+      try { await api.workspace.rename({ workspaceId: wsValue.workspaceId, title: `${getRoleName?.() || '小鲸鱼'}的内心生活` }); } catch {}
     }
     const value = unwrap(await api.sessions.create({ workspaceId: wsValue.workspaceId, agentPreset: preset }), 'inner session.create');
     innerSessionId = value.sessionId;
@@ -3045,7 +3046,7 @@ ${share.text}${share.item?.url ? `
         </div>
         <div class="terms"><h2>关键术语</h2>${termsHtml || '<div class="term"><b>术语</b><p>正文里有解释</p></div>'}</div>
       </div>
-      <div class="foot"><b>小鲸鱼</b> · 讲给爸爸妈妈的 AI 小知识</div>
+      <div class="foot"><b>${esc(getRoleName?.() || '小鲸鱼')}</b> · 讲给爸爸妈妈的 AI 小知识</div>
     </div>`;
     const stamp = `${process.pid}-${Date.now()}`;
     const htmlPath = path.join(stateDir, `ai-tip-${stamp}.html`);

@@ -42,6 +42,23 @@ test('signature: 生成有内容的签名、无末尾句号、避开历史、可
   assert.ok(morning.length >= 22);
 });
 
+test('signature: 自定义角色不出现小鲸鱼生活记号', () => {
+  for (const energy of [0.1, 0.5, 0.9]) {
+    for (const valence of [-0.5, 0, 0.6]) {
+      for (let i = 0; i < 12; i += 1) {
+        const text = generateSignature({
+          persona: { state: { energy, mood: { valence }, interests: [{ topic: '游泳' }] } },
+          now: Date.UTC(2026, 9, 26, 14, 0) + i * 3600 * 1000,
+          maxChars: 40,
+          history: [],
+          roleName: '阿岚'
+        });
+        assert.doesNotMatch(text, /尾巴|鲸鱼|鲸生|米饭|摸鱼|水里|浅水|冒泡|大肥鱼|游/u, `自定义角色签名串味：${text}`);
+      }
+    }
+  }
+});
+
 test('signature: 历史有界与旧格式兼容', () => {
   let history = [];
   for (let i = 0; i < 30; i += 1) history = appendSignatureHistory(history, `签名${i}`, 1000 + i);
