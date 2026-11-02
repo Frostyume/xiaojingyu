@@ -157,6 +157,7 @@ test('MCP validates/forwards read watermarks and wait purposes against an isolat
       'services/social/qq-model-view.js',
       'runtime/kernel/sensitive.js',
       'runtime/kernel/state-file.js',
+      'runtime/control/feature-switches.js',
       'runtime/persona/tts-busy-retry.js'
     ];
     for (const rel of modules) await fs.mkdir(path.dirname(path.join(fixture, rel)), { recursive: true });

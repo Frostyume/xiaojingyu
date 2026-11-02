@@ -54,6 +54,8 @@ import * as coreBudget from '../runtime/kernel/budget.js';
 import * as coreSignature from '../runtime/persona/signature.js';
 import * as controlTiers from '../runtime/control/control-tiers.js';
 import * as ownerConfig from '../runtime/control/owner-config.js';
+import * as featureSwitches from '../runtime/control/feature-switches.js';
+import * as featureControl from '../runtime/control/feature-control.js';
 import * as coreTimeAwareness from '../runtime/kernel/time-awareness.js';
 import * as esportsSchedule from '../services/social/esports-schedule.js';
 import * as esportsFeed from '../services/social/esports-feed.js';
@@ -69,6 +71,13 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     allow: { private: ['123'], groups: ['456'] }, consolePort: 0,
     consoleToken: 'fixture-console-token', slang: { enabled: false },
     ...config,
+    // 离线夹具默认把模块总开关全开：既有回归验证的是各功能行为，不是默认关闭。
+    // 总开关默认值/关闭行为由 tests/feature-switches.test.mjs 单独覆盖。
+    features: {
+      disabled: [],
+      ...Object.fromEntries(featureSwitches.FEATURE_IDS.map((id) => [id, true])),
+      ...(config.features ?? {})
+    },
     // 离线安全回归默认开启控制台令牌；生产默认关闭（consoleAuth.enabled=false）。
     consoleAuth: { enabled: true, ...(config.consoleAuth ?? {}) },
     // 离线测试不能依赖本机时钟：凌晨/夜间跑时，真实夜间静默会吞掉 timeout 唤醒。
@@ -181,6 +190,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     signatureState,
     handleSignatureJob,
     handleSignatureOwnerCommand,
+    handleDailyReportJob,
     getStickerEntries: () => stickerEntries,
     getImageEntries: () => imageEntries,
     buildSignaturePreview,
@@ -240,7 +250,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     relationshipStageLabel: coreRelationshipModel.stageLabel,
     relationshipAxisWords: coreRelationshipModel.axisWords,
     relationshipBond: coreRelationshipModel.computeBond,
-    ...coreTtsEmotion, ...coreSpeech, ...coreFeatureLoader, ...coreEventBus, ...coreTransport, ...coreBudget, ...coreSignature, ...controlTiers, ...ownerConfig, ...coreTimeAwareness,
+    ...coreTtsEmotion, ...coreSpeech, ...coreFeatureLoader, ...coreEventBus, ...coreTransport, ...coreBudget, ...coreSignature, ...controlTiers, ...ownerConfig, ...featureSwitches, ...featureControl, ...coreTimeAwareness,
     ...esportsSchedule,
     ...esportsFeed,
     deepMergeConfig: coreHealth.deepMerge,

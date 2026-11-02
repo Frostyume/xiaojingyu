@@ -31,6 +31,7 @@ import { normalizeShareConfig, normalizeShareModule, moduleFacets, engineFacets,
 import { loadShareState, saveShareState, groupBudgetCheck, recordGroupSend, recordModuleSend, recordModuleFailure, setVerification, migrateAiTipsState, localDayKey as shareDayKey, globalBudgetCheck, recordGlobalSend, nextGlobalWindowAt } from '../../runtime/share/share-state.js';
 import { buildShareTask } from '../../runtime/share/share-prompts.js';
 import { formatShareCaption, formatShareLinksText, formatAiTipLinks, formatTipCaption } from '../../runtime/share/share-format.js';
+import { featureEnabled, featureForInnerJob } from '../../runtime/control/feature-switches.js';
 
 const DEFAULTS = {
   reflection: { enabled: true, minIntervalMs: 1 * 3600 * 1000, maxIntervalMs: 8 * 3600 * 1000 },
@@ -1341,6 +1342,9 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
 
   async function postQzoneNow(text, { manual = false, imageRef = '', notify = true } = {}) {
     const il = ilCfg();
+    // 发布是唯一真正写空间的动作：主开关关闭时，自动排期、主人审核通过、
+    // 控制台直发都必须在这里被拦住，不能靠调用方各自记得判断。
+    if (!featureEnabled(cfg, 'qzone')) return { status: 'disabled', reason: 'features.qzone=false' };
     const state = loadInner();
     if (state.qzone.paused) return { status: 'paused' };
     const { images, name: imageName } = await buildQzoneImages(imageRef);
@@ -1806,6 +1810,7 @@ ${othersLine}拟回复：${reply}
   }
 
   async function checkQzoneComments() {
+    if (!featureEnabled(cfg, 'qzoneCommentReply')) return { status: 'disabled', reason: 'features.qzoneCommentReply=false' };
     const il = ilCfg();
     const cr = il.qzone?.commentReply || DEFAULTS.qzone.commentReply;
     if (il.qzone?.enabled === false || cr.enabled === false) return { status: 'disabled' };
@@ -2437,6 +2442,9 @@ ${othersLine}拟回复：${reply}
   }
 
   async function publishShareDraft(moduleId, { force = false } = {}) {
+    const featureId = moduleId === 'ai_tips' ? 'aiTips' : 'shareModule';
+    // 待审草稿的发布是真正的群发送；force 只用于绕过过期/预算，不能绕过主开关。
+    if (!featureEnabled(cfg, featureId)) return { status: 'disabled', reason: `features.${featureId}=false` };
     const conf = shareModulesConfig();
     const module = conf.modules[moduleId];
     const state = loadShareModulesState();
@@ -3131,6 +3139,9 @@ ${share.text}${share.item?.url ? `
   }
 
   async function runShareModule(moduleId, { force = false, dryRun = false, ignoreGuards = false, facetId = '', withImages = true, categoryId = '' } = {}) {
+    const featureId = moduleId === 'ai_tips' ? 'aiTips' : 'shareModule';
+    // 预览（dryRun）不发送，可以用于总开关关闭时检查配置；真正生成/发送必须开总开关。
+    if (!dryRun && !featureEnabled(cfg, featureId)) return { status: 'disabled', reason: `features.${featureId}=false` };
     const conf = shareModulesConfig();
     const module = conf.modules[moduleId];
     if (!module) return { status: 'unknown-module' };
@@ -3154,7 +3165,7 @@ ${share.text}${share.item?.url ? `
     }
     if (!m.dailyTarget) m.dailyTarget = moduleDayTarget(module);
     if (!force && m.sentToday >= m.dailyTarget) return { status: 'daily-done' };
-    if (!dryRun && !draftOnly) {
+    if (!dryRun) {
       const global = globalBudgetCheck(state, Date.now(), conf.limits);
       if (!global.ok) {
         m.nextAt = Number(global.nextAt) || nextGlobalWindowAt(Date.now(), conf.limits, { afterDay: global.reason === 'global-daily-limit' });
@@ -3715,13 +3726,19 @@ ${formatTipCaption(item)}`;
   }
 
   async function runJob(name, { force = false, preferS16 = false, forceApproval = false, dryRun = false } = {}) {
+    const featureId = featureForInnerJob(name);
+    const shareId = name === 'aiTips' ? 'ai_tips' : (name.startsWith('share:') ? name.slice(6) : '');
+    // dryRun 只允许走「不发送」的预览路径；force 不能再绕过主开关。
+    const previewOnly = dryRun && (name === 'curiosity' || Boolean(shareId));
+    if (featureId && !featureEnabled(cfg, featureId) && !previewOnly) {
+      return { status: 'disabled', reason: `features.${featureId}=false` };
+    }
     const il = ilCfg();
     const state = loadInner();
     if (!il.enabled && !force) return { status: 'disabled' };
     if (!isDshReady()) return { status: 'dsh-not-ready' };
     if (getMode() !== 'simulation') return { status: 'mode' };
     if (isPaused() && !force) return { status: 'paused' };
-    const shareId = name === 'aiTips' ? 'ai_tips' : (name.startsWith('share:') ? name.slice(6) : '');
     let result;
     try {
       if (shareId) result = await runShareModule(shareId, { force, dryRun });
@@ -3779,7 +3796,8 @@ ${formatTipCaption(item)}`;
     for (const [id, module] of Object.entries(conf.modules)) {
       const m = sstate.modules[id];
       if (!m) continue;
-      if (!module.enabled || m.paused || !hasEngineFacets(module)) {
+      const featureId = id === 'ai_tips' ? 'aiTips' : 'shareModule';
+      if (!featureEnabled(cfg, featureId) || !module.enabled || m.paused || !hasEngineFacets(module)) {
         if (m.nextAt) { m.nextAt = 0; dirty = true; }
         continue;
       }
@@ -3801,7 +3819,11 @@ ${formatTipCaption(item)}`;
   }
 
   function legacyInnerJobNames() {
-    return ['reflection', 'curiosity', 'qzone'].filter((name) => !(name === 'curiosity' && curiosityOwnedByEngine()));
+    return ['reflection', 'curiosity', 'qzone'].filter((name) => {
+      if (name === 'curiosity' && curiosityOwnedByEngine()) return false;
+      const featureId = featureForInnerJob(name);
+      return !featureId || featureEnabled(cfg, featureId);
+    });
   }
 
   function scheduleNext() {
@@ -3995,6 +4017,10 @@ ${formatTipCaption(item)}`;
       const reject = /^(不发回复|取消回复)$/.test(command)
         || (!pendingDraft && !state.pendingShare && /^(不发|取消)$/.test(command));
       if (approve) {
+        if (!featureEnabled(cfg, 'qzoneCommentReply')) {
+          await sendOwner('空间评论回复的总开关现在是关的，这条回复不会发。打开「空间评论回复」后回「发回复」就行。');
+          return true;
+        }
         try {
           const comment = {
             uin: pendingReply.commentUin || '',

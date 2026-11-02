@@ -3874,6 +3874,381 @@ button.active,.primary {
     font-size:9.5px
   }
 }
+
+/* ── 功能控制：板块 → 模块卡片 → 单一总开关 ─────────────────────────────── */
+.feature-intro {
+  max-width: 920px;
+  line-height: 1.7;
+  margin: 8px 0 14px
+}
+.feature-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px
+}
+.feature-toolbar > input[type=search] {
+  flex: 1 1 240px;
+  min-width: 160px;
+  max-width: 380px
+}
+.feature-toolbar > select {
+  flex: 0 1 150px;
+  min-width: 120px
+}
+.feature-alerts {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px
+}
+.feature-alert {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: var(--surface-subtle);
+  font-size: 12.5px;
+  line-height: 1.55
+}
+.feature-alert.warn {
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+  color: var(--warn-fg-strong)
+}
+.feature-alert.err {
+  border-color: var(--danger-border);
+  background: var(--danger);
+  color: var(--err)
+}
+.feature-savebar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--save-bar-bg, var(--surface))
+}
+.feature-savebar .meta {
+  margin: 0
+}
+.feature-savebar-actions {
+  margin: 0;
+  gap: 10px
+}
+.feature-boards {
+  display: grid;
+  gap: 20px
+}
+.feature-empty {
+  margin: 16px 0 0;
+  padding: 18px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  text-align: center
+}
+.feature-board {
+  display: grid;
+  gap: 10px;
+  min-width: 0
+}
+.feature-board-head h3 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--deck-font, inherit);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none
+}
+.feature-board-head .meta {
+  margin: 2px 0 0;
+  line-height: 1.55
+}
+.feature-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  min-width: 0
+}
+.feature-module {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface)
+}
+.feature-module.is-dirty {
+  border-color: var(--accent-border);
+  box-shadow: inset 3px 0 0 var(--accent)
+}
+.feature-module-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px
+}
+.feature-module-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0
+}
+.feature-module-copy {
+  min-width: 0
+}
+.feature-module-copy h3 {
+  margin: 0 0 2px;
+  color: var(--text);
+  font-family: var(--deck-font, inherit);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none
+}
+.feature-module-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55
+}
+.feature-switch {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  cursor: pointer;
+  user-select: none
+}
+.feature-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0
+}
+.feature-switch-track {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 24px;
+  border: 1px solid var(--border-strong, var(--border));
+  border-radius: 999px;
+  background: var(--surface-chip-strong, var(--surface-subtle));
+  transition: background .16s, border-color .16s
+}
+.feature-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform .16s
+}
+.feature-switch input:checked + .feature-switch-track {
+  border-color: var(--accent);
+  background: var(--accent)
+}
+.feature-switch input:checked + .feature-switch-track::after {
+  transform: translateX(20px);
+  background: #fff
+}
+.feature-switch input:focus-visible + .feature-switch-track {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px
+}
+.feature-switch-text {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap
+}
+.feature-switch input:checked ~ .feature-switch-text {
+  color: var(--accent)
+}
+.feature-effects {
+  display: grid;
+  gap: 4px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  font-size: 12.5px;
+  line-height: 1.55
+}
+.feature-effects p {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-secondary, var(--text))
+}
+.feature-effects b {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap
+}
+.feature-status {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted)
+}
+.feature-status.warn {
+  color: var(--warn-fg-strong)
+}
+.feature-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px
+}
+.feature-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 11.5px
+}
+.feature-badge.ok {
+  border-color: var(--pill-green-bg);
+  background: var(--pill-green-bg);
+  color: var(--pill-green-fg)
+}
+.feature-badge.warn {
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+  color: var(--warn-fg-strong)
+}
+.feature-badge.err {
+  border-color: var(--danger-border);
+  background: var(--danger);
+  color: var(--err)
+}
+.feature-advanced {
+  padding-top: 10px;
+  border-top: 1px dashed var(--border)
+}
+.feature-advanced > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary, var(--text))
+}
+.feature-advanced > summary::-webkit-details-marker {
+  display: none
+}
+.feature-advanced > summary::before {
+  content: '▸';
+  color: var(--muted)
+}
+.feature-advanced[open] > summary::before {
+  content: '▾'
+}
+.feature-advanced-note {
+  margin: 10px 0 0;
+  line-height: 1.6
+}
+.feature-advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 12px
+}
+.feature-advanced-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted)
+}
+.feature-advanced-grid input[type=number],
+.feature-advanced-grid input[type=time] {
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--border-input, var(--border));
+  border-radius: 8px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit
+}
+.feature-advanced-grid .feature-adv-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary, var(--text))
+}
+.feature-advanced-actions {
+  margin-top: 12px;
+  gap: 8px;
+  align-items: center
+}
+.feature-advanced-actions .meta {
+  margin: 0
+}
+.feature-advanced .content-feature {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-color: var(--border-subtle, var(--border));
+  background: var(--surface-subtle)
+}
+.feature-advanced .content-feature.feature-panel-inline {
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent
+}
+.feature-advanced .content-feature.feature-panel-inline > summary {
+  display: none
+}
+.feature-overview {
+  margin-top: 18px
+}
+.feature-footnote {
+  margin-top: 10px;
+  line-height: 1.6
+}
+.feature-module[hidden],
+.feature-board[hidden] {
+  display: none
+}
+@media(max-width:760px) {
+  .feature-savebar {
+    position: static
+  }
+  .feature-cards {
+    grid-template-columns: 1fr
+  }
+  .feature-module {
+    padding: 12px
+  }
+  .feature-module-main {
+    gap: 10px
+  }
+  .feature-effects p {
+    grid-template-columns: 1fr;
+    gap: 1px
+  }
+}
 </style>
 </head>
 <body>
@@ -3884,7 +4259,7 @@ button.active,.primary {
     <div class="nav-label">工作空间</div>
     <nav id="mainNav">
       <button data-view="overview" data-label="运行总览" title="运行总览" class="nav-item active" aria-current="page"><span class="nav-icon" aria-hidden="true">◫</span>运行总览</button>
-      <button data-view="features" data-label="功能总览" title="功能总览" class="nav-item"><span class="nav-icon" aria-hidden="true">✦</span>功能总览</button>
+      <button data-view="features" data-label="功能控制" title="功能控制" class="nav-item"><span class="nav-icon" aria-hidden="true">✦</span>功能控制</button>
       <button data-view="sessions" data-label="会话与审批" title="会话与审批" class="nav-item"><span class="nav-icon" aria-hidden="true">☷</span>会话与审批<span class="nav-count" id="pendingCount">—</span></button>
       <button data-view="persona" data-label="人格与角色" title="人格与角色" class="nav-item"><span class="nav-icon" aria-hidden="true">◉</span>人格与角色</button>
       <div class="nav-label">聊天行为</div>
@@ -3924,18 +4299,45 @@ button.active,.primary {
       <div id="connectionAlert" class="connection-alert" role="alert" hidden></div>
       <div class="grid">
         <section id="section-features" data-page="features" class="card span-all">
-          <h2>小鲸鱼功能总览</h2>
-          <div class="row">
-            <button id="featuresRefresh" class="small">刷新功能清单</button>
+          <h2>功能控制</h2>
+          <p class="meta feature-intro">按板块管理小鲸鱼能做什么。每张卡只有一个总开关：打开就能用，关掉就彻底停下；频率、目标群、模板这些细节都收在「高级设置」里，默认不展开。保存后立即生效，不需要重启。</p>
+          <div class="feature-toolbar" role="search" aria-label="筛选功能">
+            <label class="sr-only" for="featureFilter">按名称或关键词筛选功能</label>
+            <input id="featureFilter" type="search" placeholder="筛选功能，例如「说说」「语音」…" autocomplete="off">
+            <label class="sr-only" for="featureStateFilter">按开关状态筛选</label>
+            <select id="featureStateFilter">
+              <option value="all">全部状态</option>
+              <option value="on">已开启</option>
+              <option value="off">已关闭</option>
+              <option value="attention">需要处理</option>
+            </select>
+            <button id="featuresRefresh" class="small" type="button">刷新</button>
             <span class="meta" id="featuresMeta">读取中…</span>
           </div>
-          <div class="overview-summary" id="featuresMetrics" style="margin-top:12px"></div>
-          <h3 style="margin-top:20px">当前群聊</h3>
-          <div id="featuresGroups" class="tool-log-table">（读取中…）</div>
-          <h3 style="margin-top:20px">能力清单</h3>
-          <div id="featuresList" class="feature-grid">（读取中…）</div>
-          <h3 style="margin-top:20px">当前边界</h3>
-          <div id="featuresLimits" class="tool-log-table">（读取中…）</div>
+          <div id="featureAlerts" class="feature-alerts" role="status" aria-live="polite" hidden></div>
+          <div class="feature-savebar">
+            <div class="meta" id="featureSwitchesSummary">读取中…</div>
+            <div class="row feature-savebar-actions">
+              <button id="featureSwitchesSave" class="small" type="button" disabled>保存更改</button>
+              <span class="meta" id="featureSwitchesMsg" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+          <div id="featureSwitches" class="feature-boards" aria-live="off">（读取中…）</div>
+          <p id="featureEmpty" class="meta feature-empty" role="status" aria-live="polite" hidden>没有匹配的功能，换个关键词或清空筛选。</p>
+          <div id="featurePanelStore" hidden aria-hidden="true"></div>
+          <p class="meta feature-footnote">提示：关闭一个功能不会删除它的设置。以后重新打开，原来的频率、目标群和模板都还在。</p>
+
+          <details class="content-feature feature-overview">
+            <summary><b>运行时概览</b><span class="meta" id="featuresOverviewMeta">只读 · 排查问题时看这里</span></summary>
+            <div class="overview-summary" id="featuresMetrics" style="margin-top:12px"></div>
+            <div id="crossChatBox" class="meta" style="margin-top:8px"></div>
+            <h3 style="margin-top:16px">当前群聊</h3>
+            <div id="featuresGroups" class="tool-log-table">（读取中…）</div>
+            <h3 style="margin-top:16px">能力清单</h3>
+            <div id="featuresList" class="feature-grid">（读取中…）</div>
+            <h3 style="margin-top:16px">当前边界</h3>
+            <div id="featuresLimits" class="tool-log-table">（读取中…）</div>
+          </details>
         </section>
         <section id="section-mode" data-page="overview" class="card span-all">
       <h2>运行模式</h2>
@@ -4094,7 +4496,7 @@ button.active,.primary {
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="stickerNote"> <span><b>qq_sticker_note</b><span class="meta">给表情记录本地含义/标签/用法</span></span></label>
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="setStickerRemark"> <span><b>qq_set_sticker_remark</b><span class="meta">修改 QQ 官方表情备注（默认禁用，慎用）</span></span></label>
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="sendVoice"> <span><b>qq_send_voice / qq_list_voices</b><span class="meta">发送语音条（只能发语音库里的音频；偶然而为的强表达）</span></span></label>
-        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="addReminder"> <span><b>qq_add_reminder</b><span class="meta">在主人私聊/家人群添加定时提醒</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="addReminder"> <span><b>qq_add_reminder</b><span class="meta">在主人私聊和白名单群添加定时提醒（可按群关闭）</span></span></label>
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="listReminders"> <span><b>qq_list_reminders</b><span class="meta">查看当前会话待发送提醒</span></span></label>
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="cancelReminder"> <span><b>qq_cancel_reminder</b><span class="meta">取消待发送提醒</span></span></label>
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="weather"> <span><b>qq_weather</b><span class="meta">查询城市天气（Open-Meteo）</span></span></label>
@@ -4655,7 +5057,7 @@ button.active,.primary {
       <h2>个性签名</h2>
       <div class="meta">根据心情/精力/兴趣在本地生成一句完整签名（25~35 字）。默认先私聊主人审核，回「发签名」才更新 QQ；主人也可直接私聊说怎么改。</div>
       <div class="row" style="margin-top:10px">
-        <label class="meta" style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="sigEnabled"> 自动更新</label>
+        <span class="meta">自动更新由「功能控制 → 个性签名」总开关控制；这里可以手动换一句或立即更新。</span>
         <button id="sigPreview" class="small">换一句</button>
         <button id="sigApply">立即更新</button>
         <span class="meta" id="sigMsg"></span>
@@ -4674,19 +5076,17 @@ button.active,.primary {
       <pre id="drText" style="white-space:pre-wrap;margin-top:10px"></pre>
     </section>
 <section id="section-content" data-page="insights" class="card span-all">
-      <h2>内容引擎</h2>
-      <div class="meta">每个功能独立控制。保存会写入 config.json；标了“需重启”的项按提示重启对应进程。实时状态在「实时状态」页。</div>
+      <h2>搜索与记忆</h2>
+      <div class="meta">功能模块的开关和参数已集中到「功能控制」页；这里保留联网搜索、长期记忆和内容运行状态。保存会写入 config.json。</div>
       <div class="row" style="margin-top:10px">
         <button id="contentRefresh" class="small">刷新全部</button>
         <span class="meta" id="contentMsg"></span>
       </div>
       <div class="overview-summary" id="contentMetrics" style="margin-top:12px"></div>
-      <div id="crossChatBox" class="meta" style="margin-top:8px"></div>
 
-      <details class="content-feature" open>
+      <details class="content-feature" data-feature-panel="esportsFeed">
         <summary><b>S16 赛事与订阅</b><span class="meta" id="espSummary"></span></summary>
         <div class="content-controls">
-          <label>启用资讯源<input type="checkbox" id="espEnabled"></label>
           <label>刷新间隔（分钟）<input type="number" id="espRefreshMin" min="1" max="1440"></label>
           <label>最多条目<input type="number" id="espMaxItems" min="1" max="50"></label>
           <label>允许主动分享 S16 资讯<input type="checkbox" id="espShareEnabled"></label>
@@ -4708,10 +5108,9 @@ button.active,.primary {
         </div>
       </details>
 
-      <details class="content-feature" open>
+      <details class="content-feature" data-feature-panel="share">
         <summary><b>主动分享</b><span class="meta" id="shareSummary"></span></summary>
         <div class="content-controls">
-          <label>启用<input type="checkbox" id="shareEnabled"></label>
           <label>目标群</label><div id="shareTargets" class="row" style="gap:10px;flex-wrap:wrap"></div>
           <label>每日上限<input type="number" id="shareMaxPerDay" min="0" max="20"></label>
           <label>最小间隔（分钟）<input type="number" id="shareMinGapMin" min="1" max="1440"></label>
@@ -4732,10 +5131,9 @@ button.active,.primary {
         <div id="shareCandidates" class="meta content-history"></div>
       </details>
 
-      <details class="content-feature" open>
+      <details class="content-feature" data-feature-panel="aiTips">
         <summary><b>AI 知识分享</b><span class="meta" id="aiTipsSummary"></span></summary>
         <div class="content-controls">
-          <label>启用<input type="checkbox" id="aiTipsEnabled"></label>
           <label>每天最少<input type="number" id="aiTipsMin" min="0" max="10"></label>
           <label>每天最多<input type="number" id="aiTipsMax" min="0" max="10"></label>
           <label>开始小时<input type="number" id="aiTipsStart" min="0" max="23"></label>
@@ -4754,20 +5152,24 @@ button.active,.primary {
         <div id="aiTipsBox" class="meta content-history">（读取中…）</div>
       </details>
 
-      <details class="content-feature" open>
+      <details class="content-feature" data-feature-panel="shareModule">
         <summary><b>分享模块</b><span class="meta" id="shareModulesSummary"></span></summary>
         <div class="meta" style="margin-bottom:8px">AI 知识 / 生活趣事 / S16 / 自定义领域共用一套引擎；新模块可在主人私聊里创建，验证期内每条先私聊确认。</div>
         <div id="shareModulesBox" class="meta content-history">（读取中…）</div>
         <div id="shareModuleEditor" class="meta content-history"></div>
-        <div id="ownerFeaturesBox" class="meta content-history"></div>
-        <div id="ownerFeatureEditor" class="meta content-history"></div>
         <div id="shareModulePreview" class="meta content-history"></div>
       </details>
 
-      <details class="content-feature" open>
+      <details class="content-feature" data-feature-panel="ownerFeature">
+        <summary><b>功能中心任务</b><span class="meta">定时消息 / 自动回复 / 语音消息 / 空间说说</span></summary>
+        <div class="meta" style="margin-bottom:8px">这些任务由你在主人私聊里创建，也可以在这里查看、预览、暂停或删除。功能中心总开关关闭时不会执行。</div>
+        <div id="ownerFeaturesBox" class="meta content-history"></div>
+        <div id="ownerFeatureEditor" class="meta content-history"></div>
+      </details>
+
+      <details class="content-feature" data-feature-panel="qzone">
         <summary><b>空间说说</b><span class="meta" id="qzoneSummary"></span></summary>
         <div class="content-controls">
-          <label>启用<input type="checkbox" id="qzoneEnabled"></label>
           <label>发布前审核<input type="checkbox" id="qzoneApproval"></label>
           <label>可见范围<select id="qzoneVisibility">
             <option value="1">所有人</option>
@@ -4778,7 +5180,6 @@ button.active,.primary {
           <label>最小间隔（分钟）<input type="number" id="qzoneMinGapMin" min="1" max="1440"></label>
           <label>正文上限<input type="number" id="qzoneMaxChars" min="30" max="500"></label>
           <label>跳过概率（%）<input type="number" id="qzoneSkipPct" min="0" max="95"></label>
-          <label>自动回复空间评论<input type="checkbox" id="qzoneCommentReply"></label>
         </div>
         <div class="row" style="margin-top:10px">
           <button id="qzoneSave" class="small">保存说说设置</button>
@@ -4791,7 +5192,7 @@ button.active,.primary {
         <div id="qzoneBox" class="meta content-history">（读取中…）</div>
       </details>
 
-      <details class="content-feature" open>
+      <details class="content-feature">
         <summary><b>联网搜索</b><span class="meta" id="searchSummary"></span></summary>
         <div class="content-controls">
           <label>Provider<select id="searchProvider">
@@ -4815,7 +5216,7 @@ button.active,.primary {
         <div id="searchTestResults" class="meta content-history"></div>
       </details>
 
-      <details class="content-feature" open>
+      <details class="content-feature">
         <summary><b>长期记忆</b><span class="meta" id="memorySummary"></span></summary>
         <div class="row" style="margin-top:10px">
           <select id="memScope" aria-label="记忆范围" style="max-width:120px">
@@ -5359,7 +5760,7 @@ async function refreshSessions() {
 }
 
 async function refreshFeatures() {
-  const meta = document.getElementById('featuresMeta');
+  const meta = document.getElementById('featuresOverviewMeta');
   const metrics = document.getElementById('featuresMetrics');
   const groupsBox = document.getElementById('featuresGroups');
   const listBox = document.getElementById('featuresList');
@@ -5368,7 +5769,7 @@ async function refreshFeatures() {
     const r = await api('/api/features');
     if (!r.ok) throw new Error(r.error || '读取失败');
     const generated = r.generatedAt ? new Date(r.generatedAt).toLocaleString('zh-CN', { hour12: false }) : '未知时间';
-    meta.textContent = `只读 · 生成于 ${generated}`;
+    meta.textContent = `只读 · 生成于 ${generated} · 排查问题时看这里`;
     meta.className = 'meta ok';
     const cc = r.crossChat || {};
     document.getElementById('crossChatBox').innerHTML = `<b>跨会话目标</b>：${(cc.groups || []).map((g) => `${esc(g.key)}${g.name ? `（${esc(g.name)}）` : ''}`).join('、') || '无群'}${(cc.privates || []).length ? `；私聊：${(cc.privates || []).map((p) => `${esc(p.key)}${p.name ? `（${esc(p.name)}）` : ''}`).join('、')}` : ''}<div class="muted small">主人私聊可直接让我读取/发送到这些目标；群内私密话题仍只在原群。</div>`;
@@ -5385,7 +5786,10 @@ async function refreshFeatures() {
       ? `<table><tr><th>群名</th><th>key</th><th>标签</th><th>主动发言</th></tr>${r.groups.map((g) => `<tr><td>${esc(g.name || g.key)}</td><td><code>${esc(g.key)}</code></td><td>${esc(g.label || '—')}</td><td>${g.proactive ? '<span class="pill g">开</span>' : '<span class="pill r">关</span>'}</td></tr>`).join('')}</table>`
       : '<div class="empty-state"><strong>没有配置群聊</strong></div>';
     const pill = (status) => status === 'on' ? '<span class="pill g">已开启</span>' : status === 'limited' ? '<span class="pill b">受限</span>' : '<span class="pill r">未开启</span>';
-    listBox.innerHTML = (r.features || []).map((group) => `<div class="feature-card"><h4>${esc(group.title)}</h4><ul>${(group.items || []).map((item) => `<li><strong>${esc(item.name)}</strong>${pill(item.status)}<div class="meta">${esc(item.desc)}</div></li>`).join('')}</ul></div>`).join('');
+    listBox.innerHTML = (Array.isArray(r.modules) && r.modules.length
+      ? `<div class="feature-card"><h4>模块总开关</h4><ul>${r.modules.map((m) => `<li><strong>${esc(m.label)}</strong>${m.enabled ? '<span class="pill g">开</span>' : '<span class="pill r">关</span>'}<div class="meta">${esc(m.id)} · 在上方卡片切换</div></li>`).join('')}</ul></div>`
+      : '')
+      + (r.features || []).map((group) => `<div class="feature-card"><h4>${esc(group.title)}</h4><ul>${(group.items || []).map((item) => `<li><strong>${esc(item.name)}</strong>${pill(item.status)}<div class="meta">${esc(item.desc)}</div></li>`).join('')}</ul></div>`).join('');
     limitsBox.innerHTML = (r.limits || []).length
       ? `<div class="meta">${r.limits.map((line) => `· ${esc(line)}`).join('<br>')}</div>`
       : '<div class="meta">当前没有额外限制。</div>';
@@ -5394,7 +5798,393 @@ async function refreshFeatures() {
     meta.className = 'meta err';
   }
 }
-document.getElementById('featuresRefresh').addEventListener('click', refreshFeatures);
+// ── 功能控制：板块 → 模块 → 单一总开关 ─────────────────────────────────────
+let featureControlState = null;
+const featureDirty = new Map();
+const featureOpenDetails = new Set();
+
+function featureCardById(id) {
+  return featureControlState?.modules?.find((module) => module.id === id) || null;
+}
+
+function featureChecked(id) {
+  if (featureDirty.has(id)) return featureDirty.get(id);
+  const input = document.querySelector(`#featureSwitches input[data-feature-id="${id}"]`);
+  if (input) return input.checked;
+  return featureCardById(id)?.enabled === true;
+}
+
+function setFeatureMessage(text, tone = '') {
+  const msg = document.getElementById('featureSwitchesMsg');
+  if (!msg) return;
+  msg.textContent = text;
+  msg.className = 'meta' + (tone ? ' ' + tone : '');
+}
+
+// 自定义面板（空间说说、主动分享…）原本在「群聊洞察」页。这里用隐藏容器保管
+// 节点，再挂进对应卡片的高级设置，避免重绘时丢失表单状态和已绑定的监听器。
+function unmountFeaturePanels() {
+  const store = document.getElementById('featurePanelStore');
+  if (!store) return;
+  for (const node of document.querySelectorAll('[data-feature-panel]')) {
+    if (node.parentElement !== store) store.appendChild(node);
+  }
+}
+
+function mountFeaturePanels() {
+  for (const node of document.querySelectorAll('[data-feature-panel]')) {
+    const slot = document.querySelector(`#featureSwitches [data-feature-advanced="${node.dataset.featurePanel}"]`);
+    if (!slot) continue;
+    // 专用面板本身也是 <details>：挂进「高级设置」后展开并把标题收掉，
+    // 否则卡片里会出现两层折叠，小白要连点两次才能看到参数。
+    if (node.tagName === 'DETAILS') {
+      node.open = true;
+      node.classList.add('feature-panel-inline');
+    }
+    slot.appendChild(node);
+  }
+}
+
+function renderAdvancedFields(module) {
+  const fields = Array.isArray(module.advanced) ? module.advanced : [];
+  if (!fields.length) return '';
+  return `<div class="feature-advanced-grid">${fields.map((field) => {
+    const domId = `feature-adv-${module.id}-${String(field.key).replace(/[^a-zA-Z0-9_-]+/g, '-')}`;
+    if (field.type === 'boolean') {
+      return `<label class="feature-adv-check" for="${domId}"><input id="${domId}" type="checkbox" data-advanced-key="${esc(field.key)}"${field.value === true ? ' checked' : ''}> ${esc(field.label)}</label>`;
+    }
+    if (field.type === 'time') {
+      return `<label for="${domId}">${esc(field.label)}<input id="${domId}" type="time" data-advanced-key="${esc(field.key)}" value="${esc(field.value ?? '')}"></label>`;
+    }
+    const attrs = [
+      `id="${domId}"`,
+      'type="number"',
+      `data-advanced-key="${esc(field.key)}"`,
+      `value="${esc(field.value ?? '')}"`,
+      field.min !== undefined ? `min="${esc(field.min)}"` : '',
+      field.max !== undefined ? `max="${esc(field.max)}"` : '',
+      field.step !== undefined ? `step="${esc(field.step)}"` : ''
+    ].filter(Boolean).join(' ');
+    return `<label for="${domId}">${esc(field.label)}${field.unit ? `（${esc(field.unit)}）` : ''}<input ${attrs}></label>`;
+  }).join('')}</div>`;
+}
+
+function renderDependencies(module) {
+  const deps = Array.isArray(module.dependencies) ? module.dependencies : [];
+  const shown = module.enabled ? deps : deps.filter((item) => !item.ok);
+  if (!shown.length) return '';
+  return `<div class="feature-badges">${shown.map((item) => {
+    const tone = item.ok ? 'ok' : (item.soft ? 'warn' : 'err');
+    const text = item.ok ? `${item.label}已就绪` : (item.soft ? `${item.label}未设置` : `${item.label}未开启`);
+    return `<span class="feature-badge ${tone}">${esc(text)}</span>`;
+  }).join('')}</div>`;
+}
+
+function renderFeatureCard(module) {
+  const saved = module.enabled === true;
+  const enabled = featureDirty.has(module.id) ? featureDirty.get(module.id) : saved;
+  const dirty = featureDirty.has(module.id);
+  const stateLabel = module.state === 'on' ? '运行中' : module.state === 'blocked' ? '被依赖拦住' : '已关闭';
+  const stateTone = module.state === 'on' ? 'g' : module.state === 'blocked' ? 'r' : 'b';
+  const advancedFields = Array.isArray(module.advanced) ? module.advanced : [];
+  const hasPanel = Boolean(module.customPanel);
+  const canReset = module.hasAdvanced === true;
+  const showAdvanced = advancedFields.length > 0 || hasPanel || canReset;
+  const effectsId = `feature-effects-${module.id}`;
+  const titleId = `feature-title-${module.id}`;
+  const switchText = dirty ? (enabled ? '待开启' : '待关闭') : (enabled ? '已开启' : '已关闭');
+  const summaryText = advancedFields.length ? `${advancedFields.length} 项参数` : '专用面板';
+  return `<article class="feature-module${dirty ? ' is-dirty' : ''}" data-module-id="${esc(module.id)}" aria-labelledby="${titleId}">
+    <header class="feature-module-head">
+      <div class="feature-module-main">
+        <label class="feature-switch" title="${enabled ? '点击关闭' : '点击开启'}「${esc(module.label)}」">
+          <input type="checkbox" role="switch" data-feature-id="${esc(module.id)}" aria-describedby="${effectsId}"${enabled ? ' checked' : ''}>
+          <span class="feature-switch-track" aria-hidden="true"></span>
+          <span class="feature-switch-text">${switchText}</span>
+        </label>
+        <div class="feature-module-copy">
+          <h3 id="${titleId}">${esc(module.label)}</h3>
+          <p>${esc(module.description)}</p>
+        </div>
+      </div>
+      <span class="pill ${stateTone}">${esc(stateLabel)}</span>
+    </header>
+    <div class="feature-effects" id="${effectsId}">
+      <p><b>打开后</b><span>${esc(module.onEffect)}</span></p>
+      <p><b>关掉后</b><span>${esc(module.offEffect)}</span></p>
+    </div>
+    ${module.statusLine ? `<p class="feature-status${module.statusTone === 'warn' ? ' warn' : ''}">${esc(module.statusLine)}</p>` : ''}
+    ${renderDependencies(module)}
+    ${showAdvanced ? `<details class="feature-advanced" data-feature-advanced-details="${esc(module.id)}"${featureOpenDetails.has(module.id) ? ' open' : ''}>
+      <summary><b>高级设置</b><span class="meta">${esc(summaryText)} · 默认收起</span></summary>
+      ${module.requiresRestart ? '<p class="meta feature-advanced-note">其中部分设置需要重启桥接后才会生效。</p>' : ''}
+      ${renderAdvancedFields(module)}
+      ${hasPanel ? `<p class="meta feature-advanced-note">下面是「${esc(module.label)}」的专用面板。关掉总开关后这些设置会保留，但不会执行。</p>` : ''}
+      <div data-feature-advanced="${esc(module.id)}"></div>
+      <div class="row feature-advanced-actions">
+        ${advancedFields.length ? `<button type="button" class="small" data-advanced-save="${esc(module.id)}">保存高级设置</button>` : ''}
+        ${canReset ? `<button type="button" class="small" data-advanced-reset="${esc(module.id)}">恢复默认</button>` : ''}
+        <span class="meta" data-advanced-msg="${esc(module.id)}" role="status" aria-live="polite"></span>
+      </div>
+    </details>` : ''}
+  </article>`;
+}
+
+function renderFeatureControl() {
+  if (!featureControlState) return;
+  unmountFeaturePanels();
+  const container = document.getElementById('featureSwitches');
+  if (!container) return;
+  // 卡片一律从 modules 取，boards 只提供板块标题；避免两份模块副本不同步时
+  // 告警说「被依赖拦住」、卡片却还显示「运行中」。
+  const modules = Array.isArray(featureControlState.modules) ? featureControlState.modules : [];
+  container.innerHTML = (featureControlState.boards || []).map((board) => `<section class="feature-board" data-board="${esc(board.id)}" aria-label="${esc(board.label)}">
+    <div class="feature-board-head"><h3>${esc(board.label)}</h3><p class="meta">${esc(board.description)}</p></div>
+    <div class="feature-cards">${modules.filter((module) => module.board === board.id).map(renderFeatureCard).join('')}</div>
+  </section>`).join('');
+  mountFeaturePanels();
+  applyFeatureFilters();
+  updateFeatureSummary();
+  renderFeatureAlerts();
+}
+
+function renderFeatureAlerts() {
+  const box = document.getElementById('featureAlerts');
+  if (!box || !featureControlState) return;
+  const items = [];
+  for (const module of featureControlState.modules || []) {
+    if (!module.enabled) continue;
+    for (const dep of module.dependencies || []) {
+      if (dep.ok) continue;
+      items.push(dep.soft
+        ? { tone: 'warn', text: `「${module.label}」已打开，但「${dep.label}」还没设置，暂时不会生效。` }
+        : { tone: 'err', text: `「${module.label}」已打开，但「${dep.label}」未开启，实际不会运行。` });
+    }
+    if (module.requiresRestart) items.push({ tone: 'warn', text: `「${module.label}」的部分设置需要重启桥接后生效。` });
+  }
+  if (!items.length) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = items.map((item) => `<div class="feature-alert ${item.tone}">${esc(item.text)}</div>`).join('');
+}
+
+function updateFeatureMetadata() {
+  const meta = document.getElementById('featuresMeta');
+  if (!meta || !featureControlState) return;
+  const total = featureControlState.modules?.length ?? 0;
+  const enabled = (featureControlState.modules || []).filter((module) => featureChecked(module.id)).length;
+  const at = featureControlState.generatedAt
+    ? new Date(featureControlState.generatedAt).toLocaleTimeString('zh-CN', { hour12: false })
+    : '';
+  meta.textContent = `已开启 ${enabled}/${total} · 显示 ${featureFilterShown}/${total}${at ? ` · 更新于 ${at}` : ''}`;
+  meta.className = 'meta ok';
+}
+
+let featureFilterShown = 0;
+function applyFeatureFilters() {
+  if (!featureControlState) return;
+  const text = (document.getElementById('featureFilter')?.value || '').trim().toLowerCase();
+  const state = document.getElementById('featureStateFilter')?.value || 'all';
+  let shown = 0;
+  document.querySelectorAll('#featureSwitches .feature-module').forEach((card) => {
+    const module = featureCardById(card.dataset.moduleId);
+    if (!module) return;
+    const on = featureChecked(module.id);
+    const haystack = `${module.label || ''} ${module.keywords || ''} ${module.description || ''}`.toLowerCase();
+    let visible = !text || haystack.includes(text);
+    if (visible && state === 'on') visible = on;
+    if (visible && state === 'off') visible = !on;
+    if (visible && state === 'attention') visible = module.attention === true || module.state === 'blocked';
+    card.hidden = !visible;
+    if (visible) shown += 1;
+  });
+  document.querySelectorAll('#featureSwitches .feature-board').forEach((board) => {
+    board.hidden = !board.querySelector('.feature-module:not([hidden])');
+  });
+  const empty = document.getElementById('featureEmpty');
+  if (empty) empty.hidden = shown > 0;
+  featureFilterShown = shown;
+  updateFeatureMetadata();
+}
+
+function updateFeatureSummary() {
+  if (!featureControlState) return;
+  const total = featureControlState.modules?.length ?? 0;
+  const enabled = (featureControlState.modules || []).filter((module) => featureChecked(module.id)).length;
+  const dirty = featureDirty.size;
+  const summary = document.getElementById('featureSwitchesSummary');
+  if (summary) {
+    summary.textContent = `${enabled}/${total} 个功能已开启` + (dirty ? ` · ${dirty} 项修改未保存` : '');
+    summary.className = 'meta' + (dirty ? ' warn' : '');
+  }
+  const save = document.getElementById('featureSwitchesSave');
+  if (save) {
+    save.disabled = dirty === 0;
+    save.textContent = dirty ? `保存更改（${dirty}）` : '保存更改';
+  }
+}
+
+function markFeatureDirty(id, enabled) {
+  const module = featureCardById(id);
+  if (!module) return;
+  if (enabled === module.enabled) featureDirty.delete(id);
+  else featureDirty.set(id, enabled);
+  const card = document.querySelector(`#featureSwitches .feature-module[data-module-id="${id}"]`);
+  if (card) {
+    card.classList.toggle('is-dirty', featureDirty.has(id));
+    const text = card.querySelector('.feature-switch-text');
+    if (text) text.textContent = featureDirty.has(id) ? (enabled ? '待开启' : '待关闭') : (module.enabled ? '已开启' : '已关闭');
+  }
+  if (featureDirty.size) setFeatureMessage('修改还没保存', 'warn');
+  else setFeatureMessage('');
+  updateFeatureSummary();
+  updateFeatureMetadata();
+}
+
+async function saveFeatureSwitches() {
+  if (!featureDirty.size) return;
+  const changes = [...featureDirty.entries()]
+    .map(([id, enabled]) => ({ id, enabled, module: featureCardById(id) }))
+    .filter((change) => change.module);
+  if (!changes.length) return;
+  const confirmOff = changes.filter((change) => !change.enabled && change.module.dangerousOff);
+  if (confirmOff.length) {
+    const lines = confirmOff.map((change) => `·「${change.module.label}」：${change.module.offEffect}`).join('\n');
+    if (!window.confirm(`确定关闭这些功能吗？\n\n${lines}\n\n关闭后设置会保留，随时可以再打开。`)) return;
+  }
+  const save = document.getElementById('featureSwitchesSave');
+  if (save) save.disabled = true;
+  setFeatureMessage(`正在保存 ${changes.length} 项…`);
+  const failures = [];
+  const restarts = [];
+  for (const change of changes) {
+    try {
+      const r = await api('/api/features/control', 'POST', { id: change.id, enabled: change.enabled });
+      if (!r.ok) {
+        failures.push(`${change.module.label}：${(Array.isArray(r.errors) && r.errors[0]) || r.error || '保存失败'}`);
+        continue;
+      }
+      if (Array.isArray(r.requiresRestart) && r.requiresRestart.length) {
+        restarts.push(...r.requiresRestart.map((item) => item.key));
+      }
+      featureDirty.delete(change.id);
+    } catch (error) {
+      failures.push(`${change.module.label}：${error?.message ?? error}`);
+    }
+  }
+  if (failures.length) {
+    setFeatureMessage(`保存失败：${failures.join('；')}`, 'err');
+    await refreshFeatureControl({ keepMessage: true, preserveDirty: true });
+    return;
+  }
+  setFeatureMessage(restarts.length
+    ? `已保存；重启桥接后生效：${[...new Set(restarts)].join('、')}`
+    : '已保存，立即生效', restarts.length ? 'warn' : 'ok');
+  await refreshFeatureControl({ keepMessage: true });
+  refreshFeatures();
+  refreshContent();
+}
+
+async function saveFeatureAdvanced(id) {
+  const details = document.querySelector(`details[data-feature-advanced-details="${id}"]`);
+  if (!details) return;
+  const values = {};
+  details.querySelectorAll('[data-advanced-key]').forEach((input) => {
+    values[input.dataset.advancedKey] = input.type === 'checkbox' ? input.checked : input.value;
+  });
+  if (!Object.keys(values).length) {
+    setFeatureMessage('这个模块没有可保存的通用高级设置', 'warn');
+    return;
+  }
+  const button = details.querySelector(`[data-advanced-save="${id}"]`);
+  if (button) button.disabled = true;
+  setFeatureMessage('正在保存高级设置…');
+  try {
+    const r = await api('/api/features/advanced', 'POST', { id, values });
+    if (!r.ok) throw new Error((Array.isArray(r.errors) && r.errors[0]) || r.error || '保存失败');
+    const restart = Array.isArray(r.requiresRestart) && r.requiresRestart.length;
+    setFeatureMessage(restart
+      ? `高级设置已保存；重启桥接后生效：${r.requiresRestart.map((item) => item.key).join('、')}`
+      : '高级设置已保存，立即生效', restart ? 'warn' : 'ok');
+  } catch (error) {
+    setFeatureMessage('保存失败：' + (error?.message ?? error), 'err');
+    if (button) button.disabled = false;
+    return;
+  }
+  featureOpenDetails.add(id);
+  await refreshFeatureControl({ keepMessage: true, preserveDirty: true });
+  refreshContent();
+}
+
+async function resetFeatureAdvanced(id) {
+  const module = featureCardById(id);
+  if (!module) return;
+  if (!window.confirm(`把「${module.label}」的高级设置恢复成默认值？当前自定义的频率、目标群和模板会被覆盖。`)) return;
+  setFeatureMessage('正在恢复默认…');
+  try {
+    const r = await api('/api/features/reset-advanced', 'POST', { id });
+    if (!r.ok) throw new Error((Array.isArray(r.errors) && r.errors[0]) || r.error || '恢复失败');
+    setFeatureMessage('已恢复默认设置');
+  } catch (error) {
+    setFeatureMessage('恢复失败：' + (error?.message ?? error), 'err');
+    return;
+  }
+  featureOpenDetails.add(id);
+  await refreshFeatureControl({ keepMessage: true, preserveDirty: true });
+  refreshContent();
+}
+
+async function refreshFeatureControl({ keepMessage = false, preserveDirty = false } = {}) {
+  const meta = document.getElementById('featuresMeta');
+  try {
+    const r = await api('/api/features/control');
+    if (!r.ok) throw new Error(r.error || '读取失败');
+    featureControlState = r;
+    if (!preserveDirty) featureDirty.clear();
+    if (!keepMessage) setFeatureMessage('');
+    renderFeatureControl();
+  } catch (error) {
+    if (meta) {
+      meta.textContent = '读取失败：' + (error?.message ?? error);
+      meta.className = 'meta err';
+    }
+  }
+}
+
+document.getElementById('featureSwitches')?.addEventListener('change', (event) => {
+  const input = event.target.closest('input[data-feature-id]');
+  if (!input) return;
+  markFeatureDirty(input.dataset.featureId, input.checked);
+});
+document.getElementById('featureSwitches')?.addEventListener('click', (event) => {
+  const saveButton = event.target.closest('button[data-advanced-save]');
+  if (saveButton) {
+    saveFeatureAdvanced(saveButton.dataset.advancedSave);
+    return;
+  }
+  const resetButton = event.target.closest('button[data-advanced-reset]');
+  if (resetButton) resetFeatureAdvanced(resetButton.dataset.advancedReset);
+});
+document.getElementById('featureSwitches')?.addEventListener('toggle', (event) => {
+  const details = event.target.closest('details[data-feature-advanced-details]');
+  if (!details) return;
+  const id = details.dataset.featureAdvancedDetails;
+  if (details.open) featureOpenDetails.add(id);
+  else featureOpenDetails.delete(id);
+}, true);
+document.getElementById('featureFilter')?.addEventListener('input', applyFeatureFilters);
+document.getElementById('featureStateFilter')?.addEventListener('change', applyFeatureFilters);
+document.getElementById('featureSwitchesSave')?.addEventListener('click', saveFeatureSwitches);
+document.getElementById('featuresRefresh')?.addEventListener('click', () => {
+  if (featureDirty.size && !window.confirm(`有 ${featureDirty.size} 项开关修改还没保存，刷新会丢弃它们。继续刷新？`)) return;
+  if (featureDirty.size) featureDirty.clear();
+  refreshFeatureControl();
+  refreshFeatures();
+  refreshContent();
+});
 
 // ── 可靠性与配置（Stage 1） ─────────────────────────────────────────────────
 let configSchemaState = null;
@@ -5880,6 +6670,7 @@ async function refreshContent() {
     const sh = r.share || {};
     const qz = r.qzone || {};
     const se = r.search || {};
+    const feat = r.features || {};
     // 主动分享候选池（含 S16 资讯）：让控制台能看到她下次会从哪些内容里挑。
     try {
       const cand = await api('/api/inner-life/candidates');
@@ -5909,15 +6700,14 @@ async function refreshContent() {
     ].join('');
 
     // ── S16 赛事 ──────────────────────────────────────────────────────────
-    document.getElementById('espEnabled').checked = esp.enabled !== false;
     document.getElementById('espRefreshMin').value = String(Math.round((Number(esp.refreshMs) || 300000) / 60000));
     document.getElementById('espMaxItems').value = String(Number(esp.maxItems) || 12);
     document.getElementById('espShareEnabled').checked = esp.shareEnabled !== false;
-    document.getElementById('espSummary').textContent = esp.enabled === false
-      ? '已关闭'
-      : `更新 ${esp.updatedAt ? fmtAgoMs(Date.now() - esp.updatedAt) + '前' : '未抓取'}${esp.schedule?.next ? ` · 下一场 ${esp.schedule.next.date.slice(5)} ${esp.schedule.next.teamA} vs ${esp.schedule.next.teamB}` : ''}`;
+    document.getElementById('espSummary').textContent = feat.esportsFeed !== true
+      ? '总开关已关闭'
+      : `更新 ${esp.updatedAt ? fmtAgoMs(Date.now() - esp.updatedAt) + '前' : '未抓取'}${esp.schedule?.next ? ` · 下一场 ${String(esp.schedule.next.date || '').slice(5)} ${esp.schedule.next.teamA || ''} vs ${esp.schedule.next.teamB || ''}` : ''}`;
 
-    if (!esp.enabled) {
+    if (feat.esportsFeed !== true) {
       esportsBox.textContent = 'S16 资讯源已关闭';
     } else if (!esp.updatedAt && esp.error) {
       esportsBox.innerHTML = `<span class="err">抓取失败：${esc(esp.error)}</span>`;
@@ -5945,7 +6735,6 @@ async function refreshContent() {
       : '<div class="muted small" style="margin-top:4px">还没有赛事订阅</div>';
 
     // ── 主动分享 ──────────────────────────────────────────────────────────
-    document.getElementById('shareEnabled').checked = sh.enabled !== false;
     document.getElementById('shareApproval').checked = sh.requireApproval === true;
     document.getElementById('shareMaxPerDay').value = String(sh.maxPerDay ?? 3);
     document.getElementById('shareMinGapMin').value = String(Math.round((Number(sh.minGapMs) || 0) / 60000));
@@ -5972,7 +6761,6 @@ async function refreshContent() {
 
     // ── AI 知识分享 ────────────────────────────────────────────────────────
     const ai = r.aiTips || {};
-    document.getElementById('aiTipsEnabled').checked = ai.enabled === true;
     document.getElementById('aiTipsMin').value = String(ai.minPerDay ?? 2);
     document.getElementById('aiTipsMax').value = String(ai.maxPerDay ?? 5);
     document.getElementById('aiTipsStart').value = String(ai.windowStartHour ?? 9);
@@ -6036,15 +6824,13 @@ async function refreshContent() {
     }
 
     // ── 空间说说 ──────────────────────────────────────────────────────────
-    document.getElementById('qzoneEnabled').checked = qz.enabled !== false;
     document.getElementById('qzoneApproval').checked = qz.requireApproval !== false;
     document.getElementById('qzoneVisibility').value = String(qz.visibility || 1);
     document.getElementById('qzoneMaxPerDay').value = String(qz.maxPerDay ?? 2);
     document.getElementById('qzoneMinGapMin').value = String(Math.round((Number(qz.minGapMs) || 0) / 60000));
     document.getElementById('qzoneMaxChars').value = String(qz.maxChars ?? 150);
     document.getElementById('qzoneSkipPct').value = String(Math.round((Number(qz.skipProbability) || 0) * 100));
-    document.getElementById('qzoneCommentReply').checked = qz.commentReplyEnabled !== false;
-    document.getElementById('qzoneSummary').textContent = `${qz.enabled === false ? '已关闭' : (qz.paused ? '已暂停' : '已开启')} · 今日 ${qz.today ?? 0}/${qz.maxPerDay || 0}${qz.pendingDraft ? ' · 有待审草稿' : ''}`;
+    document.getElementById('qzoneSummary').textContent = `${feat.qzone !== true ? '总开关已关闭' : (qz.paused ? '已暂停' : '已开启')} · 今日 ${qz.today ?? 0}/${qz.maxPerDay || 0}${qz.pendingDraft ? ' · 有待审草稿' : ''}`;
     const pauseBtn = document.getElementById('qzonePause');
     pauseBtn.textContent = qz.paused ? '恢复' : '暂停';
     pauseBtn.dataset.action = qz.paused ? 'resume' : 'pause';
@@ -6094,9 +6880,7 @@ async function refreshContent() {
 }
 
 document.getElementById('contentRefresh')?.addEventListener('click', refreshContent);
-
 document.getElementById('espSave')?.addEventListener('click', () => contentApplyConfig({
-  'simulation.esportsFeed.enabled': document.getElementById('espEnabled').checked,
   'simulation.esportsFeed.refreshMs': Math.max(1, contentNumber('espRefreshMin', 5)) * 60000,
   'simulation.esportsFeed.maxItems': Math.max(1, contentNumber('espMaxItems', 12)),
   'simulation.innerLife.curiosity.sources.s16': document.getElementById('espShareEnabled').checked
@@ -6161,7 +6945,6 @@ document.getElementById('shareSave')?.addEventListener('click', () => {
     return;
   }
   contentApplyConfig({
-    'simulation.innerLife.groupShare.enabled': document.getElementById('shareEnabled').checked,
     'simulation.innerLife.groupShare.target': targets[0],
     'simulation.innerLife.groupShare.targets': targets,
     'simulation.innerLife.groupShare.maxPerDay': Math.max(0, contentNumber('shareMaxPerDay', 3)),
@@ -6174,11 +6957,9 @@ document.getElementById('shareSave')?.addEventListener('click', () => {
 
 document.getElementById('aiTipsSave')?.addEventListener('click', async () => {
   const msg = document.getElementById('aiTipsMsg');
-  const enabled = document.getElementById('aiTipsEnabled').checked;
   const min = Math.max(0, Math.min(10, contentNumber('aiTipsMin', 2)));
   const max = Math.max(min, Math.min(10, contentNumber('aiTipsMax', 5)));
-  const ok = await contentApplyConfig({
-    'simulation.innerLife.aiTips.enabled': enabled,
+  await contentApplyConfig({
     'simulation.innerLife.aiTips.minPerDay': min,
     'simulation.innerLife.aiTips.maxPerDay': max,
     'simulation.innerLife.aiTips.windowStartHour': Math.max(0, Math.min(23, contentNumber('aiTipsStart', 9))),
@@ -6186,12 +6967,6 @@ document.getElementById('aiTipsSave')?.addEventListener('click', async () => {
     'simulation.innerLife.aiTips.minGapMs': Math.max(10, contentNumber('aiTipsGapMin', 75)) * 60000,
     'simulation.innerLife.aiTips.maxChars': Math.max(60, Math.min(300, contentNumber('aiTipsMaxChars', 200)))
   }, msg, 'AI 知识分享设置已保存');
-  if (ok) {
-    try {
-      await api('/api/inner-life/ai-tips', 'POST', { action: enabled ? 'resume' : 'pause' });
-      await refreshContent();
-    } catch {}
-  }
 });
 
 document.getElementById('aiTipsPreview')?.addEventListener('click', async () => {
@@ -6526,14 +7301,12 @@ document.getElementById('shareRun')?.addEventListener('click', async () => {
 });
 
 document.getElementById('qzoneSave')?.addEventListener('click', () => contentApplyConfig({
-  'simulation.innerLife.qzone.enabled': document.getElementById('qzoneEnabled').checked,
   'simulation.innerLife.qzone.requireApproval': document.getElementById('qzoneApproval').checked,
   'simulation.innerLife.qzone.visibility': contentNumber('qzoneVisibility', 1),
   'simulation.innerLife.qzone.maxPerDay': Math.max(0, contentNumber('qzoneMaxPerDay', 2)),
   'simulation.innerLife.qzone.minGapMs': Math.max(1, contentNumber('qzoneMinGapMin', 300)) * 60000,
   'simulation.innerLife.qzone.maxChars': Math.max(30, contentNumber('qzoneMaxChars', 150)),
-  'simulation.innerLife.qzone.skipProbability': Math.min(0.95, Math.max(0, contentNumber('qzoneSkipPct', 15) / 100)),
-  'simulation.innerLife.qzone.commentReply.enabled': document.getElementById('qzoneCommentReply').checked
+  'simulation.innerLife.qzone.skipProbability': Math.min(0.95, Math.max(0, contentNumber('qzoneSkipPct', 15) / 100))
 }, document.getElementById('qzoneMsg'), '说说设置已保存'));
 
 document.getElementById('qzonePause')?.addEventListener('click', async () => {
@@ -6755,13 +7528,13 @@ async function refreshSignature() {
   try {
     const r = await api('/api/signature');
     if (!r.ok) throw new Error(r.error || '读取失败');
-    document.getElementById('sigEnabled').checked = r.enabled === true;
     const pending = r.pending;
     document.getElementById('sigText').value = pending?.text || r.preview || r.lastText || '';
     const next = r.nextAt ? new Date(r.nextAt).toLocaleString('zh-CN', { hour12: false }) : '未安排';
+    const master = contentState?.features?.signature === true;
     msg.textContent = pending
       ? `待主人审核 · ${new Date(pending.expiresAt).toLocaleString('zh-CN', { hour12: false })} 过期`
-      : `${r.enabled ? '自动开启' : '自动关闭'} · ${r.requireApproval ? '先审后发' : '自动发布'} · 间隔 ${r.minIntervalHours}–${r.maxIntervalHours}h · 下次 ${next}${r.dryRun ? ' · 仅预览' : ''}`;
+      : `${master ? '总开关开启' : '总开关已关闭'} · ${r.requireApproval ? '先审后发' : '自动发布'} · 间隔 ${r.minIntervalHours}–${r.maxIntervalHours}h · 下次 ${next}${r.dryRun ? ' · 仅预览' : ''}`;
     msg.className = pending ? 'meta err' : 'meta ok';
     const history = (r.history || []).slice(0, 5);
     box.textContent = (pending ? `待审草稿：${pending.text}\n` : '')
@@ -6802,15 +7575,6 @@ async function applySignature() {
 }
 document.getElementById('sigPreview').addEventListener('click', previewSignature);
 document.getElementById('sigApply').addEventListener('click', applySignature);
-document.getElementById('sigEnabled').addEventListener('change', async (event) => {
-  try {
-    const r = await api('/api/signature/toggle', 'POST', { enabled: event.target.checked });
-    showConsoleToast(r.ok ? (r.enabled ? '自动签名已开启' : '自动签名已关闭') : ('操作失败：' + (r.error || '')));
-    await refreshSignature();
-  } catch (error) {
-    showConsoleToast('操作失败：' + (error?.message ?? error));
-  }
-});
 document.getElementById('drPreview').addEventListener('click', previewDailyReport);
 
 async function refreshPending() {
@@ -8212,7 +8976,7 @@ document.getElementById('consoleTokenRandom').addEventListener('click', () => ch
 // Presentation layer: keep every existing control mounted so drafts and API contracts survive navigation.
 const consolePages = {
   overview: ['运行总览', '小鲸鱼指挥舱', '链路、会话、人格与发送边界，一块甲板统一调度。'],
-  features: ['功能总览', '能力雷达', '按人格、媒体、内心生活、生活技能与运行方式整理的能力清单。'],
+  features: ['功能控制', '功能板块与总开关', '按板块管理她能做什么。每个模块只有一个总开关，细节参数收在高级设置里。'],
   sessions: ['会话与审批', '会话链路与待批队列', '查看 QQ 与 DSH 的会话映射，以及等待你回复的审批和提问。'],
   persona: ['人格与角色', '人格与声线', '选择已有角色，或用自己的语言写下新的性格与表达方式。'],
   'simulation': ['群聊剧场', '自主巡航', '管理 AI 的工具、唤醒与发言节奏。展开需要调整的分组，修改后保存参数。'],
@@ -8252,7 +9016,11 @@ function setConsolePage(page, { updateHash = true, focus = false, target = '' } 
   closeConsoleSearch();
   // 语音库按需加载：进入群聊剧场页时才探测（避免每次开控制台都压网关）。
   if (page === 'simulation' && typeof loadVoiceLibrary === 'function') loadVoiceLibrary();
-  if (page === 'features' && typeof refreshFeatures === 'function') refreshFeatures();
+  if (page === 'features') {
+    if (typeof refreshFeatureControl === 'function') refreshFeatureControl();
+    if (typeof refreshFeatures === 'function') refreshFeatures();
+    if (typeof refreshContent === 'function') refreshContent();
+  }
   if (page === 'reliability') {
     if (typeof refreshReliability === 'function') refreshReliability();
     if (typeof loadConfigForm === 'function') loadConfigForm().catch((error) => {
@@ -8855,7 +9623,7 @@ document.getElementById('usageClear').addEventListener('click', async () => {
 
 setConsolePage(location.hash.slice(1), { updateHash:false });
 
-refresh(); refreshRoles(); refreshWhitelist(); refreshSessions(); refreshPending(); refreshPresets(); loadSimConfig(); loadSimGroupProfiles(); refreshSimActivity(); loadSimToolLog(); loadSimSessionOptions(); refreshSlang(); loadSlangConfig(); loadSecurity(); refreshSimPrompt(); refreshDshModel(); refreshUsage(); refreshUsageChart(); refreshUsageRecent();
+refresh(); refreshRoles(); refreshWhitelist(); refreshSessions(); refreshPending(); refreshPresets(); loadSimConfig(); loadSimGroupProfiles(); refreshSimActivity(); loadSimToolLog(); loadSimSessionOptions(); refreshSlang(); loadSlangConfig(); loadSecurity(); refreshSimPrompt(); refreshDshModel(); refreshUsage(); refreshUsageChart(); refreshUsageRecent(); refreshFeatureControl();
 setInterval(() => { refresh(); refreshSessions(); refreshPending(); refreshSlang(); }, 3000);
 // 用量看板只在本页可见时轮询：既保证「实时」，又不让其它页白白多打两份接口。
 setInterval(() => { if (currentConsolePage !== 'usage') return; refreshUsage(); refreshUsageChart(); refreshUsageRecent(); }, 3000);

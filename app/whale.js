@@ -86,6 +86,8 @@ import { listOwnerCapabilities } from '../runtime/control/owner-capabilities.js'
 import { normalizeOwnerFeature, validateOwnerFeature, nextOwnerFeatureRuns, renderOwnerFeaturePreview } from '../runtime/control/owner-features.js';
 import { synthesizeFeatureVoice } from '../runtime/orchestration/feature-voice.js';
 import { listOwnerConfig, readOwnerConfig, validateOwnerConfig, ownerConfigPatch } from '../runtime/control/owner-config.js';
+import { FEATURE_MODULES, normalizeFeatureConfig, featureEnabled, featureSnapshot } from '../runtime/control/feature-switches.js';
+import { FEATURE_BOARDS, FEATURE_CARDS, cardFor, cardDefaultKeys, evaluateDependencies, featureEnablePatch, advancedFieldsFor, configValueFor, valueAtPath } from '../runtime/control/feature-control.js';
 import { listProposals, proposalSummary, readResult, writeResult, mergeProposal, rejectProposal, notificationFor } from '../runtime/orchestration/dev-proposals.js';
 import { queueCodeProposal, stageCodeProposal } from '../runtime/orchestration/code-proposal.js';
 import { enqueueTask, updateTask, queueSnapshot, readTask } from '../runtime/orchestration/orchestrator-queue.js';
@@ -1270,10 +1272,7 @@ function loadConfig() {
     fallback: [],
     ...(file.routing && typeof file.routing === 'object' && !Array.isArray(file.routing) ? file.routing : {})
   };
-  cfg.features = {
-    disabled: [],
-    ...(file.features && typeof file.features === 'object' && !Array.isArray(file.features) ? file.features : {})
-  };
+  cfg.features = normalizeFeatureConfig(file.features);
   cfg.transport = {
     kind: 'snowluma',
     ...(file.transport && typeof file.transport === 'object' && !Array.isArray(file.transport) ? file.transport : {})
@@ -2125,7 +2124,7 @@ async function main() {
   }
   function scheduleSignatureNext(from = Date.now()) {
     const sig = cfg.simulation?.signature ?? {};
-    if (!jobQueue || sig.enabled !== true) return 0;
+    if (!jobQueue || !featureEnabled(cfg, 'signature') || sig.enabled !== true) return 0;
     const { minHours, maxHours } = signatureIntervalConfig();
     const at = from + randomSignatureIntervalMs(minHours, maxHours);
     signatureState.nextAt = at;
@@ -2142,7 +2141,7 @@ async function main() {
   }
   function syncSignatureJob() {
     const sig = cfg.simulation?.signature ?? {};
-    if (!jobQueue || sig.enabled !== true) return 0;
+    if (!jobQueue || !featureEnabled(cfg, 'signature') || sig.enabled !== true) return 0;
     const now = Date.now();
     const { minHours, maxHours, minMs, maxMs } = signatureIntervalConfig();
     let at = Number(signatureState.nextAt) || 0;
@@ -2304,7 +2303,7 @@ async function main() {
 
   async function handleSignatureJob(job) {
     const sig = cfg.simulation?.signature ?? {};
-    if (sig.enabled !== true) return { status: 'disabled' };
+    if (!featureEnabled(cfg, 'signature') || sig.enabled !== true) return { status: 'disabled' };
     if (!snowlumaHealth.connected) return { retryAfterMs: 15 * 60 * 1000 };
     // 手动更新后至少等过一个最短间隔，避免旧任务补跑
     if (signatureState.lastAppliedAt && Date.now() - signatureState.lastAppliedAt < signatureIntervalConfig().minMs) {
@@ -2567,7 +2566,7 @@ async function main() {
 
   async function refreshEsportsFeed() {
     const ec = cfg.simulation?.esportsFeed ?? {};
-    if (ec.enabled === false || esportsFeedLoading) return;
+    if (!featureEnabled(cfg, 'esportsFeed') || ec.enabled === false || esportsFeedLoading) return;
     esportsFeedLoading = true;
     try {
       let feed;
@@ -2837,6 +2836,11 @@ async function main() {
           ]
         }
       ],
+      // 模块级总开关的实时状态：默认全关，控制台「功能控制」据此显示。
+      modules: FEATURE_MODULES.map((item) => ({
+        ...item,
+        enabled: featureEnabled(cfg, item.id)
+      })),
       limits: [
         '通用搜索当前没有 DeepSeek 搜索 Key 时会回退 Bing。',
         '提醒默认只在主人私聊和家人群可用。',
@@ -2875,9 +2879,11 @@ async function main() {
   async function runOwnerFeature(feature) {
     const key = feature.targets[0];
     if (feature.action.type === 'qzone_post') {
+      if (!featureEnabled(cfg, 'qzone')) return { status: 'disabled', reason: 'features.qzone=false' };
       return postQzoneNow(feature.action.text, { manual: true, notify: false, imageRef: feature.action.image || '' });
     }
     if (feature.action.type === 'send_voice') {
+      if (!featureEnabled(cfg, 'voice')) return { status: 'disabled', reason: 'features.voice=false' };
       if (!key || !isSessionAllowedInCurrentMode(key)) return { status: 'blocked' };
       const voice = await synthesizeFeatureVoice({
         text: feature.action.text,
@@ -2967,6 +2973,7 @@ async function main() {
   }
 
   async function maybeOwnerFeatureAutoReply(key, text) {
+    if (!featureEnabled(cfg, 'ownerFeature')) return false;
     const conf = ownerFeaturesConfig();
     if (!conf.enabled) return false;
     const state = loadOwnerFeatureState();
@@ -2981,6 +2988,7 @@ async function main() {
       try {
         let ok = false;
         if (feature.action.type === 'send_voice') {
+          if (!featureEnabled(cfg, 'voice')) continue;
           const voice = await synthesizeFeatureVoice({ text: feature.action.text, mood: feature.action.mood || '', cfg, outDir: path.join(ROOT, 'audio', 'tts') });
           await sendVoiceFile(key, voice.path, { guard: true });
           ok = true;
@@ -3031,6 +3039,7 @@ async function main() {
   }
 
   async function processOwnerFeatureJobs() {
+    if (!featureEnabled(cfg, 'ownerFeature')) return;
     const conf = ownerFeaturesConfig();
     if (!conf.enabled) return;
     const state = loadOwnerFeatureState();
@@ -3188,6 +3197,7 @@ async function main() {
 
   async function handleDailyReportJob(job) {
     const key = String(job?.key ?? job?.payload?.key ?? '');
+    if (!featureEnabled(cfg, 'dailyReport')) return { status: 'disabled', reason: 'features.dailyReport=false' };
     if (!/^group:\d+$/.test(key) || !dailyReportEnabled(cfg, key)) return { status: 'disabled' };
     if (currentMode !== 'simulation' || !isSessionAllowedInCurrentMode(key)) return { retryAfterMs: 30 * 60 * 1000 };
     if (shouldBlockSilentReply(key)) return { retryAfterMs: 10 * 60 * 1000 };
@@ -3234,7 +3244,7 @@ async function main() {
   }
 
   function syncDailyReportJobs() {
-    if (!jobQueue || cfg.simulation?.dailyReport?.enabled !== true) return 0;
+    if (!jobQueue || !featureEnabled(cfg, 'dailyReport') || cfg.simulation?.dailyReport?.enabled !== true) return 0;
     const keys = new Set((Array.isArray(cfg.simulation.dailyReport.groups) ? cfg.simulation.dailyReport.groups : []).map(String));
     for (const [key, profile] of Object.entries(cfg.simulation?.groupProfiles ?? {})) {
       if (profile?.dailyReport === true) keys.add(key);
@@ -3254,6 +3264,42 @@ async function main() {
       queued += 1;
     }
     return queued;
+  }
+
+  // 配置热更新后重排所有受模块总开关影响的定时任务；关闭时排程会自行清空。
+  function resyncFeatureSchedules(changed) {
+    const keys = (Array.isArray(changed) ? changed : []).map(String);
+    const touches = (prefix) => keys.some((key) => key === prefix || key.startsWith(`${prefix}.`));
+    if (!keys.some((key) => key.startsWith('features.'))
+      && !touches('simulation.innerLife')
+      && !touches('simulation.shareModules')
+      && !touches('simulation.signature')
+      && !touches('simulation.dailyReport')) return;
+    try { innerLife?.reschedule?.(); } catch (error) { log(`[features] 内心生活排程刷新失败：${error?.message ?? error}`); }
+    try { syncSignatureJob(); } catch (error) { log(`[features] 签名排程刷新失败：${error?.message ?? error}`); }
+    try { syncDailyReportJobs(); } catch (error) { log(`[features] 日报排程刷新失败：${error?.message ?? error}`); }
+  }
+
+  // 控制台功能开关/高级设置共用的写配置入口：校验 → 落盘 → 热更新 → 重排排程。
+  function applyConsoleConfigValues(values, { tag = 'features' } = {}) {
+    const result = validateConfigPatch(cfg, values);
+    if (!result.ok) return { ok: false, errors: result.errors };
+    const configFile = path.join(ROOT, 'config.json');
+    let file;
+    try { file = readConfigObject(configFile); } catch (error) { return { ok: false, error: error?.message ?? String(error) }; }
+    const nextFile = applyConfigPatch(file, result.values);
+    nextFile.configVersion = CONFIG_VERSION;
+    try { writeConfigFile(nextFile, { tag }); } catch (error) { return { ok: false, error: `写入 config.json 失败：${error?.message ?? error}` }; }
+    const nested = applyConfigPatch({}, result.values);
+    const merged = deepMergeConfig(cfg, nested);
+    for (const key of Object.keys(cfg)) delete cfg[key];
+    Object.assign(cfg, merged);
+    resyncFeatureSchedules(Object.keys(result.values));
+    const catalog = new Map(buildConfigSchema(cfg).fields.map((f) => [f.key, f]));
+    const requiresRestart = Object.keys(result.values)
+      .filter((key) => (catalog.get(key)?.restart ?? 'none') !== 'none')
+      .map((key) => ({ key, scope: catalog.get(key)?.restart }));
+    return { ok: true, applied: Object.keys(result.values), requiresRestart };
   }
 
   function syncReminderJobs() {    if (!jobQueue) return 0;
@@ -3672,7 +3718,128 @@ async function main() {
         enabled: cfg.simulation?.dailyReport?.enabled === true,
         at: cfg.simulation?.dailyReport?.at || '21:30',
         groups: Array.isArray(cfg.simulation?.dailyReport?.groups) ? cfg.simulation.dailyReport.groups.length : 0
+      },
+      features: featureSnapshot(cfg)
+    };
+  }
+
+  function buildFeatureControlSnapshot() {
+    const snap = buildContentSnapshot();
+    const qz = snap.qzone || {};
+    const cw = qz.commentWatch || {};
+    const sig = snap.signature || {};
+    const sh = snap.share || {};
+    const sm = snap.shareModules || {};
+    const ai = snap.aiTips || {};
+    const esp = snap.esports || {};
+    const dr = snap.dailyReport || {};
+    const of = snap.ownerFeatures || {};
+    const schema = new Map(buildConfigSchema(cfg).fields.map((field) => [field.key, field]));
+    const fmt = (ms) => (Number(ms) > 0
+      ? new Date(Number(ms)).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
+      : '');
+    const targetList = Array.isArray(sh.targets) && sh.targets.length ? sh.targets : (sh.target ? [sh.target] : []);
+    const dailyReportGroups = Array.isArray(cfg.simulation?.dailyReport?.groups) ? cfg.simulation.dailyReport.groups : [];
+    const statusFor = (id) => {
+      if (id === 'qzone') {
+        if (qz.paused) return { line: '已暂停：回主人私聊「开说说」恢复', tone: 'warn', attention: true };
+        if (qz.pendingDraft) return { line: `有 1 条草稿等你审核${qz.pendingDraft.expiresAt ? `（${fmt(qz.pendingDraft.expiresAt)} 前有效）` : ''}`, tone: 'warn', attention: true };
+        if (qz.nextAt) return { line: `今日 ${qz.today ?? 0}/${qz.maxPerDay ?? 0} 条 · 下次 ${fmt(qz.nextAt)}`, tone: 'ok' };
+        return { line: `今日 ${qz.today ?? 0}/${qz.maxPerDay ?? 0} 条 · 等待排期`, tone: 'muted' };
       }
+      if (id === 'qzoneCommentReply') {
+        if (cw.pendingReply) return { line: `有 1 条回复草稿等你确认${cw.pendingReply.expiresAt ? `（${fmt(cw.pendingReply.expiresAt)} 前有效）` : ''}`, tone: 'warn', attention: true };
+        if (cw.lastCheckAt) return { line: `今日已回 ${cw.repliedToday ?? 0}/${cw.maxPerDay ?? 5} · 上次检查 ${fmt(cw.lastCheckAt)}`, tone: 'ok' };
+        return { line: '还没有检查过评论', tone: 'muted' };
+      }
+      if (id === 'signature') {
+        if (sig.pending) return { line: '有 1 条签名草稿等你确认', tone: 'warn', attention: true };
+        if (sig.lastError) return { line: '上次更新没成功，稍后会自动重试', tone: 'warn', attention: true };
+        if (sig.nextAt) return { line: `下次更换 ${fmt(sig.nextAt)}`, tone: 'ok' };
+        return { line: '等待排期', tone: 'muted' };
+      }
+      if (id === 'voice') {
+        return { line: `AI 语音每分钟最多 ${snap.expression?.caps?.voicePerMinute ?? 6} 条`, tone: 'ok' };
+      }
+      if (id === 'share') {
+        if (sh.pendingShare) return { line: `有 1 条群分享草稿待确认${sh.pendingShare.expiresAt ? `（${fmt(sh.pendingShare.expiresAt)} 前有效）` : ''}`, tone: 'warn', attention: true };
+        if (!targetList.length) return { line: '还没有选择目标群，暂时不会分享', tone: 'warn', attention: true };
+        return { line: `今日 ${sh.today ?? 0}/${sh.maxPerDay ?? 0} 条 · ${targetList.length} 个目标群${sh.nextAt ? ` · 下次 ${fmt(sh.nextAt)}` : ''}`, tone: 'ok' };
+      }
+      if (id === 'shareModule') {
+        const modules = Array.isArray(sm.modules) ? sm.modules : [];
+        if (!modules.length) return { line: '还没有分享模块；可在主人私聊里创建', tone: 'muted' };
+        const pending = modules.filter((m) => m.pending).length;
+        const paused = modules.filter((m) => m.paused).length;
+        const today = modules.reduce((n, m) => n + (Number(m.today) || 0), 0);
+        return {
+          line: `${modules.length} 个模块 · 今日共 ${today} 条${pending ? ` · ${pending} 条待确认` : ''}${paused ? ` · ${paused} 个暂停` : ''}`,
+          tone: pending ? 'warn' : 'ok',
+          attention: pending > 0
+        };
+      }
+      if (id === 'aiTips') {
+        if (ai.paused) return { line: '已暂停；恢复后会继续排期', tone: 'warn', attention: true };
+        return { line: `今天 ${ai.today ?? 0}/${ai.dailyTarget || `${ai.minPerDay ?? 2}-${ai.maxPerDay ?? 5}`} 条${ai.nextAt ? ` · 下次 ${fmt(ai.nextAt)}` : ''}`, tone: 'ok' };
+      }
+      if (id === 'esportsFeed') {
+        if (esp.error) return { line: '上次抓取没成功，稍后会自动重试', tone: 'warn', attention: true };
+        if (esp.updatedAt) {
+          const next = esp.schedule?.next;
+          return {
+            line: `最近更新 ${fmt(esp.updatedAt)}${next ? ` · 下一场 ${String(next.date || '').slice(5)} ${next.teamA || ''} vs ${next.teamB || ''}` : ''}`,
+            tone: 'ok'
+          };
+        }
+        return { line: '还没有抓取过资讯', tone: 'muted' };
+      }
+      if (id === 'dailyReport') {
+        if (!dailyReportGroups.length) return { line: '还没有选择日报群，暂时不会发送', tone: 'warn', attention: true };
+        return { line: `每天 ${dr.at || '21:30'} · ${dailyReportGroups.length} 个群`, tone: 'ok' };
+      }
+      if (id === 'ownerFeature') {
+        const features = Array.isArray(of.features) ? of.features : [];
+        if (!features.length) return { line: '还没有创建任务；可在主人私聊里创建', tone: 'muted' };
+        const next = features.map((f) => Number(f.nextAt) || 0).filter(Boolean).sort((a, b) => a - b)[0];
+        return { line: `${features.length} 个任务${next ? ` · 下次 ${fmt(next)}` : ''}${of.orchestrator?.pending ? ` · ${of.orchestrator.pending} 个等待主控` : ''}`, tone: 'ok' };
+      }
+      return { line: '', tone: 'muted' };
+    };
+    const modules = FEATURE_CARDS.map((card) => {
+      const enabled = featureEnabled(cfg, card.id);
+      const dependencies = evaluateDependencies(card, cfg, (key) => valueAtPath(cfg, key, true));
+      const hardBlocked = enabled && dependencies.some((item) => !item.ok && !item.soft);
+      const state = !enabled ? 'off' : hardBlocked ? 'blocked' : 'on';
+      const status = statusFor(card.id);
+      const keys = cardDefaultKeys(card.id);
+      const requiresRestart = keys.some((key) => (schema.get(key)?.restart ?? 'none') !== 'none');
+      return {
+        id: card.id,
+        board: card.board,
+        label: card.label,
+        keywords: card.keywords || '',
+        description: card.description,
+        onEffect: card.onEffect,
+        offEffect: card.offEffect,
+        dangerousOff: card.dangerousOff === true,
+        customPanel: card.customPanel || '',
+        enabled,
+        state,
+        statusLine: status.line,
+        statusTone: status.tone,
+        attention: status.attention === true || (enabled && dependencies.some((item) => !item.ok)),
+        dependencies,
+        advanced: advancedFieldsFor(card, cfg),
+        hasAdvanced: keys.length > 0,
+        requiresRestart
+      };
+    });
+    return {
+      generatedAt: Date.now(),
+      boards: FEATURE_BOARDS.map((board) => ({ ...board, modules: modules.filter((module) => module.board === board.id) })),
+      modules,
+      total: modules.length,
+      enabled: modules.filter((module) => module.enabled).length
     };
   }
 
@@ -6506,6 +6673,86 @@ async function main() {
           sendJson(buildFeatureOverview());
           return;
         }
+        if (req.method === 'GET' && url.pathname === '/api/features/control') {
+          sendJson({ ok: true, ...buildFeatureControlSnapshot() });
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/features/control') {
+          const body = await readBody();
+          const id = String(body.id ?? '').trim();
+          const card = cardFor(id);
+          if (!card) { sendJson({ ok: false, error: `未知功能模块：${id}` }, 400); return; }
+          if (typeof body.enabled !== 'boolean') { sendJson({ ok: false, error: 'enabled 必须是布尔值' }, 400); return; }
+          const patch = { [`features.${id}`]: body.enabled };
+          if (body.enabled) {
+            Object.assign(patch, featureEnablePatch(card));
+            // 旧版 features.disabled 是加载器级黑名单；打开主开关时把它清掉，
+            // 否则同一次操作里总开关是 true、模块却被旧字段挡住。
+            const disabled = Array.isArray(cfg.features?.disabled) ? cfg.features.disabled : [];
+            if (disabled.includes(id)) patch['features.disabled'] = disabled.filter((item) => item !== id);
+          }
+          const applied = applyConsoleConfigValues(patch, { tag: 'features' });
+          if (!applied.ok) {
+            sendJson({ ok: false, errors: applied.errors || [], error: applied.error || '保存失败' }, applied.errors ? 400 : 500);
+            return;
+          }
+          log(`控制台：功能「${card.label}」已${body.enabled ? '开启' : '关闭'}`);
+          sendJson({
+            ok: true,
+            id,
+            enabled: body.enabled,
+            applied: applied.applied,
+            requiresRestart: applied.requiresRestart,
+            note: applied.requiresRestart.length ? '标注为 bridge/dsh 的项需重启对应进程后生效' : '已热更新'
+          });
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/features/advanced') {
+          const body = await readBody();
+          const card = cardFor(String(body.id ?? '').trim());
+          if (!card) { sendJson({ ok: false, error: '未知功能模块' }, 400); return; }
+          const fields = Array.isArray(card.advanced) ? card.advanced : [];
+          if (!fields.length) { sendJson({ ok: false, error: '这个模块没有可编辑的通用高级设置' }, 400); return; }
+          const incoming = body.values && typeof body.values === 'object' && !Array.isArray(body.values) ? body.values : {};
+          const values = {};
+          const errors = [];
+          for (const [key, input] of Object.entries(incoming)) {
+            const field = fields.find((item) => item.key === key);
+            if (!field) { errors.push(`未知高级设置：${key}`); continue; }
+            const converted = configValueFor(field, input);
+            if (converted === null) { errors.push(`${field.label || key} 的值不合法`); continue; }
+            values[key] = converted;
+          }
+          if (errors.length) { sendJson({ ok: false, errors, error: errors[0] }, 400); return; }
+          const applied = applyConsoleConfigValues(values, { tag: 'features' });
+          if (!applied.ok) {
+            sendJson({ ok: false, errors: applied.errors || [], error: applied.error || '保存失败' }, applied.errors ? 400 : 500);
+            return;
+          }
+          log(`控制台：功能「${card.label}」高级设置已更新 ${applied.applied.length} 项`);
+          sendJson({ ok: true, id: card.id, applied: applied.applied, requiresRestart: applied.requiresRestart });
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/features/reset-advanced') {
+          const body = await readBody();
+          const card = cardFor(String(body.id ?? '').trim());
+          if (!card) { sendJson({ ok: false, error: '未知功能模块' }, 400); return; }
+          const example = readConfigObject(path.join(ROOT, 'config.example.json'));
+          const values = {};
+          for (const key of cardDefaultKeys(card.id)) {
+            const value = valueAtPath(example, key, undefined);
+            if (value !== undefined) values[key] = value;
+          }
+          if (!Object.keys(values).length) { sendJson({ ok: false, error: '这个模块没有可恢复的默认项' }, 400); return; }
+          const applied = applyConsoleConfigValues(values, { tag: 'features' });
+          if (!applied.ok) {
+            sendJson({ ok: false, errors: applied.errors || [], error: applied.error || '恢复失败' }, applied.errors ? 400 : 500);
+            return;
+          }
+          log(`控制台：功能「${card.label}」高级设置已恢复默认 ${applied.applied.length} 项`);
+          sendJson({ ok: true, id: card.id, applied: applied.applied, requiresRestart: applied.requiresRestart });
+          return;
+        }
 
         // ── 配置 schema：控制台表单 / deploy CLI / doctor 的单一事实源 ──────────
         if (req.method === 'GET' && url.pathname === '/api/config/schema') {
@@ -6536,26 +6783,14 @@ async function main() {
             sendJson({ ok: false, errors: result.errors }, 400);
             return;
           }
-          const configFile = path.join(ROOT, 'config.json');
-          const file = readConfigObject(configFile);
-          const nextFile = applyConfigPatch(file, result.values);
-          nextFile.configVersion = CONFIG_VERSION;
-          try {
-            writeConfigFile(nextFile);
-          } catch (error) {
-            sendJson({ ok: false, error: `写入 config.json 失败：${error?.message ?? error}` }, 500);
+          // 落盘 + 热更新 + 重排定时任务，统一走与控制台功能开关相同的入口。
+          const applied = applyConsoleConfigValues(result.values, { tag: 'console' });
+          if (!applied.ok) {
+            sendJson({ ok: false, errors: applied.errors || [], error: applied.error || '保存失败' }, applied.errors ? 400 : 500);
             return;
           }
-          // 热更新内存配置（深合并，保留运行时字段）
-          const nested = applyConfigPatch({}, result.values);
-          const merged = deepMergeConfig(cfg, nested);
-          for (const key of Object.keys(cfg)) delete cfg[key];
-          Object.assign(cfg, merged);
-          const catalog = new Map(buildConfigSchema(cfg).fields.map((f) => [f.key, f]));
-          const requiresRestart = Object.keys(result.values)
-            .filter((key) => (catalog.get(key)?.restart ?? 'none') !== 'none')
-            .map((key) => ({ key, scope: catalog.get(key)?.restart }));
-          log(`控制台：配置已更新 ${Object.keys(result.values).length} 项${requiresRestart.length ? `（${requiresRestart.length} 项需重启）` : ''}`);
+          const { requiresRestart } = applied;
+          log(`控制台：配置已更新 ${applied.applied.length} 项${requiresRestart.length ? `（${requiresRestart.length} 项需重启）` : ''}`);
           sendJson({
             ok: true,
             applied: Object.keys(result.values),
@@ -6585,6 +6820,10 @@ async function main() {
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/esports/refresh') {
+          if (!featureEnabled(cfg, 'esportsFeed')) {
+            sendJson({ ok: false, disabled: true, reason: 'features.esportsFeed=false', error: '赛事资讯总开关已关闭' }, 403);
+            return;
+          }
           void refreshEsportsFeed().catch((error) => log(`[esports] 手动刷新失败：${error?.message ?? error}`));
           sendJson({ ok: true, started: true, loading: esportsFeedLoading === true });
           return;
@@ -6915,6 +7154,10 @@ async function main() {
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/signature/apply') {
+          if (!featureEnabled(cfg, 'signature')) {
+            sendJson({ ok: false, disabled: true, reason: 'features.signature=false', error: '个性签名总开关已关闭' }, 403);
+            return;
+          }
           const body = await readBody();
           const text = String(body.text ?? '').trim() || buildSignaturePreview();
           if (!text) { sendJson({ ok: false, error: '签名不能为空' }, 400); return; }
@@ -7192,6 +7435,12 @@ async function main() {
           const preferS16 = body.preferS16 === true;
           const forceApproval = body.forceApproval === true;
           const dryRun = body.dryRun === true;
+          const featureId = job === 'qzone' ? 'qzone' : (job === 'aiTips' ? 'aiTips' : (job === 'curiosity' ? 'share' : ''));
+          const previewOnly = dryRun && job === 'curiosity';
+          if (featureId && !featureEnabled(cfg, featureId) && !previewOnly) {
+            sendJson({ ok: false, disabled: true, reason: `features.${featureId}=false`, error: '这个功能的总开关已关闭' }, 403);
+            return;
+          }
           void innerLife.runJob(job, { force, preferS16, forceApproval, dryRun }).then((result) => log(`[inner] 控制台手动 ${job} → ${result?.status ?? 'done'}`));
           sendJson({ ok: true, started: true, job, force, preferS16, forceApproval, dryRun });
           return;
@@ -7218,6 +7467,10 @@ async function main() {
               return;
             }
             if (action === 'run') {
+              if (!featureEnabled(cfg, 'aiTips') && body.dryRun !== true) {
+                sendJson({ ok: false, disabled: true, reason: 'features.aiTips=false', error: 'AI 小知识总开关已关闭' }, 403);
+                return;
+              }
               void innerLife.runJob('aiTips', { force: true, dryRun: body.dryRun === true })
                 .then((result) => log(`[inner] 控制台手动 AI小知识 → ${result?.status ?? 'done'}`));
               sendJson({ ok: true, started: true, dryRun: body.dryRun === true });
@@ -7285,11 +7538,21 @@ async function main() {
               return;
             }
             if (action === 'run') {
+              const featureId = id === 'ai_tips' ? 'aiTips' : 'shareModule';
+              if (!featureEnabled(cfg, featureId)) {
+                sendJson({ ok: false, disabled: true, reason: `features.${featureId}=false`, error: '这个分享模块的总开关已关闭' }, 403);
+                return;
+              }
               const result = await innerLife.runShareModule?.(id, { force: true });
               sendJson({ ok: result?.status === 'sent' || result?.status === 'pending-approval', result });
               return;
             }
             if (action === 'publish') {
+              const featureId = id === 'ai_tips' ? 'aiTips' : 'shareModule';
+              if (!featureEnabled(cfg, featureId)) {
+                sendJson({ ok: false, disabled: true, reason: `features.${featureId}=false`, error: '这个分享模块的总开关已关闭' }, 403);
+                return;
+              }
               const result = await innerLife.publishShareDraft?.(id);
               sendJson({ ok: result?.status === 'sent', result });
               return;
@@ -9858,6 +10121,12 @@ async function main() {
             limits: { maxSeconds: voice.maxSeconds, maxBytes: voice.maxBytes, maxPerMinute: voice.maxPerMinute, maxPerHour: voice.maxPerHour }
           };
           if (body.dryRun === true) { sendJson({ ok: true, dryRun: true, ...preview }); return; }
+          // 预览不发送，保持可用；真正发送必须打开功能卡上的「语音与唱歌」总开关,
+          // 否则控制台/CLI 会变成一条绕过总开关的发送通道。
+          if (!featureEnabled(cfg, 'voice')) {
+            sendJson({ ok: false, disabled: true, reason: 'features.voice=false', error: '语音与唱歌总开关已关闭（仍可 dryRun 预览）' }, 403);
+            return;
+          }
           const now = Date.now();
           try {
             voiceBudgetCheck('operator:cli', voice);
@@ -10489,6 +10758,10 @@ async function main() {
           if (currentMode !== 'simulation') { sendJson({ ok: false, error: '该接口仅 simulation 模式可用' }, 403); return; }
           const highRisk = await ownerHighRiskGuard(url.pathname, body, req);
           if (!highRisk.ok) { sendJson({ ok: false, error: highRisk.error, ...(highRisk.payload || {}) }, highRisk.status); return; }
+          if (!featureEnabled(cfg, 'qzone') && body.dryRun !== true) {
+            sendJson({ ok: false, disabled: true, reason: 'features.qzone=false', error: '空间说说总开关已关闭' }, 403);
+            return;
+          }
           try {
             const result = await innerLife.ownerPublishQzone(String(body.text ?? ''), {
               imageRef: String(body.image ?? ''),
@@ -10509,6 +10782,7 @@ async function main() {
           const key = String(body.key ?? body.target ?? '').trim();
           const voice = voiceCfg();
           if (!voice.enabled) { sendJson({ ok: false, error: '语音功能已关闭' }, 403); return; }
+          if (!featureEnabled(cfg, 'voice')) { sendJson({ ok: false, disabled: true, reason: 'features.voice=false' }, 403); return; }
           if (!key) { sendJson({ ok: false, error: 'key 不能为空（格式 group:群号 或 private:QQ号）' }, 400); return; }
           if (currentMode !== 'simulation') { sendJson({ ok: false, error: '该接口仅 simulation 模式可用' }, 403); return; }
           if (!token) { sendJson({ ok: false, error: 'simulation 模式发送必须携带 agent token' }, 403); return; }
@@ -10968,6 +11242,7 @@ async function main() {
           const agentCall = Boolean(req.headers['x-agent-token']);
           // 与发送接口同样的分层：voice.enabled 只关 AI 通道；操作者（控制台面板）仍可列语音库。
           if (agentCall && !voice.enabled) { sendJson({ ok: false, error: '语音功能已关闭' }, 403); return; }
+          if (agentCall && !featureEnabled(cfg, 'voice')) { sendJson({ ok: false, disabled: true, reason: 'features.voice=false' }, 403); return; }
           if (agentCall && !key) { sendJson({ ok: false, error: 'key 不能为空' }, 400); return; }
           if (agentCall && !agentTokenOk(key, req.headers['x-agent-token'])) { sendJson({ ok: false, error: 'agent token 无效' }, 403); return; }
           if (agentCall && !simulationSessionAllowed(key)) { sendJson({ ok: false, error: '目标不在当前模式允许范围内' }, 403); return; }
@@ -18207,6 +18482,7 @@ async function main() {
   let qzoneCommentCheckBusy = false;
   const runQzoneCommentCheck = () => {
     if (qzoneCommentCheckBusy || !innerLife) return;
+    if (!featureEnabled(cfg, 'qzoneCommentReply')) return;
     qzoneCommentCheckBusy = true;
     Promise.resolve(innerLife.checkQzoneComments?.())
       .catch((error) => log(`[inner] 空间评论检查失败（忽略）：${error?.message ?? error}`))

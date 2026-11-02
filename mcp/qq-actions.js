@@ -22,6 +22,7 @@ import { z } from 'zod';
 import { SENSITIVE_RE } from '../runtime/kernel/sensitive.js';
 import { serializeModelData } from '../services/social/qq-model-view.js';
 import { fetchWithBusyRetry, TtsBusyError } from '../runtime/persona/tts-busy-retry.js';
+import { featureEnabled } from '../runtime/control/feature-switches.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -353,6 +354,30 @@ const TOOL_CONFIG_FLAGS = {
   qq_weather: 'weather',
   qq_play_game: 'playGame',
 };
+// 模块级总开关 → MCP 工具。注册期不过滤（否则打开功能后必须重启 DSH 才能看到工具），
+// 调用期每次重新读 config.json，控制台一开一关立即生效。
+// qq_config_* / qq_capabilities_list 永远不在表里：关掉功能后仍要能向主人解释怎么开。
+const TOOL_FEATURE = {
+  qq_send_voice: 'voice',
+  qq_list_voices: 'voice',
+  qq_speak: 'voice',
+  qq_post_qzone: 'qzone',
+  qq_share_module_list: 'shareModule',
+  qq_share_module_create: 'shareModule',
+  qq_share_module_update: 'shareModule',
+  qq_share_module_pause: 'shareModule',
+  qq_share_module_verify: 'shareModule',
+  qq_share_module_preview: 'shareModule',
+  qq_share_module_delete: 'shareModule',
+  qq_share_module_publish: 'shareModule',
+  qq_feature_list: 'ownerFeature',
+  qq_feature_preview: 'ownerFeature',
+  qq_feature_apply: 'ownerFeature',
+  qq_feature_control: 'ownerFeature'
+};
+const featureDisabledResult = (id) => ({
+  content: [{ type: 'text', text: serializeModelData({ ok: false, disabled: true, reason: `features.${id}=false` }) }]
+});
 const disabledTools = [];
 {
   const registerTool = server.tool.bind(server);
@@ -361,6 +386,15 @@ const disabledTools = [];
     if (flag && cfg.simulation?.tools?.[flag] === false) {
       disabledTools.push(`${name}(${flag})`);
       return undefined;
+    }
+    const handlerIndex = rest.length - 1;
+    const handler = rest[handlerIndex];
+    if (typeof handler === 'function') {
+      rest[handlerIndex] = async (...args) => {
+        const featureId = TOOL_FEATURE[name];
+        if (featureId && !featureEnabled(getConfig(), featureId)) return featureDisabledResult(featureId);
+        return handler(...args);
+      };
     }
     return registerTool(name, ...rest);
   };

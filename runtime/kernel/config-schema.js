@@ -7,6 +7,8 @@
 //   · 校验类型以运行时值为参照；范围/枚举/标签/密钥标记集中在 FIELD_META。
 //   · 非法值在写入边界拒绝（400）；启动时只告警并回退默认，避免一条错配置让机器人起不来。
 
+import { FEATURE_MODULES } from '../control/feature-switches.js';
+
 export const CONFIG_VERSION = 2;
 
 const GROUP_LABELS = {
@@ -19,6 +21,7 @@ const GROUP_LABELS = {
   slang: '黑话学习',
   social: '旧版仿真（reserved）',
   simulation: '群聊剧场',
+  features: '功能总开关',
   webSearch: '联网搜索',
   tts: 'TTS 语音合成',
   storage: '存储与可靠性',
@@ -189,7 +192,13 @@ const FIELD_META = {
   'webSearch.model': { label: '搜索模型', group: '联网搜索', restart: 'bridge' },
   'webSearch.maxUses': { label: '单轮最多搜索次数', group: '联网搜索', restart: 'none', min: 1, max: 50 },
   'webSearch.maxResults': { label: '最多结果数', group: '联网搜索', restart: 'none', min: 1, max: 50 },
-  'webSearch.timeoutMs': { label: '搜索超时（ms）', group: '联网搜索', restart: 'none', min: 1000, max: 120000 }
+  'webSearch.timeoutMs': { label: '搜索超时（ms）', group: '联网搜索', restart: 'none', min: 1000, max: 120000 },
+
+  // ── 模块级总开关 ──────────────────────────────────────────────────────────
+  ...Object.fromEntries(FEATURE_MODULES.map(({ id, label, description }) => [
+    `features.${id}`,
+    { label: `总开关：${label}`, group: '功能总开关', restart: 'none', description }
+  ]))
 };
 
 const SECRET_KEY_RE = /(token|api[_-]?key|secret|password|passwd|cookie)$/i;

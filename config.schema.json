@@ -2080,6 +2080,76 @@
         }
       }
     },
+    "features": {
+      "type": "object",
+      "properties": {
+        "aiTips": {
+          "title": "总开关：AI 小知识",
+          "type": "boolean",
+          "default": false,
+          "description": "ai_tips 分享模块（每日 AI 小知识）"
+        },
+        "dailyReport": {
+          "title": "总开关：群日报",
+          "type": "boolean",
+          "default": false,
+          "description": "每天定时把群统计发到群里"
+        },
+        "esportsFeed": {
+          "title": "总开关：赛事资讯",
+          "type": "boolean",
+          "default": false,
+          "description": "定时抓取 S16 赛事资讯与赛程"
+        },
+        "ownerFeature": {
+          "title": "总开关：功能中心",
+          "type": "boolean",
+          "default": false,
+          "description": "定时消息、自动回复、语音消息等主人功能"
+        },
+        "qzone": {
+          "title": "总开关：空间说说",
+          "type": "boolean",
+          "default": false,
+          "description": "定时自动发 QQ 空间说说"
+        },
+        "qzoneCommentReply": {
+          "title": "总开关：空间评论回复",
+          "type": "boolean",
+          "default": false,
+          "description": "自动回复自己说说下的评论与好友动态里的 @"
+        },
+        "share": {
+          "title": "总开关：主动分享（旧链路）",
+          "type": "boolean",
+          "default": false,
+          "description": "好奇/群内主动分享：curiosity 与 groupShare"
+        },
+        "shareModule": {
+          "title": "总开关：分享模块引擎",
+          "type": "boolean",
+          "default": false,
+          "description": "自定义分享模块的定时发送与验证期流程"
+        },
+        "signature": {
+          "title": "总开关：个性签名",
+          "type": "boolean",
+          "default": false,
+          "description": "按间隔自动生成并更新 QQ 个性签名"
+        },
+        "voice": {
+          "title": "总开关：语音发送",
+          "type": "boolean",
+          "default": false,
+          "description": "qq_send_voice / qq_speak 与 AI 语音出口"
+        },
+        "disabled": {
+          "title": "禁用的 feature",
+          "type": "array",
+          "default": []
+        }
+      }
+    },
     "webSearch": {
       "type": "object",
       "properties": {
@@ -2660,16 +2730,6 @@
             "onebot"
           ],
           "description": "onebot = 通用 OneBot v11 HTTP（NapCat 等）；入站仍按 SnowLuma WS"
-        }
-      }
-    },
-    "features": {
-      "type": "object",
-      "properties": {
-        "disabled": {
-          "title": "禁用的 feature",
-          "type": "array",
-          "default": []
         }
       }
     },
@@ -4861,6 +4921,86 @@
       "label": "Timeout Ms",
       "group": "群聊剧场",
       "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.aiTips",
+      "label": "总开关：AI 小知识",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.dailyReport",
+      "label": "总开关：群日报",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.esportsFeed",
+      "label": "总开关：赛事资讯",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.ownerFeature",
+      "label": "总开关：功能中心",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.qzone",
+      "label": "总开关：空间说说",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.qzoneCommentReply",
+      "label": "总开关：空间评论回复",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.share",
+      "label": "总开关：主动分享（旧链路）",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.shareModule",
+      "label": "总开关：分享模块引擎",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.signature",
+      "label": "总开关：个性签名",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.voice",
+      "label": "总开关：语音发送",
+      "group": "功能总开关",
+      "type": "boolean",
       "restart": "none",
       "advanced": false
     },

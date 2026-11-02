@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { roleCharStats, roleSectionReport } from '../services/persona/role-card.js';
 import { pickBucketMs } from '../services/social/token-ledger.js';
 import { manualDirCommand } from '../runtime/kernel/state-acl.mjs';
+import { FEATURE_BOARDS, FEATURE_CARDS, advancedFieldsFor, cardDefaultKeys } from '../runtime/control/feature-control.js';
 
 export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const timestamp = '2026-09-20T08:30:00.000Z';
@@ -284,6 +285,144 @@ function usageRecentFixture() {
   return rows;
 }
 
+// 功能控制：用真实卡片定义生成离线快照，形状与 /api/features/control 一致。
+function featureAdvancedConfig(state) {
+  const out = {};
+  for (const [key, value] of Object.entries(state.featureAdvanced || {})) {
+    const parts = key.split('.');
+    let cur = out;
+    for (let i = 0; i < parts.length - 1; i += 1) {
+      if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+      cur = cur[parts[i]];
+    }
+    cur[parts.at(-1)] = value;
+  }
+  return out;
+}
+
+function featureControlFixture(state) {
+  const modules = FEATURE_CARDS.map((card) => {
+    const enabled = state.featureEnabled[card.id] === true;
+    return {
+      id: card.id,
+      board: card.board,
+      label: card.label,
+      keywords: card.keywords || '',
+      description: card.description,
+      onEffect: card.onEffect,
+      offEffect: card.offEffect,
+      dangerousOff: card.dangerousOff === true,
+      customPanel: card.customPanel || '',
+      enabled,
+      state: enabled ? 'on' : 'off',
+      statusLine: enabled ? '离线示例：正在运行' : '',
+      statusTone: 'muted',
+      attention: false,
+      dependencies: (card.dependencies || []).map((dep) => ({
+        key: dep.key,
+        label: dep.label,
+        ok: true,
+        soft: dep.soft === true,
+        enableValue: dep.enableValue,
+      })),
+      advanced: advancedFieldsFor(card, featureAdvancedConfig(state)),
+      hasAdvanced: cardDefaultKeys(card.id).length > 0,
+      requiresRestart: false,
+    };
+  });
+  return {
+    ok: true,
+    generatedAt: Date.parse(timestamp),
+    boards: FEATURE_BOARDS.map((board) => ({ ...board, modules: modules.filter((module) => module.board === board.id) })),
+    modules,
+    total: modules.length,
+    enabled: modules.filter((module) => module.enabled).length,
+  };
+}
+
+// 内容快照：字段口径与 /api/content 保持一致，离线预览走同一套渲染路径。
+function contentFixture(state) {
+  return {
+    ok: true,
+    serverNow: Date.parse(timestamp),
+    features: { ...state.featureEnabled },
+    allowGroups: state.whitelist.allow.groups.map((id) => `group:${id}`),
+    esports: {
+      title: '离线示例赛程',
+      updatedAt: Date.parse(timestamp),
+      error: '',
+      items: [],
+      kind: 'news',
+      source: 'zhibo8',
+      refreshMs: 300000,
+      maxItems: 12,
+      shareEnabled: true,
+      schedule: { lines: ['离线示例：赛程均为虚构'], next: null },
+    },
+    share: {
+      enabled: true,
+      targets: ['group:123456789'],
+      today: 1,
+      maxPerDay: 3,
+      minGapMs: 600000,
+      idleMs: 300000,
+      maxChars: 500,
+      requireApproval: true,
+      nextAt: Date.parse(timestamp) + 3600000,
+      curiosityToday: 0,
+      recent: [],
+      pendingShare: null,
+      last: null,
+    },
+    qzone: {
+      enabled: true,
+      paused: false,
+      today: 1,
+      maxPerDay: 5,
+      minGapMs: 600000,
+      maxChars: 200,
+      skipProbability: 0.2,
+      requireApproval: true,
+      visibility: 1,
+      pendingDraft: null,
+      nextAt: Date.parse(timestamp) + 7200000,
+      recent: [],
+      commentWatch: {
+        lastCheckAt: 0,
+        lastResult: '',
+        repliedToday: 0,
+        maxPerDay: 5,
+        mentionEnabled: true,
+        mentionRepliedToday: 0,
+        mentionMaxPerDay: 5,
+        pendingReply: null,
+      },
+    },
+    search: { provider: 'auto', model: '', maxResults: 8, timeoutMs: 35000, maxUses: 5, configured: false },
+    memory: { total: 3, personalCount: 2, byScope: { personal: 2, group: 1 }, recentFacts: [], ftsReady: true },
+    library: { stickers: 8, images: 3 },
+    crossChat: { groups: [{ key: 'group:123456789', name: '演示群' }], privates: [] },
+    voiceStyle: { effective: 'soft', mode: 'auto', valence: 0.2, transport: { mode: 'wav', normalize: true, loudness: 'normal' } },
+    expression: { caps: { sendPerMinute: 12, voicePerMinute: 6, sharePerDay: 20, qzonePerDay: 10 } },
+    aiTips: {
+      enabled: true,
+      paused: false,
+      today: 1,
+      minPerDay: 2,
+      maxPerDay: 5,
+      windowStartHour: 9,
+      windowEndHour: 22,
+      minGapMs: 4500000,
+      maxChars: 200,
+      nextAt: Date.parse(timestamp) + 1800000,
+      categories: [],
+    },
+    shareModules: { modules: [], limits: { perGroupPerDay: 8, perGroupPerHour: 3 } },
+    ownerFeatures: { enabled: true, features: [], capabilities: [], orchestrator: { pending: 0 } },
+    subscriptions: [],
+  };
+}
+
 export function makeFixtureState() {
   return {
     mode: 'simulation', role: '小鲸鱼', roleMode: 'active', closedAgentPreset: '', paused: false,
@@ -337,6 +476,19 @@ export function makeFixtureState() {
       { time: timestamp, key: 'group:123456789', tool: 'qq_get_recent_messages', type: 'result', ok: true },
     ],
     feedback: [{ time: timestamp, level: 'info', message: '这是离线演示反馈。' }],
+    featureEnabled: {
+      qzone: true,
+      qzoneCommentReply: true,
+      signature: true,
+      voice: true,
+      share: true,
+      shareModule: false,
+      aiTips: true,
+      dailyReport: false,
+      esportsFeed: false,
+      ownerFeature: true,
+    },
+    featureAdvanced: {},
   };
 }
 
@@ -388,6 +540,9 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
             features: [{ title: '人格与聊天', items: [{ name: '群聊 / 私聊', status: 'on', desc: '离线示例能力。' }] }],
             limits: ['离线示例：这是只读功能清单。'],
           });
+          case '/api/features/control': return json(featureControlFixture(state));
+          case '/api/content': return json(contentFixture(state));
+          case '/api/inner-life/candidates': return json({ ok: true, fetchedAt: Date.parse(timestamp), candidates: [] });
           case '/api/presets': return json({ presets: [{ id: 'qq-chat-legacy', trust: 'user' }, { id: 'qq-chat', trust: 'user' }] });
           case '/api/roles': return json({
             roles: state.roles.slice(),
@@ -521,6 +676,25 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
       }
       if (method === 'POST') {
         switch (path) {
+          case '/api/features/control': {
+            const id = String(body.id || '');
+            if (!Object.hasOwn(state.featureEnabled, id)) return json({ ok: false, error: `未知功能模块：${id}` }, 400);
+            if (typeof body.enabled !== 'boolean') return json({ ok: false, error: 'enabled 必须是布尔值' }, 400);
+            state.featureEnabled[id] = body.enabled;
+            return json({ ok: true, id, enabled: body.enabled, applied: [`features.${id}`], requiresRestart: [], note: '已热更新' });
+          }
+          case '/api/features/advanced': {
+            if (!Object.hasOwn(state.featureEnabled, String(body.id || ''))) return json({ ok: false, error: '未知功能模块' }, 400);
+            const values = body.values && typeof body.values === 'object' ? body.values : {};
+            for (const [key, value] of Object.entries(values)) state.featureAdvanced[key] = value;
+            return json({ ok: true, id: body.id, applied: Object.keys(values), requiresRestart: [] });
+          }
+          case '/api/features/reset-advanced': {
+            const card = FEATURE_CARDS.find((item) => item.id === body.id);
+            if (!card) return json({ ok: false, error: '未知功能模块' }, 400);
+            for (const key of cardDefaultKeys(card.id)) delete state.featureAdvanced[key];
+            return json({ ok: true, id: body.id, applied: cardDefaultKeys(card.id), requiresRestart: [] });
+          }
           case '/api/mode': state.mode = body.mode; state.closedAgentPreset = body.closedAgentPreset; return json({ ok: true, dshSynced: true });
           case '/api/role': state.role = body.role; return json({ ok: true });
           case '/api/roles/create': state.roles.push(body.name); state.roleContents[body.name] = body.content ?? ''; return json({ ok: true, role: body.name, warnings: [] });

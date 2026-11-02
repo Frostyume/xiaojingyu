@@ -251,6 +251,7 @@ test('signature API: 预览与手动更新（fixture 网关）', async () => {
     assert.ok(after.nextAt > after.lastAppliedAt, '应安排下一次更新');
     const interval = after.nextAt - after.lastAppliedAt;
     assert.ok(interval >= 12 * 3600 * 1000 - 60000 && interval <= 48 * 3600 * 1000 + 60000, `下一次间隔应在 12~48h，实际 ${interval}ms`);
+    server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
   } finally { await h.close(); }
 });

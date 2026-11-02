@@ -549,7 +549,17 @@
     "kind": "snowluma"
   },
   "features": {
-    "disabled": []
+    "disabled": [],
+    "qzone": false,
+    "qzoneCommentReply": false,
+    "signature": false,
+    "voice": false,
+    "share": false,
+    "shareModule": false,
+    "aiTips": false,
+    "dailyReport": false,
+    "esportsFeed": false,
+    "ownerFeature": false
   },
   "tts": {
     "enabled": false,

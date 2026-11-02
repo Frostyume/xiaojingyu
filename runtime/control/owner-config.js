@@ -1,6 +1,8 @@
 // 私聊可读写的配置白名单。只暴露常用、低风险、可校验的键；
 // 其他配置仍需控制台/代码流程。
 
+import { FEATURE_MODULES } from './feature-switches.js';
+
 function getPath(obj, path) {
   return String(path).split('.').reduce((cur, key) => (cur && typeof cur === 'object' ? cur[key] : undefined), obj);
 }
@@ -102,7 +104,14 @@ const specs = [
   {
     key: 'shareModule.globalMaxPerDay', label: '分享模块每日总上限', type: 'number', min: 0, max: 10, unit: '条',
     description: '所有分享模块每天合计最多发几条；上午/下午各限 1 条', storedPath: 'simulation.shareModules.limits.globalMaxPerDay'
-  }
+  },
+  ...FEATURE_MODULES.map(({ id, label, description }) => ({
+    key: `feature.${id}`,
+    label: `总开关：${label}`,
+    type: 'boolean',
+    description: `${description}；关闭后原有细分开关保留但不再生效`,
+    storedPath: `features.${id}`
+  }))
 ];
 
 function specByKey(key) {
