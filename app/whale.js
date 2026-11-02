@@ -15031,7 +15031,7 @@ async function main() {
       if (!rs.role) return '';
       // 读取点也必须校验人格名：写入点（控制台 /role 命令）都过 sanitizeRoleName，
       // 但 state/current-role.json 是**用户可直接编辑**的文件。没有这道校验时，
-      // {"role":"../../../../Users/Public/x"} 会让 roles/ 之外的文件被读进来并注入每一条提示词。
+      // {"role":"../../../../Users/Public/x"} 会让 personas/ 之外的文件被读进来并注入每一条提示词。
       const safeName = sanitizeRoleName(rs.role);
       if (!safeName || safeName.includes('..')) return '';
       const roleFile = path.join(ROLES_DIR, safeName + '.md');

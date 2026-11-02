@@ -5537,7 +5537,7 @@ async function saveMode(mode) {
 }
 
 // ── 人格管理 ────────────────────────────────────────────────────────────────
-// 人格提示词 = roles/<名称>.md，桥接每条消息注入，保存即生效。
+// 人格提示词 = personas/<名称>.md，桥接每条消息注入，保存即生效。
 let roleEditorState = { mode: 'new', name: '' };
 let roleCache = [];
 let roleInjectMax = 10000;
@@ -7750,7 +7750,7 @@ document.getElementById('roleDuplicate').addEventListener('click', async () => {
 document.getElementById('roleDelete').addEventListener('click', async () => {
   const name = document.getElementById('newRoleName').value.trim();
   if (!name) { setRoleMsg('请先选择或填写要删除的人格名', false); return; }
-  if (!confirm(`确定删除人格「${name}」？该操作不可撤销（roles/${name}.md）。`)) return;
+  if (!confirm(`确定删除人格「${name}」？该操作不可撤销（personas/${name}.md）。`)) return;
   const r = await api('/api/roles/delete', 'POST', { name });
   if (!r.ok) { setRoleMsg('❌ ' + (r.error || '删除失败'), false); return; }
   resetRoleForm();
