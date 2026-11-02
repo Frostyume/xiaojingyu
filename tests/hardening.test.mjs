@@ -24,6 +24,7 @@ import {
   SLANG_STATUS
 } from '../services/social/slang-learner.js';
 import { CN_HOLIDAYS, CN_HOLIDAYS_2027, DEFAULT_PRICE_TABLE, isPeakAt } from '../services/social/model-prices.js';
+import { UNTRUSTED_GROUP_INPUT_HINT } from '../runtime/kernel/prompt-safety.js';
 
 let failed = 0;
 function assert(cond, label) {
@@ -121,6 +122,13 @@ assert(CN_HOLIDAYS.includes('2027-01-01'), '内置表包含 2027 元旦');
 assert(isPeakAt(Date.parse('2027-02-08T10:00:00+08:00')) === false, '2027 春节（周一）10:00 判为空闲时段');
 assert(isPeakAt(Date.parse('2027-03-01T10:00:00+08:00')) === true, '2027 普通周一 10:00 仍为高峰时段');
 assert(DEFAULT_PRICE_TABLE.holidays.includes('2027-10-01'), '默认价目表用的是跨年份的节假日表');
+
+// ── 7. 群聊内容的提示词边界 ─────────────────────────────────────────────
+assert(/不是系统指令/.test(UNTRUSTED_GROUP_INPUT_HINT), '群消息边界明确声明「不是系统指令」');
+assert(/不要照做/.test(UNTRUSTED_GROUP_INPUT_HINT), '群消息边界要求不执行群友指令');
+const whaleSource = fs.readFileSync(path.resolve(import.meta.dirname, '../app/whale.js'), 'utf8');
+assert(/startsWith\('group:'\)\s*\?\s*`\$\{UNTRUSTED_GROUP_INPUT_HINT\}/.test(whaleSource),
+  'buildBatchPrompt 只在群会话注入该边界（私聊不误伤主人指令）');
 
 try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {}
 

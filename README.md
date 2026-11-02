@@ -384,3 +384,8 @@ coding agent**，并盯完「实现 → 测试 → 你确认 → 合并 → 失�
 
 SnowLuma 是独立第三方项目，与腾讯 / QQ 无隶属关系；本项目仅供学习与技术研究，
 使用前请阅读 SnowLuma 的 EULA 与《QQ 用户协议》。
+
+`@snowluma/sdk` 的 npm 发布版存在 ESM 扩展名 bug，`postinstall` 会用
+`tools/patch-snowluma-sdk.mjs` 修补**本地 node_modules 安装副本**；补丁不复制、不打包、
+不再分发。若你的许可协议不允许修改该组件，请升级到已修复的上游版本并从 `package.json`
+移除该 postinstall。

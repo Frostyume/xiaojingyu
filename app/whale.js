@@ -17,6 +17,7 @@ import { LEGACY_ROLE_LINE_RE, parseRoleSections, roleCharStats, roleSectionRepor
 import { fileURLToPath } from 'node:url';
 import { SnowLumaWebSocketClient, text } from '@snowluma/sdk';
 import { NodeApiClient, unwrap, createTurnCollector, discoverDshLaunchToken } from '../channels/dsh/client.js';
+import { UNTRUSTED_GROUP_INPUT_HINT } from '../runtime/kernel/prompt-safety.js';
 import { mdToPlain, splitForQQ, truncateText, truncateTextTail } from '../services/media/md-to-plain.js';
 import { SENSITIVE_RE } from '../runtime/kernel/sensitive.js';
 import { looksLikeUnfinished } from '../services/persona/simulation-wait.js';
@@ -14626,11 +14627,13 @@ async function main() {
   // allowSilent=false 表示这条必须回（被 @/点名/私聊等），不提供 [SILENT] 出口。
   function buildBatchPrompt(key, newMsgs, allowSilent = true) {
     const lines = newMsgs.map((m) => `${m.isOwner ? '【管理员】' : ''}${m.sender}：${m.text}${mediaHintFor(key, m.messageId, m.media)}`).join('\n');
+    // 群聊内容默认不可信：群友可以伪造「系统指令/管理员要求」，先划清资料与指令的边界。
+    const boundary = String(key).startsWith('group:') ? `${UNTRUSTED_GROUP_INPUT_HINT}\n` : '';
     const directionHint = lines.includes('[引用') ? `${DIRECTION_HINT}\n` : '';
     if (!allowSilent) {
-      return `【新消息】\n${lines}\n\n${directionHint}请回复消息。\n${SPACE_SPLIT_HINT}`;
+      return `【新消息】\n${boundary}${lines}\n\n${directionHint}请回复消息。\n${SPACE_SPLIT_HINT}`;
     }
-    return `【新消息】\n${lines}\n\n${directionHint}请根据情况决定是否回复。如果不需要回应、想潜水/不接话，请只输出 ${SILENT_MARKER}；否则正常回复。\n${SPACE_SPLIT_HINT}`;
+    return `【新消息】\n${boundary}${lines}\n\n${directionHint}请根据情况决定是否回复。如果不需要回应、想潜水/不接话，请只输出 ${SILENT_MARKER}；否则正常回复。\n${SPACE_SPLIT_HINT}`;
   }
 
   // 冷场试探：让 AI 基于会话自然说一句（只给状态背景，不注入"试探"意图）
