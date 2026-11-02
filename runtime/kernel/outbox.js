@@ -117,12 +117,14 @@ export class Outbox {
     if (claimed.changes !== 1) return 'skipped';
 
     const attempt = item.attempts + 1;
+    let timeoutTimer = null;
     try {
       const result = await Promise.race([
         Promise.resolve().then(() => this.deliver(item.payload, { ...item, attempts: attempt })),
         new Promise((_, reject) => {
-          const timer = setTimeout(() => reject(new Error(`投递超时（${this.sendTimeoutMs}ms）`)), this.sendTimeoutMs);
-          timer.unref?.();
+          // 不能 unref：事件循环一旦空转，Node 会直接退出，超时永远不会触发，
+          // 这一行就永久停在 sending（Node 22 实测）。
+          timeoutTimer = setTimeout(() => reject(new Error(`投递超时（${this.sendTimeoutMs}ms）`)), this.sendTimeoutMs);
         })
       ]);
       const done = this.now();
@@ -164,6 +166,8 @@ export class Outbox {
       );
       this.logger(`outbox 投递失败 #${id}（${item.key}，第 ${attempt}/${this.maxAttempts} 次），${Math.round(backoff / 1000)}s 后重试：${detail}`);
       return 'retry';
+    } finally {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
     }
   }
 
