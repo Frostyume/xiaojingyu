@@ -49,18 +49,21 @@ export class EventBus {
     if (!handlers.length) return { event, handled: 0, errors: [] };
     const errors = [];
     for (const handler of handlers) {
+      let timer;
       try {
         await Promise.race([
           Promise.resolve().then(() => handler.fn(payload, { event, id: handler.id })),
           new Promise((_, reject) => {
-            const timer = setTimeout(() => reject(new Error(`监听器超时（${timeoutMs}ms）`)), timeoutMs);
-            timer.unref?.();
+            // 不能 unref：Node 22 下事件循环会在超时 promise 落定前退出，emit 被静默丢弃。
+            timer = setTimeout(() => reject(new Error(`监听器超时（${timeoutMs}ms）`)), timeoutMs);
           })
         ]);
       } catch (error) {
         const message = String(error?.message ?? error);
         errors.push({ id: handler.id, message });
         this.logger(`事件 ${event} 监听器 ${handler.id} 失败（已隔离）：${message}`);
+      } finally {
+        clearTimeout(timer);
       }
     }
     return { event, handled: handlers.length - errors.length, errors };
