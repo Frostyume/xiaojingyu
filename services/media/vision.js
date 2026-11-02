@@ -50,16 +50,24 @@ function parseJson(text) {
 }
 
 /**
- * 是否是「小鲸鱼 Q 版形象」表情。只输出 true 才允许进 QQ 收藏表情。
+ * 是否是当前角色的 Q 版形象表情。只输出 true 才允许进 QQ 收藏表情。
+ * 默认角色（未传 roleName 或 roleName=小鲸鱼）保持原有鲸鱼判定；自定义角色按角色名判定。
  * 失败/不确定一律 false，避免把截图、梗图、其他角色塞进表情库。
  */
-export async function isQVersionWhaleSticker(cfg, buffer) {
+export async function isQVersionWhaleSticker(cfg, buffer, { roleName = '' } = {}) {
   if (!Buffer.isBuffer(buffer) || buffer.length < 100) return { ok: false, reason: '图片数据无效' };
-  const prompt = [
-    '判断这张图能否作为「小鲸鱼 / DeepSeek 鲸鱼娘」的 Q 版形象表情。',
-    '必须同时满足：1) 二次元 Q 版/卡通角色；2) 主角是蓝发、鲸鱼尾、小鲸鱼或明显同一角色；3) 不是真人、聊天截图、纯文字图、其他角色、普通动物照片。',
-    '只输出 JSON：{"ok":true或false,"reason":"不超过30字"}。不确定就 false。'
-  ].join('');
+  const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
+  const prompt = customRole
+    ? [
+        `判断这张图能否作为「${String(roleName).trim()}」这个角色的 Q 版/卡通形象表情。`,
+        '必须同时满足：1) 二次元 Q 版/卡通角色；2) 不像真人、聊天截图、纯文字图、普通动物照片或其他明显无关角色；3) 与这个角色的整体气质不冲突。',
+        '只输出 JSON：{"ok":true或false,"reason":"不超过30字"}。不确定就 false。'
+      ].join('')
+    : [
+        '判断这张图能否作为「小鲸鱼 / DeepSeek 鲸鱼娘」的 Q 版形象表情。',
+        '必须同时满足：1) 二次元 Q 版/卡通角色；2) 主角是蓝发、鲸鱼尾、小鲸鱼或明显同一角色；3) 不是真人、聊天截图、纯文字图、其他角色、普通动物照片。',
+        '只输出 JSON：{"ok":true或false,"reason":"不超过30字"}。不确定就 false。'
+      ].join('');
   const text = await askVision(cfg, prompt, buffer, { maxTokens: 160, timeoutMs: 45000 });
   const obj = parseJson(text);
   if (!obj || typeof obj.ok !== 'boolean') return { ok: false, reason: '视觉模型未给出明确判断' };

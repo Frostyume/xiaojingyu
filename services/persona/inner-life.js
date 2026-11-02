@@ -1093,7 +1093,7 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     const toneBlock = toneFix
       ? `【口吻校正】上一版有问题：${toneFix}。重写时保持软萌底色，先软后硬，不要老哥腔/评论员腔/命令腔。`
       : '';
-    const styleBlock = `【这次的写法】\n气质：${picked.tone}\n类型：${picked.mode}\n${CONTENT_VOICE_HINT}\n说说不是群聊，可以 1~3 句完整表达，不受群聊短句限制；像小鲸鱼本人随手发的，不是文案、公众号或段子手。可以停在具体感受上，不要强行总结或金句收尾。${strictTone ? '\n这次请自然带一个语气词或半角颜文字（最多各一个），不要再写成纯段子；不要硬塞。' : '\n语气词和半角颜文字都是可选的，最多各一个；最近两篇都没带的话，这篇合适时可以带一个，不强制。'}`;
+    const styleBlock = `【这次的写法】\n气质：${picked.tone}\n类型：${picked.mode}\n${CONTENT_VOICE_HINT}\n说说不是群聊，可以 1~3 句完整表达，不受群聊短句限制；像你本人随手发的，不是文案、公众号或段子手。可以停在具体感受上，不要强行总结或金句收尾。${strictTone ? '\n这次请自然带一个语气词或半角颜文字（最多各一个），不要再写成纯段子；不要硬塞。' : '\n语气词和半角颜文字都是可选的，最多各一个；最近两篇都没带的话，这篇合适时可以带一个，不强制。'}`;
     const imageBlock = images.length
       ? `【可以配的图】\n${images.map((e, i) => `${i + 1}. ${e.note || e.name}`).join('\n')}\n如果正文来自候选视频或群聊片段，优先选对应的视频封面/群聊截图（群聊截图已隐藏昵称，备注里会写这段聊了什么）；其他图只在确实贴合时选。写编号；不想配就写 NONE。图要和正文相关，别硬配。`
       : '';
@@ -3970,7 +3970,7 @@ ${formatTipCaption(item)}`;
       ? `待审核草稿（${new Date(state.pendingDraft.expiresAt).toLocaleTimeString('zh-CN', { hour12: false })} 过期）${state.pendingDraft.imageName ? `（配图：${state.pendingDraft.imageName}）` : ''}：${cleanLine(state.pendingDraft.text, 80)}`
       : '无';
     return [
-      '【小鲸鱼内心状态】',
+      '【你的内心状态】',
       persona.detail,
       '',
       `今天：好奇 ${state.counts.curiosity} 次 / 群分享 ${state.counts.groupShare} 条 / 空间 ${state.counts.qzone} 条`,
@@ -3995,8 +3995,8 @@ ${formatTipCaption(item)}`;
     const isSignature = kind === 'signature';
     const limit = Math.max(8, Math.min(200, Number(maxChars) || (isSignature ? 40 : 150)));
     const task = isSignature
-      ? `这是你的个性签名草稿：\n${text}\n\n主人想这样调整：${ask}\n\n请按主人的意思改一版，保留小鲸鱼的口吻；只输出签名正文，不要引号、不要解释、不要标题，最多 ${limit} 字。`
-      : `这是你的空间说说草稿：\n${text}\n\n主人想这样调整：${ask}\n\n请按主人的意思改一版，保留小鲸鱼的口吻；只输出说说正文，不要 IMG 行、不要引号、不要解释、不要标题，最多 ${limit} 字。`;
+      ? `这是你的个性签名草稿：\n${text}\n\n主人想这样调整：${ask}\n\n请按主人的意思改一版，保留当前角色的口吻；只输出签名正文，不要引号、不要解释、不要标题，最多 ${limit} 字。`
+      : `这是你的空间说说草稿：\n${text}\n\n主人想这样调整：${ask}\n\n请按主人的意思改一版，保留当前角色的口吻；只输出说说正文，不要 IMG 行、不要引号、不要解释、不要标题，最多 ${limit} 字。`;
     const output = await runTurn(buildBasePrompt(task, `${CONTENT_VOICE_BLOCK}\n`), 120000);
     const cleaned = cleanPost(output, limit);
     if (!cleaned) throw new Error('改出来的内容为空或含敏感信息');

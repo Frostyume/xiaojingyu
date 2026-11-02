@@ -107,7 +107,8 @@ export function generateSignature({
   now = Date.now(),
   maxChars = MAX_DEFAULT,
   history = [],
-  interests = []
+  interests = [],
+  roleName = ''
 } = {}) {
   const state = persona?.state ?? persona ?? {};
   const mood = state.mood ?? {};
@@ -120,8 +121,9 @@ export function generateSignature({
   if (energy <= 0.35 || valence <= -0.25) pool.push(...TEMPLATES.low);
   else if (energy >= 0.7 || valence >= 0.4) pool.push(...TEMPLATES.bright);
   else pool.push(...TEMPLATES.calm);
-  // 不论心情都混入一组“小鲸鱼本人”的生活签名，避免签名只剩通用的心情短句。
-  pool.push(...TEMPLATES.identity);
+  // 不论心情都混入一组“小鲸鱼本人”的生活签名；自定义角色不套用默认鲸鱼生活记号。
+  const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
+  if (!customRole) pool.push(...TEMPLATES.identity);
   // 心情普通时也混入 calm，避免只有一句
   if (!pool.length) pool.push(...TEMPLATES.calm);
 

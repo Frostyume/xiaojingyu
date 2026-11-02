@@ -1321,7 +1321,7 @@ if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.getStic
 if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.sendSticker !== false) {
   server.tool(
     'qq_send_sticker',
-    '在指定会话发送一个 QQ 收藏表情包（自定义表情）。stickerId 用 qq_list_stickers 返回的 id / md5 / url。可以主动发，不用等对方点名：接梗、吐槽、赞同、自嘲、无语、晚安时都自然。只发 Q 版鲸鱼/DeepSeek 鲸鱼娘/软萌日常表情，真人、别的角色、擦边/血腥/政治/烂梗、与语境无关的图不发。注意：一条消息只能是一张表情，不能在同一气泡里附带文字；想说的话请先用 qq_send_message / qq_reply 作为单独气泡发送，再单独发这张表情。需要引用/点名时可用 replyToMessageId / atUserId（群聊）。别连续刷屏。',
+    '在指定会话发送一个 QQ 收藏表情包（自定义表情）。stickerId 用 qq_list_stickers 返回的 id / md5 / url。可以主动发，不用等对方点名：接梗、吐槽、赞同、自嘲、无语、晚安时都自然。只发符合当前角色设定的表情（默认角色是 Q 版鲸鱼/软萌日常，自定义角色以角色卡为准），真人、别的角色、擦边/血腥/政治/烂梗、与语境无关的图不发。注意：一条消息只能是一张表情，不能在同一气泡里附带文字；想说的话请先用 qq_send_message / qq_reply 作为单独气泡发送，再单独发这张表情。需要引用/点名时可用 replyToMessageId / atUserId（群聊）。别连续刷屏。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -1400,7 +1400,7 @@ if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.li
 if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.sendImage !== false) {
   server.tool(
     'qq_send_image',
-    '把图片库里的一张图当**图片**发到会话（不是 QQ 收藏表情）。image 传 qq_list_images 返回的 id / name。可以主动发：话题对得上、分享见闻、表达状态时都用，不用等对方要；但每 3~5 轮最多一张，别连续刷。只发小鲸鱼自己的 Q 版/生活配图，真人、别的角色、擦边/政治/无关图不发；拿不准就不发。可以带一句很短的配文 caption（图片消息允许带文字，这点和表情不同）；要引用/点名时用 replyToMessageId / atUserId。一条消息只发一张图。',
+    '把图片库里的一张图当**图片**发到会话（不是 QQ 收藏表情）。image 传 qq_list_images 返回的 id / name。可以主动发：话题对得上、分享见闻、表达状态时都用，不用等对方要；但每 3~5 轮最多一张，别连续刷。只发符合当前角色设定的配图（默认角色是 Q 版鲸鱼/生活照，自定义角色以角色卡为准），真人、别的角色、擦边/政治/无关图不发；拿不准就不发。可以带一句很短的配文 caption（图片消息允许带文字，这点和表情不同）；要引用/点名时用 replyToMessageId / atUserId。一条消息只发一张图。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -1483,7 +1483,7 @@ if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.de
 if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.collectSticker !== false) {
   server.tool(
     'qq_collect_sticker',
-    '收藏当前会话里别人发的一张表情/图片到你的 QQ 收藏表情，并可写一句简短备注。只允许收藏 Q 版小鲸鱼/DeepSeek 鲸鱼娘形象的图，其他角色、真人、截图、普通梗图不要收藏（桥接会用视觉模型再确认，不符合会拒绝）。messageId 用 qq_get_unread_messages / qq_get_recent_messages 返回的 messageId 或 seq；同一张别连偷，收藏后可在 qq_list_stickers 里看到并继续使用。',
+    '收藏当前会话里别人发的一张表情/图片到你的 QQ 收藏表情，并可写一句简短备注。只允许收藏符合当前角色设定的形象图（默认角色是 Q 版鲸鱼/鲸鱼娘，自定义角色以角色卡为准），其他角色、真人、截图、普通梗图不要收藏（桥接会用视觉模型再确认，不符合会拒绝）。messageId 用 qq_get_unread_messages / qq_get_recent_messages 返回的 messageId 或 seq；同一张别连偷，收藏后可在 qq_list_stickers 里看到并继续使用。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -2478,7 +2478,7 @@ if (cfg.simulation?.innerLife?.enabled !== false) {
 if (cfg.simulation?.tools?.getSelfImage !== false) {
   server.tool(
     'qq_get_self_image',
-    '查看你自己的默认 Q 版形象图片（DeepSeek 小鲸鱼形象）。当你被问“你长什么样/发张自拍/你是什么形象”时，可以调用这个工具看自己的样子；返回的图片会直接进入你的视觉上下文。',
+    '查看你自己的默认 Q 版形象图片（默认角色是 DeepSeek 小鲸鱼；自定义角色下以角色卡为准）。当你被问“你长什么样/发张自拍/你是什么形象”时，可以调用这个工具看自己的样子；返回的图片会直接进入你的视觉上下文。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）')

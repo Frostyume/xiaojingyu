@@ -819,6 +819,16 @@ function readRoleState() {
 function writeRoleState(role, mode) {
   atomicWriteJson(ROLE_STATE_FILE, { role: role ?? null, mode: mode ?? 'active' });
 }
+// 默认角色 = 没设角色，或显式选了内置的「小鲸鱼」。只有默认角色才保留写死的人格内核；
+// 自定义角色的人格必须完全来自角色卡，否则每轮注入的内核会盖掉用户自己写的人格。
+const DEFAULT_ROLE_NAME = '小鲸鱼';
+function currentRoleName() {
+  return String(readRoleState().role || '').trim();
+}
+function isCustomRoleName(name) {
+  const n = String(name ?? '').trim();
+  return Boolean(n) && n !== DEFAULT_ROLE_NAME;
+}
 function sanitizeRoleName(name) {
   return String(name ?? '').replace(/[^\w\u4e00-\u9fff-]/g, '');
 }
@@ -2085,7 +2095,8 @@ async function main() {
       now: Date.now(),
       maxChars: Math.max(8, Math.min(60, Number(sig.maxChars) || 40)),
       history: signatureState.history,
-      interests
+      interests,
+      roleName: currentRoleName()
     });
   }
   async function applyQQSignature(text) {
@@ -2759,7 +2770,7 @@ async function main() {
       ok: true,
       generatedAt: new Date().toISOString(),
       identity: {
-        nickname: selfDisplayName || '小鲸鱼',
+        nickname: selfDisplayName || currentRoleName() || '小鲸鱼',
         role: rs.role ?? null,
         mode: currentMode,
         ownerQQ: cfg.ownerQQ ?? null
@@ -3916,7 +3927,7 @@ async function main() {
     const snow = snowlumaHealthSnapshot();
     return {
       ts: now,
-      self: { name: selfDisplayName || '小鲸鱼', userId: selfUserId || null },
+      self: { name: selfDisplayName || currentRoleName() || '小鲸鱼', userId: selfUserId || null },
       mode: currentMode,
       paused: simulation.paused,
       nightQuiet: { ...nightQuietConfig(), active: isNightQuietNow() },
@@ -4745,10 +4756,10 @@ async function main() {
         }
         const buffer = fs.readFileSync(sourcePath);
         if (temp) { try { fs.rmSync(temp, { force: true }); } catch {} }
-        const verdict = await isQVersionWhaleSticker(cfg, buffer);
+        const verdict = await isQVersionWhaleSticker(cfg, buffer, { roleName: currentRoleName() });
         if (!verdict.ok) {
           result.skipped += 1;
-          log(`[sticker] 跳过非 Q 版小鲸鱼图片 ${entry.name}：${verdict.reason || '不符合形象'}`);
+          log(`[sticker] 跳过不符合当前角色的图片 ${entry.name}：${verdict.reason || '不符合形象'}`);
           continue;
         }
         const add = await bot.request('add_custom_face', { file: 'base64://' + buffer.toString('base64') });
@@ -4957,9 +4968,9 @@ async function main() {
     }
     if (!file) throw new Error('无法获取该表情的图片源');
     const buffer = Buffer.from(file.replace(/^base64:\/\//i, ''), 'base64');
-    const verdict = await isQVersionWhaleSticker(cfg, buffer);
+    const verdict = await isQVersionWhaleSticker(cfg, buffer, { roleName: currentRoleName() });
     if (!verdict.ok) {
-      throw new Error(`只收藏 Q 版小鲸鱼形象的表情（${verdict.reason || '这张不符合形象'}）`);
+      throw new Error(`只收藏符合当前角色形象的表情（${verdict.reason || '这张不符合形象'}）`);
     }
     assertSendAllowed();
     const addRes = await bot.request('add_custom_face', { file });
@@ -7339,10 +7350,12 @@ async function main() {
               return;
             }
             writeRoleState(name, rs.mode);
+            invalidateRoleCards(`控制台切换角色 → ${name}`);
             log(`控制台：角色已设置为 ${name}`);
             sendJson({ ok: true, role: name });
           } else {
             writeRoleState(null, rs.mode);
+            invalidateRoleCards('控制台清除角色');
             log('控制台：角色已清除');
             sendJson({ ok: true, role: null });
           }
@@ -7759,7 +7772,7 @@ async function main() {
               fs.copyFileSync(target, path.join(backupDir, `${name}.persona-${new Date().toISOString().replace(/[:.]/g, '-')}.json`));
             }
             savePersonaPack(ROLES_DIR, name, checked.value);
-            roleHintCache = { key: '', raw: '' };
+            invalidateRoleCards(`保存人格包「${name}」`);
             log(`控制台：人格包已保存「${name}」`);
             sendJson({ ok: true, name, pack: checked.value });
           } catch (error) {
@@ -7773,7 +7786,7 @@ async function main() {
           try { name = validateRoleName(body.name); } catch (error) { sendJson({ ok: false, error: error.message }, 400); return; }
           const target = personaPackPath(ROLES_DIR, name);
           if (!fs.existsSync(target)) { sendJson({ ok: false, error: '人格包不存在' }, 404); return; }
-          try { fs.unlinkSync(target); roleHintCache = { key: '', raw: '' }; sendJson({ ok: true, name }); }
+          try { fs.unlinkSync(target); invalidateRoleCards(`删除人格包「${name}」`); sendJson({ ok: true, name }); }
           catch (error) { sendJson({ ok: false, error: error?.message ?? String(error) }, 500); }
           return;
         }
@@ -7809,7 +7822,7 @@ async function main() {
             }
             writeRoleContent(name, content);
             if (pack) savePersonaPack(ROLES_DIR, name, pack);
-            roleHintCache = { key: '', raw: '' };
+            if (readRoleState().role === name) invalidateRoleCards(`导入当前人格「${name}」`);
             log(`控制台：导入人格「${name}」（${content.length} 字符，人格包${pack ? '有' : '无'}）`);
             sendJson({ ok: true, name, chars: content.length, hasPack: Boolean(pack) });
           } catch (error) {
@@ -7848,6 +7861,7 @@ async function main() {
           catch (error) { sendJson({ ok: false, error: error.message }, 400); return; }
           if (!fs.existsSync(roleFilePath(name))) { sendJson({ ok: false, error: `人格「${name}」不存在` }, 404); return; }
           writeRoleContent(name, content);
+          if (readRoleState().role === name) invalidateRoleCards(`更新当前人格「${name}」`);
           log(`控制台：更新人格「${name}」（${content.length} 字符）`);
           sendJson({ ok: true, role: name, chars: content.length, warnings: roleWarnings(content) });
           return;
@@ -7863,7 +7877,10 @@ async function main() {
           fs.renameSync(roleFilePath(from), roleFilePath(to));
           const rs = readRoleState();
           const switched = rs.role === from;
-          if (switched) writeRoleState(to, rs.mode);
+          if (switched) {
+            writeRoleState(to, rs.mode);
+            invalidateRoleCards(`人格改名 ${from}→${to}`);
+          }
           log(`控制台：人格重命名「${from}」→「${to}」${switched ? '（当前启用中，已跟随切换）' : ''}`);
           sendJson({ ok: true, role: to, renamed: true, currentFollowed: switched });
           return;
@@ -7876,7 +7893,10 @@ async function main() {
           fs.rmSync(roleFilePath(name));
           const rs = readRoleState();
           const cleared = rs.role === name;
-          if (cleared) writeRoleState(null, rs.mode);
+          if (cleared) {
+            writeRoleState(null, rs.mode);
+            invalidateRoleCards(`删除当前人格「${name}」`);
+          }
           log(`控制台：删除人格「${name}」${cleared ? '（该人格正在启用，已同时清除当前人格）' : ''}`);
           sendJson({ ok: true, deleted: name, clearedCurrent: cleared });
           return;
@@ -10089,7 +10109,7 @@ async function main() {
           if (!target && quotedId) {
             const quoted = mediaRefFromQuoted(key, quotedId);
             if (!quoted || !quoted.self || quoted.kind !== 'sticker') {
-              sendJson({ ok: false, error: '被回复的消息不是小鲸鱼发的表情，或无法解析' }, 400);
+              sendJson({ ok: false, error: '被回复的消息不是当前角色发的表情，或无法解析' }, 400);
               return;
             }
             target = quoted.ref;
@@ -11112,7 +11132,7 @@ async function main() {
           if (!target && quotedId) {
             const quoted = mediaRefFromQuoted(key, quotedId);
             if (!quoted || !quoted.self || quoted.kind !== 'image') {
-              sendJson({ ok: false, error: '被回复的消息不是小鲸鱼发的图片，或无法解析' }, 400);
+              sendJson({ ok: false, error: '被回复的消息不是当前角色发的图片，或无法解析' }, 400);
               return;
             }
             target = quoted.ref;
@@ -14696,13 +14716,16 @@ async function main() {
     let wakeState;
     let wakeToken;
     let wakeSnapshot;
+    let wakeRender = null;
     if (opts.wakeReason) {
       if (wakeBlocked()) return skipWake();
       // Build only after session creation: retries may rotate the token, and an
       // offline queue may have received more messages since this wake was queued.
+      // 只渲染不提交：角色卡/摘要/订阅播报等一次性内容要等 prompt 真正被接受后才消费。
       wakeState = getSimulationState(key);
       wakeToken = wakeState.agentToken;
-      promptText = buildWakePrompt(key, opts.wakeReason);
+      wakeRender = renderWakePrompt(key, opts.wakeReason);
+      promptText = wakeRender.text;
       wakeSnapshot = buildWakeSnapshot(key);
       if (wakeSnapshot) {
         promptText += `\n\n【本次消息快照】\n${JSON.stringify(wakeSnapshot)}\n以上消息已提供，无需重复查询；partial=true 时用 qq_get_unread_messages(afterSeq=readThroughSeq) 继续读取。先处理当前消息；回复前如需确认后续补充，用 qq_wait_for_messages(purpose="reply") 补足短静默，已安静够久会立即返回，不要先长等。收尾只确认你已处理的 readThroughSeq（本地 seq，非 QQ messageId），传给 qq_mark_read 或 qq_set_wake_config 的 throughSeq；新到消息留待处理。`;
@@ -14730,6 +14753,8 @@ async function main() {
       if (!opts.silent) await sendToQQ(key, `⚠️ 消息未被接受：${safeErrText}`);
       return { ok: false, error: safeErrText };
     }
+    // prompt 已被 DSH 接受，此时才消费一次性内容（角色卡版本、摘要、订阅播报）。
+    if (wakeRender) commitWakePrompt(key, wakeRender);
     if (wakeSnapshot && isCurrentSession(key, sessionId)
         && simulation.conversations.get(canonicalSimulationKey(key)) === wakeState
         && wakeState.agentToken === wakeToken) {
@@ -14979,6 +15004,22 @@ async function main() {
   // 由桥接注入到 QQ 群消息（群友无法通过对话修改，只能由管理端写该文件）。
   // 缓存 key 为两个文件的 mtime，mtime 未变时直接返回，避免每次同步读文件。
   let roleHintCache = { key: '', raw: '' };
+  // 角色/角色卡变化后，所有已有会话的下一次唤醒都要重新带一次完整卡；
+  // 不用清空会话上下文，只失效 roleCardVersion。同名改卡靠版本哈希自然变化，
+  // 但这里也一并清掉，保证任何写入路径（控制台、/role、人格导入）都立即生效。
+  function invalidateRoleCards(reason = '') {
+    roleHintCache = { key: '', raw: '' };
+    let cleared = 0;
+    for (const st of simulation.conversations.values()) {
+      if (st.roleCardVersion) {
+        st.roleCardVersion = '';
+        cleared += 1;
+      }
+    }
+    if (cleared) saveSimulationState();
+    if (reason) log(`角色卡缓存已失效（${reason}）：${cleared} 个会话下次唤醒重注入`);
+    return cleared;
+  }
   const personaPackWarned = new Set();
   // 原始人格卡（按 mtime 缓存，不截断）。
   function roleRawContent() {
@@ -15914,6 +15955,10 @@ async function main() {
       : '被 @、被叫到你的昵称、或引用你的消息，指的都是你 —— 不要当成别人';
     const aliases = [...selfAliases].filter(Boolean);
     const aliasText = aliases.length ? `；旧昵称${aliases.map((a) => `「${a}」`).join('、')}也是在叫你` : '';
+    const roleName = currentRoleName();
+    if (isCustomRoleName(roleName)) {
+      return `【你的身份】你在 QQ 上的账号昵称是${label}${idText}。这个昵称只用于识别 @/引用和群名片，不代表你当前扮演的人格；你当前的角色是「${roleName}」，以角色卡为准，不要用 QQ 昵称覆盖角色设定。${callBits}；群名片可能与昵称不同，at/引用段里带${id ? ` ${id} ` : '你的 QQ 号'}就是在叫你${aliasText}。\n\n`;
+    }
     return `【你的身份】你在 QQ 上的昵称是${label}${idText}。${callBits}；群名片可能与昵称不同，at/引用段里带${id ? ` ${id} ` : '你的 QQ 号'}就是在叫你${aliasText}。\n\n`;
   }
 
@@ -16079,14 +16124,26 @@ async function main() {
     ''
   ].join('\n');
 
+  // 自定义角色用中性版：只说“符合当前角色”，不预设鲸鱼/软萌/主人这些具体人格。
+  const NON_TEXT_PERSONA_NEUTRAL_LINE = [
+    '【非文字表达（主动，但不出戏）】',
+    '- 表情、图片、语音、颜文字都是你表达情绪的方式，不用等对方点名。语境贴脸就主动发：接梗、吐槽、赞同、自嘲、被夸、晚安、分享生活、冷场冒泡。',
+    '- 每 2~3 轮至少一次非文字表达；连续 2 轮纯文字后，下一轮必须补一个（表情/图片/语音/颜文字/emoji 任选），严肃/查资料/报错除外。',
+    '- 一次只选最合适的一种：发表情就不要再配长文字，发图就别再堆表情，发语音就别重复同一句文字；同一轮别把几种全用上。',
+    '- 只发符合当前角色设定的表情、图片和语音：符合角色的形象/日常/声音，不要发与角色无关或会出戏的内容。不发真人、别的角色、擦边/血腥/政治/烂梗、与话题无关的图；语音不念链接、工具说明或报错；颜文字一条最多一个。',
+    '- 对方在认真问事、查资料、报错、聊隐私时收起这些；拿不准就只打字。宁可少发，不能出戏。',
+    ''
+  ].join('\n');
+
   function currentRoleSnapshot() {
     const rs = readRoleState();
     const name = rs.role ? String(rs.role) : '';
-    if (!name) return { name: '', version: '', card: '' };
+    if (!name) return { name: '', version: '', card: '', custom: false };
     const card = currentSimulationRoleHint();
-    if (!card) return { name, version: '', card: '' };
+    const custom = isCustomRoleName(name);
+    if (!card) return { name, version: '', card: '', custom };
     const version = crypto.createHash('sha1').update(`${name}\n${card}`).digest('hex').slice(0, 12);
-    return { name, version, card };
+    return { name, version, card, custom };
   }
 
   const PRAISE_RE = /真乖|好乖|乖|可爱|厉害|聪明|好棒|优秀|喜欢你|爱你|夸|辛苦了|做得好|受着/;
@@ -16164,20 +16221,25 @@ async function main() {
     }
   }
 
-  function buildWakePrompt(key, reason, opts = {}) {
+  function renderWakePromptText(key, reason, opts = {}, meta = {}) {
     const st = getSimulationState(key);
     const roleSnapshot = currentRoleSnapshot();
     const roleLine = roleSnapshot.name ? `【当前角色】${roleSnapshot.name}（角色卡更新时会自动附上完整卡；也可 qq_get_prompt）\n\n` : '';
-    const roleKernelLine = roleSnapshot.name ? PERSONA_KERNEL : '';
+    // 写死的人格内核只属于显式选中的默认角色「小鲸鱼」；未设角色保持基线行为（不注入），
+    // 自定义角色一律以角色卡为准。内核单独成段并参与预算丢弃，避免挤掉 required 段。
+    const roleKernelLine = roleSnapshot.name && !roleSnapshot.custom ? PERSONA_KERNEL : '';
+    const nonTextPersonaLine = roleSnapshot.custom ? NON_TEXT_PERSONA_NEUTRAL_LINE : NON_TEXT_PERSONA_LINE;
     // 角色卡刷新：文件内容一变化（包括同名改卡、切角色），下一次唤醒自动带一次完整新卡，
     // 不再依赖模型自己想起来调用 qq_get_prompt。版本随会话持久化，只注入一次。
     let roleUpdateLine = '';
     if (roleSnapshot.card && String(st.roleCardVersion || '') !== roleSnapshot.version) {
-      if (opts.preview !== true) {
-        st.roleCardVersion = roleSnapshot.version;
-        saveSimulationState();
-      }
-      roleUpdateLine = `【角色卡已更新】这是当前最新完整角色卡（优先于上下文里旧的角色卡）。\n【风格重置】从这条起，之前偏冷、偏硬的说话惯性作废；按新卡的语气，先软后硬，被夸/被哄时先接住好意。\n\n${roleSnapshot.card}\n\n`;
+      // 只记录待提交的版本；投递成功后才写入 roleCardVersion（见 commitWakePrompt）。
+      meta.roleVersion = roleSnapshot.version;
+      // 默认角色保留原有“风格重置”措辞；自定义角色只要求按卡发挥，不能把默认人格的语气规则带进去。
+      const resetLine = roleSnapshot.custom
+        ? '【风格重置】从这条起，之前的人格设定和说话惯性作废，完全按这张角色卡来。'
+        : '【风格重置】从这条起，之前偏冷、偏硬的说话惯性作废；按新卡的语气，先软后硬，被夸/被哄时先接住好意。';
+      roleUpdateLine = `【角色卡已更新】这是当前最新完整角色卡（优先于上下文里旧的角色卡）。\n${resetLine}\n\n${roleSnapshot.card}\n\n`;
     }
     const identityLine = selfIdentityText();
     const personaText = innerLife?.personaBlock?.() || '';
@@ -16187,11 +16249,8 @@ async function main() {
     const memoryLine = memoryText ? `${memoryText}\n\n` : '';
     // 会话旋转前生成的本地衔接摘要：只注入一次。
     const digestText = String(st.pendingDigest || '').trim();
+    meta.digestText = digestText;
     const digestLine = digestText ? `${digestText}\n\n` : '';
-    if (digestText && opts.preview !== true) {
-      st.pendingDigest = '';
-      saveSimulationState();
-    }
     // 长期记忆检索（FTS5，只取与当前消息相关且不在「进行中话题」里的旧事实）。
     let longTermLine = '';
     // 跨会话/个人记忆始终注入一小段，保证换个聊天也能想起主人说过的事；
@@ -16338,13 +16397,14 @@ async function main() {
     // 分层 + 预算：未超预算时与旧版逐字一致；超了才按优先级丢可选段。
     // 顺序即输出顺序，调整顺序会改变人格/工具提示的相对位置，请谨慎。
     const sections = [
-      { id: 'role', text: roleLine + roleKernelLine + toneNudgeLine + roleUpdateLine, priority: 100 },
+      { id: 'role', text: roleLine + toneNudgeLine + roleUpdateLine, priority: 100 },
+      { id: 'personaKernel', text: roleKernelLine, priority: 95, trim: true },
       { id: 'identity', text: identityLine, priority: 100 },
       { id: 'persona', text: personaLine, priority: 100, trim: true },
       { id: 'token', text: tokenLine, priority: 100 },
       { id: 'initial', text: initialPromptLine, priority: 100, trim: true },
       { id: 'antiAi', text: antiAiLine, priority: 100 },
-      { id: 'expression', text: `${NON_TEXT_PERSONA_LINE}\n\n`, priority: 98 },
+      { id: 'expression', text: `${nonTextPersonaLine}\n\n`, priority: 98 },
       { id: 'expressionMust', text: expressionMustLine, priority: 99 },
       { id: 'proactive', text: proactiveLine, priority: 100 },
       { id: 'sticker', text: stickerLine, priority: 55, trim: true },
@@ -16381,7 +16441,7 @@ async function main() {
     const budget = assembleSections(sections, {
       maxTokens: Number(cfg.simulation?.context?.wakeBudgetTokens) || 10000,
       dropOrder: ['esports', 'capability', 'search', 'timeCheck',
-        'mediaReaction', 'participation', 'groupStyle', 'relationships', 'longTerm', 'imageRead', 'life', 'imageCadence', 'stickerCadence', 'voiceOpp', 'image', 'sticker', 'persona']
+        'mediaReaction', 'participation', 'groupStyle', 'relationships', 'longTerm', 'imageRead', 'life', 'imageCadence', 'stickerCadence', 'voiceOpp', 'image', 'sticker', 'persona', 'personaKernel']
     });
     const base = budget.text;
     if (budget.dropped.length || budget.trimmed.length) {
@@ -16390,10 +16450,8 @@ async function main() {
     if (reason === 'subscription') {
       const b = st.pendingBroadcast;
       if (!b) return `${base}【订阅播报】这次没有新的赛果，安静收尾（qq_mark_read 或 qq_set_wake_config）。`;
-      if (opts.preview !== true) {
-        st.pendingBroadcast = null;
-        saveSimulationState();
-      }
+      // 只记录待提交的订阅内容；投递成功后才清空 pendingBroadcast。
+      meta.broadcast = b;
       const qualityNote = esportsFeed?.summaryQuality === 'titles'
         ? '注意：这条只有标题，没有正文。只播标题能确认的事实，不要编比分、局数或比赛细节。'
         : '以这条最新赛果为准，覆盖上下文里的旧赛程。';
@@ -16426,6 +16484,40 @@ async function main() {
       return `${base}【唤醒】${key}\n原因：有人拍了一拍（可能拍了你，也可能拍了别人）。\n先看未读/最近消息里的 [拍一拍] 事件：如果是拍你，可以自然回应一句，也可以用 qq_send_poke 回一个拍一拍；如果是拍别人，觉得有趣也可以接梗。除了回应，偶尔也可以主动戳一下正在聊的人/熟人，像真人手贱/提醒/逗一下，但别频繁。不想接就安静收尾（qq_mark_read 或 qq_set_wake_config）。`;
     }
     return `${base}【唤醒】${key}\n原因：${reason}\n【行动前】先判断：群里在聊什么？热闹还是冷清？有没有人直接找你？对方说完了吗？你有没有真正想说的？\n如果群聊正热但没人叫你，可以插一句有趣的/相关的，插不上再看情况潜水；不要一上来就划走。\n引用用消息里的 messageId；已引用就不必再 @，反之亦然。\n你可以调用工具查看未读消息、人设、状态，自行决定是否发言；决定潜水前必须按上面的【沉睡前强制等待】先等够观察窗口。`;
+  }
+
+  function renderWakePrompt(key, reason, opts = {}) {
+    const meta = { text: '', roleVersion: '', digestText: '', broadcast: null };
+    meta.text = renderWakePromptText(key, reason, opts, meta);
+    return meta;
+  }
+
+  // 投递成功后提交一次性内容；投递失败/排队/会话竞态时保持未消费，下一次唤醒会重新带上。
+  function commitWakePrompt(key, render) {
+    if (!render) return false;
+    const st = getSimulationState(key);
+    let changed = false;
+    if (render.roleVersion && String(st.roleCardVersion || '') !== render.roleVersion) {
+      st.roleCardVersion = render.roleVersion;
+      changed = true;
+    }
+    if (render.digestText && String(st.pendingDigest || '').trim() === render.digestText) {
+      st.pendingDigest = '';
+      changed = true;
+    }
+    if (render.broadcast && st.pendingBroadcast === render.broadcast) {
+      st.pendingBroadcast = null;
+      changed = true;
+    }
+    if (changed) saveSimulationState();
+    return changed;
+  }
+
+  // 兼容预览/测试调用：默认仍消费一次性状态；投递路径用 render + commit 显式控制。
+  function buildWakePrompt(key, reason, opts = {}) {
+    const render = renderWakePrompt(key, reason, opts);
+    if (opts.preview !== true && opts.consume !== false) commitWakePrompt(key, render);
+    return render.text;
   }
 
   function buildWakeReminderPrompt(key) {
@@ -16547,7 +16639,9 @@ async function main() {
     saveSimulationState();
     // 长会话成本控制：在真正投递前检查上下文水位，必要时归档旧会话（摘要会注入本轮提示）。
     maybeRotateSessionForContext(key, st, String(reason ?? '').split(':')[0]);
-    const promptText = buildWakePrompt(key, reason);
+    // 这里不再预构建 prompt：deliverPromptNow 会在会话就绪后重新渲染，并只在投递成功时
+    // 提交角色卡版本/摘要等一次性内容。预构建会先消费它们，导致真正送达的提示词丢内容。
+    const promptText = '';
     log(`[simulation] 唤醒 ${key}（${reason}）`);
     const rollbackWakeTime = () => {
       const idx = st.wakeTimes.lastIndexOf(wakeTime);
@@ -17154,6 +17248,7 @@ async function main() {
         const name = sanitizeRoleName(plainContent.slice(5).trim());
         if (!name || name === 'off' || name === 'clear') {
           writeRoleState(null, roleState.mode);
+          invalidateRoleCards('/role 清除角色');
           await sendToQQ(key, '已清除角色，恢复正常人格。');
         } else {
           const roleFile = path.join(ROOT, 'personas', name + '.md');
@@ -17161,6 +17256,7 @@ async function main() {
             await sendToQQ(key, `角色「${name}」不存在。角色文件放 personas/ 目录。`);
           } else {
             writeRoleState(name, roleState.mode);
+            invalidateRoleCards(`/role 切换到 ${name}`);
             await sendToQQ(key, `已切换角色：${name}。`);
           }
         }
