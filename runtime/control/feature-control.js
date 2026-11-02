@@ -7,13 +7,20 @@
 //
 // 约定：每个模块只有 features.<id> 一个主开关。旧的 *.enabled 子开关保留在
 // config.json 里做兼容，但不再在界面上重复出现；打开主开关时会自动把它们补成 true。
+// 「分享引擎」是板块级总闸：board.master 指向 features.shareModule，下面的
+// 内容模块和旧版主动分享都要再过总闸一次。本仓库没有生活管家（lifeButler）。
 
 import { FEATURE_MODULES } from './feature-switches.js';
 
 export const FEATURE_BOARDS = Object.freeze([
+  {
+    id: 'shareEngine',
+    label: '分享引擎',
+    master: 'shareModule',
+    description: '总闸统一管理所有主动分享；下面的模块各自有开关，只开你想要的。'
+  },
   { id: 'social', label: '聊天与社交', description: '说说、评论回复、签名和语音：她对外说话的方式。' },
-  { id: 'life', label: '主动生活', description: '主动分享：她自己的好奇心。' },
-  { id: 'content', label: '内容与资讯', description: '分享模块、AI 小知识、赛事资讯和群日报。' },
+  { id: 'ops', label: '群运营', description: '面向整个群的固定推送，比如每日群日报。' },
   { id: 'owner', label: '主人能力', description: '你在主人私聊里创建的功能中心任务。' }
 ]);
 
@@ -21,7 +28,163 @@ function dep(key, label, { enableValue, soft = false } = {}) {
   return { key, label, enableValue, soft };
 }
 
+const SHARE_ENGINE_DEPS = [
+  dep('features.shareModule', '分享引擎总闸', { enableValue: true }),
+  dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
+  dep('simulation.shareModules.enabled', '分享模块子开关', { enableValue: true })
+];
+
 const CARD_LIST = [
+  // ── 分享引擎板块 ────────────────────────────────────────────────────────
+  {
+    id: 'shareModule',
+    board: 'shareEngine',
+    boardMaster: true,
+    label: '分享引擎总闸',
+    keywords: '分享模块 shareModule 自定义 主题 引擎',
+    description: '统一管理所有主动分享；总闸关闭后，下面的模块都会停止排期和发布。',
+    onEffect: '已通过验证的模块按排期自动发；验证期每条先私聊确认。',
+    offEffect: '所有分享模块（包括旧版主动分享和赛事资讯）停止；待发草稿不能发布。',
+    dangerousOff: true,
+    customPanel: 'shareModule',
+    dependencies: [
+      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
+      dep('simulation.shareModules.enabled', '分享模块子开关', { enableValue: true })
+    ],
+    resetKeys: [
+      'simulation.shareModules.limits.perGroupPerDay',
+      'simulation.shareModules.limits.perGroupPerHour',
+      'simulation.shareModules.limits.crossModuleGapMs',
+      'simulation.shareModules.limits.moduleMaxPerDay',
+      'simulation.shareModules.limits.globalMaxPerDay'
+    ]
+  },
+  {
+    id: 'aiTips',
+    board: 'shareEngine',
+    label: 'AI 知识分享',
+    keywords: 'AI 知识 aitips 科普 ai_tips',
+    description: '每天在群里讲几条 AI 小知识（ai_tips 模块）。',
+    onEffect: '在时间窗口内按间隔生成并发送，内容会避开重复。',
+    offEffect: '不再生成或发送 AI 小知识；待审草稿不能发布。',
+    dangerousOff: true,
+    customPanel: 'aiTips',
+    dependencies: [
+      ...SHARE_ENGINE_DEPS,
+      dep('simulation.innerLife.aiTips.enabled', 'AI 小知识子开关', { enableValue: true })
+    ],
+    resetKeys: [
+      'simulation.innerLife.aiTips.minPerDay',
+      'simulation.innerLife.aiTips.maxPerDay',
+      'simulation.innerLife.aiTips.windowStartHour',
+      'simulation.innerLife.aiTips.windowEndHour',
+      'simulation.innerLife.aiTips.minGapMs',
+      'simulation.innerLife.aiTips.maxChars',
+      'simulation.innerLife.aiTips.images',
+      'simulation.innerLife.aiTips.links',
+      'simulation.innerLife.aiTips.maxLinks'
+    ]
+  },
+  {
+    id: 'lifeFun',
+    board: 'shareEngine',
+    label: '生活趣闻',
+    keywords: '生活趣闻 life_fun 趣事 生活',
+    description: '从生活话题里挑内容分享到群里（life_fun 模块）。',
+    onEffect: '按分享引擎的排期自动挑选并发布生活趣闻。',
+    offEffect: '不再发布生活趣闻；其他分享模块不受影响。',
+    dangerousOff: false,
+    dependencies: [...SHARE_ENGINE_DEPS]
+  },
+  {
+    id: 'financeTips',
+    board: 'shareEngine',
+    label: '金融小知识',
+    keywords: '金融 理财 finance_tips 钱',
+    description: '用生活化的例子讲金融常识（finance_tips 模块）。',
+    onEffect: '按分享引擎的排期生成并发布金融小知识。',
+    offEffect: '不再发布金融小知识；其他分享模块不受影响。',
+    dangerousOff: false,
+    dependencies: [...SHARE_ENGINE_DEPS]
+  },
+  {
+    id: 'llmTips',
+    board: 'shareEngine',
+    label: '大模型科普',
+    keywords: '大模型 LLM llm_tips AI 科普',
+    description: '解释大模型怎么工作、普通人怎么用（llm_tips 模块）。',
+    onEffect: '按分享引擎的排期生成并发布大模型科普。',
+    offEffect: '不再发布大模型科普；其他分享模块不受影响。',
+    dangerousOff: false,
+    dependencies: [...SHARE_ENGINE_DEPS]
+  },
+  {
+    id: 's16Share',
+    board: 'shareEngine',
+    label: 'S16 分享',
+    keywords: 'S16 赛事 分享 s16 赛程',
+    description: '把赛事资讯和赛程分享到群里（s16 模块）；抓取本身在「赛事资讯」里控制。',
+    onEffect: '按分享引擎的排期把 S16 内容发到目标群。',
+    offEffect: '不再分享 S16 内容；赛事资讯抓取仍可单独使用。',
+    dangerousOff: false,
+    dependencies: [...SHARE_ENGINE_DEPS]
+  },
+  {
+    id: 'customShare',
+    board: 'shareEngine',
+    label: '自定义分享模块',
+    keywords: '自定义 分享模块 custom 自建',
+    description: '你在控制台自建的任何分享模块，统一由这个开关控制。',
+    onEffect: '所有自建模块按各自排期运行。',
+    offEffect: '所有自建模块停止；内置模块不受影响。',
+    dangerousOff: false,
+    dependencies: [...SHARE_ENGINE_DEPS]
+  },
+  {
+    id: 'esportsFeed',
+    board: 'shareEngine',
+    label: '赛事资讯',
+    keywords: 'S16 赛事 esports 赛程 资讯',
+    description: '定时抓取 S16 赛事资讯和赛程，供分享模块和群订阅使用。',
+    onEffect: '按刷新间隔抓取资讯，群订阅会收到相关消息。',
+    offEffect: '停止抓取，也不再推送赛事订阅；「立即抓取」会被拒绝。',
+    dangerousOff: false,
+    customPanel: 'esportsFeed',
+    dependencies: [
+      dep('features.shareModule', '分享引擎总闸', { enableValue: true }),
+      dep('simulation.esportsFeed.enabled', '资讯源子开关', { enableValue: true })
+    ],
+    resetKeys: [
+      'simulation.esportsFeed.refreshMs',
+      'simulation.esportsFeed.maxItems',
+      'simulation.esportsFeed.summaryMaxChars'
+    ]
+  },
+  {
+    id: 'share',
+    board: 'shareEngine',
+    label: '主动分享（旧链路）',
+    keywords: '分享 share 好奇 curiosity 群',
+    description: '旧版的好奇心/群内主动分享；新部署建议直接用上面的分享模块。',
+    onEffect: '按间隔挑内容发到选中的群；可要求发送前先私聊你审核。',
+    offEffect: '不再主动分享；待审草稿不能发布，「立即分享」也会被拒绝。',
+    dangerousOff: true,
+    customPanel: 'share',
+    dependencies: [
+      dep('features.shareModule', '分享引擎总闸', { enableValue: true }),
+      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
+      dep('simulation.innerLife.groupShare.enabled', '群分享子开关', { enableValue: true })
+    ],
+    resetKeys: [
+      'simulation.innerLife.groupShare.maxPerDay',
+      'simulation.innerLife.groupShare.minGapMs',
+      'simulation.innerLife.groupShare.idleMs',
+      'simulation.innerLife.groupShare.maxChars',
+      'simulation.innerLife.groupShare.requireApproval'
+    ]
+  },
+
+  // ── 聊天与社交板块 ──────────────────────────────────────────────────────
   {
     id: 'qzone',
     board: 'social',
@@ -108,98 +271,11 @@ const CARD_LIST = [
       { key: 'simulation.voice.normalize', label: '响度归一化', type: 'boolean', default: true }
     ]
   },
-  {
-    id: 'share',
-    board: 'life',
-    label: '主动分享',
-    keywords: '分享 share 好奇 curiosity 群',
-    description: '看到有意思的内容，主动分享到指定群。',
-    onEffect: '按间隔挑内容发到选中的群；可要求发送前先私聊你审核。',
-    offEffect: '不再主动分享；待审草稿不能发布，「立即分享」也会被拒绝。',
-    dangerousOff: true,
-    customPanel: 'share',
-    dependencies: [
-      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
-      dep('simulation.innerLife.groupShare.enabled', '群分享子开关', { enableValue: true })
-    ],
-    resetKeys: [
-      'simulation.innerLife.groupShare.maxPerDay',
-      'simulation.innerLife.groupShare.minGapMs',
-      'simulation.innerLife.groupShare.idleMs',
-      'simulation.innerLife.groupShare.maxChars',
-      'simulation.innerLife.groupShare.requireApproval'
-    ]
-  },
-  {
-    id: 'shareModule',
-    board: 'content',
-    label: '分享模块引擎',
-    keywords: '分享模块 shareModule 自定义 主题',
-    description: '用一套引擎管理 AI 知识、生活趣事、S16 和自定义领域的分享。',
-    onEffect: '已通过验证的模块按排期自动发；验证期每条先私聊确认。',
-    offEffect: '所有分享模块停止排期；待发草稿不能发布。',
-    dangerousOff: true,
-    customPanel: 'shareModule',
-    dependencies: [
-      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
-      dep('simulation.shareModules.enabled', '分享模块子开关', { enableValue: true })
-    ],
-    resetKeys: [
-      'simulation.shareModules.limits.perGroupPerDay',
-      'simulation.shareModules.limits.perGroupPerHour',
-      'simulation.shareModules.limits.crossModuleGapMs',
-      'simulation.shareModules.limits.moduleMaxPerDay',
-      'simulation.shareModules.limits.globalMaxPerDay'
-    ]
-  },
-  {
-    id: 'aiTips',
-    board: 'content',
-    label: 'AI 小知识',
-    keywords: 'AI 知识 aitips 科普',
-    description: '每天在群里讲几条 AI 小知识。',
-    onEffect: '在时间窗口内按间隔生成并发送，内容会避开重复。',
-    offEffect: '不再生成或发送 AI 小知识；待审草稿不能发布。',
-    dangerousOff: true,
-    customPanel: 'aiTips',
-    dependencies: [
-      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
-      dep('simulation.innerLife.aiTips.enabled', 'AI 小知识子开关', { enableValue: true })
-    ],
-    resetKeys: [
-      'simulation.innerLife.aiTips.minPerDay',
-      'simulation.innerLife.aiTips.maxPerDay',
-      'simulation.innerLife.aiTips.windowStartHour',
-      'simulation.innerLife.aiTips.windowEndHour',
-      'simulation.innerLife.aiTips.minGapMs',
-      'simulation.innerLife.aiTips.maxChars',
-      'simulation.innerLife.aiTips.images',
-      'simulation.innerLife.aiTips.links',
-      'simulation.innerLife.aiTips.maxLinks'
-    ]
-  },
-  {
-    id: 'esportsFeed',
-    board: 'content',
-    label: '赛事资讯',
-    keywords: 'S16 赛事 esports 赛程 资讯',
-    description: '定时抓取 S16 赛事资讯和赛程。',
-    onEffect: '按刷新间隔抓取资讯，群订阅会收到相关消息。',
-    offEffect: '停止抓取，也不再推送赛事订阅；「立即抓取」会被拒绝。',
-    dangerousOff: false,
-    customPanel: 'esportsFeed',
-    dependencies: [
-      dep('simulation.esportsFeed.enabled', '资讯源子开关', { enableValue: true })
-    ],
-    resetKeys: [
-      'simulation.esportsFeed.refreshMs',
-      'simulation.esportsFeed.maxItems',
-      'simulation.esportsFeed.summaryMaxChars'
-    ]
-  },
+
+  // ── 群运营板块 ──────────────────────────────────────────────────────────
   {
     id: 'dailyReport',
-    board: 'content',
+    board: 'ops',
     label: '群日报',
     keywords: '日报 daily report 统计',
     description: '每天固定时间把群聊日报发到群里。',
@@ -215,6 +291,8 @@ const CARD_LIST = [
       { key: 'simulation.dailyReport.maxItems', label: '最多条目', type: 'number', min: 1, max: 50, default: 8 }
     ]
   },
+
+  // ── 主人能力板块 ────────────────────────────────────────────────────────
   {
     id: 'ownerFeature',
     board: 'owner',

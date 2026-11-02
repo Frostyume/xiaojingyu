@@ -2084,10 +2084,16 @@
       "type": "object",
       "properties": {
         "aiTips": {
-          "title": "总开关：AI 小知识",
+          "title": "总开关：AI 知识分享",
           "type": "boolean",
           "default": false,
           "description": "ai_tips 分享模块（每日 AI 小知识）"
+        },
+        "customShare": {
+          "title": "总开关：自定义分享模块",
+          "type": "boolean",
+          "default": false,
+          "description": "你在控制台自建的其他分享模块"
         },
         "dailyReport": {
           "title": "总开关：群日报",
@@ -2100,6 +2106,24 @@
           "type": "boolean",
           "default": false,
           "description": "定时抓取 S16 赛事资讯与赛程"
+        },
+        "financeTips": {
+          "title": "总开关：金融小知识",
+          "type": "boolean",
+          "default": false,
+          "description": "finance_tips 分享模块（金融常识）"
+        },
+        "lifeFun": {
+          "title": "总开关：生活趣闻",
+          "type": "boolean",
+          "default": false,
+          "description": "life_fun 分享模块（生活类内容）"
+        },
+        "llmTips": {
+          "title": "总开关：大模型科普",
+          "type": "boolean",
+          "default": false,
+          "description": "llm_tips 分享模块（大模型科普）"
         },
         "ownerFeature": {
           "title": "总开关：功能中心",
@@ -2119,6 +2143,12 @@
           "default": false,
           "description": "自动回复自己说说下的评论与好友动态里的 @"
         },
+        "s16Share": {
+          "title": "总开关：S16 分享",
+          "type": "boolean",
+          "default": false,
+          "description": "s16 分享模块（赛事内容）"
+        },
         "share": {
           "title": "总开关：主动分享（旧链路）",
           "type": "boolean",
@@ -2126,10 +2156,10 @@
           "description": "好奇/群内主动分享：curiosity 与 groupShare"
         },
         "shareModule": {
-          "title": "总开关：分享模块引擎",
+          "title": "总开关：分享引擎总闸",
           "type": "boolean",
           "default": false,
-          "description": "自定义分享模块的定时发送与验证期流程"
+          "description": "统一管理所有主动分享；下面的内容模块各自有开关"
         },
         "signature": {
           "title": "总开关：个性签名",
@@ -4926,7 +4956,15 @@
     },
     {
       "key": "features.aiTips",
-      "label": "总开关：AI 小知识",
+      "label": "总开关：AI 知识分享",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.customShare",
+      "label": "总开关：自定义分享模块",
       "group": "功能总开关",
       "type": "boolean",
       "restart": "none",
@@ -4943,6 +4981,30 @@
     {
       "key": "features.esportsFeed",
       "label": "总开关：赛事资讯",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.financeTips",
+      "label": "总开关：金融小知识",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.lifeFun",
+      "label": "总开关：生活趣闻",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.llmTips",
+      "label": "总开关：大模型科普",
       "group": "功能总开关",
       "type": "boolean",
       "restart": "none",
@@ -4973,6 +5035,14 @@
       "advanced": false
     },
     {
+      "key": "features.s16Share",
+      "label": "总开关：S16 分享",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "features.share",
       "label": "总开关：主动分享（旧链路）",
       "group": "功能总开关",
@@ -4982,7 +5052,7 @@
     },
     {
       "key": "features.shareModule",
-      "label": "总开关：分享模块引擎",
+      "label": "总开关：分享引擎总闸",
       "group": "功能总开关",
       "type": "boolean",
       "restart": "none",

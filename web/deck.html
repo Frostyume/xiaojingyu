@@ -3971,6 +3971,47 @@ button.active,.primary {
   margin: 2px 0 0;
   line-height: 1.55
 }
+.feature-board-master {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface)
+}
+.feature-board-master.is-dirty {
+  border-color: var(--accent-border);
+  box-shadow: inset 3px 0 0 var(--accent)
+}
+.feature-board-master-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px
+}
+.feature-board-title {
+  min-width: 0
+}
+.feature-board-master-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0
+}
+.feature-board-master-desc {
+  margin: 0;
+  line-height: 1.6
+}
+.feature-board-master-effect {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6
+}
+.feature-board-master-effect b {
+  color: var(--text);
+  margin-right: 4px
+}
 .feature-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -5930,6 +5971,53 @@ function renderFeatureCard(module) {
   </article>`;
 }
 
+function renderBoardMaster(board, module) {
+  const saved = module.enabled === true;
+  const enabled = featureDirty.has(module.id) ? featureDirty.get(module.id) : saved;
+  const dirty = featureDirty.has(module.id);
+  const stateLabel = module.state === 'on' ? '运行中' : module.state === 'blocked' ? '被依赖拦住' : '已关闭';
+  const stateTone = module.state === 'on' ? 'g' : module.state === 'blocked' ? 'r' : 'b';
+  const advancedFields = Array.isArray(module.advanced) ? module.advanced : [];
+  const hasPanel = Boolean(module.customPanel);
+  const canReset = module.hasAdvanced === true;
+  const showAdvanced = advancedFields.length > 0 || hasPanel || canReset;
+  const switchText = dirty ? (enabled ? '待开启' : '待关闭') : (enabled ? '已开启' : '已关闭');
+  const summaryText = advancedFields.length ? `${advancedFields.length} 项参数` : '专用面板';
+  const search = `${board.label} ${module.label} ${module.keywords || ''} ${module.description || ''}`.toLowerCase();
+  return `<div class="feature-board-head feature-board-master${dirty ? ' is-dirty' : ''}" data-module-id="${esc(module.id)}" data-search="${esc(search)}">
+    <div class="feature-board-master-top">
+      <div class="feature-board-title">
+        <h3>${esc(board.label)}</h3>
+        <p class="meta">${esc(board.description)}</p>
+      </div>
+      <div class="feature-board-master-switch">
+        <label class="feature-switch" title="${enabled ? '点击关闭' : '点击开启'}「${esc(board.label)}」总闸">
+          <input type="checkbox" role="switch" data-feature-id="${esc(module.id)}"${enabled ? ' checked' : ''}>
+          <span class="feature-switch-track" aria-hidden="true"></span>
+          <span class="feature-switch-text">${switchText}</span>
+        </label>
+        <span class="pill ${stateTone}">${esc(stateLabel)}</span>
+      </div>
+    </div>
+    <p class="feature-board-master-desc">${esc(module.description)}</p>
+    <p class="feature-board-master-effect"><b>打开后</b>${esc(module.onEffect)} <b>关掉后</b>${esc(module.offEffect)}</p>
+    ${module.statusLine ? `<p class="feature-status${module.statusTone === 'warn' ? ' warn' : ''}">${esc(module.statusLine)}</p>` : ''}
+    ${renderDependencies(module)}
+    ${showAdvanced ? `<details class="feature-advanced" data-feature-advanced-details="${esc(module.id)}"${featureOpenDetails.has(module.id) ? ' open' : ''}>
+      <summary><b>总闸设置</b><span class="meta">${esc(summaryText)} · 默认收起</span></summary>
+      ${module.requiresRestart ? '<p class="meta feature-advanced-note">其中部分设置需要重启桥接后才会生效。</p>' : ''}
+      ${renderAdvancedFields(module)}
+      ${hasPanel ? `<p class="meta feature-advanced-note">下面是「${esc(board.label)}」的专用面板。关掉总闸后这些设置会保留，但不会执行。</p>` : ''}
+      <div data-feature-advanced="${esc(module.id)}"></div>
+      <div class="row feature-advanced-actions">
+        ${advancedFields.length ? `<button type="button" class="small" data-advanced-save="${esc(module.id)}">保存高级设置</button>` : ''}
+        ${canReset ? `<button type="button" class="small" data-advanced-reset="${esc(module.id)}">恢复默认</button>` : ''}
+        <span class="meta" data-advanced-msg="${esc(module.id)}" role="status" aria-live="polite"></span>
+      </div>
+    </details>` : ''}
+  </div>`;
+}
+
 function renderFeatureControl() {
   if (!featureControlState) return;
   unmountFeaturePanels();
@@ -5938,10 +6026,19 @@ function renderFeatureControl() {
   // 卡片一律从 modules 取，boards 只提供板块标题；避免两份模块副本不同步时
   // 告警说「被依赖拦住」、卡片却还显示「运行中」。
   const modules = Array.isArray(featureControlState.modules) ? featureControlState.modules : [];
-  container.innerHTML = (featureControlState.boards || []).map((board) => `<section class="feature-board" data-board="${esc(board.id)}" aria-label="${esc(board.label)}">
-    <div class="feature-board-head"><h3>${esc(board.label)}</h3><p class="meta">${esc(board.description)}</p></div>
-    <div class="feature-cards">${modules.filter((module) => module.board === board.id).map(renderFeatureCard).join('')}</div>
-  </section>`).join('');
+  const masterIds = new Set((featureControlState.boards || []).map((board) => board.master).filter(Boolean));
+  container.innerHTML = (featureControlState.boards || []).map((board) => {
+    const boardModules = modules.filter((module) => module.board === board.id);
+    const master = board.master ? boardModules.find((module) => module.id === board.master) : null;
+    const cards = boardModules.filter((module) => !masterIds.has(module.id));
+    const head = master
+      ? renderBoardMaster(board, master)
+      : `<div class="feature-board-head"><h3>${esc(board.label)}</h3><p class="meta">${esc(board.description)}</p></div>`;
+    return `<section class="feature-board" data-board="${esc(board.id)}" aria-label="${esc(board.label)}">
+      ${head}
+      <div class="feature-cards">${cards.map(renderFeatureCard).join('')}</div>
+    </section>`;
+  }).join('');
   mountFeaturePanels();
   applyFeatureFilters();
   updateFeatureSummary();
@@ -6002,7 +6099,10 @@ function applyFeatureFilters() {
     if (visible) shown += 1;
   });
   document.querySelectorAll('#featureSwitches .feature-board').forEach((board) => {
-    board.hidden = !board.querySelector('.feature-module:not([hidden])');
+    const hasVisibleChild = Boolean(board.querySelector('.feature-module:not([hidden])'));
+    const master = board.querySelector('.feature-board-master');
+    const masterMatch = Boolean(text && master?.dataset.search?.includes(text));
+    board.hidden = !hasVisibleChild && !masterMatch;
   });
   const empty = document.getElementById('featureEmpty');
   if (empty) empty.hidden = shown > 0;
@@ -6032,12 +6132,12 @@ function markFeatureDirty(id, enabled) {
   if (!module) return;
   if (enabled === module.enabled) featureDirty.delete(id);
   else featureDirty.set(id, enabled);
-  const card = document.querySelector(`#featureSwitches .feature-module[data-module-id="${id}"]`);
-  if (card) {
-    card.classList.toggle('is-dirty', featureDirty.has(id));
-    const text = card.querySelector('.feature-switch-text');
+  const hosts = document.querySelectorAll(`#featureSwitches [data-module-id="${id}"]`);
+  hosts.forEach((host) => {
+    host.classList.toggle('is-dirty', featureDirty.has(id));
+    const text = host.querySelector('.feature-switch-text');
     if (text) text.textContent = featureDirty.has(id) ? (enabled ? '待开启' : '待关闭') : (module.enabled ? '已开启' : '已关闭');
-  }
+  });
   if (featureDirty.size) setFeatureMessage('修改还没保存', 'warn');
   else setFeatureMessage('');
   updateFeatureSummary();

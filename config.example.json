@@ -557,6 +557,11 @@
     "share": false,
     "shareModule": false,
     "aiTips": false,
+    "lifeFun": false,
+    "financeTips": false,
+    "llmTips": false,
+    "s16Share": false,
+    "customShare": false,
     "dailyReport": false,
     "esportsFeed": false,
     "ownerFeature": false

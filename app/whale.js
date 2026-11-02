@@ -86,7 +86,7 @@ import { listOwnerCapabilities } from '../runtime/control/owner-capabilities.js'
 import { normalizeOwnerFeature, validateOwnerFeature, nextOwnerFeatureRuns, renderOwnerFeaturePreview } from '../runtime/control/owner-features.js';
 import { synthesizeFeatureVoice } from '../runtime/orchestration/feature-voice.js';
 import { listOwnerConfig, readOwnerConfig, validateOwnerConfig, ownerConfigPatch } from '../runtime/control/owner-config.js';
-import { FEATURE_MODULES, normalizeFeatureConfig, featureEnabled, featureSnapshot } from '../runtime/control/feature-switches.js';
+import { FEATURE_MODULES, normalizeFeatureConfig, featureEnabled, featureSnapshot, featureForShareModule, shareEngineEnabled, shareModuleIdForFeature, SHARE_MODULE_FEATURES } from '../runtime/control/feature-switches.js';
 import { FEATURE_BOARDS, FEATURE_CARDS, cardFor, cardDefaultKeys, evaluateDependencies, featureEnablePatch, advancedFieldsFor, configValueFor, valueAtPath } from '../runtime/control/feature-control.js';
 import { listProposals, proposalSummary, readResult, writeResult, mergeProposal, rejectProposal, notificationFor } from '../runtime/orchestration/dev-proposals.js';
 import { queueCodeProposal, stageCodeProposal } from '../runtime/orchestration/code-proposal.js';
@@ -2566,7 +2566,7 @@ async function main() {
 
   async function refreshEsportsFeed() {
     const ec = cfg.simulation?.esportsFeed ?? {};
-    if (!featureEnabled(cfg, 'esportsFeed') || ec.enabled === false || esportsFeedLoading) return;
+    if (!shareEngineEnabled(cfg) || !featureEnabled(cfg, 'esportsFeed') || ec.enabled === false || esportsFeedLoading) return;
     esportsFeedLoading = true;
     try {
       let feed;
@@ -3740,6 +3740,30 @@ async function main() {
       : '');
     const targetList = Array.isArray(sh.targets) && sh.targets.length ? sh.targets : (sh.target ? [sh.target] : []);
     const dailyReportGroups = Array.isArray(cfg.simulation?.dailyReport?.groups) ? cfg.simulation.dailyReport.groups : [];
+    const shareModuleList = Array.isArray(sm.modules) ? sm.modules : [];
+    const shareModulesForFeature = (featureId) => {
+      if (featureId === 'customShare') {
+        const builtin = new Set(Object.keys(SHARE_MODULE_FEATURES));
+        return shareModuleList.filter((module) => !builtin.has(String(module?.id || '')));
+      }
+      const moduleId = shareModuleIdForFeature(featureId);
+      return moduleId ? shareModuleList.filter((module) => module.id === moduleId) : [];
+    };
+    const shareModuleStatus = (featureId, label) => {
+      const list = shareModulesForFeature(featureId);
+      if (!list.length) {
+        return { line: featureId === 'customShare' ? '还没有自建分享模块；可在分享引擎面板里创建' : `还没有配置「${label}」模块`, tone: 'muted' };
+      }
+      const pending = list.filter((module) => module.pending).length;
+      const paused = list.filter((module) => module.paused).length;
+      const today = list.reduce((sum, module) => sum + (Number(module.today) || 0), 0);
+      const nextAt = list.map((module) => Number(module.nextAt) || 0).filter(Boolean).sort((a, b) => a - b)[0] || 0;
+      return {
+        line: `今日 ${today} 条${nextAt ? ` · 下次 ${fmt(nextAt)}` : ''}${pending ? ` · ${pending} 条待确认` : ''}${paused ? ` · ${paused} 个暂停` : ''}`,
+        tone: pending ? 'warn' : 'ok',
+        attention: pending > 0
+      };
+    };
     const statusFor = (id) => {
       if (id === 'qzone') {
         if (qz.paused) return { line: '已暂停：回主人私聊「开说说」恢复', tone: 'warn', attention: true };
@@ -3782,6 +3806,11 @@ async function main() {
         if (ai.paused) return { line: '已暂停；恢复后会继续排期', tone: 'warn', attention: true };
         return { line: `今天 ${ai.today ?? 0}/${ai.dailyTarget || `${ai.minPerDay ?? 2}-${ai.maxPerDay ?? 5}`} 条${ai.nextAt ? ` · 下次 ${fmt(ai.nextAt)}` : ''}`, tone: 'ok' };
       }
+      if (id === 'lifeFun') return shareModuleStatus('lifeFun', '生活趣闻');
+      if (id === 'financeTips') return shareModuleStatus('financeTips', '金融小知识');
+      if (id === 'llmTips') return shareModuleStatus('llmTips', '大模型科普');
+      if (id === 's16Share') return shareModuleStatus('s16Share', 'S16 分享');
+      if (id === 'customShare') return shareModuleStatus('customShare', '自定义分享模块');
       if (id === 'esportsFeed') {
         if (esp.error) return { line: '上次抓取没成功，稍后会自动重试', tone: 'warn', attention: true };
         if (esp.updatedAt) {
@@ -6820,6 +6849,10 @@ async function main() {
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/esports/refresh') {
+          if (!shareEngineEnabled(cfg)) {
+            sendJson({ ok: false, disabled: true, reason: 'features.shareModule=false', error: '分享引擎总闸已关闭' }, 403);
+            return;
+          }
           if (!featureEnabled(cfg, 'esportsFeed')) {
             sendJson({ ok: false, disabled: true, reason: 'features.esportsFeed=false', error: '赛事资讯总开关已关闭' }, 403);
             return;
@@ -7437,6 +7470,10 @@ async function main() {
           const dryRun = body.dryRun === true;
           const featureId = job === 'qzone' ? 'qzone' : (job === 'aiTips' ? 'aiTips' : (job === 'curiosity' ? 'share' : ''));
           const previewOnly = dryRun && job === 'curiosity';
+          if ((job === 'curiosity' || job === 'aiTips') && !shareEngineEnabled(cfg) && !previewOnly) {
+            sendJson({ ok: false, disabled: true, reason: 'features.shareModule=false', error: '分享引擎总闸已关闭' }, 403);
+            return;
+          }
           if (featureId && !featureEnabled(cfg, featureId) && !previewOnly) {
             sendJson({ ok: false, disabled: true, reason: `features.${featureId}=false`, error: '这个功能的总开关已关闭' }, 403);
             return;
@@ -7467,6 +7504,10 @@ async function main() {
               return;
             }
             if (action === 'run') {
+              if (!shareEngineEnabled(cfg) && body.dryRun !== true) {
+                sendJson({ ok: false, disabled: true, reason: 'features.shareModule=false', error: '分享引擎总闸已关闭' }, 403);
+                return;
+              }
               if (!featureEnabled(cfg, 'aiTips') && body.dryRun !== true) {
                 sendJson({ ok: false, disabled: true, reason: 'features.aiTips=false', error: 'AI 小知识总开关已关闭' }, 403);
                 return;
@@ -7538,9 +7579,13 @@ async function main() {
               return;
             }
             if (action === 'run') {
-              const featureId = id === 'ai_tips' ? 'aiTips' : 'shareModule';
+              if (!shareEngineEnabled(cfg)) {
+                sendJson({ ok: false, disabled: true, reason: 'features.shareModule=false', error: '分享引擎总闸已关闭' }, 403);
+                return;
+              }
+              const featureId = featureForShareModule(id);
               if (!featureEnabled(cfg, featureId)) {
-                sendJson({ ok: false, disabled: true, reason: `features.${featureId}=false`, error: '这个分享模块的总开关已关闭' }, 403);
+                sendJson({ ok: false, disabled: true, reason: `features.${featureId}=false`, error: '这个分享模块的开关已关闭' }, 403);
                 return;
               }
               const result = await innerLife.runShareModule?.(id, { force: true });
@@ -7548,9 +7593,13 @@ async function main() {
               return;
             }
             if (action === 'publish') {
-              const featureId = id === 'ai_tips' ? 'aiTips' : 'shareModule';
+              if (!shareEngineEnabled(cfg)) {
+                sendJson({ ok: false, disabled: true, reason: 'features.shareModule=false', error: '分享引擎总闸已关闭' }, 403);
+                return;
+              }
+              const featureId = featureForShareModule(id);
               if (!featureEnabled(cfg, featureId)) {
-                sendJson({ ok: false, disabled: true, reason: `features.${featureId}=false`, error: '这个分享模块的总开关已关闭' }, 403);
+                sendJson({ ok: false, disabled: true, reason: `features.${featureId}=false`, error: '这个分享模块的开关已关闭' }, 403);
                 return;
               }
               const result = await innerLife.publishShareDraft?.(id);

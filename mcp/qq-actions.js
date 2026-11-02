@@ -378,6 +378,9 @@ const TOOL_FEATURE = {
 const featureDisabledResult = (id) => ({
   content: [{ type: 'text', text: serializeModelData({ ok: false, disabled: true, reason: `features.${id}=false` }) }]
 });
+/** 只预览不发送的调用不受总开关限制：关掉功能后仍能检查配置与效果。 */
+const featurePreviewBypass = (name, args) => name === 'qq_share_module_preview'
+  || (args?.dryRun === true && name === 'qq_post_qzone');
 const disabledTools = [];
 {
   const registerTool = server.tool.bind(server);
@@ -390,10 +393,10 @@ const disabledTools = [];
     const handlerIndex = rest.length - 1;
     const handler = rest[handlerIndex];
     if (typeof handler === 'function') {
-      rest[handlerIndex] = async (...args) => {
+      rest[handlerIndex] = async (args, ...rest2) => {
         const featureId = TOOL_FEATURE[name];
-        if (featureId && !featureEnabled(getConfig(), featureId)) return featureDisabledResult(featureId);
-        return handler(...args);
+        if (featureId && !featureEnabled(getConfig(), featureId) && !featurePreviewBypass(name, args)) return featureDisabledResult(featureId);
+        return handler(args, ...rest2);
       };
     }
     return registerTool(name, ...rest);

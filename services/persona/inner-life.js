@@ -31,7 +31,7 @@ import { normalizeShareConfig, normalizeShareModule, moduleFacets, engineFacets,
 import { loadShareState, saveShareState, groupBudgetCheck, recordGroupSend, recordModuleSend, recordModuleFailure, setVerification, migrateAiTipsState, localDayKey as shareDayKey, globalBudgetCheck, recordGlobalSend, nextGlobalWindowAt } from '../../runtime/share/share-state.js';
 import { buildShareTask } from '../../runtime/share/share-prompts.js';
 import { formatShareCaption, formatShareLinksText, formatAiTipLinks, formatTipCaption } from '../../runtime/share/share-format.js';
-import { featureEnabled, featureForInnerJob } from '../../runtime/control/feature-switches.js';
+import { featureEnabled, featureForInnerJob, featureForShareModule, shareEngineEnabled, shareModuleEnabled } from '../../runtime/control/feature-switches.js';
 
 const DEFAULTS = {
   reflection: { enabled: true, minIntervalMs: 1 * 3600 * 1000, maxIntervalMs: 8 * 3600 * 1000 },
@@ -2442,9 +2442,11 @@ ${othersLine}拟回复：${reply}
   }
 
   async function publishShareDraft(moduleId, { force = false } = {}) {
-    const featureId = moduleId === 'ai_tips' ? 'aiTips' : 'shareModule';
-    // 待审草稿的发布是真正的群发送；force 只用于绕过过期/预算，不能绕过主开关。
-    if (!featureEnabled(cfg, featureId)) return { status: 'disabled', reason: `features.${featureId}=false` };
+    // 待审草稿的发布是真正的群发送；force 只用于绕过过期/预算，不能绕过总闸和模块开关。
+    if (!shareModuleEnabled(cfg, moduleId)) {
+      const reason = shareEngineEnabled(cfg) ? `features.${featureForShareModule(moduleId)}=false` : 'features.shareModule=false';
+      return { status: 'disabled', reason };
+    }
     const conf = shareModulesConfig();
     const module = conf.modules[moduleId];
     const state = loadShareModulesState();
@@ -3139,9 +3141,11 @@ ${share.text}${share.item?.url ? `
   }
 
   async function runShareModule(moduleId, { force = false, dryRun = false, ignoreGuards = false, facetId = '', withImages = true, categoryId = '' } = {}) {
-    const featureId = moduleId === 'ai_tips' ? 'aiTips' : 'shareModule';
-    // 预览（dryRun）不发送，可以用于总开关关闭时检查配置；真正生成/发送必须开总开关。
-    if (!dryRun && !featureEnabled(cfg, featureId)) return { status: 'disabled', reason: `features.${featureId}=false` };
+    // 预览（dryRun）不发送，可以用于总闸/模块开关关闭时检查配置；真正生成/发送必须都打开。
+    if (!dryRun && !shareModuleEnabled(cfg, moduleId)) {
+      const reason = shareEngineEnabled(cfg) ? `features.${featureForShareModule(moduleId)}=false` : 'features.shareModule=false';
+      return { status: 'disabled', reason };
+    }
     const conf = shareModulesConfig();
     const module = conf.modules[moduleId];
     if (!module) return { status: 'unknown-module' };
@@ -3730,6 +3734,9 @@ ${formatTipCaption(item)}`;
     const shareId = name === 'aiTips' ? 'ai_tips' : (name.startsWith('share:') ? name.slice(6) : '');
     // dryRun 只允许走「不发送」的预览路径；force 不能再绕过主开关。
     const previewOnly = dryRun && (name === 'curiosity' || Boolean(shareId));
+    if ((name === 'curiosity' || Boolean(shareId)) && !shareEngineEnabled(cfg) && !previewOnly) {
+      return { status: 'disabled', reason: 'features.shareModule=false' };
+    }
     if (featureId && !featureEnabled(cfg, featureId) && !previewOnly) {
       return { status: 'disabled', reason: `features.${featureId}=false` };
     }
@@ -3796,8 +3803,7 @@ ${formatTipCaption(item)}`;
     for (const [id, module] of Object.entries(conf.modules)) {
       const m = sstate.modules[id];
       if (!m) continue;
-      const featureId = id === 'ai_tips' ? 'aiTips' : 'shareModule';
-      if (!featureEnabled(cfg, featureId) || !module.enabled || m.paused || !hasEngineFacets(module)) {
+      if (!shareModuleEnabled(cfg, id) || !module.enabled || m.paused || !hasEngineFacets(module)) {
         if (m.nextAt) { m.nextAt = 0; dirty = true; }
         continue;
       }
@@ -3821,6 +3827,7 @@ ${formatTipCaption(item)}`;
   function legacyInnerJobNames() {
     return ['reflection', 'curiosity', 'qzone'].filter((name) => {
       if (name === 'curiosity' && curiosityOwnedByEngine()) return false;
+      if (name === 'curiosity' && !shareEngineEnabled(cfg)) return false;
       const featureId = featureForInnerJob(name);
       return !featureId || featureEnabled(cfg, featureId);
     });

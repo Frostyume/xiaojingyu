@@ -41,7 +41,9 @@ const h = await bridgeHarness({
     // 开局：总开关全开，语音/日报子开关也开，便于验证「关掉后真的拦住」。
     features: {
       disabled: [], qzone: true, qzoneCommentReply: true, signature: true, voice: true,
-      share: true, shareModule: true, aiTips: true, dailyReport: true, esportsFeed: true, ownerFeature: true
+      share: true, shareModule: true, aiTips: true, lifeFun: true, financeTips: true,
+      llmTips: true, s16Share: true, customShare: true,
+      dailyReport: true, esportsFeed: true, ownerFeature: true
     },
     simulation: {
       nightQuiet: { enabled: false },
@@ -85,20 +87,26 @@ try {
     previewAiTip: async () => ({ status: 'dryRun' })
   });
 
-  // ── 1. 端点快照：4 板块 / 10 卡片 ─────────────────────────────────────
+  // ── 1. 端点快照：4 板块 / 15 卡片 / 分享引擎总闸 ──────────────────────
   const snap = await call('/api/features/control');
   assert.equal(snap.status, 200, 'GET /api/features/control 应成功');
   assert.equal(snap.json.ok, true);
-  assert.deepEqual(snap.json.boards.map((b) => b.id), ['social', 'life', 'content', 'owner']);
+  assert.deepEqual(snap.json.boards.map((b) => b.id), ['shareEngine', 'social', 'ops', 'owner']);
+  assert.equal(snap.json.boards.find((b) => b.id === 'shareEngine').master, 'shareModule');
   assert.deepEqual(snap.json.modules.map((m) => m.id).sort(), FEATURE_CARDS.map((c) => c.id).sort());
-  assert.equal(snap.json.modules.length, 10);
+  assert.equal(snap.json.modules.length, 15);
   for (const module of snap.json.modules) {
     assert.equal(typeof module.enabled, 'boolean', `${module.id} 必须只有一个布尔主开关`);
     assert.ok(module.board, `${module.id} 必须归属板块`);
     assert.equal(module.dependencies.every((d) => d.ok === true), true, `${module.id} 依赖应就绪`);
   }
   assert.equal(snap.json.modules.find((m) => m.id === 'qzone').enabled, true);
-  console.log('OK 快照：4 板块 / 10 模块 / 单开关');
+  for (const id of ['aiTips', 'lifeFun', 'financeTips', 'llmTips', 's16Share', 'customShare']) {
+    const module = snap.json.modules.find((m) => m.id === id);
+    assert.equal(module.board, 'shareEngine', `${id} 应归入分享引擎板块`);
+    assert.ok(module.dependencies.some((d) => d.key === 'features.shareModule' && d.ok), `${id} 应声明分享引擎总闸依赖`);
+  }
+  console.log('OK 快照：4 板块 / 15 模块 / 分享引擎总闸');
 
   // ── 2. 关闭空间说说：配置落盘 + HTTP 入口拒绝 ──────────────────────────
   const offQzone = await call('/api/features/control', { method: 'POST', body: { id: 'qzone', enabled: false } });
@@ -152,11 +160,23 @@ try {
   assert.notEqual(reportOn.reason, 'features.dailyReport=false');
   console.log('OK 群日报：关闭时任务 disabled，打开后恢复原调度');
 
-  // ── 4. 关闭分享模块 / AI 小知识：分享入口同样被拦住 ────────────────────
+  // ── 4. 分享引擎总闸 / 模块开关：两层各拦一次 ───────────────────────────
   assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'shareModule', enabled: false } })).status, 200);
   const runModule = await call('/api/inner-life/share-modules', { method: 'POST', body: { action: 'run', id: 'offline-demo' } });
   assert.equal(runModule.status, 403);
   assert.equal(runModule.json.reason, 'features.shareModule=false');
+  const runBuiltin = await call('/api/inner-life/share-modules', { method: 'POST', body: { action: 'run', id: 'ai_tips' } });
+  assert.equal(runBuiltin.status, 403);
+  assert.equal(runBuiltin.json.reason, 'features.shareModule=false', '总闸关闭时内置模块也停');
+  const runCuriosity = await call('/api/inner-life/run', { method: 'POST', body: { job: 'curiosity', force: true } });
+  assert.equal(runCuriosity.status, 403);
+  assert.equal(runCuriosity.json.reason, 'features.shareModule=false');
+
+  const onEngine = await call('/api/features/control', { method: 'POST', body: { id: 'shareModule', enabled: true } });
+  assert.equal(onEngine.status, 200);
+  assert.equal(h.cfg.features.shareModule, true);
+  assert.equal(h.cfg.simulation.innerLife.enabled, true, '打开引擎总闸应补齐内心生活总开关');
+  assert.equal(h.cfg.simulation.shareModules.enabled, true, '打开引擎总闸应补齐分享模块子开关');
 
   assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'aiTips', enabled: false } })).status, 200);
   const runTips = await call('/api/inner-life/ai-tips', { method: 'POST', body: { action: 'run' } });
@@ -164,7 +184,18 @@ try {
   assert.equal(runTips.json.reason, 'features.aiTips=false');
   const previewTips = await call('/api/inner-life/ai-tips', { method: 'POST', body: { action: 'run', dryRun: true } });
   assert.equal(previewTips.status, 200, 'AI 小知识预览仍可用');
-  console.log('OK 分享模块 / AI 小知识：关闭后发送入口 403，预览保留');
+
+  // 模块之间互不影响：关掉生活趣闻，AI 小知识和自建模块照常。
+  assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'aiTips', enabled: true } })).status, 200);
+  assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'lifeFun', enabled: false } })).status, 200);
+  const runLifeFun = await call('/api/inner-life/share-modules', { method: 'POST', body: { action: 'run', id: 'life_fun' } });
+  assert.equal(runLifeFun.status, 403);
+  assert.equal(runLifeFun.json.reason, 'features.lifeFun=false');
+  const runAiTips = await call('/api/inner-life/share-modules', { method: 'POST', body: { action: 'run', id: 'ai_tips' } });
+  assert.equal(runAiTips.status, 200, '关掉一个模块不能牵连另一个');
+  const runCustom = await call('/api/inner-life/share-modules', { method: 'POST', body: { action: 'run', id: 'offline-demo' } });
+  assert.equal(runCustom.status, 200, '自建模块归 customShare，仍应可用');
+  console.log('OK 分享引擎：总闸先拦、模块各自隔离、预览保留');
 
   // ── 5. 重新打开：子开关自动补齐，入口恢复 ─────────────────────────────
   const onQzone = await call('/api/features/control', { method: 'POST', body: { id: 'qzone', enabled: true } });
