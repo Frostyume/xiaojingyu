@@ -67,7 +67,7 @@ export function loadShareState(file, { now = Date.now(), moduleIds = [] } = {}) 
       pending: cur.pending && typeof cur.pending === 'object' ? cur.pending : null,
       _migrated: cur._migrated === true,
       _verificationSet: cur._verificationSet === true,
-      stats: cur.stats && typeof cur.stats === 'object' ? cur.stats : { sent: 0, failed: 0, duplicates: 0 },
+      stats: cur.stats && typeof cur.stats === 'object' ? cur.stats : { sent: 0, failed: 0 },
       lastError: String(cur.lastError || ''),
       lastErrorAt: Number(cur.lastErrorAt) || 0
     };
@@ -271,7 +271,7 @@ export function recordModuleSend(state, moduleId, facetId, now, entry) {
     lastAt: now,
     lastError: ''
   };
-  m.stats = m.stats && typeof m.stats === 'object' ? m.stats : { sent: 0, failed: 0, duplicates: 0 };
+  m.stats = m.stats && typeof m.stats === 'object' ? m.stats : { sent: 0, failed: 0 };
   m.stats.sent = (Number(m.stats.sent) || 0) + 1;
 }
 
@@ -280,7 +280,7 @@ export function recordModuleFailure(state, moduleId, facetId, now, error) {
   if (!m) return;
   m.lastError = String(error || '').slice(0, 200);
   m.lastErrorAt = now;
-  m.stats = m.stats && typeof m.stats === 'object' ? m.stats : { sent: 0, failed: 0, duplicates: 0 };
+  m.stats = m.stats && typeof m.stats === 'object' ? m.stats : { sent: 0, failed: 0 };
   m.stats.failed = (Number(m.stats.failed) || 0) + 1;
   if (facetId && m.facets[facetId]) m.facets[facetId].lastError = String(error || '').slice(0, 200);
 }
@@ -331,7 +331,7 @@ export function migrateAiTipsState(aiRaw, { moduleId = 'ai_tips', now = Date.now
     },
     history,
     lastPreview: raw.lastPreview && typeof raw.lastPreview === 'object' ? raw.lastPreview : null,
-    stats: { sent: history.length, failed: 0, duplicates: 0 },
+    stats: { sent: history.length, failed: 0 },
     lastError: '',
     lastErrorAt: 0
   };

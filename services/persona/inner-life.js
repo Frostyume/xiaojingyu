@@ -1711,8 +1711,10 @@ ${othersLine}拟回复：${reply}
   async function checkQzoneMentions(il, state, firstFeeds, cr) {
     if (cr.mentionEnabled === false) return { replies: 0, detected: 0 };
     if (state.pendingCommentReply) return { replies: 0, detected: 0, pending: true };
-    const names = (Array.isArray(cr.mentionNames) && cr.mentionNames.length ? cr.mentionNames : ['小鲸鱼'])
-      .map((n) => String(n || '').trim()).filter(Boolean);
+    // 自定义角色下，@角色名 也要算作在叫自己；默认名单只负责兜底。
+    const roleName = String(getRoleName?.() || '').trim();
+    const configured = Array.isArray(cr.mentionNames) && cr.mentionNames.length ? cr.mentionNames : ['小鲸鱼'];
+    const names = [...new Set([...configured, roleName].map((n) => String(n || '').trim()).filter(Boolean))];
     if (!names.length) return { replies: 0, detected: 0 };
     const max = Math.max(0, Number(cr.mentionMaxPerDay) || 5);
     if (state.mentionCount >= max) return { replies: 0, detected: 0, limited: true };
@@ -2068,7 +2070,7 @@ ${othersLine}拟回复：${reply}
             facetId: String(last.facetId || ''),
             text: String(last.text || '').slice(0, 160)
           } : null,
-          stats: m.stats || { sent: 0, failed: 0, duplicates: 0 },
+          stats: m.stats || { sent: 0, failed: 0 },
           lastError: String(m.lastError || '')
         };
       });
@@ -2091,7 +2093,7 @@ ${othersLine}拟回复：${reply}
         facets: [{ id: 'default', label: '生活趣闻', template: 'fun', runtime: 'legacy-curiosity', sourceMode: 'pool', weight: 1, enabled: true, trigger: 'schedule', delivery: 'direct', today: Number(inner.counts.groupShare) || 0, lastAt: 0, maxPerDay: Number(ilNow.curiosity.maxPerDay) || 0 }],
         pending: null,
         last: inner.history.groupShares[0] ? { at: Number(inner.history.groupShares[0].at) || 0, title: '', facetId: 'default', text: String(inner.history.groupShares[0].text || '').slice(0, 160) } : null,
-        stats: { sent: 0, failed: 0, duplicates: 0 },
+        stats: { sent: 0, failed: 0 },
         lastError: '',
         legacy: true
       });
@@ -2117,7 +2119,7 @@ ${othersLine}拟回复：${reply}
         ],
         pending: null,
         last: null,
-        stats: { sent: 0, failed: 0, duplicates: 0 },
+        stats: { sent: 0, failed: 0 },
         lastError: '',
         legacy: true
       });
@@ -2245,7 +2247,7 @@ ${othersLine}拟回复：${reply}
       facets: {},
       history: [],
       lastPreview: null,
-      stats: { sent: 0, failed: 0, duplicates: 0 },
+      stats: { sent: 0, failed: 0 },
       lastError: '',
       lastErrorAt: 0
     };

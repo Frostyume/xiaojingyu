@@ -2030,6 +2030,7 @@ async function main() {
   const learnerCollectors = new Map();  // sessionId -> turn collector
   const learnerWaiters = new Map();     // sessionId -> [{resolve,reject,timer}]
   const agentErrorNotifyAt = new Map(); // key -> timestamp：Agent 异常私下提醒主人的限频
+  const rejectNoticeAt = new Map();     // key -> timestamp：DSH 拒收时群内兜底句的限频
   let slangLearnerSessionId = null;
   let slangTaskChain = Promise.resolve();
   // 内心生活（人格状态/好奇/空间说说）在启动末尾注入依赖后创建；提示词构建处用 optional 访问。
@@ -5621,6 +5622,8 @@ async function main() {
   const QUEUE_MAX = 50;
   const QUEUE_HINT_COOLDOWN_MS = 30_000;
   const queueRetries = new Map(); // key -> 连续补投失败次数（用于退避/暂停恢复）
+  // 这些错误重试不会自愈：群不存在/被移出，或本地守卫明确拦截的内容。
+  const PERMANENT_DELIVERY_RE = /令牌|敏感|白名单|不允许|非法|不支持|不在当前模式|群.*(不存在|解散)|被移出|已退出该群|not in group|kicked from group/i;
 
   // reset 竞态导致 ensureSession 抛「会话创建期间已重置」时，把消息放回队列稍后重试。
   // 已在队列中的相同文本不重复入队。
@@ -5991,6 +5994,12 @@ async function main() {
             if (!result.ok) {
               log(`补投失败 ${key}: ${result.error || '未知错误'}`);
               failed += 1;
+              // 群不存在/被移出/本地守卫拦截这类错误重试多少次都不会成功，留着只会每 60 秒刷一次日志。
+              if (PERMANENT_DELIVERY_RE.test(String(result.error || ''))) {
+                log(`补投放弃 ${key}: 不可重试错误，丢弃排队中的 ${items.length - i} 条`);
+                queueRetries.delete(key);
+                break;
+              }
               const rest = items.slice(i);
               const existing = queued.get(key) ?? [];
               queued.set(key, rest.concat(existing));
@@ -6001,6 +6010,11 @@ async function main() {
           } catch (error) {
             log(`补投异常 ${key}: ${error?.message ?? error}`);
             failed += 1;
+            if (PERMANENT_DELIVERY_RE.test(String(error?.message ?? error))) {
+              log(`补投放弃 ${key}: 不可重试错误，丢弃排队中的 ${items.length - i} 条`);
+              queueRetries.delete(key);
+              break;
+            }
             // 当前项 + 剩余项整体放回，避免丢失；旧消息优先
             const rest = items.slice(i);
             const existing = queued.get(key) ?? [];
@@ -7527,7 +7541,8 @@ async function main() {
                 return;
               }
               void innerLife.runJob('aiTips', { force: true, dryRun: body.dryRun === true })
-                .then((result) => log(`[inner] 控制台手动 AI小知识 → ${result?.status ?? 'done'}`));
+                .then((result) => log(`[inner] 控制台手动 AI小知识 → ${result?.status ?? 'done'}`))
+                .catch((error) => log(`[inner] 控制台手动 AI小知识 异常：${error?.message ?? error}`));
               sendJson({ ok: true, started: true, dryRun: body.dryRun === true });
               return;
             }
@@ -10713,12 +10728,15 @@ async function main() {
             }
             if (action === 'run_share') {
               void innerLife.runJob('curiosity', { force: true, preferS16: body.preferS16 === true, dryRun: body.dryRun === true })
-                .then((r) => log(`[inner] 主人手动分享 → ${r?.status ?? 'done'}`));
+                .then((r) => log(`[inner] 主人手动分享 → ${r?.status ?? 'done'}`))
+                .catch((error) => log(`[inner] 主人手动分享 异常：${error?.message ?? error}`));
               sendJson({ ok: true, action, started: true });
               return;
             }
             if (action === 'run_qzone') {
-              void innerLife.runJob('qzone', { force: true }).then((r) => log(`[inner] 主人手动说说 → ${r?.status ?? 'done'}`));
+              void innerLife.runJob('qzone', { force: true })
+                .then((r) => log(`[inner] 主人手动说说 → ${r?.status ?? 'done'}`))
+                .catch((error) => log(`[inner] 主人手动说说 异常：${error?.message ?? error}`));
               sendJson({ ok: true, action, started: true });
               return;
             }
@@ -14753,10 +14771,15 @@ async function main() {
       if (opts.farewell) social.exitingSessions.delete(sessionId);
       const errText = `${accepted.result.error.code}: ${accepted.result.error.message}`;
       const safeErrText = shouldAuditKey(key) && SENSITIVE_RE.test(errText) ? '（含敏感信息，已隐藏）' : errText;
-      if (!opts.silent) await sendToQQ(key, '⚠️ 消息没有被接收，稍后再试一下');
+      // 登录过期/额度用尽时补投会反复走到这里；兜底句每 10 分钟最多发一次，别刷屏。
+      if (!opts.silent && Date.now() - (Number(rejectNoticeAt.get(key)) || 0) > 10 * 60 * 1000) {
+        rejectNoticeAt.set(key, Date.now());
+        await sendToQQ(key, '⚠️ 消息没有被接收，稍后再试一下');
+      }
       return { ok: false, error: safeErrText };
     }
     // prompt 已被 DSH 接受，此时才消费一次性内容（角色卡版本、摘要、订阅播报）。
+    rejectNoticeAt.delete(key);
     if (wakeRender) commitWakePrompt(key, wakeRender);
     if (wakeSnapshot && isCurrentSession(key, sessionId)
         && simulation.conversations.get(canonicalSimulationKey(key)) === wakeState
@@ -17476,7 +17499,11 @@ async function main() {
       const errText = `${accepted.result.error.code}: ${accepted.result.error.message}`;
       const safeErrText = shouldAuditKey(key) && SENSITIVE_RE.test(errText) ? '（含敏感信息，已隐藏）' : errText;
       log(`⚠️ 消息未被接受 (${key})：${safeErrText}`);
-      await sendToQQ(key, '⚠️ 消息没有被接收，稍后再试一下');
+      // 登录过期/额度用尽时这条路径会被反复触发；兜底句每 10 分钟最多发一次。
+      if (Date.now() - (Number(rejectNoticeAt.get(key)) || 0) > 10 * 60 * 1000) {
+        rejectNoticeAt.set(key, Date.now());
+        await sendToQQ(key, '⚠️ 消息没有被接收，稍后再试一下');
+      }
       return;
     }
     if (accepted.result.value.command) {
@@ -18053,11 +18080,16 @@ async function main() {
                     const last = Number(agentErrorNotifyAt.get(key)) || 0;
                     if (Date.now() - last > 30 * 60 * 1000) {
                       agentErrorNotifyAt.set(key, Date.now());
-                      void sendOwnerPrivate(`【小鲸鱼异常】${key}：${safeMsg.slice(0, 300)}`);
+                      void sendOwnerPrivate(`【${currentRoleName() || '小鲸鱼'}异常】${key}：${safeMsg.slice(0, 300)}`);
                     }
                   }
                 } else {
-                  await sendToQQ(key, '⚠️ agent 处理出错了，稍后再试一下');
+                  // 普通聊天模式没有私聊兜底，只能发群里；同样限频，避免连续失败刷屏。
+                  const last = Number(agentErrorNotifyAt.get(key)) || 0;
+                  if (Date.now() - last > 30 * 60 * 1000) {
+                    agentErrorNotifyAt.set(key, Date.now());
+                    await sendToQQ(key, '⚠️ agent 处理出错了，稍后再试一下');
+                  }
                 }
                 if (isFarewell) {
                   const st = socialState(key);

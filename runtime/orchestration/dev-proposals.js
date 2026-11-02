@@ -167,16 +167,33 @@ export function mergeProposal({ dir, id, root, backupRoot, verify }) {
     verifyResult = { ok: false, output: error?.message ?? String(error) };
   }
   if (!verifyResult?.ok) {
+    // 回滚本身也可能失败（文件被占用/权限变化）。逐项记下来，别把失败报成“已回滚”。
+    const rollbackErrors = [];
     for (const item of applied) {
       const dst = path.join(root, item.rel);
       const backup = path.join(backupDir, item.rel);
       try {
         if (item.existed) fs.copyFileSync(backup, dst);
         else fs.rmSync(dst, { force: true });
-      } catch {}
+      } catch (error) {
+        rollbackErrors.push(`${item.rel}: ${error?.message ?? error}`);
+      }
     }
-    writeResult(dir, id, { ...result, lastMergeError: String(verifyResult?.output || '').slice(-1200), lastMergeAt: Date.now() });
-    return { ok: false, error: '合并后 verify 失败，已回滚', rolledBack: true, output: String(verifyResult?.output || '').slice(-1200) };
+    writeResult(dir, id, {
+      ...result,
+      lastMergeError: String(verifyResult?.output || '').slice(-1200),
+      lastMergeRollbackErrors: rollbackErrors.slice(0, 20),
+      lastMergeAt: Date.now()
+    });
+    return {
+      ok: false,
+      error: rollbackErrors.length
+        ? `合并后 verify 失败，回滚未完成（${rollbackErrors.length} 个文件）`
+        : '合并后 verify 失败，已回滚',
+      rolledBack: rollbackErrors.length === 0,
+      rollbackErrors: rollbackErrors.slice(0, 10),
+      output: String(verifyResult?.output || '').slice(-1200)
+    };
   }
   writeResult(dir, id, { ...result, status: 'merged', mergedAt: Date.now() });
   return { ok: true, changed: applied.map((item) => item.rel), backedUp: true };
