@@ -351,6 +351,7 @@ coding agent**，并盯完「实现 → 测试 → 你确认 → 合并 → 失�
 | 文档 | 内容 |
 | --- | --- |
 | [docs/README.md](docs/README.md) | 文档索引（每篇一句话） |
+| [CHANGELOG.md](CHANGELOG.md) | 开发日志：每个版本改了什么、为什么改 |
 | [docs/guides/AGENT_DEPLOY.md](docs/guides/AGENT_DEPLOY.md) | 交给 agent 部署：执行步骤、边界、验收与回滚 |
 | [docs/guides/MANUAL_DEPLOY.md](docs/guides/MANUAL_DEPLOY.md) | 手动部署六步与运行模式 |
 | [docs/guides/TROUBLESHOOTING.md](docs/guides/TROUBLESHOOTING.md) | 排查手册与已知限制 |

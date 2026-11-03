@@ -412,6 +412,7 @@ The full list (inbound voice, video messages, voice defaults, Markdown to plain 
 | Doc | What it covers |
 | --- | --- |
 | [docs/README.md](docs/README.md) | Documentation index (one line per page) |
+| [CHANGELOG.md](CHANGELOG.md) | Development log: what changed in each release, and why |
 | [docs/guides/AGENT_DEPLOY.md](docs/guides/AGENT_DEPLOY.md) | Quick deploy: the agent's steps, boundaries, acceptance and rollback |
 | [docs/guides/MANUAL_DEPLOY.md](docs/guides/MANUAL_DEPLOY.md) | Manual deployment in six steps, and run modes |
 | [docs/guides/TROUBLESHOOTING.md](docs/guides/TROUBLESHOOTING.md) | Troubleshooting and limitations |

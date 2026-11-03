@@ -7,6 +7,7 @@
 
 | 文档 | 一句话说明 |
 | --- | --- |
+| [../CHANGELOG.md](../CHANGELOG.md) | 开发日志：每个版本改了什么、为什么改 |
 | [guides/AGENT_DEPLOY.md](guides/AGENT_DEPLOY.md) | 把部署整件事交给 Codex / Claude Code / Qoder / DSH：agent 的执行步骤、边界、验收与回滚 |
 | [guides/MANUAL_DEPLOY.md](guides/MANUAL_DEPLOY.md) | 手动部署六步（装依赖、写配置、装 DSH 端、准备 SnowLuma、启动）与运行模式 |
 | [guides/TROUBLESHOOTING.md](guides/TROUBLESHOOTING.md) | 体检与排查手册：没反应、收不到消息、1006、端点自愈、已知限制 |
@@ -29,6 +30,7 @@
 
 | 我想…… | 看这个 |
 | --- | --- |
+| 看每个版本改了什么 | [../CHANGELOG.md](../CHANGELOG.md) |
 | 让 agent 一句话把整套东西部署好 | [guides/AGENT_DEPLOY.md](guides/AGENT_DEPLOY.md) |
 | 自己一步步手动部署 | [guides/MANUAL_DEPLOY.md](guides/MANUAL_DEPLOY.md) |
 | 出问题了，先排查 | [guides/TROUBLESHOOTING.md](guides/TROUBLESHOOTING.md) |
