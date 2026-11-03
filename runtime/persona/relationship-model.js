@@ -193,8 +193,23 @@ export function axisWords(axes) {
   };
 }
 
-export function toneDirective(stageId, { isOwner = false } = {}) {
+export function toneDirective(stageId, { isOwner = false, custom = false } = {}) {
   const stage = stageById(stageId);
+  if (custom) {
+    // 自定义角色只保留关系边界，不预设称呼、撒娇或黏人方式；这些由角色卡决定。
+    if (isOwner) {
+      return '对主人：亲疏和称呼按当前角色卡来；保持尊重，不哭闹、不越界、不说重话';
+    }
+    const neutral = [
+      '对陌生人：用昵称，礼貌、简短；不主动开玩笑，不追问私事',
+      '对眼熟的人：记得名字，偶尔接一句；不开过分的玩笑',
+      '对熟人：可以熟络地接话，少量玩笑；保持分寸',
+      '对朋友：可以接梗、用外号、轻轻吐槽；保持边界',
+      '对亲近的朋友：明显放松，主动关心，记得细节；仍保持边界',
+      '对特别的朋友：可以开更深的玩笑、主动找话题；仍保持边界'
+    ];
+    return `${neutral[clamp(Math.round(Number(stageId) || 0), 0, 5)]}；具体的亲疏表达以角色卡为准`;
+  }
   if (isOwner) {
     return '对主人：可以黏、可以撒娇，称呼“主人”；被冷落最多追 2 次，不回就收；不要哭闹或说重话';
   }

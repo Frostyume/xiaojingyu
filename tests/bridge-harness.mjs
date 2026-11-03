@@ -45,6 +45,7 @@ import * as coreRelationships from '../runtime/persona/relationships.js';
 import * as coreRelationshipModel from '../runtime/persona/relationship-model.js';
 import * as coreRichCard from '../runtime/persona/rich-card.js';
 import * as corePersonaPack from '../runtime/persona/persona-pack.js';
+import * as coreStyleContext from '../runtime/persona/style-context.js';
 import * as coreDailyReport from '../runtime/orchestration/daily-report.js';
 import * as coreTtsEmotion from '../runtime/persona/tts-emotion.js';
 import * as coreSpeech from '../runtime/persona/speech.js';
@@ -217,6 +218,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     setPresets(value) { dshPresetIds = value; dshDefaultPreset = 'standard'; },
     setSnowlumaConnected(value) { snowlumaHealth.connected = value === true; },
     setInnerLife(value) { innerLife = value; },
+    getInnerLife() { return innerLife; },
     resetEpoch() { sessionEpoch++; },
     closeStorage() {
       try { outbox?.stop(); } catch {}
@@ -251,7 +253,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     coreAtomicWriteText: coreStateFile.atomicWriteText,
     coreReadJsonSafe: coreStateFile.readJsonSafe,
     ...coreHealth, ...corePromptBudget, ...coreWakeScore, ...coreModelRouting, ...coreMemory,
-    ...coreSessionMap, ...coreRelationships, ...coreRelationshipModel, ...coreRichCard, ...corePersonaPack, ...coreDailyReport,
+    ...coreSessionMap, ...coreRelationships, ...coreRelationshipModel, ...coreRichCard, ...corePersonaPack, ...coreStyleContext, ...coreDailyReport,
     relationshipStageLabel: coreRelationshipModel.stageLabel,
     relationshipAxisWords: coreRelationshipModel.axisWords,
     relationshipBond: coreRelationshipModel.computeBond,

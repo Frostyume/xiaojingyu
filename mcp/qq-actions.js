@@ -1236,7 +1236,7 @@ if (cfg.simulation?.tools?.weather !== false) {
 if (cfg.simulation?.tools?.playGame !== false) {
   server.tool(
     'qq_play_game',
-    '和群友玩一个小游戏：rps=猜拳（choice 传 石头/剪刀/布 或 rock/paper/scissors）；dice=掷骰子（sides 默认 6）；fortune=今日鲸鱼运势（同一群同一天结果一致，会结合你当前心情/精力）。只在有人明确要玩/问运势时调用，别主动刷。',
+    '和群友玩一个小游戏：rps=猜拳（choice 传 石头/剪刀/布 或 rock/paper/scissors）；dice=掷骰子（sides 默认 6）；fortune=今日运势（同一群同一天结果一致，会结合你当前心情/精力）。只在有人明确要玩/问运势时调用，别主动刷。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -1321,7 +1321,7 @@ if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.getStic
 if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.sendSticker !== false) {
   server.tool(
     'qq_send_sticker',
-    '在指定会话发送一个 QQ 收藏表情包（自定义表情）。stickerId 用 qq_list_stickers 返回的 id / md5 / url。可以主动发，不用等对方点名：接梗、吐槽、赞同、自嘲、无语、晚安时都自然。只发符合当前角色设定的表情（默认角色是 Q 版鲸鱼/软萌日常，自定义角色以角色卡为准），真人、别的角色、擦边/血腥/政治/烂梗、与语境无关的图不发。注意：一条消息只能是一张表情，不能在同一气泡里附带文字；想说的话请先用 qq_send_message / qq_reply 作为单独气泡发送，再单独发这张表情。需要引用/点名时可用 replyToMessageId / atUserId（群聊）。别连续刷屏。',
+    '在指定会话发送一个 QQ 收藏表情包（自定义表情）。stickerId 用 qq_list_stickers 返回的 id / md5 / url。可以主动发，不用等对方点名：接梗、吐槽、赞同、自嘲、无语、晚安时都自然。只发符合当前角色设定的表情（以角色卡为准；默认角色用内置形象与日常风格），真人、别的角色、擦边/血腥/政治/烂梗、与语境无关的图不发。注意：一条消息只能是一张表情，不能在同一气泡里附带文字；想说的话请先用 qq_send_message / qq_reply 作为单独气泡发送，再单独发这张表情。需要引用/点名时可用 replyToMessageId / atUserId（群聊）。别连续刷屏。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -1400,7 +1400,7 @@ if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.li
 if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.sendImage !== false) {
   server.tool(
     'qq_send_image',
-    '把图片库里的一张图当**图片**发到会话（不是 QQ 收藏表情）。image 传 qq_list_images 返回的 id / name。可以主动发：话题对得上、分享见闻、表达状态时都用，不用等对方要；但每 3~5 轮最多一张，别连续刷。只发符合当前角色设定的配图（默认角色是 Q 版鲸鱼/生活照，自定义角色以角色卡为准），真人、别的角色、擦边/政治/无关图不发；拿不准就不发。可以带一句很短的配文 caption（图片消息允许带文字，这点和表情不同）；要引用/点名时用 replyToMessageId / atUserId。一条消息只发一张图。',
+    '把图片库里的一张图当**图片**发到会话（不是 QQ 收藏表情）。image 传 qq_list_images 返回的 id / name。可以主动发：话题对得上、分享见闻、表达状态时都用，不用等对方要；但每 3~5 轮最多一张，别连续刷。只发符合当前角色设定的配图（以角色卡为准；默认角色用内置形象与生活照），真人、别的角色、擦边/政治/无关图不发；拿不准就不发。可以带一句很短的配文 caption（图片消息允许带文字，这点和表情不同）；要引用/点名时用 replyToMessageId / atUserId。一条消息只发一张图。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -1483,7 +1483,7 @@ if (cfg.simulation?.imageLibrary?.enabled !== false && cfg.simulation?.tools?.de
 if (cfg.simulation?.sticker?.enabled !== false && cfg.simulation?.tools?.collectSticker !== false) {
   server.tool(
     'qq_collect_sticker',
-    '收藏当前会话里别人发的一张表情/图片到你的 QQ 收藏表情，并可写一句简短备注。只允许收藏符合当前角色设定的形象图（默认角色是 Q 版鲸鱼/鲸鱼娘，自定义角色以角色卡为准），其他角色、真人、截图、普通梗图不要收藏（桥接会用视觉模型再确认，不符合会拒绝）。messageId 用 qq_get_unread_messages / qq_get_recent_messages 返回的 messageId 或 seq；同一张别连偷，收藏后可在 qq_list_stickers 里看到并继续使用。',
+    '收藏当前会话里别人发的一张表情/图片到你的 QQ 收藏表情，并可写一句简短备注。只允许收藏符合当前角色设定的形象图（以角色卡为准；默认角色用内置形象），其他角色、真人、截图、普通梗图不要收藏（桥接会用视觉模型再确认，不符合会拒绝）。messageId 用 qq_get_unread_messages / qq_get_recent_messages 返回的 messageId 或 seq；同一张别连偷，收藏后可在 qq_list_stickers 里看到并继续使用。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
@@ -1857,13 +1857,13 @@ function pruneTtsFiles(dir, keep) {
 if (ttsCfg().enabled === true) {
   server.tool(
     'qq_speak',
-    '用你自己的声音说一句中文，生成语音条发到会话。始终是同一个中文音色（默认偏软萌、傲娇、活泼），只改语气；dark 是同一个声音的冷傲版，不是换人。可以主动发，不用等对方点名：道晚安、撒娇、被夸、情绪很浓、聊得正热想插一句、冷场冒泡都适合。按这句话的内容传 mood：开心 happy、低落 sad、生气 angry、害羞 shy、困倦 sleepy、得意 proud、活泼 playful；不传就保持默认软萌。文本明确在说困/累/想睡/晚安时，mood 必须传 sleepy，哪怕当前心情很好；音色要跟这句话的状态走，而不是跟整体心情走。主人手动锁定的声线优先于单次 style，锁了软萌时传 dark 也不会变。注意：① 一次最多 60 字，语音条不是长文，说短点；② 说完语音就不用再把同一句用文字重复一遍；③ 同一轮最多 1 条、同会话 10 分钟最多 5 条，别连着刷，也别替代正常回话；④ 返回的 verified=true 才代表语音真的发出去了，false 或报错就老老实实打字，别假装发了语音；⑤ 只用中文说话，没有日语声源；⑥ 只说你真会说的话，不念链接、工具说明或报错；⑦ 主人在某个群里刚说完话时，可以从那个群会话把语音发到别的群（群友插话即失效），主人在私聊用主人令牌则始终可以跨会话发语音。',
+    '用你自己的声音说一句中文，生成语音条发到会话。始终是同一个中文音色（音色由系统设置决定，只改语气；自定义角色同样使用这个声线，不按角色卡换音色），dark 是同一个声音的冷傲版，不是换人。可以主动发，不用等对方点名：道晚安、撒娇、被夸、情绪很浓、聊得正热想插一句、冷场冒泡都适合。按这句话的内容传 mood：开心 happy、低落 sad、生气 angry、害羞 shy、困倦 sleepy、得意 proud、活泼 playful；不传就按这句话的情绪和人格设置自动选择。文本明确在说困/累/想睡/晚安时，mood 必须传 sleepy，哪怕当前心情很好；音色要跟这句话的状态走，而不是跟整体心情走。主人手动锁定的声线优先于单次 style，锁定后传 dark 也不会变。注意：① 一次最多 60 字，语音条不是长文，说短点；② 说完语音就不用再把同一句用文字重复一遍；③ 同一轮最多 1 条、同会话 10 分钟最多 5 条，别连着刷，也别替代正常回话；④ 返回的 verified=true 才代表语音真的发出去了，false 或报错就老老实实打字，别假装发了语音；⑤ 只用中文说话，没有日语声源；⑥ 只说你真会说的话，不念链接、工具说明或报错；⑦ 主人在某个群里刚说完话时，可以从那个群会话把语音发到别的群（群友插话即失效），主人在私聊用主人令牌则始终可以跨会话发语音。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
       text: z.string().describe('要说的话，中文纯文本，60 字以内'),
-      style: z.enum(['soft', 'dark']).optional().describe('声线：soft=软萌活泼，dark=同一个声音的冷傲版（不换音色）；不传则按人格情绪/主人设置自动选择'),
-      mood: z.enum(['happy', 'sad', 'angry', 'shy', 'sleepy', 'proud', 'playful']).optional().describe('这句话的语气：开心/低落/生气/害羞/困倦/得意/活泼；按内容选，不传就保持默认软萌'),
+      style: z.enum(['soft', 'dark']).optional().describe('声线：soft=柔和活泼，dark=同一个声音的冷傲版（不换音色）；不传则按人格情绪/主人设置自动选择'),
+      mood: z.enum(['happy', 'sad', 'angry', 'shy', 'sleepy', 'proud', 'playful']).optional().describe('这句话的语气：开心/低落/生气/害羞/困倦/得意/活泼；按内容选，不传就按内容自动选择'),
       label: z.string().optional().describe('可选：写进会话记录的说明，如「小声说了句晚安」')
     },
     async ({ key, token, text, style, mood, label }) => {
@@ -1877,7 +1877,7 @@ if (ttsCfg().enabled === true) {
         if (SENSITIVE_RE.test(clean)) throw new Error('这句话里含本机路径/凭据特征，语音通道同样不允许发出');
 
         // 中文声源固定为 BreezeTTS2（Voice Design），地址见 tts.breeze.baseUrl；
-        // 软萌/黑化由 style 显式指定，或按人格情绪与主人设置自动选择。
+        // 柔和/冷傲声线由 style 显式指定，或按人格情绪与主人设置自动选择。
         // 日语声源已下线：Breeze 不可用时直接报错，不再回退本机 ATRI（会让中文带上日语腔）。
         if (t.breeze?.enabled === false || !String(t.breeze?.baseUrl || '').trim()) {
           throw new Error('中文声源未启用：检查 config.json 的 tts.breeze.enabled / baseUrl');
@@ -2478,7 +2478,7 @@ if (cfg.simulation?.innerLife?.enabled !== false) {
 if (cfg.simulation?.tools?.getSelfImage !== false) {
   server.tool(
     'qq_get_self_image',
-    '查看你自己的默认 Q 版形象图片（默认角色是 DeepSeek 小鲸鱼；自定义角色下以角色卡为准）。当你被问“你长什么样/发张自拍/你是什么形象”时，可以调用这个工具看自己的样子；返回的图片会直接进入你的视觉上下文。',
+    '查看你当前角色的形象图片（默认角色使用内置形象；自定义角色以角色卡为准，没有独立形象时工具会返回说明）。当你被问“你长什么样/发张自拍/你是什么形象”时，可以调用这个工具看自己的样子；返回的图片会直接进入你的视觉上下文。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）')
@@ -2492,7 +2492,7 @@ if (cfg.simulation?.tools?.getSelfImage !== false) {
         }
         return {
           content: [
-            { type: 'text', text: '这是你的默认 Q 版形象：' },
+            { type: 'text', text: '这是你当前角色的形象图片：' },
             { type: 'image', mimeType: data.image.mimeType, data: data.image.data }
           ]
         };
