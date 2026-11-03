@@ -15,7 +15,7 @@
    cd xiaojingyu
    ```
 
-   > 默认分支 `main` 是开发版（`package.json` 仍为 `0.0.0`），尚未发布稳定版，也不对应任何 tag；clone 下来直接用即可。
+   > 默认分支 `main` 跟随最新提交；稳定版见 [Releases](https://github.com/Frostyume/xiaojingyu/releases)（当前 v1.0.0）；clone 下来直接用即可。
 
 2. **安装依赖**：
 
