@@ -1875,8 +1875,8 @@ button:active:not(:disabled) {
 .content-feature{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:14px;background:var(--surface)}
 .content-feature>summary{cursor:pointer;display:flex;gap:10px;align-items:center;flex-wrap:wrap;list-style:none;font-size:14px}
 .content-feature>summary::-webkit-details-marker{display:none}
-.content-feature>summary:before{content:'▸';color:var(--muted)}
-.content-feature[open]>summary:before{content:'▾'}
+.content-feature>summary:before{content:'';flex:0 0 auto;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg)}
+.content-feature[open]>summary:before{transform:rotate(45deg);margin-top:-2px}
 .content-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
 .content-controls label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
 .content-controls input,.content-controls select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 9px;color:inherit;font:inherit}
@@ -3995,6 +3995,8 @@ button.active,.primary {
   min-width: 0
 }
 .feature-board-bar h3 {
+  flex: 1 1 auto;
+  width: 100%;
   margin: 0;
   min-width: 0;
   color: var(--text);
@@ -4007,7 +4009,7 @@ button.active,.primary {
 .feature-board-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   max-width: 100%;
   margin: -4px -8px;
   padding: 4px 8px;
@@ -4027,17 +4029,25 @@ button.active,.primary {
   box-shadow: 0 0 0 2px var(--accent-border)
 }
 .feature-board-chevron {
-  font-size: 11px;
-  color: var(--muted);
-  transition: transform .15s ease
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  margin-top: -2px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform .15s ease, margin .15s ease
 }
 .feature-board-toggle[aria-expanded="false"] .feature-board-chevron {
-  transform: rotate(-90deg)
+  margin-top: 0;
+  transform: rotate(-45deg)
 }
 .feature-board-name {
+  flex: 0 0 auto;
   font-size: 15px;
   font-weight: 700;
-  color: var(--text)
+  color: var(--text);
+  white-space: nowrap
 }
 .feature-board-count {
   font-size: 12px;
@@ -4102,6 +4112,34 @@ button.active,.primary {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 14px;
   min-width: 0
+}
+.feature-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0
+}
+.feature-group + .feature-group {
+  margin-top: 14px
+}
+.feature-group[hidden] {
+  display: none
+}
+.feature-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: .04em
+}
+.feature-group-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border)
 }
 .feature-module {
   display: flex;
@@ -4282,11 +4320,18 @@ button.active,.primary {
   display: none
 }
 .feature-advanced > summary::before {
-  content: '▸';
-  color: var(--muted)
+  content: '';
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform .15s ease
 }
 .feature-advanced[open] > summary::before {
-  content: '▾'
+  transform: rotate(45deg);
+  margin-top: -2px
 }
 .feature-advanced-note {
   margin: 10px 0 0;
@@ -5319,6 +5364,181 @@ button.active,.primary {
         <div id="qzoneBox" class="meta content-history">（读取中…）</div>
       </details>
 
+      <details class="content-feature" data-feature-panel="paper">
+        <summary><b>论文推送</b><span class="meta" id="lifePaperSummary">读取中…</span></summary>
+        <div class="meta" style="margin-bottom:8px">按主题抓取新论文，附中文速读；只私聊发给主人，不会发到群里。面板里的「预览」也只在本页显示，不发送任何 QQ 消息。</div>
+        <div class="content-controls">
+          <label>主题（每行一个，也可用逗号分隔）<textarea id="lifePaperTopics" rows="3" placeholder="cs.AI&#10;cs.CL&#10;大模型推理"></textarea></label>
+          <label>额外关键词（可选）<input type="text" id="lifePaperKeywords" placeholder="逗号分隔，例如 多模态, 代码生成"></label>
+          <label>来源<select id="lifePaperSource">
+            <option value="openalex">OpenAlex（默认）</option>
+            <option value="arxiv">arXiv</option>
+          </select></label>
+          <label>频率<select id="lifePaperFrequency">
+            <option value="daily">每天</option>
+            <option value="weekly">每周</option>
+            <option value="interval">每 N 天</option>
+          </select></label>
+          <label>时间<input type="time" id="lifePaperTime"></label>
+          <label>每周几（每周时有效）<select id="lifePaperWeekday">
+            <option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option>
+            <option value="5">周五</option><option value="6">周六</option><option value="7">周日</option>
+          </select></label>
+          <label>间隔天数（每 N 天时有效）<input type="number" id="lifePaperIntervalDays" min="1" max="30"></label>
+          <label>每次篇数<input type="number" id="lifePaperCount" min="1" max="20"></label>
+          <label>时间窗口（天）<input type="number" id="lifePaperWindowDays" min="1" max="30"></label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="lifePaperSave" class="small" type="button">保存论文设置</button>
+          <button id="lifePaperPreview" class="small" type="button">预览（不发 QQ）</button>
+          <span class="meta" id="lifePaperMsg" role="status" aria-live="polite"></span>
+        </div>
+        <div id="lifePaperStatus" class="meta content-history"></div>
+        <div id="lifePaperPreviewBox" class="meta content-history"></div>
+      </details>
+
+      <details class="content-feature" data-feature-panel="github">
+        <summary><b>GitHub 监控</b><span class="meta" id="lifeGithubSummary">读取中…</span></summary>
+        <div class="meta" style="margin-bottom:8px">只推送变化（star/fork 增量、新 issue/PR/release）；第一次运行只建立基线，不会把历史条目一次性发出来。token 只保存在本机 state 目录，面板不会回显明文。</div>
+        <div class="content-controls">
+          <label>仓库（owner/repo，每行一个）<textarea id="lifeGithubRepos" rows="3" placeholder="owner/repo&#10;another/repo"></textarea></label>
+          <label>推送指标</label>
+          <div class="row" style="gap:12px;flex-wrap:wrap">
+            <label class="feature-adv-check"><input type="checkbox" id="lifeGithubStars"> star 变化</label>
+            <label class="feature-adv-check"><input type="checkbox" id="lifeGithubForks"> fork 变化</label>
+            <label class="feature-adv-check"><input type="checkbox" id="lifeGithubIssues"> 新 issue</label>
+            <label class="feature-adv-check"><input type="checkbox" id="lifeGithubPulls"> 新 PR</label>
+            <label class="feature-adv-check"><input type="checkbox" id="lifeGithubReleases"> 新 release</label>
+          </div>
+          <label>频率<select id="lifeGithubFrequency">
+            <option value="daily">每天</option>
+            <option value="weekly">每周</option>
+            <option value="interval">每 N 天</option>
+          </select></label>
+          <label>时间<input type="time" id="lifeGithubTime"></label>
+          <label>每周几（每周时有效）<select id="lifeGithubWeekday">
+            <option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option>
+            <option value="5">周五</option><option value="6">周六</option><option value="7">周日</option>
+          </select></label>
+          <label>间隔天数（每 N 天时有效）<input type="number" id="lifeGithubIntervalDays" min="1" max="30"></label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeGithubNotifyNoChanges"> 没有变化也发一条</label>
+          <label>只读 token<input type="password" id="lifeGithubToken" placeholder="留空表示不修改" autocomplete="new-password"></label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="lifeGithubSave" class="small" type="button">保存 GitHub 设置</button>
+          <button id="lifeGithubTokenSave" class="small" type="button">保存 token</button>
+          <button id="lifeGithubTokenClear" class="small" type="button">清除 token</button>
+          <span class="meta" id="lifeGithubTokenHint"></span>
+          <span class="meta" id="lifeGithubMsg" role="status" aria-live="polite"></span>
+        </div>
+        <div id="lifeGithubStatus" class="meta content-history"></div>
+      </details>
+
+      <details class="content-feature" data-feature-panel="digest">
+        <summary><b>生活日报</b><span class="meta" id="lifeDigestSummary">读取中…</span></summary>
+        <div class="meta" style="margin-bottom:8px">早晚各一次，只做概览：日程、提醒、新论文和 GitHub 变化各取要点，不重复完整论文或仓库清单。默认只包含日程和提醒。</div>
+        <div class="content-controls">
+          <label>早报时间<input type="time" id="lifeDigestMorning"></label>
+          <label>晚报时间<input type="time" id="lifeDigestEvening"></label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeDigestCalendar"> 包含日程</label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeDigestReminders"> 包含提醒</label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeDigestPaper"> 包含新论文</label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeDigestGithub"> 包含 GitHub 变化</label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="lifeDigestSave" class="small" type="button">保存日报设置</button>
+          <span class="meta" id="lifeDigestMsg" role="status" aria-live="polite"></span>
+        </div>
+        <div id="lifeDigestStatus" class="meta content-history"></div>
+      </details>
+
+      <details class="content-feature" data-feature-panel="reminder">
+        <summary><b>定时提醒</b><span class="meta" id="lifeReminderSummary">读取中…</span></summary>
+        <div class="meta" style="margin-bottom:8px">这里管理主人私聊里的提醒。时间支持「今天 18:30」「明天 09:00」或「2026-11-04 09:00」（按 Asia/Shanghai 解析）；落在夜间免打扰时段的提醒会顺延到免打扰结束后再发，补发窗口也从顺延后的时间开始算。</div>
+        <div class="content-controls">
+          <label>提醒内容<input type="text" id="lifeReminderText" maxlength="300" placeholder="例如：晚上给服务器续费"></label>
+          <label>提醒时间<input type="text" id="lifeReminderDue" placeholder="今天 18:30 / 明天 09:00 / 2026-11-04 09:00"></label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="lifeReminderAdd" class="small" type="button">添加提醒</button>
+          <button id="lifeReminderRefresh" class="small" type="button">刷新列表</button>
+          <span class="meta" id="lifeReminderMsg" role="status" aria-live="polite"></span>
+        </div>
+        <div id="lifeReminderMeta" class="meta content-history"></div>
+        <div id="lifeReminderList" class="content-history"></div>
+      </details>
+
+      <details class="content-feature" data-feature-panel="calendar">
+        <summary><b>日历晨报</b><span class="meta" id="lifeCalendarSummary">读取中…</span></summary>
+        <div class="meta" style="margin-bottom:8px">复用「日历」数据源（.ics 订阅地址），每天早上把当天日程按时间排好私聊发给你；全天和跨天日程单列，时间冲突会点名。天气需要额外配置，暂不自动获取。</div>
+        <div class="content-controls">
+          <label>发送时间<input type="time" id="lifeCalendarTime"></label>
+          <label>查看范围（天）<input type="number" id="lifeCalendarLookahead" min="1" max="7"></label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeCalendarWeekdaysOnly"> 只在工作日发送</label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeCalendarConflicts"> 标出时间冲突</label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeCalendarTomorrow"> 附带明日预告</label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="lifeCalendarSave" class="small" type="button">保存晨报设置</button>
+          <button id="lifeCalendarPreview" class="small" type="button">预览（不发 QQ）</button>
+          <span class="meta" id="lifeCalendarMsg" role="status" aria-live="polite"></span>
+        </div>
+        <div id="lifeCalendarStatus" class="meta content-history"></div>
+        <div id="lifeCalendarPreviewBox" class="meta content-history"></div>
+      </details>
+
+      <details class="content-feature" data-feature-panel="rss">
+        <summary><b>RSS / 播客摘要</b><span class="meta" id="lifeRssSummary">读取中…</span></summary>
+        <div class="meta" style="margin-bottom:8px">按订阅源抓取新内容并私聊摘要；每行一个地址，可写成「名称|地址」。只读取公开 feed 的标题、摘要和链接，不抓全文、不下载音频。第一次订阅只建立基线，不会把历史内容一次性发出来。</div>
+        <div class="content-controls">
+          <label>订阅源（每行一个，名称|地址）<textarea id="lifeRssFeeds" rows="3" placeholder="少数派|https://sspai.com/feed&#10;https://example.com/podcast.xml"></textarea></label>
+          <label>频率<select id="lifeRssFrequency">
+            <option value="daily">每天</option>
+            <option value="weekly">每周</option>
+            <option value="interval">每 N 天</option>
+          </select></label>
+          <label>时间<input type="time" id="lifeRssTime"></label>
+          <label>每周几（每周时有效）<select id="lifeRssWeekday">
+            <option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option>
+            <option value="5">周五</option><option value="6">周六</option><option value="7">周日</option>
+          </select></label>
+          <label>间隔天数（每 N 天时有效）<input type="number" id="lifeRssIntervalDays" min="1" max="30"></label>
+          <label>总条数上限<input type="number" id="lifeRssCount" min="1" max="30"></label>
+          <label>每个源最多<input type="number" id="lifeRssPerFeedLimit" min="1" max="10"></label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeRssShowSummary"> 附带 1–2 句摘要</label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="lifeRssSave" class="small" type="button">保存订阅设置</button>
+          <button id="lifeRssPreview" class="small" type="button">预览（不发 QQ）</button>
+          <span class="meta" id="lifeRssMsg" role="status" aria-live="polite"></span>
+        </div>
+        <div id="lifeRssStatus" class="meta content-history"></div>
+        <div id="lifeRssPreviewBox" class="meta content-history"></div>
+      </details>
+
+      <details class="content-feature" data-feature-panel="weekly">
+        <summary><b>每周回顾</b><span class="meta" id="lifeWeeklySummary">读取中…</span></summary>
+        <div class="meta" style="margin-bottom:8px">每周一次汇总过去 7 天的论文、GitHub、提醒和生活动态，每个小节最多 3 条；没有新增的小节会写「本周无新增」。</div>
+        <div class="content-controls">
+          <label>星期几<select id="lifeWeeklyWeekday">
+            <option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option>
+            <option value="5">周五</option><option value="6">周六</option><option value="7">周日</option>
+          </select></label>
+          <label>时间<input type="time" id="lifeWeeklyTime"></label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeWeeklyPaper"> 包含论文</label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeWeeklyGithub"> 包含 GitHub</label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeWeeklyReminders"> 包含提醒</label>
+          <label class="feature-adv-check"><input type="checkbox" id="lifeWeeklyDigest"> 包含生活动态</label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="lifeWeeklySave" class="small" type="button">保存回顾设置</button>
+          <button id="lifeWeeklyPreview" class="small" type="button">预览（不发 QQ）</button>
+          <span class="meta" id="lifeWeeklyMsg" role="status" aria-live="polite"></span>
+        </div>
+        <div id="lifeWeeklyStatus" class="meta content-history"></div>
+        <div id="lifeWeeklyPreviewBox" class="meta content-history"></div>
+      </details>
+
       <details class="content-feature">
         <summary><b>联网搜索</b><span class="meta" id="searchSummary"></span></summary>
         <div class="content-controls">
@@ -5980,7 +6200,11 @@ function unmountFeaturePanels() {
 
 function mountFeaturePanels() {
   for (const node of document.querySelectorAll('[data-feature-panel]')) {
-    const slot = document.querySelector(`#featureSwitches [data-feature-advanced="${node.dataset.featurePanel}"]`);
+    const panel = node.dataset.featurePanel;
+    // 面板名可以和卡片 id 不同（例如 GitHub 卡片叫 githubMonitor、面板叫 github），
+    // 以服务端返回的 customPanel 为准找到对应的高级设置槽位。
+    const owner = (featureControlState?.modules || []).find((module) => module.id === panel || module.customPanel === panel);
+    const slot = owner && document.querySelector(`#featureSwitches [data-feature-advanced="${owner.id}"]`);
     if (!slot) continue;
     // 专用面板本身也是 <details>：挂进「高级设置」后展开并把标题收掉，
     // 否则卡片里会出现两层折叠，小白要连点两次才能看到参数。
@@ -6185,18 +6409,31 @@ function renderFeatureControl() {
     const head = master
       ? renderBoardMaster(board, master)
       : `<div class="feature-board-head"><p class="meta">${esc(board.description)}</p></div>`;
+    // 板块内子分组（目前只有生活管家）：组标题单独一行，未归组的卡片放最后。
+    const boardGroups = Array.isArray(board.groups) ? board.groups : [];
+    let cardsHtml;
+    if (boardGroups.length) {
+      const knownGroups = new Set(boardGroups.map((group) => group.id));
+      const renderGroup = (group, list) => list.length
+        ? `<div class="feature-group"${group.id ? ` data-group="${esc(group.id)}"` : ''}>${group.label ? `<h4 class="feature-group-title">${esc(group.label)}</h4>` : ''}<div class="feature-cards">${list.map(renderFeatureCard).join('')}</div></div>`
+        : '';
+      cardsHtml = boardGroups.map((group) => renderGroup(group, cards.filter((card) => card.group === group.id))).join('')
+        + renderGroup({ id: '', label: '' }, cards.filter((card) => !knownGroups.has(card.group || '')));
+    } else {
+      cardsHtml = `<div class="feature-cards">${cards.map(renderFeatureCard).join('')}</div>`;
+    }
     const counts = featureBoardCounts(board.id);
     return `<section class="feature-board" data-board="${esc(board.id)}" aria-label="${esc(board.label)}">
       <div class="feature-board-bar">
         <h3><button type="button" class="feature-board-toggle" data-board-toggle="${esc(board.id)}" aria-expanded="true" aria-controls="feature-board-body-${esc(board.id)}">
-          <span class="feature-board-chevron" aria-hidden="true">▾</span>
+          <span class="feature-board-chevron" aria-hidden="true"></span>
           <span class="feature-board-name">${esc(board.label)}</span>
           <span class="feature-board-count" data-board-count="${esc(board.id)}">${counts.enabled}/${counts.total} 项已开启</span>
         </button></h3>
       </div>
       <div class="feature-board-body" id="feature-board-body-${esc(board.id)}" data-board-body="${esc(board.id)}">
         ${head}
-        <div class="feature-cards">${cards.map(renderFeatureCard).join('')}</div>
+        ${cardsHtml}
       </div>
     </section>`;
   }).join('');
@@ -6259,6 +6496,9 @@ function applyFeatureFilters() {
     if (visible && state === 'attention') visible = module.attention === true || module.state === 'blocked';
     card.hidden = !visible;
     if (visible) shown += 1;
+  });
+  document.querySelectorAll('#featureSwitches .feature-group').forEach((group) => {
+    group.hidden = !group.querySelector('.feature-module:not([hidden])');
   });
   document.querySelectorAll('#featureSwitches .feature-board').forEach((board) => {
     const hasVisibleChild = Boolean(board.querySelector('.feature-module:not([hidden])'));
@@ -6928,6 +7168,278 @@ async function refreshMoodPanel() {
   }
 }
 
+// ── 生活管家面板：论文 / GitHub / 日报 / 提醒 ────────────────────────────────
+// 四块面板共用 /api/features/life-panel 的同一份快照；提醒的增删复用原有
+// /api/simulation/reminder* 接口，避免再造一套提醒状态。
+let lifePanelState = null;
+
+function lifePanelMsg(id, text, tone = '') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'meta' + (tone ? ' ' + tone : '');
+}
+
+function lifeSplitList(text) {
+  return String(text ?? '').split(/[\n,，;；]+/).map((item) => item.trim()).filter(Boolean);
+}
+
+function lifeFmtTime(ms) {
+  if (!ms) return '—';
+  try { return new Date(Number(ms)).toLocaleString('zh-CN', { hour12: false }); } catch { return '—'; }
+}
+
+function lifeFreqText(freq) {
+  return freq === 'weekly' ? '每周' : freq === 'interval' ? '每 N 天' : '每天';
+}
+
+function lifeWeekdayText(n) {
+  return ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][Math.max(0, Math.min(6, Number(n) - 1))] || '—';
+}
+
+// 订阅源在面板里写成「名称|地址」每行一个；只有地址时名称由后端按域名补。
+function lifeParseFeeds(text) {
+  return String(text ?? '').split(/\n+/).map((line) => line.trim()).filter(Boolean).map((line) => {
+    const bar = line.indexOf('|');
+    if (bar > 0) return { name: line.slice(0, bar).trim(), url: line.slice(bar + 1).trim() };
+    return { name: '', url: line };
+  });
+}
+
+function lifeRenderPreviewBox(boxId, result) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  const text = String(result?.text || '').trim();
+  if (text) {
+    box.innerHTML = `<b>预览（不会发送到 QQ）</b><div style="white-space:pre-wrap;margin-top:6px">${esc(text)}</div>`;
+    return;
+  }
+  const items = Array.isArray(result?.items) ? result.items : [];
+  box.innerHTML = items.length
+    ? `<b>预览 ${items.length} 条（不会发送）</b>` + items.map((item) => `<div style="margin-top:4px">· ${esc(item.title || item.url || '')}</div>`).join('')
+    : '<div class="muted small">暂时没有可预览的内容。</div>';
+}
+
+async function previewLifePanelModule(moduleId, msgId, boxId, buttonId) {
+  const button = document.getElementById(buttonId);
+  if (button) button.disabled = true;
+  lifePanelMsg(msgId, '正在预览（只读，不发送）…');
+  try {
+    const r = await api('/api/features/life-panel', 'POST', { action: 'preview', module: moduleId });
+    if (!r.ok) throw new Error(r.error || '预览失败');
+    lifeRenderPreviewBox(boxId, r);
+    lifePanelMsg(msgId, `预览完成：${r.count ?? 0} 条，未发送到 QQ`, 'ok');
+  } catch (error) {
+    const box = document.getElementById(boxId);
+    if (box) box.innerHTML = '';
+    lifePanelMsg(msgId, '预览失败：' + (error?.message ?? error), 'err');
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function renderLifeStatus(id, status, extra = '') {
+  const box = document.getElementById(id);
+  if (!box) return;
+  if (!status) { box.innerHTML = '<div class="muted small">还没有运行记录。</div>'; return; }
+  const state = status.state === 'auth' ? '需要授权'
+    : status.state === 'open' ? '已熔断，等待恢复'
+      : status.state === 'backoff' ? '失败退避中' : '正常';
+  box.innerHTML = `<div><b>状态</b> ${esc(state)} · 上次成功 ${esc(lifeFmtTime(status.lastSuccess))}</div>
+    <div><b>下次运行</b> ${esc(lifeFmtTime(status.nextRun))}${status.itemsLast != null ? ` · 上次 ${Number(status.itemsLast)} 条` : ''}</div>
+    ${status.lastError ? `<div class="err">上次错误：${esc(String(status.lastError).slice(0, 200))}</div>` : ''}${extra}`;
+}
+
+function fillLifePanel(panel) {
+  lifePanelState = panel;
+  const paper = panel.paper || {};
+  const gh = panel.github || {};
+  const digest = panel.digest || {};
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
+  const check = (id, value) => { const el = document.getElementById(id); if (el) el.checked = value === true; };
+  set('lifePaperTopics', (paper.topics || []).join('\n'));
+  set('lifePaperKeywords', (paper.keywords || []).join(', '));
+  set('lifePaperSource', paper.source || 'openalex');
+  set('lifePaperFrequency', paper.frequency || 'daily');
+  set('lifePaperTime', paper.time || '09:00');
+  set('lifePaperWeekday', String(paper.weekday || 1));
+  set('lifePaperIntervalDays', paper.intervalDays ?? 3);
+  set('lifePaperCount', paper.count ?? 5);
+  set('lifePaperWindowDays', paper.windowDays ?? 7);
+  const paperSummary = document.getElementById('lifePaperSummary');
+  if (paperSummary) {
+    paperSummary.textContent = `${paper.enabled ? '已开启' : '已关闭'} · ${lifeFreqText(paper.frequency)} ${paper.time || '09:00'}${paper.frequency === 'weekly' ? ` ${lifeWeekdayText(paper.weekday)}` : ''} · ${(paper.topics || []).length} 个主题 · 每次 ${paper.count ?? 5} 篇`;
+  }
+  renderLifeStatus('lifePaperStatus', panel.status?.paper);
+
+  set('lifeGithubRepos', (gh.repos || []).join('\n'));
+  check('lifeGithubStars', gh.metrics?.stars !== false);
+  check('lifeGithubForks', gh.metrics?.forks !== false);
+  check('lifeGithubIssues', gh.metrics?.issues !== false);
+  check('lifeGithubPulls', gh.metrics?.pulls !== false);
+  check('lifeGithubReleases', gh.metrics?.releases !== false);
+  set('lifeGithubFrequency', gh.frequency || 'daily');
+  set('lifeGithubTime', gh.time || '09:00');
+  set('lifeGithubWeekday', String(gh.weekday || 1));
+  set('lifeGithubIntervalDays', gh.intervalDays ?? 1);
+  check('lifeGithubNotifyNoChanges', gh.notifyNoChanges === true);
+  const ghSummary = document.getElementById('lifeGithubSummary');
+  if (ghSummary) {
+    ghSummary.textContent = `${gh.enabled ? '已开启' : '已关闭'} · ${(gh.repos || []).length} 个仓库 · ${lifeFreqText(gh.frequency)} ${gh.time || '09:00'}${gh.frequency === 'weekly' ? ` ${lifeWeekdayText(gh.weekday)}` : ''}`;
+  }
+  renderLifeStatus('lifeGithubStatus', panel.status?.github,
+    panel.githubToken?.configured ? '' : '<div class="warn">未配置 token：匿名接口每小时 60 次，仓库多时容易触发限流。</div>');
+  const tokenHint = document.getElementById('lifeGithubTokenHint');
+  if (tokenHint) {
+    tokenHint.textContent = panel.githubToken?.configured ? `token 已配置（${panel.githubToken.hint}）` : '未配置只读 token';
+  }
+  const tokenInput = document.getElementById('lifeGithubToken');
+  if (tokenInput) tokenInput.value = '';
+
+  set('lifeDigestMorning', digest.morning || '08:00');
+  set('lifeDigestEvening', digest.evening || '22:30');
+  check('lifeDigestCalendar', digest.sections?.calendar === true);
+  check('lifeDigestReminders', digest.sections?.reminders === true);
+  check('lifeDigestPaper', digest.sections?.paper === true);
+  check('lifeDigestGithub', digest.sections?.github === true);
+  const digestSummary = document.getElementById('lifeDigestSummary');
+  const sectionNames = [
+    ['calendar', '日程'], ['reminders', '提醒'], ['paper', '论文'], ['github', 'GitHub']
+  ].filter(([key]) => digest.sections?.[key] === true).map(([, label]) => label);
+  if (digestSummary) {
+    digestSummary.textContent = `${digest.enabled ? '已开启' : '已关闭'} · 早报 ${digest.morning || '08:00'} / 晚报 ${digest.evening || '22:30'} · ${sectionNames.join('、') || '未选小节'}`;
+  }
+  const digestBox = document.getElementById('lifeDigestStatus');
+  if (digestBox) {
+    digestBox.innerHTML = `<div>${digest.enabled ? '日报已开启' : '日报已关闭'} · 纪要小节：${esc(sectionNames.join('、') || '无')}</div>
+      <div class="muted small">日报只私聊发给主人，并受夜间免打扰和每小时通知上限约束。</div>`;
+  }
+
+  const rem = panel.reminder || {};
+  const remSummary = document.getElementById('lifeReminderSummary');
+  if (remSummary) remSummary.textContent = rem.enabled ? `${rem.active} 条待触发 · 上限 ${rem.maxActive}` : '提醒功能未开启';
+
+  const cal = panel.calendarMorning || {};
+  set('lifeCalendarTime', cal.time || '07:30');
+  set('lifeCalendarLookahead', cal.lookaheadDays ?? 1);
+  check('lifeCalendarWeekdaysOnly', cal.weekdaysOnly === true);
+  check('lifeCalendarConflicts', cal.showConflicts !== false);
+  check('lifeCalendarTomorrow', cal.tomorrowPreview !== false);
+  const calSummary = document.getElementById('lifeCalendarSummary');
+  if (calSummary) {
+    calSummary.textContent = `${cal.enabled ? '已开启' : '已关闭'} · ${cal.time || '07:30'}${cal.weekdaysOnly ? '（仅工作日）' : ''} · 看未来 ${cal.lookaheadDays ?? 1} 天`;
+  }
+  renderLifeStatus('lifeCalendarStatus', panel.status?.calendarMorning);
+
+  const rss = panel.rssDigest || {};
+  const feeds = Array.isArray(rss.feeds) ? rss.feeds : [];
+  set('lifeRssFeeds', feeds.map((feed) => feed.name ? `${feed.name}|${feed.url}` : feed.url).join('\n'));
+  set('lifeRssFrequency', rss.frequency || 'daily');
+  set('lifeRssTime', rss.time || '08:00');
+  set('lifeRssWeekday', String(rss.weekday || 1));
+  set('lifeRssIntervalDays', rss.intervalDays ?? 3);
+  set('lifeRssCount', rss.count ?? 8);
+  set('lifeRssPerFeedLimit', rss.perFeedLimit ?? 3);
+  check('lifeRssShowSummary', rss.showSummary !== false);
+  const rssSummary = document.getElementById('lifeRssSummary');
+  if (rssSummary) {
+    rssSummary.textContent = `${rss.enabled ? '已开启' : '已关闭'} · ${feeds.length} 个订阅源 · ${lifeFreqText(rss.frequency)} ${rss.time || '08:00'}${rss.frequency === 'weekly' ? ` ${lifeWeekdayText(rss.weekday)}` : ''} · 每次 ${rss.count ?? 8} 条（每源 ${rss.perFeedLimit ?? 3}）`;
+  }
+  renderLifeStatus('lifeRssStatus', panel.status?.rssDigest);
+
+  const weekly = panel.weeklyReview || {};
+  set('lifeWeeklyWeekday', String(weekly.weekday || 7));
+  set('lifeWeeklyTime', weekly.time || '20:00');
+  check('lifeWeeklyPaper', weekly.sections?.paper !== false);
+  check('lifeWeeklyGithub', weekly.sections?.github !== false);
+  check('lifeWeeklyReminders', weekly.sections?.reminders !== false);
+  check('lifeWeeklyDigest', weekly.sections?.digest !== false);
+  const weeklySummary = document.getElementById('lifeWeeklySummary');
+  if (weeklySummary) {
+    const sections = [['paper', '论文'], ['github', 'GitHub'], ['reminders', '提醒'], ['digest', '生活动态']]
+      .filter(([key]) => weekly.sections?.[key] !== false).map(([, label]) => label);
+    weeklySummary.textContent = `${weekly.enabled ? '已开启' : '已关闭'} · 每${lifeWeekdayText(weekly.weekday || 7)} ${weekly.time || '20:00'} · ${sections.join('、') || '未选小节'}`;
+  }
+  renderLifeStatus('lifeWeeklyStatus', panel.status?.weeklyReview);
+}
+
+async function refreshReminderPanel() {
+  const panel = lifePanelState;
+  if (!panel) return;
+  const meta = document.getElementById('lifeReminderMeta');
+  const list = document.getElementById('lifeReminderList');
+  const key = panel.reminder?.ownerKey || '';
+  if (!key) {
+    if (meta) meta.textContent = '未配置 ownerQQ，暂时无法管理主人私聊提醒。';
+    if (list) list.innerHTML = '';
+    return;
+  }
+  try {
+    const r = await api('/api/simulation/reminders?key=' + encodeURIComponent(key));
+    if (!r.ok) throw new Error(r.error || '读取失败');
+    const quiet = r.quietHours || {};
+    if (meta) {
+      meta.innerHTML = `<div>待触发 ${r.limits?.active ?? 0}/${r.limits?.maxActive ?? '—'} · 今日已建 ${r.limits?.today ?? 0}/${r.limits?.maxPerDayPerKey ?? '—'} · 补发窗口 ${Math.round((r.limits?.overdueGraceMs ?? 0) / 3600000)} 小时</div>
+        <div>夜间免打扰：${quiet.enabled ? `${esc(quiet.start)}–${esc(quiet.end)}（到点顺延，不丢弃）` : '关闭'}</div>`;
+    }
+    const items = Array.isArray(r.reminders) ? r.reminders : [];
+    if (list) {
+      list.innerHTML = items.length ? items.map((item) => `<div class="row" style="justify-content:space-between;gap:8px;margin-top:4px">
+        <span>#${esc(item.number ?? '?')} ${esc(item.dueText || '')} · ${esc(item.text || '')} <span class="muted small">${esc(item.status || '')}${item.remainingText ? ' · ' + esc(item.remainingText) : ''}${item.overdue ? ' · 已逾期' : ''}</span></span>
+        <button class="small" type="button" data-reminder-cancel="${esc(item.id)}">取消</button>
+      </div>`).join('') : '<div class="muted small">没有待触发的提醒。</div>';
+    }
+  } catch (error) {
+    if (meta) meta.textContent = '读取失败：' + (error?.message ?? error);
+    if (list) list.innerHTML = '';
+  }
+}
+
+async function refreshLifePanel() {
+  try {
+    const panel = await api('/api/features/life-panel');
+    if (!panel.ok) throw new Error(panel.error || '读取失败');
+    fillLifePanel(panel);
+    await refreshReminderPanel();
+  } catch (error) {
+    for (const id of ['lifePaperSummary', 'lifeGithubSummary', 'lifeDigestSummary', 'lifeReminderSummary', 'lifeCalendarSummary', 'lifeRssSummary', 'lifeWeeklySummary']) {
+      lifePanelMsg(id, '读取失败：' + (error?.message ?? error), 'err');
+    }
+  }
+}
+
+async function saveLifePanelSettings(values, msgId, successText) {
+  lifePanelMsg(msgId, '正在保存…');
+  try {
+    const r = await api('/api/features/life-panel', 'POST', { action: 'save', values });
+    if (!r.ok) throw new Error((Array.isArray(r.errors) && r.errors[0]) || r.error || '保存失败');
+    lifePanelMsg(msgId, successText + (Array.isArray(r.requiresRestart) && r.requiresRestart.length ? '；部分设置需重启桥接后生效' : '（已热更新）'), 'ok');
+    if (r.panel) {
+      fillLifePanel(r.panel);
+      await refreshReminderPanel();
+    }
+    refreshFeatureControl({ keepMessage: true, preserveDirty: true }).catch(() => {});
+    return true;
+  } catch (error) {
+    lifePanelMsg(msgId, '保存失败：' + (error?.message ?? error), 'err');
+    return false;
+  }
+}
+
+async function saveGithubToken(token) {
+  lifePanelMsg('lifeGithubMsg', '正在保存 token…');
+  try {
+    const r = await api('/api/features/life-panel', 'POST', { action: 'token', token });
+    if (!r.ok) throw new Error(r.error || '保存失败');
+    const input = document.getElementById('lifeGithubToken');
+    if (input) input.value = '';
+    if (r.panel) fillLifePanel(r.panel);
+    lifePanelMsg('lifeGithubMsg', r.githubToken?.configured ? `token 已保存（${r.githubToken.hint}）` : 'token 已清除', 'ok');
+  } catch (error) {
+    lifePanelMsg('lifeGithubMsg', '保存失败：' + (error?.message ?? error), 'err');
+  }
+}
+
 async function refreshContent() {
   const msg = document.getElementById('contentMsg');
   const metrics = document.getElementById('contentMetrics');
@@ -7151,11 +7663,199 @@ async function refreshContent() {
     memoryBox.innerHTML = `<div>共 ${mem.total ?? 0} 条${scopes ? ` · ${esc(scopes)}` : ''} · 跨会话记忆 ${mem.personalCount ?? 0} 条 · ${mem.ftsReady === false ? 'FTS 降级为 LIKE' : 'FTS5 正常'}</div>`
       + `<div class="muted small">日报、聊天话题、群友印象会自动入库；跨会话记忆由小鲸鱼在对话中主动记录，所有私聊/群聊共享</div>`
       + contentFactRows(mem.recentFacts || mem.personalFacts || []);
+    await refreshLifePanel();
   } catch (error) {
     msg.textContent = '读取失败：' + (error?.message ?? error);
     msg.className = 'meta err';
   }
 }
+
+// 生活管家面板事件：保存走同一份配置接口；论文预览只读，不触发任何 QQ 发送。
+document.getElementById('lifePaperSave')?.addEventListener('click', () => {
+  const topics = lifeSplitList(document.getElementById('lifePaperTopics').value);
+  if (!topics.length) { lifePanelMsg('lifePaperMsg', '至少填写一个主题（例如 cs.AI）', 'err'); return; }
+  saveLifePanelSettings({
+    'lifeButler.modules.paper.topics': topics,
+    'lifeButler.modules.paper.keywords': lifeSplitList(document.getElementById('lifePaperKeywords').value),
+    'lifeButler.modules.paper.source': document.getElementById('lifePaperSource').value,
+    'lifeButler.modules.paper.frequency': document.getElementById('lifePaperFrequency').value,
+    'lifeButler.modules.paper.time': document.getElementById('lifePaperTime').value,
+    'lifeButler.modules.paper.weekday': Number(document.getElementById('lifePaperWeekday').value),
+    'lifeButler.modules.paper.intervalDays': Number(document.getElementById('lifePaperIntervalDays').value),
+    'lifeButler.modules.paper.count': Number(document.getElementById('lifePaperCount').value),
+    'lifeButler.modules.paper.windowDays': Number(document.getElementById('lifePaperWindowDays').value)
+  }, 'lifePaperMsg', '论文设置已保存');
+});
+
+document.getElementById('lifePaperPreview')?.addEventListener('click', async () => {
+  const box = document.getElementById('lifePaperPreviewBox');
+  const button = document.getElementById('lifePaperPreview');
+  if (button) button.disabled = true;
+  lifePanelMsg('lifePaperMsg', '正在预览（只读，不发送）…');
+  try {
+    const r = await api('/api/features/life-panel', 'POST', { action: 'preview', module: 'paper' });
+    if (!r.ok) throw new Error(r.error || '预览失败');
+    const items = Array.isArray(r.items) ? r.items : [];
+    if (!items.length) {
+      box.innerHTML = '<div class="muted small">这段时间没有抓到新论文。</div>';
+    } else {
+      box.innerHTML = `<b>预览 ${items.length} 篇（不会发送）</b>` + items.map((item, index) => {
+        const url = contentSafeUrl(item.url);
+        const venue = [item.venue, item.year].filter(Boolean).join(' · ');
+        const inst = (item.institutions || []).join('、') || '—';
+        const label = item.tldrSource === 'title-only' ? '仅标题' : item.tldrSource === 'abstract-compress' ? '摘要压缩' : '中文速读';
+        const title = url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(item.title || url)}</a>` : esc(item.title || '');
+        return `<div style="margin-top:6px">[${index + 1}] ${title}<div class="muted small">${esc(venue || '—')} · ${esc(inst)} · ${esc(item.publicationDate || '—')}</div><div>${esc(item.summary || '仅标题')} <span class="muted small">（${esc(label)}）</span></div></div>`;
+      }).join('');
+    }
+    lifePanelMsg('lifePaperMsg', `预览完成：${items.length} 篇，未发送到 QQ`, 'ok');
+  } catch (error) {
+    box.innerHTML = '';
+    lifePanelMsg('lifePaperMsg', '预览失败：' + (error?.message ?? error), 'err');
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
+
+document.getElementById('lifeGithubSave')?.addEventListener('click', () => {
+  saveLifePanelSettings({
+    'lifeButler.modules.github.repos': lifeSplitList(document.getElementById('lifeGithubRepos').value),
+    'lifeButler.modules.github.metrics.stars': document.getElementById('lifeGithubStars').checked,
+    'lifeButler.modules.github.metrics.forks': document.getElementById('lifeGithubForks').checked,
+    'lifeButler.modules.github.metrics.issues': document.getElementById('lifeGithubIssues').checked,
+    'lifeButler.modules.github.metrics.pulls': document.getElementById('lifeGithubPulls').checked,
+    'lifeButler.modules.github.metrics.releases': document.getElementById('lifeGithubReleases').checked,
+    'lifeButler.modules.github.frequency': document.getElementById('lifeGithubFrequency').value,
+    'lifeButler.modules.github.time': document.getElementById('lifeGithubTime').value,
+    'lifeButler.modules.github.weekday': Number(document.getElementById('lifeGithubWeekday').value),
+    'lifeButler.modules.github.intervalDays': Number(document.getElementById('lifeGithubIntervalDays').value),
+    'lifeButler.modules.github.notifyNoChanges': document.getElementById('lifeGithubNotifyNoChanges').checked
+  }, 'lifeGithubMsg', 'GitHub 设置已保存');
+});
+
+document.getElementById('lifeGithubTokenSave')?.addEventListener('click', () => {
+  const token = document.getElementById('lifeGithubToken')?.value.trim() || '';
+  if (!token) { lifePanelMsg('lifeGithubMsg', '请输入 token，或点「清除 token」', 'warn'); return; }
+  saveGithubToken(token);
+});
+
+document.getElementById('lifeGithubTokenClear')?.addEventListener('click', () => {
+  if (!window.confirm('清除已保存的 GitHub token？之后会退回匿名接口（每小时 60 次）。')) return;
+  saveGithubToken('');
+});
+
+document.getElementById('lifeDigestSave')?.addEventListener('click', () => {
+  saveLifePanelSettings({
+    'lifeButler.digest.morning': document.getElementById('lifeDigestMorning').value,
+    'lifeButler.digest.evening': document.getElementById('lifeDigestEvening').value,
+    'lifeButler.digest.sections.calendar': document.getElementById('lifeDigestCalendar').checked,
+    'lifeButler.digest.sections.reminders': document.getElementById('lifeDigestReminders').checked,
+    'lifeButler.digest.sections.paper': document.getElementById('lifeDigestPaper').checked,
+    'lifeButler.digest.sections.github': document.getElementById('lifeDigestGithub').checked
+  }, 'lifeDigestMsg', '日报设置已保存');
+});
+
+document.getElementById('lifeCalendarSave')?.addEventListener('click', () => {
+  const time = document.getElementById('lifeCalendarTime').value;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) { lifePanelMsg('lifeCalendarMsg', '发送时间必须是 HH:MM', 'err'); return; }
+  const days = Number(document.getElementById('lifeCalendarLookahead').value);
+  if (!Number.isInteger(days) || days < 1 || days > 7) { lifePanelMsg('lifeCalendarMsg', '查看范围必须是 1–7 天', 'err'); return; }
+  saveLifePanelSettings({
+    'lifeButler.modules.calendarMorning.time': time,
+    'lifeButler.modules.calendarMorning.lookaheadDays': days,
+    'lifeButler.modules.calendarMorning.weekdaysOnly': document.getElementById('lifeCalendarWeekdaysOnly').checked,
+    'lifeButler.modules.calendarMorning.showConflicts': document.getElementById('lifeCalendarConflicts').checked,
+    'lifeButler.modules.calendarMorning.tomorrowPreview': document.getElementById('lifeCalendarTomorrow').checked
+  }, 'lifeCalendarMsg', '晨报设置已保存');
+});
+
+document.getElementById('lifeCalendarPreview')?.addEventListener('click', () => {
+  previewLifePanelModule('calendarMorning', 'lifeCalendarMsg', 'lifeCalendarPreviewBox', 'lifeCalendarPreview');
+});
+
+document.getElementById('lifeRssSave')?.addEventListener('click', () => {
+  const feeds = lifeParseFeeds(document.getElementById('lifeRssFeeds').value);
+  if (!feeds.length) { lifePanelMsg('lifeRssMsg', '至少填写一个订阅源', 'err'); return; }
+  const bad = feeds.find((feed) => !/^https?:\/\//i.test(feed.url));
+  if (bad) { lifePanelMsg('lifeRssMsg', `订阅源必须是 http(s) 地址：${bad.url || bad.name}`, 'err'); return; }
+  const time = document.getElementById('lifeRssTime').value;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) { lifePanelMsg('lifeRssMsg', '推送时间必须是 HH:MM', 'err'); return; }
+  const intervalDays = Number(document.getElementById('lifeRssIntervalDays').value);
+  const count = Number(document.getElementById('lifeRssCount').value);
+  const perFeedLimit = Number(document.getElementById('lifeRssPerFeedLimit').value);
+  if (!Number.isInteger(intervalDays) || intervalDays < 1 || intervalDays > 30) { lifePanelMsg('lifeRssMsg', '间隔天数必须是 1–30', 'err'); return; }
+  if (!Number.isInteger(count) || count < 1 || count > 30) { lifePanelMsg('lifeRssMsg', '总条数上限必须是 1–30', 'err'); return; }
+  if (!Number.isInteger(perFeedLimit) || perFeedLimit < 1 || perFeedLimit > 10) { lifePanelMsg('lifeRssMsg', '每个源最多必须是 1–10 条', 'err'); return; }
+  saveLifePanelSettings({
+    'lifeButler.modules.rssDigest.feeds': feeds,
+    'lifeButler.modules.rssDigest.frequency': document.getElementById('lifeRssFrequency').value,
+    'lifeButler.modules.rssDigest.time': time,
+    'lifeButler.modules.rssDigest.weekday': Number(document.getElementById('lifeRssWeekday').value),
+    'lifeButler.modules.rssDigest.intervalDays': intervalDays,
+    'lifeButler.modules.rssDigest.count': count,
+    'lifeButler.modules.rssDigest.perFeedLimit': perFeedLimit,
+    'lifeButler.modules.rssDigest.showSummary': document.getElementById('lifeRssShowSummary').checked
+  }, 'lifeRssMsg', '订阅设置已保存');
+});
+
+document.getElementById('lifeRssPreview')?.addEventListener('click', () => {
+  previewLifePanelModule('rssDigest', 'lifeRssMsg', 'lifeRssPreviewBox', 'lifeRssPreview');
+});
+
+document.getElementById('lifeWeeklySave')?.addEventListener('click', () => {
+  const time = document.getElementById('lifeWeeklyTime').value;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) { lifePanelMsg('lifeWeeklyMsg', '发送时间必须是 HH:MM', 'err'); return; }
+  saveLifePanelSettings({
+    'lifeButler.modules.weeklyReview.weekday': Number(document.getElementById('lifeWeeklyWeekday').value),
+    'lifeButler.modules.weeklyReview.time': time,
+    'lifeButler.modules.weeklyReview.sections.paper': document.getElementById('lifeWeeklyPaper').checked,
+    'lifeButler.modules.weeklyReview.sections.github': document.getElementById('lifeWeeklyGithub').checked,
+    'lifeButler.modules.weeklyReview.sections.reminders': document.getElementById('lifeWeeklyReminders').checked,
+    'lifeButler.modules.weeklyReview.sections.digest': document.getElementById('lifeWeeklyDigest').checked
+  }, 'lifeWeeklyMsg', '回顾设置已保存');
+});
+
+document.getElementById('lifeWeeklyPreview')?.addEventListener('click', () => {
+  previewLifePanelModule('weeklyReview', 'lifeWeeklyMsg', 'lifeWeeklyPreviewBox', 'lifeWeeklyPreview');
+});
+
+document.getElementById('lifeReminderAdd')?.addEventListener('click', async () => {
+  const key = lifePanelState?.reminder?.ownerKey || '';
+  if (!key) { lifePanelMsg('lifeReminderMsg', '未配置 ownerQQ，无法创建主人私聊提醒', 'err'); return; }
+  const text = document.getElementById('lifeReminderText').value.trim();
+  const dueAt = document.getElementById('lifeReminderDue').value.trim();
+  if (!text) { lifePanelMsg('lifeReminderMsg', '请填写提醒内容', 'err'); return; }
+  if (!dueAt) { lifePanelMsg('lifeReminderMsg', '请填写提醒时间', 'err'); return; }
+  lifePanelMsg('lifeReminderMsg', '正在添加…');
+  try {
+    const r = await api('/api/simulation/reminder/add', 'POST', { key, text, dueAt, createdBy: 'console' });
+    if (!r.ok) throw new Error(r.error || '添加失败');
+    lifePanelMsg('lifeReminderMsg', r.duplicate ? '已有一条相同提醒，没有重复添加' : '提醒已添加', r.duplicate ? 'warn' : 'ok');
+    document.getElementById('lifeReminderText').value = '';
+    document.getElementById('lifeReminderDue').value = '';
+    await refreshLifePanel();
+  } catch (error) {
+    lifePanelMsg('lifeReminderMsg', '添加失败：' + (error?.message ?? error), 'err');
+  }
+});
+
+document.getElementById('lifeReminderRefresh')?.addEventListener('click', refreshLifePanel);
+
+document.getElementById('lifeReminderList')?.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-reminder-cancel]');
+  if (!button) return;
+  if (!window.confirm('取消这条提醒？取消后不会再发送。')) return;
+  const key = lifePanelState?.reminder?.ownerKey || '';
+  lifePanelMsg('lifeReminderMsg', '正在取消…');
+  try {
+    const r = await api('/api/simulation/reminder/cancel', 'POST', { key, id: button.dataset.reminderCancel });
+    if (!r.ok) throw new Error(r.error || '取消失败');
+    lifePanelMsg('lifeReminderMsg', '提醒已取消', 'ok');
+    await refreshLifePanel();
+  } catch (error) {
+    lifePanelMsg('lifeReminderMsg', '取消失败：' + (error?.message ?? error), 'err');
+  }
+});
 
 document.getElementById('contentRefresh')?.addEventListener('click', refreshContent);
 document.getElementById('espSave')?.addEventListener('click', () => contentApplyConfig({
@@ -9920,7 +10620,7 @@ document.getElementById('usageClear').addEventListener('click', async () => {
 
 setConsolePage(location.hash.slice(1), { updateHash:false });
 
-refresh(); refreshRoles(); refreshWhitelist(); refreshSessions(); refreshPending(); refreshPresets(); loadSimConfig(); loadSimGroupProfiles(); refreshSimActivity(); loadSimToolLog(); loadSimSessionOptions(); refreshSlang(); loadSlangConfig(); loadSecurity(); refreshSimPrompt(); refreshDshModel(); refreshUsage(); refreshUsageChart(); refreshUsageRecent(); refreshFeatureControl();
+refresh(); refreshRoles(); refreshWhitelist(); refreshSessions(); refreshPending(); refreshPresets(); loadSimConfig(); loadSimGroupProfiles(); refreshSimActivity(); loadSimToolLog(); loadSimSessionOptions(); refreshSlang(); loadSlangConfig(); loadSecurity(); refreshSimPrompt(); refreshDshModel(); refreshUsage(); refreshUsageChart(); refreshUsageRecent(); refreshFeatureControl(); refreshLifePanel();
 setInterval(() => { refresh(); refreshSessions(); refreshPending(); refreshSlang(); }, 3000);
 // 用量看板只在本页可见时轮询：既保证「实时」，又不让其它页白白多打两份接口。
 setInterval(() => { if (currentConsolePage !== 'usage') return; refreshUsage(); refreshUsageChart(); refreshUsageRecent(); }, 3000);
