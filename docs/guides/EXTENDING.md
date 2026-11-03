@@ -7,7 +7,7 @@
 | 组件 | 支持范围 | 说明 |
 | --- | --- | --- |
 | **系统** | Windows 10 / 11 x64 | QQ 与 SnowLuma 都是 Windows 程序；Linux / macOS 没有官方支持 |
-| **Node.js** | ≥ 22.13，推荐 24 | 使用内置 `node:sqlite`；Node 22 需加 `--experimental-sqlite`，CI 的 Node 24 主任务才是准入门槛 |
+| **Node.js** | ≥ 22.13，推荐 24 | 使用内置 `node:sqlite`；Node 22.13 起该模块已不再需要 `--experimental-sqlite`（更早的 22.x 才需要），CI 的 Node 24 主任务才是准入门槛 |
 | **DSH** | 按 0.2.0-rc.2 适配 | 依赖 slash RPC、`/api/remote.mux` 事件流与 0.1.7+ 的 agent-presets 机制；换大版本先跑 `npm run verify:adaptation` |
 | **SnowLuma** | OneBot v11（WebSocket + HTTP） | 不随仓库分发、不代启动；默认 `ws://127.0.0.1:3001` / `http://127.0.0.1:3000` |
 | **数据库** | SQLite（WAL） | 无需额外服务，数据在 `state/db/bridge.db` |

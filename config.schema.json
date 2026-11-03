@@ -552,7 +552,7 @@
             "dir": {
               "title": "图片库目录",
               "type": "string",
-              "default": "D:/xiaojingyu-images"
+              "default": "state/images"
             },
             "enabled": {
               "title": "通用图片库",

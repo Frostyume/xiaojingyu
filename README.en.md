@@ -159,7 +159,8 @@ message to the bot from a whitelisted QQ account.
 
 ### The first hour after deployment
 
-1. Open **Persona & roles** in the console, confirm the card is Xiaojingyu, and read both prompt layers;
+1. Open **Persona & roles** in the console and confirm the card is Xiaojingyu (it is enabled by
+   default on first start; if not, click **Enable** at the bottom-right of the card), then read both prompt layers;
 2. Open **Group Theatre** and tune wake rate, night silence and tool switches;
 3. **Allow only one group and one friend first**, observe for a day, then widen the whitelist;
 4. Try `内心状态` and `跑一次分享` in a private chat to sample her inner-life features;
@@ -183,8 +184,10 @@ speaking and how she carries herself in each group are yours to change.
    tone, sore spots. The *simulation prompt* defines how she works — tools, message splitting,
    diving and waking. When changing the character, edit only the former.
 2. **Change the character.** Copy `personas/小鲸鱼.md` to `personas/<new-name>.md` and rewrite it,
-   or create a card in the console under **Persona & roles**. Then select it in the console, or say
-   `进入角色扮演：<name>` in a group to switch.
+   or create a card in the console under **Persona & roles**. Then click **Enable** at the bottom-right
+   of that card. The owner can also send `/role <name>` in a private chat, and `/role clear` to go
+   back to no character. `进入角色扮演：<name>` in a group does **not** work — persona switching is
+   owner-only and console-side.
 3. **Give each group its own manners.** In **Group Theatre**, write a per-group initial prompt,
    group profile and style note, so she does not sound the same everywhere.
 4. **Verify in small steps.** Talk to her in a DM first, then put her in one group for a day. Edit

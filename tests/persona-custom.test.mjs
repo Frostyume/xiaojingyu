@@ -86,7 +86,7 @@ test('自定义角色的唤醒 prompt 不含小鲸鱼内核，但含完整角色
   });
 });
 
-test('默认角色（小鲸鱼）仍保留原人格内核，空角色保持原有行为', async () => {
+test('默认角色（小鲸鱼）仍保留原人格内核；显式清除后不再套用鲸鱼规则', async () => {
   await withBridge({ role: '小鲸鱼' }, async (h) => {
     const prompt = h.buildWakePrompt(GROUP, 'question');
     assert.match(prompt, /你是 DeepSeek 小鲸鱼/, '默认角色必须保持原内核');
@@ -96,7 +96,27 @@ test('默认角色（小鲸鱼）仍保留原人格内核，空角色保持原�
     const prompt = h.buildWakePrompt(GROUP, 'question');
     assert.doesNotMatch(prompt, /【人格内核/, '未设角色不应新增内核段（与基线一致）');
     assert.doesNotMatch(prompt, /你当前的角色是「/, '未设角色不得出现自定义角色身份措辞');
-    assert.match(prompt, /只发像小鲸鱼的东西/, '未设角色时非文字表达保持原规则');
+    assert.doesNotMatch(prompt, /只发像小鲸鱼的东西/, '显式清除后不得残留鲸鱼专属规则');
+    assert.match(prompt, /只发符合当前角色设定/, '清除角色后非文字表达用中性规则');
+  });
+});
+
+test('首次启动没有 current-role.json 时默认启用自带的小鲸鱼角色卡', async () => {
+  const card = '你是「小鲸鱼」，一只住在 QQ 里的鲸鱼娘。说话短。';
+  await withBridge({ roleFiles: { 小鲸鱼: card } }, async (h) => {
+    const prompt = h.buildWakePrompt(GROUP, 'question');
+    assert.match(prompt, /【当前角色】小鲸鱼/, '首次启动应默认启用小鲸鱼');
+    assert.ok(prompt.includes(card), '默认角色卡要能读出来（状态文件缺失不能挡住角色卡）');
+    assert.match(prompt, /你是 DeepSeek 小鲸鱼/, '默认角色仍带人格内核');
+  });
+});
+
+test('自定义角色名也参与名字触发', async () => {
+  await withBridge({ roleFiles: { [CUSTOM]: CUSTOM_CARD }, role: CUSTOM }, async (h) => {
+    const st = h.getSimulationState(GROUP);
+    st.wakeConfig = { ...(st.wakeConfig || {}), triggers: { ...(st.wakeConfig?.triggers || {}), nameMention: true } };
+    const reason = h.evaluateWakeTrigger(GROUP, st, { self_id: 999, message: [] }, 'group', `${CUSTOM}在吗`, `${CUSTOM}在吗`, false);
+    assert.equal(reason, 'nameMention', '群里叫自定义角色名应唤醒');
   });
 });
 

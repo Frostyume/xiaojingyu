@@ -37,7 +37,7 @@
 
    - `snowluma.wsUrl` / `httpUrl`（例如 `ws://127.0.0.1:3001` / `http://127.0.0.1:3000`，分别对应 OneBot WebSocket 与 HTTP API 端口）
    - `snowluma.accessToken`
-   - `dsh.authToken`（新版 DSH 的 launch token，用于换取 Cookie；默认留空，桥接会自动从 DSH guard 日志发现，DSH 重启后也会自动重新发现）
+   - `dsh.authToken`（一般**留空**：桥接会用 `~/.dsh/.credentials.yaml` 里的持久签名密钥离线铸造 Cookie；只有明确要走 launch-token 交换时才填。DSH 的进程启动 token 每进程现生成、只在内存里，不能从旧日志里读）
    - `ownerQQ`
    - `allow.private` / `allow.groups`
 
@@ -86,7 +86,7 @@
 
 离线安全回归：`node tests/audit-setup.test.mjs` 与 `node tests/audit-setup-guards.test.mjs`。后者直接执行 preset 的限制插件，验证本地工具、未声明工具与裸 `web_fetch` / `web_search` 被拒绝，而带 SSRF 防护的 `mcp__web-search-safe__*` 仍然可用。更新 preset 后需重新运行安装脚本并重启 DSH，现有 DSH 安装中的旧副本才会更新。
 
-0. **一键自检**：`npm run verify:adaptation` —— 覆盖 preset persona schema、bundle patch 与工具守卫、版本身份一致性、preset fail-closed 护栏，以及**运行中的 DSH 0.2.0 实测**（`qq-mode` 命名空间可列可写、`session/projections`、`session/control` 的 `projections` 形状、`stopSessionWork` 退役会话、`$events` ready 帧、`session/modelCatalog`、点号 endpoint 仍 404）等共 65 项断言。
+0. **一键自检**：`npm run verify:adaptation` —— 需要本机 DSH 已启动且 `config.json` 已填好（离线环境只会跑不依赖活 DSH 的断言）。覆盖 preset persona schema、bundle patch 与工具守卫、版本身份一致性、preset fail-closed 护栏，以及**运行中的 DSH 0.2.0 实测**（`qq-mode` 命名空间可列可写、`session/projections`、`session/control` 的 `projections` 形状、`stopSessionWork` 退役会话、`$events` ready 帧、`session/modelCatalog`、点号 endpoint 仍 404）等共 65 项断言。
    > 若你的环境禁止起子进程（例如在 DSH 的沙箱会话里跑），脚本内那批 `node --check` 语法检查会被**显式记为跳过**（`⏭`）而不是报假失败 —— 请在普通终端重跑以覆盖它们。
 1. **切换桥接模式**：打开桥接控制台（默认 `http://127.0.0.1:3100`），顶部的模式按钮即为当前生效的切换入口。控制台会同时写入 DSH 设置与本地 `state/mode.json`。
    > ℹ️ DSH 设置页 `Plugins → Plugin configuration` 里**不会**出现 `qq-mode` 卡片：该槽位要求插件自带浏览器半（`package.json` 的 `dsh.client` + `lib/client.js`），而 `plugins/mode-console` 只实现了 host 半。`qq-mode` 命名空间本身**可用**（`settings/describe` 能列出、`settings/update` 能写成功），缺的只是那张 GUI 表单 —— 所以模式改走控制台。参见下方「常见问题」。

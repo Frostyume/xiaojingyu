@@ -3,6 +3,16 @@ chcp 65001 >nul
 cd /d "%~dp0.."
 rem Audio probe paths are machine-specific: keep them in start.local.bat (gitignored).
 if exist "%~dp0..\start.local.bat" call "%~dp0..\start.local.bat"
+if not exist "config.json" (
+    echo [%date% %time%] config.json not found.
+    echo.
+    echo   copy config.example.json config.json
+    echo   then fill in ownerQQ, allow lists and the SnowLuma addresses.
+    echo.
+    echo The bridge will not start until config.json exists.
+    pause
+    exit /b 1
+)
 rem Harden state/ ACLs (Windows needs WRITE_DAC; the directory owner normally has it,
 rem so no UAC prompt in the usual case). This NEVER blocks startup: if it cannot get
 rem permission it prints a copy-pasteable command and exits 0.

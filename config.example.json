@@ -478,7 +478,7 @@
     },
     "imageLibrary": {
       "enabled": true,
-      "dir": "D:/xiaojingyu-images",
+      "dir": "state/images",
       "maxBytes": 20971520,
       "allowUrlSave": true,
       "includeInPrompt": true,

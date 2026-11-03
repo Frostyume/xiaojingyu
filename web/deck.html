@@ -1615,6 +1615,36 @@ tr:last-child td {
   color:var(--muted-soft);
   overflow-wrap:anywhere
 }
+.persona-item-wrap {
+  position:relative;
+  display:flex;
+  min-width:0
+}
+.persona-item-wrap > .persona-item {
+  flex:1;
+  min-width:0;
+  padding-bottom:42px
+}
+.persona-use {
+  position:absolute;
+  right:10px;
+  bottom:9px;
+  padding:2px 10px;
+  font-size:11px;
+  border-radius:20px;
+  border:1px solid var(--border-chip);
+  background:var(--surface);
+  color:var(--text-strong);
+  cursor:pointer
+}
+.persona-use:hover:not(:disabled) {
+  border-color:var(--accent-border-hover);
+  background:var(--surface-hover)
+}
+.persona-use:disabled {
+  opacity:.65;
+  cursor:default
+}
 .persona-badge {
   font-size:10px;
   line-height:1.6;
@@ -5613,6 +5643,8 @@ async function refreshRoles() {
       box.appendChild(empty);
     }
     for (const role of roleCache) {
+      const wrap = document.createElement('div');
+      wrap.className = 'persona-item-wrap';
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'persona-item' + (role.name === r.current ? ' active' : '');
@@ -5650,10 +5682,28 @@ async function refreshRoles() {
       meta.textContent = `共 ${role.chars} 字符 · ${injection}${role.excerpt ? ' · ' + role.excerpt : ''}`;
       item.append(head, meta);
       item.addEventListener('click', () => openRoleForEdit(role.name));
-      box.appendChild(item);
+      const use = document.createElement('button');
+      use.type = 'button';
+      use.className = 'persona-use';
+      const active = role.name === r.current;
+      use.textContent = active ? '已启用' : '启用';
+      use.disabled = active;
+      use.title = active ? '当前正在使用这个人格' : `启用「${role.name}」`;
+      use.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const res = await api('/api/role', 'POST', { role: role.name });
+        if (res.ok) {
+          await refreshRoles();
+          refresh();
+        } else {
+          alert(res.error || '启用失败');
+        }
+      });
+      wrap.append(item, use);
+      box.appendChild(wrap);
     }
     const hint = document.getElementById('roleListHint');
-    if (hint) hint.textContent = roleCache.length ? `共 ${roleCache.length} 个 · 点任意一个载入编辑` : '';
+    if (hint) hint.textContent = roleCache.length ? `共 ${roleCache.length} 个 · 点卡片载入编辑，点「启用」切换` : '';
     renderRoleEditor();
   } catch (error) {
     document.getElementById('roleList').textContent = '加载失败：' + (error?.message ?? error);

@@ -252,7 +252,8 @@ const SIGNATURE_FILE = path.join(STATE_DIR, 'signature.json');
 const VOICE_STYLE_FILE = path.join(STATE_DIR, 'voice-style.json');
 const ACTIVITY_LOG = path.join(STATE_DIR, 'qq-activity.log');
 const BRIDGE_LOG = path.join(STATE_DIR, 'bridge.log');
-// 通用图片库元数据（图片本体在 config 的 simulation.imageLibrary.dir，默认 D:/xiaojingyu-images）。
+// 通用图片库元数据（图片本体在 config 的 simulation.imageLibrary.dir，默认 <仓库>/state/images）。
+const IMAGE_LIBRARY_DEFAULT_DIR = path.join('state', 'images');
 const IMAGE_FILE = path.join(STATE_DIR, 'images.json');
 
 /**
@@ -416,9 +417,10 @@ const ROLES_DIR = path.join(ROOT, 'personas');
 const ROLE_NAME_MAX = 40;
 const ROLE_CONTENT_MAX_BYTES = 64 * 1024;
 // 注入上限：**按模式筛完小节之后**再截断，避免另一模式的专属内容白白占掉预算。
-// 默认 6000（沿用历史值，是每条约 4~6k token 的成本护栏），可用 config.json 的
-// role.maxInjectChars 调整（1000~20000）；启动时由 applyRoleInjectLimit() 写入。
-const ROLE_INJECT_MAX_CHARS_DEFAULT = 6000;
+// 默认 10000，与 config.example.json / 控制台一致；仓库自带的「小鲸鱼」卡约 8000 字符，
+// 用 6000 会在首次启动时被静默截断。可用 config.json 的 role.maxInjectChars 调整
+// （1000~20000）；启动时由 applyRoleInjectLimit() 写入。
+const ROLE_INJECT_MAX_CHARS_DEFAULT = 10000;
 let roleInjectMaxChars = ROLE_INJECT_MAX_CHARS_DEFAULT;
 function applyRoleInjectLimit(value) {
   const n = Number(value);
@@ -813,16 +815,19 @@ function appendActivity(line) {
   appendActivityLog(`[${localClock()}] ${redactSensitiveText(String(line).replace(/[\r\n]+/g, ' '))}\n`);
 }
 
+// 默认角色 = 没设角色，或显式选了内置的「小鲸鱼」。只有默认角色才保留写死的人格内核；
+// 自定义角色的人格必须完全来自角色卡，否则每轮注入的内核会盖掉用户自己写的人格。
+const DEFAULT_ROLE_NAME = '小鲸鱼';
 // 读取角色/模式状态：{"role": "小鲸鱼", "mode": "active"|"silent"}
+// 状态文件不存在时默认启用自带角色；显式清除会写入 role:null，不会被这里的兜底覆盖。
+// 没有自带角色卡（用户删掉了）则保持无角色，避免凭空注入人格内核。
 function readRoleState() {
-  return readJsonSafe(ROLE_STATE_FILE, { role: null, mode: 'active' });
+  const fallbackRole = fs.existsSync(roleFilePath(DEFAULT_ROLE_NAME)) ? DEFAULT_ROLE_NAME : null;
+  return readJsonSafe(ROLE_STATE_FILE, { role: fallbackRole, mode: 'active' });
 }
 function writeRoleState(role, mode) {
   atomicWriteJson(ROLE_STATE_FILE, { role: role ?? null, mode: mode ?? 'active' });
 }
-// 默认角色 = 没设角色，或显式选了内置的「小鲸鱼」。只有默认角色才保留写死的人格内核；
-// 自定义角色的人格必须完全来自角色卡，否则每轮注入的内核会盖掉用户自己写的人格。
-const DEFAULT_ROLE_NAME = '小鲸鱼';
 function currentRoleName() {
   return String(readRoleState().role || '').trim();
 }
@@ -854,8 +859,11 @@ function normalizeIdList(value) {
 // ── 配置 ────────────────────────────────────────────────────────────────────
 function loadConfig() {
   const p = path.join(ROOT, 'config.json');
-  const file = readJsonSafe(p, null, true);
-  if (!file || typeof file !== 'object' || Array.isArray(file)) throw new Error(`配置格式错误：${p}`);
+  // 缺失/损坏都走同一条可操作的提示，避免启动日志只甩一个 ENOENT 堆栈。
+  const file = readJsonSafe(p, null);
+  if (!file || typeof file !== 'object' || Array.isArray(file)) {
+    throw new Error(`配置格式错误：${p} 不存在或不是有效的 JSON 对象。\n请先复制 config.example.json 为 config.json（Windows 可用 copy config.example.json config.json），再填写 ownerQQ、allow 白名单与 SnowLuma 地址。`);
+  }
   const cfg = {
     dsh: {
       baseUrl: 'http://127.0.0.1:3080',
@@ -1186,10 +1194,10 @@ function loadConfig() {
   };
 
   // simulation.imageLibrary：通用图片库（网上找的图/截图/二创表情），与 QQ 收藏表情库分开。
-  // 本体默认放 D 盘避免占 C 盘；元数据在 state/images.json。
+  // 默认放 state/images（已随 state/ 忽略，不会误提交），可用绝对路径改到大容量磁盘；元数据在 state/images.json。
   cfg.simulation.imageLibrary = {
     enabled: true,
-    dir: 'D:/xiaojingyu-images',
+    dir: IMAGE_LIBRARY_DEFAULT_DIR,
     maxBytes: 20 * 1024 * 1024,
     allowUrlSave: true,
     includeInPrompt: true,
@@ -1361,7 +1369,7 @@ function loadConfig() {
     cfg.dsh.reasoningEffort = REASONING_EFFORT_DEFAULT;
   }
 
-  // 人格卡注入上限（字符）。历史硬编码 6000，现在可配：每条约 4~6k token 的成本护栏。
+  // 人格卡注入上限（字符）。默认 10000，与示例配置一致；每条约 7~10k token 的成本护栏。
   cfg.role = { maxInjectChars: ROLE_INJECT_MAX_CHARS_DEFAULT, ...(file.role ?? {}) };
   roleInjectMaxChars = applyRoleInjectLimit(cfg.role.maxInjectChars);
   if (roleInjectMaxChars !== cfg.role.maxInjectChars) {
@@ -4608,8 +4616,10 @@ async function main() {
 
   // ── 通用图片库（区别于 QQ 收藏表情库）────────────────────────────────────
   // 表情库只能同步 QQ 收藏表情；这里是任意图片：网图、截图、二创表情。
+  // 相对路径按仓库根目录解析，避免从别的目录启动时把图片写到意外位置。
   function imageLibraryDir() {
-    return String(cfg.simulation?.imageLibrary?.dir || path.join(ROOT, 'images'));
+    const raw = String(cfg.simulation?.imageLibrary?.dir || IMAGE_LIBRARY_DEFAULT_DIR);
+    return path.isAbsolute(raw) ? raw : path.join(ROOT, raw);
   }
 
   function imageEnabled() {
@@ -15061,15 +15071,21 @@ async function main() {
       const resolved = path.resolve(roleFile);
       if (!resolved.startsWith(path.resolve(ROLES_DIR) + path.sep)) return '';
       if (!fs.existsSync(resolved)) return '';
-      const stateStat = fs.statSync(ROLE_STATE_FILE);
       const roleStat = fs.statSync(roleFile);
+      // current-role.json 在首次启动时可能还不存在（readRoleState 用默认角色兜底），
+      // 不能因此让整张角色卡读不出来；缺失时只少一个缓存维度。
+      let stateStamp = '';
+      try {
+        const stateStat = fs.statSync(ROLE_STATE_FILE);
+        stateStamp = `${stateStat.mtimeMs}:${stateStat.size}`;
+      } catch { /* 状态文件尚未落盘 */ }
       // 缓存 key 必须带上**文件名与文件大小**，不能只看 mtime：
       // ① 有些文件系统 mtime 只有秒级粒度（或时钟回拨），同一 tick 内把角色卡重写成新人格，
       //    两个 mtime 完全相同 → 缓存命中 → 注入的还是旧人格，而且是每条提示词都错；
       //    带上名字后，切换角色（例如 a.md → b.md）永远不会误命中。
       // ② 同名的原地重写若长度变了（大多数编辑都会变），size 变化也能击穿缓存。
       // 代价只是多几次 stat，比"热注入路径上一直发旧人格"划算得多。
-      const cacheKey = `${safeName}:${stateStat.mtimeMs}:${stateStat.size}:${roleStat.mtimeMs}:${roleStat.size}`;
+      const cacheKey = `${safeName}:${stateStamp}:${roleStat.mtimeMs}:${roleStat.size}`;
       const packFile = personaPackPath(ROLES_DIR, safeName);
       let packStamp = '';
       try {
@@ -15822,7 +15838,7 @@ async function main() {
       const atSelf = Array.isArray(event?.message) && event.message.some((seg) => seg?.type === 'at' && String(seg.data?.qq) === String(event?.self_id ?? ''));
       if (atSelf || quoteTargetIsSelf) return 'atMention';
     }
-    if (tr.nameMention && (selfNickname || selfAliases.size)) {
+    if (tr.nameMention && (selfNickname || selfAliases.size || isCustomRoleName(currentRoleName()))) {
       // 用 plainContent（当前消息自己的文字）：textContent 含 `[引用 某人：原文]`，
       // 引用一条恰好提到机器人昵称的旧消息不该算「叫了名字」（那是被动触发的付费回合）。
       if (selfNameMatches(String(plainContent ?? '').toLowerCase())) return 'nameMention';
@@ -16036,7 +16052,13 @@ async function main() {
   function selfNameMatches(lowerText) {
     const lower = String(lowerText ?? '');
     if (!lower) return false;
-    const names = [selfNickname, ...[...selfAliases].map((a) => String(a).toLowerCase())].filter(Boolean);
+    // 自定义角色名也算“叫到她了”：否则用户换成自己的角色后，群里叫名字唤不醒。
+    const roleName = currentRoleName();
+    const names = [
+      selfNickname,
+      ...[...selfAliases].map((a) => String(a).toLowerCase()),
+      isCustomRoleName(roleName) ? roleName.toLowerCase() : ''
+    ].filter(Boolean);
     return names.some((name) => lower.includes(`@${name}`) || lower.includes(name));
   }
 
@@ -16254,7 +16276,9 @@ async function main() {
     // 写死的人格内核只属于显式选中的默认角色「小鲸鱼」；未设角色保持基线行为（不注入），
     // 自定义角色一律以角色卡为准。内核单独成段并参与预算丢弃，避免挤掉 required 段。
     const roleKernelLine = roleSnapshot.name && !roleSnapshot.custom ? PERSONA_KERNEL : '';
-    const nonTextPersonaLine = roleSnapshot.custom ? NON_TEXT_PERSONA_NEUTRAL_LINE : NON_TEXT_PERSONA_LINE;
+    // 默认角色用鲸鱼专属的非文字规则；自定义角色与「已清除角色」都用中性版，
+    // 避免用户在控制台点「清除」后仍被要求“只发像小鲸鱼的东西”。
+    const nonTextPersonaLine = roleSnapshot.name && !roleSnapshot.custom ? NON_TEXT_PERSONA_LINE : NON_TEXT_PERSONA_NEUTRAL_LINE;
     // 角色卡刷新：文件内容一变化（包括同名改卡、切角色），下一次唤醒自动带一次完整新卡，
     // 不再依赖模型自己想起来调用 qq_get_prompt。版本随会话持久化，只注入一次。
     let roleUpdateLine = '';

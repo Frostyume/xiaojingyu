@@ -9,7 +9,7 @@
 
 | 组件 | 要求 |
 | --- | --- |
-| **DeepSeek Harness** | 已安装并运行，默认 `http://127.0.0.1:3080` |
+| **DeepSeek Harness** | 已安装并运行，默认 `http://127.0.0.1:3080`；按 **0.2.0-rc.2** 适配 |
 | **SnowLuma** | Windows x64 版，能正常登录 QQ 并开启 OneBot WebSocket + HTTP API |
 | **Node.js** | ≥ 22.13（CI 主任务跑 Node 24） |
 | **系统** | Windows 10 / 11（QQ 与 SnowLuma 都在 Windows 上） |
