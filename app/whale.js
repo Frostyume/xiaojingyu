@@ -837,10 +837,13 @@ function sanitizeRoleName(name) {
   return String(name ?? '').replace(/[^\w\u4e00-\u9fff-]/g, '');
 }
 // qq_get_prompt 会把推荐唤醒关键词一起给模型；自定义角色下不能继续推荐默认角色名。
+const DEFAULT_PERSONA_WAKE_KEYWORDS = new Set(['小鲸鱼', 'DeepSeek', 'deepseek', 'DS', 'D老师', 'd老师', 'D指导', 'd指导', 'D师傅', 'd师傅', '深度求索', '大肥鱼', '鲸鱼', 'DeepSeek V3', 'DeepSeek R1', 'R1']);
 function roleAwareRecommendations(recommended, { custom = false, roleName = '' } = {}) {
   if (!custom || !recommended) return recommended;
+  const source = Array.isArray(recommended.wake?.recommendedKeywords) ? recommended.wake.recommendedKeywords : [];
+  const kept = source.filter((word) => !DEFAULT_PERSONA_WAKE_KEYWORDS.has(String(word ?? '').trim()));
   const wake = recommended.wake && typeof recommended.wake === 'object'
-    ? { ...recommended.wake, recommendedKeywords: [roleName].filter(Boolean) }
+    ? { ...recommended.wake, recommendedKeywords: [...new Set([roleName, ...kept].filter(Boolean))] }
     : recommended.wake;
   return { ...recommended, wake };
 }
