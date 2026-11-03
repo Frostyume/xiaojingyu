@@ -5,14 +5,22 @@
 //   · bridge 据此补齐「打开主开关时应该同时打开哪些子开关」；
 //   · 运行期是否真正生效仍由各模块读取 features.<id> 判定，本文件不做调度。
 //
-// 约定：每个模块只有 features.<id> 一个主开关。旧的 *.enabled 子开关保留在
-// config.json 里做兼容，但不再在界面上重复出现；打开主开关时会自动把它们补成 true。
-// 「分享引擎」是板块级总闸：board.master 指向 features.shareModule，下面的
+// 约定：每个模块只有一个主开关。默认落在 features.<id>；群聊剧场这类原本就
+// 「默认开启、只有显式 false 才关闭」的模块用 configKey 直接复用原配置键，
+// 避免升级后多出一层默认关闭的 features.* 把已有行为静默关掉。
+// 打开主开关时会自动补齐依赖里的子开关（enableValue）。
+// 「群聊剧场」和「分享引擎」是板块级总闸：board.master 指向对应开关，下面的
 // 内容模块和旧版主动分享都要再过总闸一次。本仓库没有生活管家（lifeButler）。
 
-import { FEATURE_MODULES } from './feature-switches.js';
+import { FEATURE_MODULES, featureEnabled } from './feature-switches.js';
 
 export const FEATURE_BOARDS = Object.freeze([
+  {
+    id: 'chat',
+    label: '群聊剧场',
+    master: 'groupChat',
+    description: '群聊本身的总闸和常用行为：回不回、冒不冒泡、用不用表情。'
+  },
   {
     id: 'shareEngine',
     label: '分享引擎',
@@ -35,6 +43,74 @@ const SHARE_ENGINE_DEPS = [
 ];
 
 const CARD_LIST = [
+  // ── 群聊剧场板块 ────────────────────────────────────────────────────────
+  {
+    id: 'groupChat',
+    board: 'chat',
+    boardMaster: true,
+    configKey: 'simulation.enabled',
+    label: '群聊剧场总闸',
+    keywords: '群聊 剧场 simulation 回复 仿真 总闸',
+    description: '控制整套群聊仿真：群消息是否进入自动回复、冒泡和表情流程。',
+    onEffect: '群消息按各自开关进入回复、主动冒泡和表情流程。',
+    offEffect: '停止群聊自动行为；主人私聊和控制台操作不受影响。',
+    dangerousOff: true,
+    dependencies: []
+  },
+  {
+    id: 'chatProactive',
+    board: 'chat',
+    configKey: 'simulation.proactive.enabled',
+    label: '主动冒泡',
+    keywords: '主动 冒泡 proactive 冷场 主动机会',
+    description: '群聊冷场一段时间后，她按概率主动冒个泡。',
+    onEffect: '空闲一段时间后按概率主动发消息，夜间静默时段仍会避开。',
+    offEffect: '不再主动冒泡；被叫到仍会正常回复。',
+    dangerousOff: false,
+    dependencies: [
+      dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })
+    ],
+    advanced: [
+      { key: 'simulation.proactive.idleThresholdMs', label: '安静多久后考虑冒泡（分钟）', type: 'number', min: 1, max: 1440, scale: 60000, default: 900000 },
+      { key: 'simulation.proactive.probability', label: '触发概率', type: 'number', min: 0, max: 1, step: 0.05, default: 0.3 }
+    ]
+  },
+  {
+    id: 'chatStickers',
+    board: 'chat',
+    configKey: 'simulation.sticker.enabled',
+    label: '表情包',
+    keywords: '表情包 sticker 收藏 斗图',
+    description: '她可以从群友发的表情包里挑图回发，也会自动收集新表情。',
+    onEffect: '允许在回复中发表情包，并继续自动收集群里的表情。',
+    offEffect: '不再发表情包，也不再收集；文字回复不受影响。',
+    dangerousOff: false,
+    dependencies: [
+      dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })
+    ],
+    advanced: [
+      { key: 'simulation.sticker.collect.enabled', label: '自动收集群里的新表情', type: 'boolean', default: true }
+    ]
+  },
+  {
+    id: 'chatNightQuiet',
+    board: 'chat',
+    configKey: 'simulation.nightQuiet.enabled',
+    label: '夜间静默',
+    keywords: '夜间 静默 nightQuiet 免打扰 睡觉',
+    description: '在设定时段内不主动冒泡、不打扰；消息仍会照常收到。',
+    onEffect: '静默时段内暂停主动冒泡和内心生活的外发动作。',
+    offEffect: '夜间也按普通时间处理，主动行为不再避开深夜。',
+    dangerousOff: false,
+    dependencies: [
+      dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })
+    ],
+    advanced: [
+      { key: 'simulation.nightQuiet.start', label: '静默开始', type: 'time', default: '23:30' },
+      { key: 'simulation.nightQuiet.end', label: '静默结束', type: 'time', default: '08:30' }
+    ]
+  },
+
   // ── 分享引擎板块 ────────────────────────────────────────────────────────
   {
     id: 'shareModule',
@@ -323,6 +399,24 @@ if (missing.length) {
 
 export function cardFor(id) {
   return FEATURE_CARD_BY_ID[String(id || '')] || null;
+}
+
+/** 卡片的实际开关键：默认 features.<id>，声明了 configKey 的复用原配置键。 */
+export function cardSwitchKey(card) {
+  const item = typeof card === 'string' ? cardFor(card) : card;
+  if (!item) return '';
+  return item.configKey || `features.${item.id}`;
+}
+
+/**
+ * 卡片开关是否打开。
+ * features.* 沿用严格 true；configKey 卡片沿用原模块「默认开、显式 false 才关」。
+ */
+export function cardEnabled(card, cfg) {
+  const key = cardSwitchKey(card);
+  if (!key) return false;
+  if (key.startsWith('features.')) return featureEnabled(cfg, key.slice('features.'.length));
+  return valueAtPath(cfg, key, true) !== false;
 }
 
 export function cardDefaultKeys(id) {

@@ -26,6 +26,8 @@ import {
   FEATURE_CARDS,
   cardFor,
   cardDefaultKeys,
+  cardEnabled,
+  cardSwitchKey,
   evaluateDependencies,
   featureEnablePatch,
   advancedFieldsFor,
@@ -196,15 +198,19 @@ assert.equal(forcedShare.reason, 'features.aiTips=false');
 const sharePreview = await inner.runShareModule('ai_tips', { dryRun: true, force: true });
 assert.notEqual(sharePreview.status, 'disabled', '分享模块 dryRun 预览不应被主开关拦住');
 
-// 9. 控制台信息架构：15 个模块各一张卡、每个模块只有一个主开关
-assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED].sort());
-assert.equal(FEATURE_CARDS.length, 15);
-assert.equal(FEATURE_MODULES.length, FEATURE_CARDS.length);
-assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['shareEngine', 'social', 'ops', 'owner']);
+// 9. 控制台信息架构：群聊剧场总闸 + 15 个 features 模块各一张卡
+const CHAT_CARDS = ['groupChat', 'chatProactive', 'chatStickers', 'chatNightQuiet'];
+assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS].sort());
+assert.equal(FEATURE_CARDS.length, 19);
+assert.equal(FEATURE_MODULES.length, EXPECTED.length);
+assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'ops', 'owner']);
+assert.equal(FEATURE_BOARDS.find((board) => board.id === 'chat').master, 'groupChat');
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'shareEngine').master, 'shareModule');
 for (const board of FEATURE_BOARDS) {
   assert(FEATURE_CARDS.some((card) => card.board === board.id), `板块 ${board.id} 必须至少有一个模块`);
 }
+const chatChildren = FEATURE_CARDS.filter((card) => card.board === 'chat' && !card.boardMaster).map((card) => card.id);
+assert.deepEqual(chatChildren, ['chatProactive', 'chatStickers', 'chatNightQuiet']);
 const shareEngineChildren = FEATURE_CARDS.filter((card) => card.board === 'shareEngine' && !card.boardMaster).map((card) => card.id);
 assert.deepEqual(shareEngineChildren.sort(), ['aiTips', 'customShare', 'esportsFeed', 'financeTips', 'lifeFun', 'llmTips', 's16Share', 'share'].sort());
 for (const card of FEATURE_CARDS) {
@@ -215,8 +221,31 @@ for (const card of FEATURE_CARDS) {
   if (card.board === 'shareEngine' && !card.boardMaster) {
     assert(card.dependencies.some((item) => item.key === 'features.shareModule'), `${card.id} 必须依赖分享引擎总闸`);
   }
+  if (card.board === 'chat' && !card.boardMaster) {
+    assert(card.dependencies.some((item) => item.key === 'simulation.enabled'), `${card.id} 必须依赖群聊剧场总闸`);
+  }
 }
 assert.equal(cardFor('not-a-module'), null);
+
+// 群聊剧场卡片复用 simulation.*：默认开、只有显式 false 才是关，升级后不会把已有行为关掉。
+assert.equal(cardSwitchKey('groupChat'), 'simulation.enabled');
+assert.equal(cardSwitchKey('chatProactive'), 'simulation.proactive.enabled');
+assert.equal(cardSwitchKey('chatStickers'), 'simulation.sticker.enabled');
+assert.equal(cardSwitchKey('chatNightQuiet'), 'simulation.nightQuiet.enabled');
+assert.equal(cardSwitchKey('qzone'), 'features.qzone');
+assert.equal(cardEnabled('groupChat', {}), true);
+assert.equal(cardEnabled('groupChat', { simulation: { enabled: false } }), false);
+assert.equal(cardEnabled('chatProactive', { simulation: {} }), true);
+assert.equal(cardEnabled('chatProactive', { simulation: { proactive: { enabled: false } } }), false);
+assert.equal(cardEnabled('chatNightQuiet', { simulation: { nightQuiet: { enabled: false } } }), false);
+assert.equal(cardEnabled('qzone', {}), false);
+assert.equal(cardEnabled('qzone', { features: { qzone: true } }), true);
+assert.deepEqual(featureEnablePatch(cardFor('groupChat')), {});
+assert.equal(featureEnablePatch(cardFor('chatProactive'))['simulation.enabled'], true);
+assert.equal(cardDefaultKeys('groupChat').length, 0);
+assert.equal(advancedFieldsFor(cardFor('chatNightQuiet'), {}).find((field) => field.key === 'simulation.nightQuiet.start').value, '23:30');
+assert.equal(evaluateDependencies(cardFor('chatStickers'), { simulation: { enabled: false } }).find((item) => item.key === 'simulation.enabled').ok, false);
+assert.equal(evaluateDependencies(cardFor('chatStickers'), {}).find((item) => item.key === 'simulation.enabled').ok, true);
 
 // 打开主开关时必须同时补齐硬依赖子开关，否则会出现「总开、子关」的死开关。
 const enginePatch = featureEnablePatch(cardFor('shareModule'));

@@ -87,26 +87,30 @@ try {
     previewAiTip: async () => ({ status: 'dryRun' })
   });
 
-  // ── 1. 端点快照：4 板块 / 15 卡片 / 分享引擎总闸 ──────────────────────
+  // ── 1. 端点快照：5 板块 / 19 卡片 / 群聊剧场与分享引擎总闸 ─────────────
   const snap = await call('/api/features/control');
   assert.equal(snap.status, 200, 'GET /api/features/control 应成功');
   assert.equal(snap.json.ok, true);
-  assert.deepEqual(snap.json.boards.map((b) => b.id), ['shareEngine', 'social', 'ops', 'owner']);
+  assert.deepEqual(snap.json.boards.map((b) => b.id), ['chat', 'shareEngine', 'social', 'ops', 'owner']);
+  assert.equal(snap.json.boards.find((b) => b.id === 'chat').master, 'groupChat');
   assert.equal(snap.json.boards.find((b) => b.id === 'shareEngine').master, 'shareModule');
   assert.deepEqual(snap.json.modules.map((m) => m.id).sort(), FEATURE_CARDS.map((c) => c.id).sort());
-  assert.equal(snap.json.modules.length, 15);
+  assert.equal(snap.json.modules.length, 19);
   for (const module of snap.json.modules) {
     assert.equal(typeof module.enabled, 'boolean', `${module.id} 必须只有一个布尔主开关`);
     assert.ok(module.board, `${module.id} 必须归属板块`);
     assert.equal(module.dependencies.every((d) => d.ok === true), true, `${module.id} 依赖应就绪`);
   }
   assert.equal(snap.json.modules.find((m) => m.id === 'qzone').enabled, true);
+  assert.equal(snap.json.modules.find((m) => m.id === 'groupChat').enabled, true, '群聊剧场默认开');
+  const chatModules = snap.json.boards.find((b) => b.id === 'chat').modules.map((m) => m.id);
+  assert.deepEqual(chatModules, ['groupChat', 'chatProactive', 'chatStickers', 'chatNightQuiet']);
   for (const id of ['aiTips', 'lifeFun', 'financeTips', 'llmTips', 's16Share', 'customShare']) {
     const module = snap.json.modules.find((m) => m.id === id);
     assert.equal(module.board, 'shareEngine', `${id} 应归入分享引擎板块`);
     assert.ok(module.dependencies.some((d) => d.key === 'features.shareModule' && d.ok), `${id} 应声明分享引擎总闸依赖`);
   }
-  console.log('OK 快照：4 板块 / 15 模块 / 分享引擎总闸');
+  console.log('OK 快照：5 板块 / 19 模块 / 群聊剧场与分享引擎总闸');
 
   // ── 2. 关闭空间说说：配置落盘 + HTTP 入口拒绝 ──────────────────────────
   const offQzone = await call('/api/features/control', { method: 'POST', body: { id: 'qzone', enabled: false } });
@@ -159,6 +163,35 @@ try {
   assert.notEqual(reportOn.status, 'disabled', '打开后日报任务应继续走原模式/静默检查');
   assert.notEqual(reportOn.reason, 'features.dailyReport=false');
   console.log('OK 群日报：关闭时任务 disabled，打开后恢复原调度');
+
+  // ── 3c. 群聊剧场：卡片直接写 simulation.*，总闸关闭时子卡片 blocked ───
+  const offProactive = await call('/api/features/control', { method: 'POST', body: { id: 'chatProactive', enabled: false } });
+  assert.equal(offProactive.status, 200);
+  assert.ok(offProactive.json.applied.includes('simulation.proactive.enabled'));
+  assert.equal(h.cfg.simulation.proactive.enabled, false);
+  assert.equal(h.cfg.features.chatProactive, undefined, '群聊卡片不能新造 features.* 键');
+  const savedChat = JSON.parse(fs.readFileSync(path.join(h.temp, 'config.json'), 'utf8'));
+  assert.equal(savedChat.simulation.proactive.enabled, false, '群聊卡片必须写入原配置键');
+  const proactiveOffSnap = await call('/api/features/control');
+  assert.equal(proactiveOffSnap.json.modules.find((m) => m.id === 'chatProactive').enabled, false);
+  assert.equal(proactiveOffSnap.json.modules.find((m) => m.id === 'chatProactive').state, 'off');
+  assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'chatProactive', enabled: true } })).status, 200);
+  assert.equal(h.cfg.simulation.proactive.enabled, true);
+  assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'chatNightQuiet', enabled: true } })).status, 200);
+  assert.equal(h.cfg.simulation.nightQuiet.enabled, true);
+
+  assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'groupChat', enabled: false } })).status, 200);
+  assert.equal(h.cfg.simulation.enabled, false);
+  const chatOffSnap = await call('/api/features/control');
+  for (const id of ['chatProactive', 'chatStickers', 'chatNightQuiet']) {
+    const module = chatOffSnap.json.modules.find((m) => m.id === id);
+    assert.equal(module.enabled, true, `${id} 自己的开关保持不变`);
+    assert.equal(module.state, 'blocked', `群聊总闸关闭后 ${id} 应被阻断`);
+    assert.equal(module.dependencies.find((d) => d.key === 'simulation.enabled').ok, false);
+  }
+  assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'chatNightQuiet', enabled: true } })).status, 200);
+  assert.equal(h.cfg.simulation.enabled, true, '打开子卡片应自动补开群聊总闸');
+  console.log('OK 群聊剧场：configKey 写回 simulation.*，总闸阻断子卡片，子卡片自动补开总闸');
 
   // ── 4. 分享引擎总闸 / 模块开关：两层各拦一次 ───────────────────────────
   assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'shareModule', enabled: false } })).status, 200);

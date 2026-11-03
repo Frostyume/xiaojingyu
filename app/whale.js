@@ -88,7 +88,7 @@ import { normalizeOwnerFeature, validateOwnerFeature, nextOwnerFeatureRuns, rend
 import { synthesizeFeatureVoice } from '../runtime/orchestration/feature-voice.js';
 import { listOwnerConfig, readOwnerConfig, validateOwnerConfig, ownerConfigPatch } from '../runtime/control/owner-config.js';
 import { FEATURE_MODULES, normalizeFeatureConfig, featureEnabled, featureSnapshot, featureForShareModule, shareEngineEnabled, shareModuleIdForFeature, SHARE_MODULE_FEATURES } from '../runtime/control/feature-switches.js';
-import { FEATURE_BOARDS, FEATURE_CARDS, cardFor, cardDefaultKeys, evaluateDependencies, featureEnablePatch, advancedFieldsFor, configValueFor, valueAtPath } from '../runtime/control/feature-control.js';
+import { FEATURE_BOARDS, FEATURE_CARDS, cardFor, cardDefaultKeys, cardEnabled, cardSwitchKey, evaluateDependencies, featureEnablePatch, advancedFieldsFor, configValueFor, valueAtPath } from '../runtime/control/feature-control.js';
 import { listProposals, proposalSummary, readResult, writeResult, mergeProposal, rejectProposal, notificationFor } from '../runtime/orchestration/dev-proposals.js';
 import { queueCodeProposal, stageCodeProposal } from '../runtime/orchestration/code-proposal.js';
 import { enqueueTask, updateTask, queueSnapshot, readTask } from '../runtime/orchestration/orchestrator-queue.js';
@@ -3853,10 +3853,31 @@ async function main() {
         const next = features.map((f) => Number(f.nextAt) || 0).filter(Boolean).sort((a, b) => a - b)[0];
         return { line: `${features.length} 个任务${next ? ` · 下次 ${fmt(next)}` : ''}${of.orchestrator?.pending ? ` · ${of.orchestrator.pending} 个等待主控` : ''}`, tone: 'ok' };
       }
+      if (id === 'groupChat') {
+        if (simulation.paused) return { line: '已暂停：恢复后才会继续自动回复群消息', tone: 'warn', attention: true };
+        if (cfg.simulation?.enabled === false) return { line: '总闸已关闭：群聊不会自动回复', tone: 'muted' };
+        return { line: '群消息会按各子开关进入回复、冒泡和表情流程', tone: 'ok' };
+      }
+      if (id === 'chatProactive') {
+        const pa = cfg.simulation?.proactive || {};
+        const probability = Math.round((Number(pa.probability) || 0) * 100);
+        const idleMinutes = Math.round((Number(pa.idleThresholdMs) || 0) / 60000);
+        return { line: `安静 ${idleMinutes} 分钟后有 ${probability}% 概率冒泡`, tone: 'ok' };
+      }
+      if (id === 'chatStickers') {
+        return cfg.simulation?.sticker?.collect?.enabled === false
+          ? { line: '自动收集已关闭，只保留手动添加的表情', tone: 'muted' }
+          : { line: '会自动收集群里的新表情', tone: 'ok' };
+      }
+      if (id === 'chatNightQuiet') {
+        const quiet = nightQuietConfig();
+        const active = isNightQuietNow();
+        return { line: `${active ? '当前在静默时段' : '当前不在静默时段'} · ${quiet.start}-${quiet.end}`, tone: active ? 'ok' : 'muted' };
+      }
       return { line: '', tone: 'muted' };
     };
     const modules = FEATURE_CARDS.map((card) => {
-      const enabled = featureEnabled(cfg, card.id);
+      const enabled = cardEnabled(card, cfg);
       const dependencies = evaluateDependencies(card, cfg, (key) => valueAtPath(cfg, key, true));
       const hardBlocked = enabled && dependencies.some((item) => !item.ok && !item.soft);
       const state = !enabled ? 'off' : hardBlocked ? 'blocked' : 'on';
@@ -6748,13 +6769,16 @@ async function main() {
           const card = cardFor(id);
           if (!card) { sendJson({ ok: false, error: `未知功能模块：${id}` }, 400); return; }
           if (typeof body.enabled !== 'boolean') { sendJson({ ok: false, error: 'enabled 必须是布尔值' }, 400); return; }
-          const patch = { [`features.${id}`]: body.enabled };
+          const switchKey = cardSwitchKey(card);
+          const patch = { [switchKey]: body.enabled };
           if (body.enabled) {
             Object.assign(patch, featureEnablePatch(card));
             // 旧版 features.disabled 是加载器级黑名单；打开主开关时把它清掉，
             // 否则同一次操作里总开关是 true、模块却被旧字段挡住。
-            const disabled = Array.isArray(cfg.features?.disabled) ? cfg.features.disabled : [];
-            if (disabled.includes(id)) patch['features.disabled'] = disabled.filter((item) => item !== id);
+            if (switchKey.startsWith('features.')) {
+              const disabled = Array.isArray(cfg.features?.disabled) ? cfg.features.disabled : [];
+              if (disabled.includes(id)) patch['features.disabled'] = disabled.filter((item) => item !== id);
+            }
           }
           const applied = applyConsoleConfigValues(patch, { tag: 'features' });
           if (!applied.ok) {
