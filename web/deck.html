@@ -4311,10 +4311,30 @@ button.active,.primary {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  margin: 0 -6px;
+  padding: 4px 6px;
+  border-radius: 8px;
   list-style: none;
   cursor: pointer;
   font-size: 13px;
-  color: var(--text-secondary, var(--text))
+  color: var(--text);
+  transition: background .15s ease
+}
+.feature-advanced > summary:hover {
+  background: var(--hover, rgba(127, 127, 127, .1))
+}
+.feature-advanced > summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-border)
+}
+.feature-advanced > summary > b {
+  font-weight: 600
+}
+.feature-advanced > summary .meta {
+  margin: 0 0 0 auto;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted)
 }
 .feature-advanced > summary::-webkit-details-marker {
   display: none
@@ -6288,7 +6308,7 @@ function renderFeatureCard(module) {
     ${module.statusLine ? `<p class="feature-status${module.statusTone === 'warn' ? ' warn' : ''}">${esc(module.statusLine)}</p>` : ''}
     ${renderDependencies(module)}
     ${showAdvanced ? `<details class="feature-advanced" data-feature-advanced-details="${esc(module.id)}"${featureOpenDetails.has(module.id) ? ' open' : ''}>
-      <summary><b>高级设置</b><span class="meta">${esc(summaryText)} · 默认收起</span></summary>
+      <summary><b>高级设置</b><span class="meta">${esc(summaryText)} · ${featureOpenDetails.has(module.id) ? '已展开' : '默认收起'}</span></summary>
       ${module.requiresRestart ? '<p class="meta feature-advanced-note">其中部分设置需要重启桥接后才会生效。</p>' : ''}
       ${renderAdvancedFields(module)}
       ${hasPanel ? `<p class="meta feature-advanced-note">下面是「${esc(module.label)}」的专用面板。关掉总开关后这些设置会保留，但不会执行。</p>` : ''}
@@ -6334,7 +6354,7 @@ function renderBoardMaster(board, module) {
     ${module.statusLine ? `<p class="feature-status${module.statusTone === 'warn' ? ' warn' : ''}">${esc(module.statusLine)}</p>` : ''}
     ${renderDependencies(module)}
     ${showAdvanced ? `<details class="feature-advanced" data-feature-advanced-details="${esc(module.id)}"${featureOpenDetails.has(module.id) ? ' open' : ''}>
-      <summary><b>总闸设置</b><span class="meta">${esc(summaryText)} · 默认收起</span></summary>
+      <summary><b>总闸设置</b><span class="meta">${esc(summaryText)} · ${featureOpenDetails.has(module.id) ? '已展开' : '默认收起'}</span></summary>
       ${module.requiresRestart ? '<p class="meta feature-advanced-note">其中部分设置需要重启桥接后才会生效。</p>' : ''}
       ${renderAdvancedFields(module)}
       ${hasPanel ? `<p class="meta feature-advanced-note">下面是「${esc(board.label)}」的专用面板。关掉总闸后这些设置会保留，但不会执行。</p>` : ''}
@@ -6692,6 +6712,11 @@ document.getElementById('featureSwitches')?.addEventListener('toggle', (event) =
   const id = details.dataset.featureAdvancedDetails;
   if (details.open) featureOpenDetails.add(id);
   else featureOpenDetails.delete(id);
+  const hint = details.querySelector(':scope > summary > .meta');
+  if (hint) {
+    if (!hint.dataset.base) hint.dataset.base = hint.textContent.replace(/ · (默认收起|已展开)$/, '');
+    hint.textContent = `${hint.dataset.base} · ${details.open ? '已展开' : '默认收起'}`;
+  }
 }, true);
 document.getElementById('featureFilter')?.addEventListener('input', applyFeatureFilters);
 document.getElementById('featureStateFilter')?.addEventListener('change', applyFeatureFilters);
