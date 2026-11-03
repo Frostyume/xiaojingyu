@@ -174,12 +174,14 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     ensureSession, ensureSlangLearnerSession, resolvePresetName, deliverPrompt, drainPromptQueue,
     sendToQQ, sendSticker, handleIncoming, startConsoleServer, cfg, state, api, promptQueues,
     getSimulationState, appendSimulationMessage, recordSentMessages,
+    globalActivityMode, isDeepDive, resyncActivityControl,
     appendMemory, formatMemory,
     buildWakePrompt, buildWakeSnapshot, sendWakePrompt, simulation,
     renderWakePrompt, commitWakePrompt, invalidateRoleCards, currentRoleName, isCustomRoleName,
     relationshipStore, relationshipsEnabledForKey, buildRelationshipSnapshot, buildLiveSnapshot,
     refreshMode, modeAllowed, trackTurnEvent, replayPendingWakeReasons,
     collectors, setupSleepTimer,
+    scheduleProactiveCheck, cancelProactiveCheck, cancelAllProactiveChecks,
     getInitialPrompt, setInitialPrompt, loadInitialPrompts, formatInitialPrompt,
     initialPrompts, initialPromptMaxChars,
     extractMediaFromSegments, segmentsToText, fetchOneBotImage, fetchMediaData, resolveMediaList,
@@ -234,7 +236,8 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     // 之前只给 pid/platform/kill/exit，导致 `process.env.FFMPEG_PATH` 直接抛 TypeError。
     // uptime 供 /api/live/snapshot 组装展示字段；夹具给一个固定值，断言不依赖真实时钟。
     process: { pid: process.pid, platform: process.platform, kill: process.kill, env: {}, uptime: () => 1234, exit: (code) => { throw new Error('unexpected exit ' + code); } },
-    setTimeout: (fn, ms) => { const timer = setTimeout(fn, ms); timers.add(timer); return timer; },
+    // 挂上原始回调：测试需要确定性地触发一次已排队的定时器（不等真实 60s~90min）。
+    setTimeout: (fn, ms) => { const timer = setTimeout(fn, ms); timer.__fixtureCallback = fn; timers.add(timer); return timer; },
     clearTimeout, setInterval: () => ({ unref() {} }), clearInterval: () => {},
     NodeApiClient: class { constructor() { return api; } },
     SnowLumaWebSocketClient: FakeBot, text: (s) => s,

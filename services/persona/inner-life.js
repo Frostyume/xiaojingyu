@@ -1815,6 +1815,7 @@ ${othersLine}拟回复：${reply}
   async function checkQzoneComments() {
     if (!featureEnabled(cfg, 'qzoneCommentReply')) return { status: 'disabled', reason: 'features.qzoneCommentReply=false' };
     const il = ilCfg();
+    if (il.enabled !== true) return { status: 'disabled', reason: 'simulation.innerLife.enabled=false' };
     const cr = il.qzone?.commentReply || DEFAULTS.qzone.commentReply;
     if (il.qzone?.enabled === false || cr.enabled === false) return { status: 'disabled' };
     if (loadInner().qzone.paused) return { status: 'paused' };

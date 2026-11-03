@@ -209,6 +209,9 @@
       "noActionLimit": 3,
       "maxWakeConfigReminders": 2
     },
+    "activityControl": {
+      "deepDive": false
+    },
     "send": {
       "burstEnabled": true,
       "burstMaxMessages": 8,

@@ -9,7 +9,7 @@ async function test(name, run) {
   catch (error) { failures += 1; console.error('FAIL', name, '—', error?.stack ?? error); }
 }
 
-const quietNight = { simulation: { nightQuiet: { enabled: false } } };
+const quietNight = { simulation: { nightQuiet: { enabled: false }, wake: { defaultMode: 'active' } } };
 
 await test('S1 价值评分：泛监听低价值消息不唤醒，@ 仍然直达', async () => {
   const h = await bridgeHarness({ config: quietNight });

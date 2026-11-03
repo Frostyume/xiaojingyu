@@ -57,7 +57,7 @@ try {
 // 白天这段只验证「夜间静默关闭后泛监听重新生效」，所以关掉价值评分：
 // 评分自己会把「随便聊聊」判成 defer/ignore，混进来就测不到静默门控了。
 const day = await bridgeHarness({
-  config: { simulation: { nightQuiet: { ...quietAllDay, enabled: false }, valueScore: { enabled: false } } }
+  config: { simulation: { nightQuiet: { ...quietAllDay, enabled: false }, valueScore: { enabled: false }, wake: { defaultMode: 'active' } } }
 });
 try {
   assert.equal(day.isNightQuietNow(), false, '关闭后不应生效');

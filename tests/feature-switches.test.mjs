@@ -28,6 +28,7 @@ import {
   cardDefaultKeys,
   cardEnabled,
   cardSwitchKey,
+  cardSwitchValue,
   evaluateDependencies,
   featureEnablePatch,
   advancedFieldsFor,
@@ -102,6 +103,13 @@ const commentOpen = await inner.checkQzoneComments();
 assert.notEqual(commentOpen.reason, 'features.qzoneCommentReply=false', '打开评论回复后应继续走原有细分开关检查');
 assert.equal(commentOpen.status, 'daily-limit', '测试应在上限处返回，避免联网');
 fs.rmSync(path.join(innerStateDir, 'qzone-comments.json'), { force: true });
+
+// 评论回复卡片声明了「内心生活总开关」依赖：总闸关掉时运行期也必须停，不能只靠 UI 拦。
+cfg.simulation.innerLife.enabled = false;
+const commentNoInner = await inner.checkQzoneComments();
+assert.equal(commentNoInner.status, 'disabled');
+assert.equal(commentNoInner.reason, 'simulation.innerLife.enabled=false', '内心生活总闸关闭时评论回复必须停');
+cfg.simulation.innerLife.enabled = true;
 
 // 4. MCP 禁用文案：工具在调用期按功能开关拦截
 assert.deepEqual(featureDisabled('voice'), { ok: false, disabled: true, reason: 'features.voice=false' });
@@ -199,9 +207,9 @@ const sharePreview = await inner.runShareModule('ai_tips', { dryRun: true, force
 assert.notEqual(sharePreview.status, 'disabled', '分享模块 dryRun 预览不应被主开关拦住');
 
 // 9. 控制台信息架构：群聊剧场总闸 + 15 个 features 模块各一张卡
-const CHAT_CARDS = ['groupChat', 'chatProactive', 'chatStickers', 'chatNightQuiet'];
+const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatNightQuiet'];
 assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS].sort());
-assert.equal(FEATURE_CARDS.length, 19);
+assert.equal(FEATURE_CARDS.length, 20);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
 assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'ops', 'owner']);
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'chat').master, 'groupChat');
@@ -210,7 +218,7 @@ for (const board of FEATURE_BOARDS) {
   assert(FEATURE_CARDS.some((card) => card.board === board.id), `板块 ${board.id} 必须至少有一个模块`);
 }
 const chatChildren = FEATURE_CARDS.filter((card) => card.board === 'chat' && !card.boardMaster).map((card) => card.id);
-assert.deepEqual(chatChildren, ['chatProactive', 'chatStickers', 'chatNightQuiet']);
+assert.deepEqual(chatChildren, ['chatActivity', 'chatProactive', 'chatStickers', 'chatNightQuiet']);
 const shareEngineChildren = FEATURE_CARDS.filter((card) => card.board === 'shareEngine' && !card.boardMaster).map((card) => card.id);
 assert.deepEqual(shareEngineChildren.sort(), ['aiTips', 'customShare', 'esportsFeed', 'financeTips', 'lifeFun', 'llmTips', 's16Share', 'share'].sort());
 for (const card of FEATURE_CARDS) {
@@ -229,9 +237,18 @@ assert.equal(cardFor('not-a-module'), null);
 
 // 群聊剧场卡片复用 simulation.*：默认开、只有显式 false 才是关，升级后不会把已有行为关掉。
 assert.equal(cardSwitchKey('groupChat'), 'simulation.enabled');
+assert.equal(cardSwitchKey('chatActivity'), 'simulation.wake.defaultMode');
 assert.equal(cardSwitchKey('chatProactive'), 'simulation.proactive.enabled');
 assert.equal(cardSwitchKey('chatStickers'), 'simulation.sticker.enabled');
 assert.equal(cardSwitchKey('chatNightQuiet'), 'simulation.nightQuiet.enabled');
+assert.equal(cardFor('chatActivity').board, 'chat');
+assert.equal(cardFor('chatActivity').advanced[0].default, false);
+assert.equal(cardEnabled('chatActivity', {}), false, '默认潜水');
+assert.equal(cardEnabled('chatActivity', { simulation: { wake: { defaultMode: 'active' } } }), true);
+assert.equal(cardEnabled('chatActivity', { simulation: { wake: { defaultMode: 'diving' } } }), false);
+assert.equal(cardEnabled('chatActivity', { simulation: { wake: { defaultMode: 'active' }, activityControl: { deepDive: true } } }), true);
+assert.equal(cardSwitchValue('chatActivity', true), 'active');
+assert.equal(cardSwitchValue('chatActivity', false), 'diving');
 assert.equal(cardSwitchKey('qzone'), 'features.qzone');
 assert.equal(cardEnabled('groupChat', {}), true);
 assert.equal(cardEnabled('groupChat', { simulation: { enabled: false } }), false);
@@ -246,6 +263,19 @@ assert.equal(cardDefaultKeys('groupChat').length, 0);
 assert.equal(advancedFieldsFor(cardFor('chatNightQuiet'), {}).find((field) => field.key === 'simulation.nightQuiet.start').value, '23:30');
 assert.equal(evaluateDependencies(cardFor('chatStickers'), { simulation: { enabled: false } }).find((item) => item.key === 'simulation.enabled').ok, false);
 assert.equal(evaluateDependencies(cardFor('chatStickers'), {}).find((item) => item.key === 'simulation.enabled').ok, true);
+
+// 默认关闭的键：配置里没写时必须判为未就绪，不能按真值显示「已就绪」而运行期不执行。
+for (const [id, key] of [
+  ['qzone', 'simulation.innerLife.enabled'],
+  ['voice', 'simulation.voice.enabled'],
+  ['ownerFeature', 'simulation.ownerFeatures.enabled']
+]) {
+  const depItem = evaluateDependencies(cardFor(id), {}).find((item) => item.key === key);
+  assert.ok(depItem, `${id} 必须声明依赖 ${key}`);
+  assert.equal(depItem.ok, false, `${id}：${key} 未配置时应判为未就绪（运行期默认关闭）`);
+}
+// 默认开启的键仍按「没写就是开」判定，避免把正常状态误报成被拦住。
+assert.equal(evaluateDependencies(cardFor('chatProactive'), {}).find((item) => item.key === 'simulation.enabled').ok, true);
 
 // 打开主开关时必须同时补齐硬依赖子开关，否则会出现「总开、子关」的死开关。
 const enginePatch = featureEnablePatch(cardFor('shareModule'));
@@ -295,10 +325,20 @@ for (const id of FEATURE_IDS) {
   assert.equal(field.group, '功能总开关');
   assert.equal(field.restart, 'none');
 }
+const schemaDoc = JSON.parse(read('config.schema.json'));
+assert.equal(
+  schemaDoc.properties.simulation.properties.activityControl.properties.deepDive.default,
+  false,
+  '生成的 config.schema.json 必须包含深潜开关，高级设置才能校验'
+);
 const consoleHtml = read('web/deck.html');
 assert.match(consoleHtml, /id="featureSwitches"/);
 assert.match(consoleHtml, /id="featureSwitchesSave"/);
 assert.match(consoleHtml, /data-feature-id/);
+assert.match(read('app/whale.js'), /cfg\.simulation\?\.innerLife\?\.enabled !== true\) return;/, '空间评论轮询必须再判内心生活总闸');
+assert.match(consoleHtml, /const shown = deps\.filter\(\(item\) => !item\.ok\)/, '依赖只提示未满足项，避免满屏绿条');
+assert.match(consoleHtml, /featureFilterShown = shown \+ mastersShown/, '显示计数必须包含板块总闸');
+assert.match(consoleHtml, /if \(page === 'simulation'\) \{[\s\S]{0,160}loadSimConfig\(\)/, '进入群聊剧场页必须重读配置，防止旧状态回写');
 
 fs.rmSync(innerStateDir, { recursive: true, force: true });
 console.log('feature switch checks passed');

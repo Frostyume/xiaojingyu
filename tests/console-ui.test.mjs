@@ -100,6 +100,39 @@ try {
     assert.equal(new Set(ids).size, ids.length, 'Duplicate DOM IDs detected');
   });
 
+  if (!original) await test('Feature boards collapse, persist and stay keyboard operable', async () => {
+    const key = 'qq-console.featureCollapsed.v1';
+    await page.evaluate(() => localStorage.removeItem('qq-console.featureCollapsed.v1'));
+    await page.reload();
+    await navigate('features');
+    await page.waitForFunction(() => document.querySelectorAll('#featureSwitches .feature-board').length > 0);
+    const board = page.locator('#featureSwitches .feature-board[data-board="chat"]');
+    const toggle = board.locator('button[data-board-toggle]');
+    const body = board.locator('[data-board-body]');
+    assert.equal(await toggle.getAttribute('aria-expanded'), 'true', '默认应展开');
+    assert.equal(await body.isHidden(), false);
+    await toggle.click();
+    assert.equal(await toggle.getAttribute('aria-expanded'), 'false', '点击标题应折叠');
+    assert.equal(await body.isHidden(), true);
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('qq-console.featureCollapsed.v1') || '[]')), ['chat'], '折叠状态应写入 localStorage');
+    await page.reload();
+    await navigate('features');
+    const restored = page.locator('#featureSwitches .feature-board[data-board="chat"] button[data-board-toggle]');
+    assert.equal(await restored.getAttribute('aria-expanded'), 'false', '刷新后应保持折叠');
+    await restored.focus();
+    await restored.press('Enter');
+    assert.equal(await restored.getAttribute('aria-expanded'), 'true', 'Enter 应展开');
+    await restored.press('Space');
+    assert.equal(await restored.getAttribute('aria-expanded'), 'false', 'Space 应折叠');
+    await page.locator('#featureFilter').fill('冒泡');
+    await page.waitForFunction(() => document.querySelector('#featureSwitches .feature-board[data-board="chat"] button[data-board-toggle]')?.getAttribute('aria-expanded') === 'true');
+    assert.equal(await board.locator('[data-board-body]').isHidden(), false, '筛选时应临时展开');
+    await page.locator('#featureFilter').fill('');
+    await page.waitForFunction(() => document.querySelector('#featureSwitches .feature-board[data-board="chat"] button[data-board-toggle]')?.getAttribute('aria-expanded') === 'false');
+    await page.evaluate(() => localStorage.removeItem('qq-console.featureCollapsed.v1'));
+    await page.reload();
+  });
+
   if (!original) await test('All navigation destinations work and preserve unsaved form values across polling', async () => {
     for (const view of views) {
       await navigate(view);

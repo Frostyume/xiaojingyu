@@ -32,13 +32,13 @@ export const FEATURE_BOARDS = Object.freeze([
   { id: 'owner', label: '主人能力', description: '你在主人私聊里创建的功能中心任务。' }
 ]);
 
-function dep(key, label, { enableValue, soft = false } = {}) {
-  return { key, label, enableValue, soft };
+function dep(key, label, { enableValue, soft = false, fallback = true } = {}) {
+  return { key, label, enableValue, soft, fallback };
 }
 
 const SHARE_ENGINE_DEPS = [
   dep('features.shareModule', '分享引擎总闸', { enableValue: true }),
-  dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
+  dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true, fallback: false }),
   dep('simulation.shareModules.enabled', '分享模块子开关', { enableValue: true })
 ];
 
@@ -56,6 +56,25 @@ const CARD_LIST = [
     offEffect: '停止群聊自动行为；主人私聊和控制台操作不受影响。',
     dangerousOff: true,
     dependencies: []
+  },
+  {
+    id: 'chatActivity',
+    board: 'chat',
+    configKey: 'simulation.wake.defaultMode',
+    enabledValue: 'active',
+    disabledValue: 'diving',
+    label: '活跃控制',
+    keywords: '活跃 潜水 深潜 active diving 唤醒 全局控制',
+    description: '全局控制所有群聊会话的默认唤醒模式；开启=活跃，关闭=潜水。优先级高于会话级设置。',
+    onEffect: '全局活跃：群消息更容易唤醒她；覆盖会话级「潜水」设置，深潜加固暂不生效。',
+    offEffect: '全局潜水：只有符合触发条件的消息才会唤醒她；再开深潜则仅主人直接 @ 才回复。',
+    dangerousOff: false,
+    dependencies: [
+      dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })
+    ],
+    advanced: [
+      { key: 'simulation.activityControl.deepDive', label: '深潜模式（仅主人直接 @ 才回复）', type: 'boolean', default: false }
+    ]
   },
   {
     id: 'chatProactive',
@@ -124,7 +143,7 @@ const CARD_LIST = [
     dangerousOff: true,
     customPanel: 'shareModule',
     dependencies: [
-      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
+      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true, fallback: false }),
       dep('simulation.shareModules.enabled', '分享模块子开关', { enableValue: true })
     ],
     resetKeys: [
@@ -147,7 +166,7 @@ const CARD_LIST = [
     customPanel: 'aiTips',
     dependencies: [
       ...SHARE_ENGINE_DEPS,
-      dep('simulation.innerLife.aiTips.enabled', 'AI 小知识子开关', { enableValue: true })
+      dep('simulation.innerLife.aiTips.enabled', 'AI 小知识子开关', { enableValue: true, fallback: false })
     ],
     resetKeys: [
       'simulation.innerLife.aiTips.minPerDay',
@@ -248,7 +267,7 @@ const CARD_LIST = [
     customPanel: 'share',
     dependencies: [
       dep('features.shareModule', '分享引擎总闸', { enableValue: true }),
-      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
+      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true, fallback: false }),
       dep('simulation.innerLife.groupShare.enabled', '群分享子开关', { enableValue: true })
     ],
     resetKeys: [
@@ -272,7 +291,7 @@ const CARD_LIST = [
     dangerousOff: true,
     customPanel: 'qzone',
     dependencies: [
-      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
+      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true, fallback: false }),
       dep('simulation.innerLife.qzone.enabled', '空间说说子开关', { enableValue: true })
     ],
     resetKeys: [
@@ -294,7 +313,7 @@ const CARD_LIST = [
     offEffect: '不再检查评论，也不会再发任何回复；待审草稿不能发布。',
     dangerousOff: false,
     dependencies: [
-      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true }),
+      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true, fallback: false }),
       dep('simulation.innerLife.qzone.enabled', '空间说说子开关', { enableValue: true }),
       dep('simulation.innerLife.qzone.commentReply.enabled', '评论回复子开关', { enableValue: true })
     ],
@@ -337,7 +356,7 @@ const CARD_LIST = [
     offEffect: 'AI 不再发语音；控制台可以预览音频，但真正发送会被拒绝。',
     dangerousOff: true,
     dependencies: [
-      dep('simulation.voice.enabled', 'AI 语音子开关', { enableValue: true })
+      dep('simulation.voice.enabled', 'AI 语音子开关', { enableValue: true, fallback: false })
     ],
     advanced: [
       { key: 'simulation.voice.maxPerMinute', label: '每分钟最多', type: 'number', min: 1, max: 60, default: 6 },
@@ -359,7 +378,7 @@ const CARD_LIST = [
     offEffect: '不再生成和发送日报。',
     dangerousOff: false,
     dependencies: [
-      dep('simulation.dailyReport.enabled', '日报子开关', { enableValue: true }),
+      dep('simulation.dailyReport.enabled', '日报子开关', { enableValue: true, fallback: false }),
       dep('simulation.dailyReport.groups', '至少选择一个群', { soft: true })
     ],
     advanced: [
@@ -380,7 +399,7 @@ const CARD_LIST = [
     dangerousOff: false,
     customPanel: 'ownerFeature',
     dependencies: [
-      dep('simulation.ownerFeatures.enabled', '功能中心子开关', { enableValue: true })
+      dep('simulation.ownerFeatures.enabled', '功能中心子开关', { enableValue: true, fallback: false })
     ],
     resetKeys: []
   }
@@ -410,13 +429,28 @@ export function cardSwitchKey(card) {
 
 /**
  * 卡片开关是否打开。
- * features.* 沿用严格 true；configKey 卡片沿用原模块「默认开、显式 false 才关」。
+ * features.* 沿用严格 true；声明了 enabledValue 的卡片按值的等值判定；
+ * 其余 configKey 卡片沿用原模块「默认开、显式 false 才关」。
  */
 export function cardEnabled(card, cfg) {
   const key = cardSwitchKey(card);
   if (!key) return false;
   if (key.startsWith('features.')) return featureEnabled(cfg, key.slice('features.'.length));
+  const item = typeof card === 'string' ? cardFor(card) : card;
+  if (item?.enabledValue !== undefined) {
+    return valueAtPath(cfg, key, item.disabledValue) === item.enabledValue;
+  }
   return valueAtPath(cfg, key, true) !== false;
+}
+
+/** 卡片开关切换时写入配置的值；把布尔开关映射回字符串等非布尔配置。 */
+export function cardSwitchValue(card, enabled) {
+  const item = typeof card === 'string' ? cardFor(card) : card;
+  if (!item) return undefined;
+  if (item.enabledValue !== undefined || item.disabledValue !== undefined) {
+    return enabled ? item.enabledValue : item.disabledValue;
+  }
+  return Boolean(enabled);
 }
 
 export function cardDefaultKeys(id) {
@@ -425,10 +459,16 @@ export function cardDefaultKeys(id) {
   return [...(card.resetKeys || []), ...((card.advanced || []).map((field) => field.key))];
 }
 
-/** 判断模块的依赖是否就绪；soft 依赖只提示，不阻断。 */
-export function evaluateDependencies(card, cfg, valueAt) {
+/**
+ * 判断模块的依赖是否就绪；soft 依赖只提示，不阻断。
+ * features.* 与运行期一样只认严格的 true；其余键按各模块归一化后的默认值判定，
+ * 避免「配置里没写 / UI 说就绪、运行期却按关闭处理」造成死开关。
+ */
+export function evaluateDependencies(card, cfg) {
   return (card?.dependencies || []).map((item) => {
-    const raw = typeof valueAt === 'function' ? valueAt(item.key) : valueAtPath(cfg, item.key, true);
+    const raw = item.key.startsWith('features.')
+      ? featureEnabled(cfg, item.key.slice('features.'.length))
+      : valueAtPath(cfg, item.key, item.fallback ?? true);
     const ok = Array.isArray(raw) ? raw.length > 0 : Boolean(raw);
     return { key: item.key, label: item.label, ok, soft: item.soft === true, enableValue: item.enableValue };
   });

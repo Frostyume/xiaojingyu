@@ -376,6 +376,17 @@
     "simulation": {
       "type": "object",
       "properties": {
+        "activityControl": {
+          "type": "object",
+          "properties": {
+            "deepDive": {
+              "title": "深潜模式",
+              "type": "boolean",
+              "default": false,
+              "description": "潜水层的硬约束：群里只有主人本人直接 @ 小鲸鱼才会唤醒，其余消息、关键词、拍一拍和主动冒泡都不触发。全局活跃时暂不生效。"
+            }
+          }
+        },
         "agentPreset": {
           "title": "仿真预设",
           "type": "string",
@@ -1714,9 +1725,10 @@
               "default": 8000
             },
             "defaultMode": {
-              "title": "Default Mode",
+              "title": "群聊默认唤醒模式",
               "type": "string",
-              "default": "diving"
+              "default": "diving",
+              "description": "全局活跃控制：active=活跃（所有群按活跃处理），diving=潜水（按各会话触发条件）。优先级高于会话级设置。"
             },
             "maxWakeConfigReminders": {
               "title": "Max Wake Config Reminders",
@@ -3251,6 +3263,14 @@
       "type": "number",
       "restart": "none",
       "advanced": true
+    },
+    {
+      "key": "simulation.activityControl.deepDive",
+      "label": "深潜模式",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
     },
     {
       "key": "simulation.agentPreset",
@@ -4792,7 +4812,7 @@
     },
     {
       "key": "simulation.wake.defaultMode",
-      "label": "Default Mode",
+      "label": "群聊默认唤醒模式",
       "group": "群聊剧场",
       "type": "string",
       "restart": "none",

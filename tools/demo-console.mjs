@@ -481,6 +481,7 @@ export function makeFixtureState() {
       qzoneCommentReply: true,
       signature: true,
       voice: true,
+      chatActivity: false,
       share: true,
       shareModule: true,
       aiTips: true,

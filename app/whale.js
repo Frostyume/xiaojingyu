@@ -88,7 +88,7 @@ import { normalizeOwnerFeature, validateOwnerFeature, nextOwnerFeatureRuns, rend
 import { synthesizeFeatureVoice } from '../runtime/orchestration/feature-voice.js';
 import { listOwnerConfig, readOwnerConfig, validateOwnerConfig, ownerConfigPatch } from '../runtime/control/owner-config.js';
 import { FEATURE_MODULES, normalizeFeatureConfig, featureEnabled, featureSnapshot, featureForShareModule, shareEngineEnabled, shareModuleIdForFeature, SHARE_MODULE_FEATURES } from '../runtime/control/feature-switches.js';
-import { FEATURE_BOARDS, FEATURE_CARDS, cardFor, cardDefaultKeys, cardEnabled, cardSwitchKey, evaluateDependencies, featureEnablePatch, advancedFieldsFor, configValueFor, valueAtPath } from '../runtime/control/feature-control.js';
+import { FEATURE_BOARDS, FEATURE_CARDS, cardFor, cardDefaultKeys, cardEnabled, cardSwitchKey, cardSwitchValue, evaluateDependencies, featureEnablePatch, advancedFieldsFor, configValueFor, valueAtPath } from '../runtime/control/feature-control.js';
 import { listProposals, proposalSummary, readResult, writeResult, mergeProposal, rejectProposal, notificationFor } from '../runtime/orchestration/dev-proposals.js';
 import { queueCodeProposal, stageCodeProposal } from '../runtime/orchestration/code-proposal.js';
 import { enqueueTask, updateTask, queueSnapshot, readTask } from '../runtime/orchestration/orchestrator-queue.js';
@@ -1015,6 +1015,9 @@ function loadConfig() {
         maxWakePerHour: 12,
         noActionLimit: 3,
         maxWakeConfigReminders: 2
+      },
+      activityControl: {
+        deepDive: false                  // 深潜：群聊里只允许主人直接 @ 触发回复
       },
       send: {
         burstEnabled: true,
@@ -3291,6 +3294,15 @@ async function main() {
   function resyncFeatureSchedules(changed) {
     const keys = (Array.isArray(changed) ? changed : []).map(String);
     const touches = (prefix) => keys.some((key) => key === prefix || key.startsWith(`${prefix}.`));
+    // 关掉群聊总闸或主动冒泡时，把已排队的冒泡定时器一并取消，避免关掉后还冒一次泡。
+    if ((touches('simulation.enabled') || touches('simulation.proactive'))
+      && (cfg.simulation?.enabled === false || cfg.simulation?.proactive?.enabled === false)) {
+      cancelAllProactiveChecks('开关已关闭');
+    }
+    // 全局活跃控制切换：立刻按新模式清理/重排群聊定时器，而不是只等下一轮配置读取。
+    if (touches('simulation.wake') || touches('simulation.activityControl') || touches('simulation.enabled')) {
+      try { resyncActivityControl(); } catch (error) { log(`[features] 活跃控制重排失败：${error?.message ?? error}`); }
+    }
     if (!keys.some((key) => key.startsWith('features.'))
       && !touches('simulation.innerLife')
       && !touches('simulation.shareModules')
@@ -3853,6 +3865,19 @@ async function main() {
         const next = features.map((f) => Number(f.nextAt) || 0).filter(Boolean).sort((a, b) => a - b)[0];
         return { line: `${features.length} 个任务${next ? ` · 下次 ${fmt(next)}` : ''}${of.orchestrator?.pending ? ` · ${of.orchestrator.pending} 个等待主控` : ''}`, tone: 'ok' };
       }
+      if (id === 'chatActivity') {
+        const mode = globalActivityMode();
+        const modeLabel = mode === 'active' ? '活跃' : mode === 'deep' ? '深潜' : '潜水';
+        const conflicts = [...simulation.conversations.entries()]
+          .filter(([key, session]) => String(key).startsWith('group:') && session?.wakeConfig?.mode === 'active' && mode !== 'active')
+          .length;
+        const deepIdle = mode === 'active' && cfg.simulation?.activityControl?.deepDive === true;
+        let line = `当前实际模式：${modeLabel} · 由全局活跃控制决定`;
+        if (mode === 'deep') line += ' · 群里仅主人直接 @ 可唤醒';
+        if (conflicts) line += ` · ${conflicts} 个会话的「活跃」设置正被全局覆盖`;
+        if (deepIdle) line += ' · 深潜已开但全局处于活跃，深潜暂不生效';
+        return { line, tone: conflicts || deepIdle ? 'warn' : mode === 'active' ? 'ok' : 'muted', attention: conflicts > 0 };
+      }
       if (id === 'groupChat') {
         if (simulation.paused) return { line: '已暂停：恢复后才会继续自动回复群消息', tone: 'warn', attention: true };
         if (cfg.simulation?.enabled === false) return { line: '总闸已关闭：群聊不会自动回复', tone: 'muted' };
@@ -3878,7 +3903,7 @@ async function main() {
     };
     const modules = FEATURE_CARDS.map((card) => {
       const enabled = cardEnabled(card, cfg);
-      const dependencies = evaluateDependencies(card, cfg, (key) => valueAtPath(cfg, key, true));
+      const dependencies = evaluateDependencies(card, cfg);
       const hardBlocked = enabled && dependencies.some((item) => !item.ok && !item.soft);
       const state = !enabled ? 'off' : hardBlocked ? 'blocked' : 'on';
       const status = statusFor(card.id);
@@ -6770,7 +6795,7 @@ async function main() {
           if (!card) { sendJson({ ok: false, error: `未知功能模块：${id}` }, 400); return; }
           if (typeof body.enabled !== 'boolean') { sendJson({ ok: false, error: 'enabled 必须是布尔值' }, 400); return; }
           const switchKey = cardSwitchKey(card);
-          const patch = { [switchKey]: body.enabled };
+          const patch = { [switchKey]: cardSwitchValue(card, body.enabled) };
           if (body.enabled) {
             Object.assign(patch, featureEnablePatch(card));
             // 旧版 features.disabled 是加载器级黑名单；打开主开关时把它清掉，
@@ -8731,7 +8756,7 @@ async function main() {
           const current = fileSimulation ?? ((cfg.simulation && typeof cfg.simulation === 'object') ? cfg.simulation : {});
           const merged = { ...current, ...body };
           // 子对象必须是非 null 对象；null/数组/基本类型会覆盖默认值导致工具开关被绕过，这里直接保留当前值。
-          for (const sub of ['tools', 'wake', 'send', 'wait', 'proactive', 'sticker', 'feedback', 'context']) {
+          for (const sub of ['tools', 'wake', 'send', 'wait', 'proactive', 'sticker', 'feedback', 'context', 'activityControl']) {
             if (body[sub] !== undefined && (body[sub] === null || typeof body[sub] !== 'object' || Array.isArray(body[sub]))) {
               merged[sub] = current[sub] ?? {};
             }
@@ -8856,12 +8881,21 @@ async function main() {
             }
             if (merged.context.inlineWakeMessages !== undefined) merged.context.inlineWakeMessages = merged.context.inlineWakeMessages === true;
           }
+          // activityControl：深潜开关只接受布尔
+          if (body.activityControl && typeof body.activityControl === 'object') {
+            merged.activityControl = { ...(current.activityControl ?? {}), ...body.activityControl };
+            merged.activityControl.deepDive = merged.activityControl.deepDive === true;
+          }
           if (merged.enabled !== undefined) merged.enabled = merged.enabled === true;
           if (merged.provideRecommendations !== undefined) merged.provideRecommendations = merged.provideRecommendations === true;
           if (merged.agentPreset !== undefined) merged.agentPreset = String(merged.agentPreset ?? '');
           file.simulation = merged;
           writeConfigFile(file);
           cfg.simulation = { ...(cfg.simulation ?? {}), ...merged };
+          // 旧页面改配置不走 applyConsoleConfigValues，这里补一次取消，保证关掉后不再冒泡。
+          if (cfg.simulation?.enabled === false || cfg.simulation?.proactive?.enabled === false) {
+            cancelAllProactiveChecks('群聊配置更新');
+          }
           // 仅当“会影响默认唤醒配置”的字段变化时，才同步到仍使用默认配置的现有会话。
           // 避免只改发送/等待/工具开关时，意外重置正在等待的潜水/唤醒计划。
           const WAKE_DEFAULT_KEYS = [
@@ -8874,6 +8908,10 @@ async function main() {
           const wakeDefaultChanged = body.wake && typeof body.wake === 'object' &&
             WAKE_DEFAULT_KEYS.some((k) => Object.prototype.hasOwnProperty.call(body.wake, k));
           if (wakeDefaultChanged) refreshAllDefaultWakeConfigs();
+          // 全局活跃/深潜切换也要立刻作用到现有群会话的定时器。
+          const activityChanged = (body.wake && typeof body.wake === 'object' && Object.prototype.hasOwnProperty.call(body.wake, 'defaultMode'))
+            || (body.activityControl && typeof body.activityControl === 'object' && Object.prototype.hasOwnProperty.call(body.activityControl, 'deepDive'));
+          if (activityChanged) resyncActivityControl();
           log('控制台：群聊剧场配置已更新');
           sendJson({ ok: true, config: cfg.simulation });
           return;
@@ -9596,6 +9634,8 @@ async function main() {
           // 永远拿不到引导 —— 而 bootstrapSent 一旦置真，后续再也不会补发。
           const firstWake = !st.bootstrapSent;
           if (firstWake) st.bootstrapSent = true;
+          // 操作者手动唤醒在深潜下也要能完成引导；视为一次显式放行。
+          if (isDeepDive(key)) st.deepDivePassAt = Date.now();
           const effectiveReason = firstWake ? 'bootstrap' : reason;
           saveSimulationState();
           // 和其它唤醒入口保持一致：sendWakePrompt 是异步的，这里不 await（不能让 HTTP 回复
@@ -13725,6 +13765,65 @@ async function main() {
     return out;
   }
 
+  // 全局活跃控制：defaultMode 是总闸（active=活跃，diving=潜水），优先级高于会话 wakeConfig.mode。
+  // 深潜是潜水下的更硬约束：群聊里只允许主人本人直接 @ 触发。
+  function globalActivityMode() {
+    if (cfg.simulation?.wake?.defaultMode === 'active') return 'active';
+    return cfg.simulation?.activityControl?.deepDive === true ? 'deep' : 'diving';
+  }
+
+  function isDeepDive(key) {
+    return String(key || '').startsWith('group:') && globalActivityMode() === 'deep';
+  }
+
+  function isOwnerSender(event) {
+    return String(event?.user_id ?? event?.sender?.user_id ?? '') === String(cfg.ownerQQ ?? '');
+  }
+
+  function isAtSelf(event) {
+    return Array.isArray(event?.message) && event.message.some((seg) => seg?.type === 'at'
+      && String(seg.data?.qq) === String(event?.self_id ?? ''));
+  }
+
+  // 深潜放行凭据：只有「主人本人直接 @」的进线才会盖时间戳，唤醒投递前再校验一次。
+  const DEEP_DIVE_PASS_TTL_MS = 10 * 60 * 1000;
+  function hasFreshDeepDivePass(st) {
+    return Number(st?.deepDivePassAt || 0) > Date.now() - DEEP_DIVE_PASS_TTL_MS;
+  }
+
+  // 全局控制切换后立刻清理被压制的会话级定时器，避免旧活跃状态继续偷偷唤醒。
+  function resyncActivityControl() {
+    if (simulation.paused || currentMode !== 'simulation') return;
+    // 仍在使用默认唤醒配置的会话跟随全局模式；显式设置过的不动。
+    refreshAllDefaultWakeConfigs();
+    const mode = globalActivityMode();
+    for (const [key, st] of simulation.conversations.entries()) {
+      if (!String(key).startsWith('group:')) continue;
+      if (mode === 'deep') {
+        for (const field of ['pendingWakeTimer', 'sleepTimer', 'replyCheckTimer', 'proactiveTimer', 'clingyTimer']) {
+          if (st[field]) {
+            clearTimeout(st[field]);
+            st[field] = null;
+          }
+        }
+        st.pendingWakeReasons = [];
+        st.deepDivePassAt = 0;
+        continue;
+      }
+      if (mode === 'diving') {
+        // 潜水态不允许残留的回复检查/睡眠到期唤醒，主动冒泡仍按自身开关单独调度。
+        for (const field of ['replyCheckTimer', 'sleepTimer']) {
+          if (st[field]) {
+            clearTimeout(st[field]);
+            st[field] = null;
+          }
+        }
+      }
+      scheduleProactiveCheck(key);
+      if (mode === 'diving') setupSleepTimer(key);
+    }
+  }
+
   function defaultWakeConfig() {
     const w = cfg.simulation?.wake ?? {};
     const defaultMode = w.defaultMode === 'active' ? 'active' : 'diving';
@@ -15856,6 +15955,11 @@ async function main() {
     if (kind === 'private') return 'private';
     const tr = st.wakeConfig?.triggers ?? {};
     const night = isNightQuietNow();
+    const activity = String(key).startsWith('group:') ? globalActivityMode() : 'diving';
+    // 深潜：群聊里只认「主人本人 + 直接 @ 小鲸鱼」，其余触发条件（关键词/概率/拍一拍/泛监听）全部失效。
+    if (activity === 'deep') {
+      return isOwnerSender(event) && isAtSelf(event) ? 'ownerAtMention' : null;
+    }
     // 夜间只响应明确的“被喊”：@、名字、关键词、提问、拍一拍、私聊。
     // anyMessage / 概率 / 指定成员属于泛监听，夜里不主动冒泡。
     if (tr.atMention) {
@@ -15882,10 +15986,11 @@ async function main() {
     }
     if (tr.question && isDirectedAtAi(plainContent)) return 'question';
     // 泛监听放在所有显式触发之后：被叫必回，不能被价值评分漏掉。
-    if (!night && tr.anyMessage) {
+    // 全局优先：只有全局活跃才做泛监听；全局潜水时忽略会话自己的 anyMessage（会话级 mode 不能翻盘）。
+    if (!night && activity === 'active') {
       const decision = wakeScoreDecision(key, st, event, plainContent, kind);
       if (decision.action === 'wake') return `anyMessage:score${decision.score?.toFixed?.(2) ?? ''}`;
-      return null;
+      // 评分没通过不等于不唤醒：继续尝试指定成员 / 概率等定向触发。
     }
     if (night) return null;
     if (Array.isArray(tr.speakerIds) && tr.speakerIds.length) {
@@ -16533,7 +16638,8 @@ async function main() {
       return `${base}【订阅播报｜S16】这不是群友提问，不要问“这是什么意思”。\n当前最新进展：\n${b.title || ''}\n${b.summary || ''}\n来源：${b.url || ''}\n${scheduleText ? `${scheduleText}\n` : ''}${qualityNote}\n请直接用你自己的语气发一条 2~4 句的群消息：第一句说清楚结果/进展，第二句说你注意到的细节或感受，最后可以轻轻问一句群友怎么看。不要新闻腔、不要照抄标题、不要一次念完。除非标题完全无法确认事实，否则不要用 qq_mark_read 收尾。`;
     }
     if (reason === 'bootstrap') {
-      return `${base}【引导唤醒】你已接入 QQ 会话 ${key}。\n当前是群聊仿真模式：你的文本输出不会自动发送到 QQ，所有发言必须通过工具完成。\n请先调用 qq_get_prompt 查看角色、推荐值、可用工具和状态；有待回应的消息先按首回复节奏处理，最后才用 qq_set_wake_config 设置你希望如何被唤醒。`;
+      const deepLine = isDeepDive(key) ? '\n当前处于深潜模式：群里只有主人直接 @ 你才会唤醒，其余消息不会打扰你。' : '';
+      return `${base}【引导唤醒】你已接入 QQ 会话 ${key}。\n当前是群聊仿真模式：你的文本输出不会自动发送到 QQ，所有发言必须通过工具完成。\n请先调用 qq_get_prompt 查看角色、推荐值、可用工具和状态；有待回应的消息先按首回复节奏处理，最后才用 qq_set_wake_config 设置你希望如何被唤醒。${deepLine}`;
     }
     if (reason === 'timeout') {
       return `${base}【唤醒】${key}\n原因：你设置的有限潜水时间已到；在你规定的时间内没有任何一项条件被触发，只是因为时间到了所以你被唤醒。\n你可以查看消息，或继续设置新的唤醒条件。`;
@@ -16553,6 +16659,9 @@ async function main() {
         }
       } catch {}
       return `${base}【主动机会】${key}\n原因：群里已经安静了一段时间，这是一次你可以主动冒泡的机会。\n优先主动开个话题、追问上次没聊完的事、分享一个刚想到的想法；如果一时想不到，可以用 mcp__web-search-safe__web_search 搜一下当前热点/时事/网络热梗，再结合记忆里的群友兴趣挑一个自然角度。只要内容自然，就大胆开口；如果实在没话想说，再安静收尾（qq_mark_read 或 qq_set_wake_config）。${topLine}`;
+    }
+    if (reason === 'ownerAtMention') {
+      return `${base}【唤醒】${key}\n原因：主人本人在群里直接 @ 了你。\n当前是深潜模式：群里只有主人直接 @ 能叫你，其他消息、关键词、拍一拍和主动冒泡都不会触发。先看未读，确认主人这句话的意思，再决定是否回应；回应后按深潜规则安静收尾。`;
     }
     if (reason === 'poke') {
       return `${base}【唤醒】${key}\n原因：有人拍了一拍（可能拍了你，也可能拍了别人）。\n先看未读/最近消息里的 [拍一拍] 事件：如果是拍你，可以自然回应一句，也可以用 qq_send_poke 回一个拍一拍；如果是拍别人，觉得有趣也可以接梗。除了回应，偶尔也可以主动戳一下正在聊的人/熟人，像真人手贱/提醒/逗一下，但别频繁。不想接就安静收尾（qq_mark_read 或 qq_set_wake_config）。`;
@@ -16613,6 +16722,15 @@ async function main() {
     }
     const st = getSimulationState(key);
     const baseReason = String(reason ?? '').split(':')[0];
+    if (isDeepDive(key)) {
+      // 深潜是投递前的最后一道硬闸：只有操作者手动唤醒，或刚发生的「主人直接 @」凭据能过。
+      const allowed = baseReason === 'admin'
+        || ((baseReason === 'ownerAtMention' || baseReason === 'bootstrap') && hasFreshDeepDivePass(st));
+      if (!allowed) {
+        log(`[simulation] 深潜模式拦截唤醒 ${key}（${reason}）`);
+        return;
+      }
+    }
     if (isNightQuietNow() && ['timeout', 'replyCheck', 'proactiveCheck', 'clingyFollowUp'].includes(baseReason)) {
       log(`[simulation] 夜间静默，取消自发唤醒 ${key}（${reason}）`);
       if (baseReason === 'timeout' && st.wakeConfig) {
@@ -16769,6 +16887,7 @@ async function main() {
   function scheduleReplyCheck(key) {
     if (cfg.simulation?.enabled === false) return;
     if (simulation.paused || currentMode !== 'simulation') return;
+    if (isDeepDive(key)) return; // 深潜：不做自动回复检查
     const st = getSimulationState(key);
     if (isNightQuietNow()) {
       log(`[simulation] 夜间静默，跳过回复检查 ${key}`);
@@ -16897,6 +17016,7 @@ async function main() {
 
   const WAKE_PRIORITY = {
     private: 100,
+    ownerAtMention: 95,
     atMention: 90,
     question: 80,
     speaker: 75,
@@ -16920,7 +17040,7 @@ async function main() {
   function isExplicitWakeReason(reason) {
     const raw = String(reason ?? '');
     const base = raw.split(':')[0];
-    if (['atMention', 'nameMention', 'question', 'private', 'poke', 'admin', 'bootstrap', 'speaker'].includes(base)) return true;
+    if (['atMention', 'ownerAtMention', 'nameMention', 'question', 'private', 'poke', 'admin', 'bootstrap', 'speaker'].includes(base)) return true;
     if (base === 'keyword') return true;
     return false;
   }
@@ -16941,6 +17061,15 @@ async function main() {
       return;
     }
     const st = getSimulationState(key);
+    if (isDeepDive(key)) {
+      const base = String(reason ?? '').split(':')[0];
+      const allowed = base === 'admin'
+        || ((base === 'ownerAtMention' || base === 'bootstrap') && hasFreshDeepDivePass(st));
+      if (!allowed) {
+        log(`[simulation] 深潜模式跳过计划唤醒 ${key}（${reason}）`);
+        return;
+      }
+    }
     if (st.pendingWakeTimer) {
       // 合并窗口内已有待发送唤醒：按优先级升级最终原因，避免先概率后 @ 却仍按概率唤醒。
       const cur = st.pendingWakeReason || reason;
@@ -17026,6 +17155,15 @@ async function main() {
   function setupSleepTimer(key) {
     if (cfg.simulation?.enabled === false) return;
     if (!isSessionAllowedInCurrentMode(key)) return;
+    if (isDeepDive(key)) {
+      // 深潜不允许睡眠到期自动醒来冒泡；清掉旧定时器即可。
+      const deepSt = simulation.conversations.get(key);
+      if (deepSt?.sleepTimer) {
+        clearTimeout(deepSt.sleepTimer);
+        deepSt.sleepTimer = null;
+      }
+      return;
+    }
     const st = getSimulationState(key);
     cancelReplyCheck(key); // 有限睡眠配置已接管，取消回复检查
     if (st.sleepTimer) {
@@ -17082,10 +17220,23 @@ async function main() {
     st.proactiveTimer = null;
   }
 
+  function cancelAllProactiveChecks(reason = '') {
+    let count = 0;
+    for (const st of simulation.conversations.values()) {
+      if (!st?.proactiveTimer) continue;
+      clearTimeout(st.proactiveTimer);
+      st.proactiveTimer = null;
+      count += 1;
+    }
+    if (count) log(`[simulation] 已取消 ${count} 个主动冒泡定时器${reason ? `（${reason}）` : ''}`);
+    return count;
+  }
+
   function scheduleProactiveCheck(key) {
-    if (cfg.simulation?.proactive?.enabled === false) return;
+    if (cfg.simulation?.enabled === false || cfg.simulation?.proactive?.enabled === false) return;
     // 家人群等低打扰群：不安排主动机会检查（被 @/提问/拍一拍仍会正常唤醒）。
     if (cfg.simulation?.groupProfiles?.[key]?.proactive === false) return;
+    if (isDeepDive(key)) return; // 深潜：不主动冒泡
     if (simulation.paused || currentMode !== 'simulation') return;
     if (!isSessionAllowedInCurrentMode(key)) return;
     const st = getSimulationState(key);
@@ -17106,6 +17257,8 @@ async function main() {
     const delay = Math.floor(min + Math.random() * (max - min));
     st.proactiveTimer = setTimeout(() => {
       st.proactiveTimer = null;
+      // 定时器排队期间开关可能被关掉，触发时必须再判一次，避免关掉后仍冒一次泡。
+      if (cfg.simulation?.enabled === false || cfg.simulation?.proactive?.enabled === false) return;
       if (isNightQuietNow()) {
         scheduleProactiveCheck(key);
         return;
@@ -17393,6 +17546,13 @@ async function main() {
         return;
       }
       const st = getSimulationState(key);
+      const deepDive = isDeepDive(key);
+      const deepAuthorized = deepDive && isOwner && atSelf;
+      if (deepDive && !deepAuthorized) {
+        appendActivity(`${key} [simulation] 深潜模式：非主人直接 @ 的消息不入唤醒队列`);
+        return;
+      }
+      if (deepAuthorized) st.deepDivePassAt = Date.now();
       if (!st.bootstrapSent) {
         st.bootstrapSent = true;
         saveSimulationState();
@@ -17694,6 +17854,10 @@ async function main() {
     appendActivity(`${key} 拍一拍事件：${msg.text.slice(0, 80)}`);
     if (currentMode !== 'simulation') return;
     if (simulation.paused) return;
+    if (isDeepDive(key)) {
+      appendActivity(`${key} [simulation] 深潜模式：拍一拍只记录，不反应也不唤醒`);
+      return;
+    }
     const st = getSimulationState(key);
     if (!st.bootstrapSent) {
       st.bootstrapSent = true;
@@ -18713,6 +18877,7 @@ async function main() {
   const runQzoneCommentCheck = () => {
     if (qzoneCommentCheckBusy || !innerLife) return;
     if (!featureEnabled(cfg, 'qzoneCommentReply')) return;
+    if (cfg.simulation?.innerLife?.enabled !== true) return;
     qzoneCommentCheckBusy = true;
     Promise.resolve(innerLife.checkQzoneComments?.())
       .catch((error) => log(`[inner] 空间评论检查失败（忽略）：${error?.message ?? error}`))

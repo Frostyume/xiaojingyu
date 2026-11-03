@@ -134,6 +134,8 @@ const FIELD_META = {
   'simulation.send.maxMessageChars': { label: '单条最大字数', group: '群聊剧场', restart: 'none', min: 1, max: 4000 },
   'simulation.wake.maxWakePerMinute': { label: '每分钟唤醒上限', group: '群聊剧场', restart: 'none', min: 0, max: 60 },
   'simulation.wake.maxWakePerHour': { label: '每小时唤醒上限', group: '群聊剧场', restart: 'none', min: 0, max: 600 },
+  'simulation.wake.defaultMode': { label: '群聊默认唤醒模式', group: '群聊剧场', restart: 'none', options: ['active', 'diving'], description: '全局活跃控制：active=活跃（所有群按活跃处理），diving=潜水（按各会话触发条件）。优先级高于会话级设置。' },
+  'simulation.activityControl.deepDive': { label: '深潜模式', group: '群聊剧场', restart: 'none', description: '潜水层的硬约束：群里只有主人本人直接 @ 小鲸鱼才会唤醒，其余消息、关键词、拍一拍和主动冒泡都不触发。全局活跃时暂不生效。' },
   'simulation.sticker.enabled': { label: '表情包体系', group: '表情与图片', restart: 'none' },
   'simulation.sticker.collect.enabled': { label: '允许收藏表情', group: '表情与图片', restart: 'none' },
   'simulation.imageLibrary.enabled': { label: '通用图片库', group: '表情与图片', restart: 'none' },

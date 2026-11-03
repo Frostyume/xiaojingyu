@@ -84,10 +84,11 @@ try {
   h.setInnerLife({
     runJob: async () => ({ status: 'fixture' }),
     runShareModule: async () => ({ status: 'fixture' }),
-    previewAiTip: async () => ({ status: 'dryRun' })
+    previewAiTip: async () => ({ status: 'dryRun' }),
+    handleOwnerCommand: async () => false
   });
 
-  // ── 1. 端点快照：5 板块 / 19 卡片 / 群聊剧场与分享引擎总闸 ─────────────
+  // ── 1. 端点快照：5 板块 / 20 卡片 / 群聊剧场与分享引擎总闸 ─────────────
   const snap = await call('/api/features/control');
   assert.equal(snap.status, 200, 'GET /api/features/control 应成功');
   assert.equal(snap.json.ok, true);
@@ -95,7 +96,7 @@ try {
   assert.equal(snap.json.boards.find((b) => b.id === 'chat').master, 'groupChat');
   assert.equal(snap.json.boards.find((b) => b.id === 'shareEngine').master, 'shareModule');
   assert.deepEqual(snap.json.modules.map((m) => m.id).sort(), FEATURE_CARDS.map((c) => c.id).sort());
-  assert.equal(snap.json.modules.length, 19);
+  assert.equal(snap.json.modules.length, 20);
   for (const module of snap.json.modules) {
     assert.equal(typeof module.enabled, 'boolean', `${module.id} 必须只有一个布尔主开关`);
     assert.ok(module.board, `${module.id} 必须归属板块`);
@@ -104,13 +105,13 @@ try {
   assert.equal(snap.json.modules.find((m) => m.id === 'qzone').enabled, true);
   assert.equal(snap.json.modules.find((m) => m.id === 'groupChat').enabled, true, '群聊剧场默认开');
   const chatModules = snap.json.boards.find((b) => b.id === 'chat').modules.map((m) => m.id);
-  assert.deepEqual(chatModules, ['groupChat', 'chatProactive', 'chatStickers', 'chatNightQuiet']);
+  assert.deepEqual(chatModules, ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatNightQuiet']);
   for (const id of ['aiTips', 'lifeFun', 'financeTips', 'llmTips', 's16Share', 'customShare']) {
     const module = snap.json.modules.find((m) => m.id === id);
     assert.equal(module.board, 'shareEngine', `${id} 应归入分享引擎板块`);
     assert.ok(module.dependencies.some((d) => d.key === 'features.shareModule' && d.ok), `${id} 应声明分享引擎总闸依赖`);
   }
-  console.log('OK 快照：5 板块 / 19 模块 / 群聊剧场与分享引擎总闸');
+  console.log('OK 快照：5 板块 / 20 模块 / 群聊剧场与分享引擎总闸');
 
   // ── 2. 关闭空间说说：配置落盘 + HTTP 入口拒绝 ──────────────────────────
   const offQzone = await call('/api/features/control', { method: 'POST', body: { id: 'qzone', enabled: false } });
@@ -192,6 +193,176 @@ try {
   assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'chatNightQuiet', enabled: true } })).status, 200);
   assert.equal(h.cfg.simulation.enabled, true, '打开子卡片应自动补开群聊总闸');
   console.log('OK 群聊剧场：configKey 写回 simulation.*，总闸阻断子卡片，子卡片自动补开总闸');
+
+  // 活跃控制：开=active、关=diving；高级设置里的深潜开关独立布尔。
+  assert.equal(chatOffSnap.json.modules.find((m) => m.id === 'chatActivity').state, 'off', '默认潜水时活跃控制应为关');
+  const activityOn = await call('/api/features/control', { method: 'POST', body: { id: 'chatActivity', enabled: true } });
+  assert.equal(activityOn.status, 200);
+  assert.ok(activityOn.json.applied.includes('simulation.wake.defaultMode'));
+  assert.equal(h.cfg.simulation.wake.defaultMode, 'active', '打开活跃控制要热更新到 defaultMode');
+  const activitySnap = await call('/api/features/control');
+  assert.equal(activitySnap.json.modules.find((m) => m.id === 'chatActivity').enabled, true);
+  assert.match(activitySnap.json.modules.find((m) => m.id === 'chatActivity').statusLine, /活跃/);
+  const deepOn = await call('/api/features/advanced', { method: 'POST', body: { id: 'chatActivity', values: { 'simulation.activityControl.deepDive': true } } });
+  assert.equal(deepOn.status, 200);
+  assert.equal(h.cfg.simulation.activityControl.deepDive, true);
+  await call('/api/features/control', { method: 'POST', body: { id: 'chatActivity', enabled: false } });
+  assert.equal(h.cfg.simulation.wake.defaultMode, 'diving', '关闭活跃控制要写回 diving');
+  const deepSnap = await call('/api/features/control');
+  assert.match(deepSnap.json.modules.find((m) => m.id === 'chatActivity').statusLine, /深潜/);
+  await call('/api/features/advanced', { method: 'POST', body: { id: 'chatActivity', values: { 'simulation.activityControl.deepDive': false } } });
+
+  // ── 3d. 多入口同步：功能页与旧群聊剧场页读同一份配置，双向可见 ─────────
+  await call('/api/features/control', { method: 'POST', body: { id: 'chatProactive', enabled: false } });
+  const simAfterFeature = await call('/api/simulation/config');
+  assert.equal(simAfterFeature.json.config.proactive.enabled, false, '功能页关闭后旧页面必须读到同一值');
+  assert.equal((await call('/api/simulation/config', { method: 'POST', body: { proactive: { enabled: true } } })).status, 200);
+  let synced = await call('/api/features/control');
+  assert.equal(synced.json.modules.find((m) => m.id === 'chatProactive').enabled, true, '旧页面打开后功能页必须同步');
+  assert.equal(h.cfg.simulation.proactive.enabled, true);
+  await call('/api/simulation/config', { method: 'POST', body: { enabled: false } });
+  synced = await call('/api/features/control');
+  assert.equal(synced.json.modules.find((m) => m.id === 'groupChat').enabled, false, '旧页面关总闸后功能页同步关闭');
+  assert.equal(synced.json.modules.find((m) => m.id === 'chatProactive').state, 'blocked');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(h.temp, 'config.json'), 'utf8')).simulation.enabled, false, '旧页面写入也必须落盘');
+  await call('/api/simulation/config', { method: 'POST', body: { enabled: true } });
+  assert.equal(h.cfg.simulation.enabled, true);
+  console.log('OK 多入口同步：功能页与旧群聊剧场页双向一致');
+
+  // ── 3e. 主动冒泡定时器：关闭时取消，触发瞬间再校验一次 ─────────────────
+  h.setMode('simulation');
+  await call('/api/features/control', { method: 'POST', body: { id: 'chatProactive', enabled: true } });
+  h.cfg.simulation.proactive = {
+    ...(h.cfg.simulation.proactive || {}),
+    enabled: true, probability: 1, idleThresholdMs: 1, checkIntervalMinMs: 60000, checkIntervalMaxMs: 60000
+  };
+  const chatKey = 'group:456';
+  const st = h.getSimulationState(chatKey);
+  st.lastIncomingAt = 0;
+  const sentinel = { mode: 'passive', infinite: true, triggers: {} };
+  st.wakeConfig = sentinel;
+  h.scheduleProactiveCheck(chatKey);
+  assert.ok(st.proactiveTimer, '应排上主动冒泡定时器');
+  const queued = st.proactiveTimer;
+  await call('/api/features/control', { method: 'POST', body: { id: 'chatProactive', enabled: false } });
+  assert.equal(st.proactiveTimer, null, '关闭主动冒泡必须取消已排队定时器');
+  // 竞态：定时器已被取出、配置同时被关掉 —— 触发时仍要再判一次。
+  h.cfg.simulation.proactive.enabled = false;
+  queued.__fixtureCallback();
+  assert.equal(st.wakeConfig, sentinel, '关闭后触发的定时器必须直接返回，不再做任何调度');
+  assert.notEqual(st.lastWakeReason, 'proactiveCheck');
+  // 正对照：同样触发、开关打开时应继续执行（无效唤醒配置会被重置）。
+  h.cfg.simulation.proactive.enabled = true;
+  st.wakeConfig = sentinel;
+  h.scheduleProactiveCheck(chatKey);
+  const queued2 = st.proactiveTimer;
+  assert.ok(queued2, '重新打开后应能再排定时器');
+  queued2.__fixtureCallback();
+  assert.notEqual(st.wakeConfig, sentinel, '开关打开时定时器应继续执行');
+  // 总闸关闭时不应再排新的主动冒泡。
+  h.cfg.simulation.proactive.enabled = true;
+  h.cfg.simulation.enabled = false;
+  st.proactiveTimer = null;
+  h.scheduleProactiveCheck(chatKey);
+  assert.equal(st.proactiveTimer, null, '群聊总闸关闭时不应排主动冒泡');
+  h.cfg.simulation.enabled = true;
+  h.setMode('chat');
+  await call('/api/features/control', { method: 'POST', body: { id: 'chatProactive', enabled: true } });
+  console.log('OK 主动冒泡：关闭取消定时器，触发瞬间二次校验');
+
+  // ── 3f. 深潜：群聊只允许主人直接 @，私聊不受影响，定时行为全部失效 ─────
+  h.setMode('simulation');
+  h.cfg.simulation.wake.defaultMode = 'diving';
+  h.cfg.simulation.activityControl = { deepDive: true };
+  const deepKey = 'group:456';
+  const deepState = h.getSimulationState(deepKey);
+  deepState.wakeConfig = {
+    mode: 'active', infinite: true, confirmedBy: 'admin',
+    triggers: { atMention: true, nameMention: true, keywords: ['小鲸鱼'], question: true, poke: true, anyMessage: true, speakerIds: ['777'], probability: 1 }
+  };
+  deepState.proactiveTimer = null;
+  deepState.sleepTimer = null;
+  const eventOf = (userId, segments) => ({
+    self_id: 999, user_id: userId, message: segments, raw_message: '小鲸鱼 在吗',
+    sender: { nickname: '测试群友', card: '测试群友' }
+  });
+  const textSeg = [{ type: 'text', data: { text: '小鲸鱼 在吗' } }];
+  const atSeg = [{ type: 'at', data: { qq: '999' } }, { type: 'text', data: { text: '在吗' } }];
+  assert.equal(h.globalActivityMode(), 'deep');
+  assert.equal(h.isDeepDive(deepKey), true);
+  assert.equal(h.isDeepDive('private:123'), false, '深潜只作用于群聊');
+  assert.equal(h.evaluateWakeTrigger(deepKey, deepState, eventOf(777, textSeg), 'group', '小鲸鱼 在吗', '小鲸鱼 在吗', false), null,
+    '深潜下非主人的关键词/提问/概率都不唤醒');
+  assert.equal(h.evaluateWakeTrigger(deepKey, deepState, eventOf(123, textSeg), 'group', '小鲸鱼 在吗', '小鲸鱼 在吗', false), null,
+    '深潜下主人不直接 @ 也不唤醒');
+  assert.equal(h.evaluateWakeTrigger(deepKey, deepState, eventOf(123, textSeg), 'group', '小鲸鱼 在吗', '小鲸鱼 在吗', true), null,
+    '引用她也不算直接 @');
+  assert.equal(h.evaluateWakeTrigger(deepKey, deepState, eventOf(123, atSeg), 'group', '[@小鲸鱼] 在吗', '在吗', false), 'ownerAtMention',
+    '深潜下主人本人直接 @ 才唤醒');
+  assert.equal(h.evaluateWakeTrigger('private:123', deepState, eventOf(123, textSeg), 'private', '在吗', '在吗', false), 'private',
+    '主人私聊不受深潜限制');
+  h.scheduleProactiveCheck(deepKey);
+  assert.equal(deepState.proactiveTimer, null, '深潜不排主动冒泡');
+  h.setupSleepTimer(deepKey);
+  assert.equal(deepState.sleepTimer, null, '深潜不排睡眠到期唤醒');
+  await h.handleIncoming('group', '456', eventOf(777, textSeg), h.cfg);
+  for (let i = 0; i < 20; i += 1) await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(deepState.pendingWakeTimer, null, '深潜下非主人群消息不排唤醒');
+  // 全局活跃优先于深潜（深潜属于潜水层的加固）；状态行会提示深潜暂不生效。
+  h.cfg.simulation.wake.defaultMode = 'active';
+  assert.equal(h.globalActivityMode(), 'active');
+  assert.equal(h.isDeepDive(deepKey), false);
+  h.cfg.simulation.wake.defaultMode = 'diving';
+  console.log('OK 深潜：仅主人直接 @ 放行，私聊不受影响，主动/睡眠/进线均被拦截');
+
+  // ── 3g. 全局优先：潜水压住会话 anyMessage，活跃不吞定向触发 ───────────
+  h.cfg.simulation.activityControl.deepDive = false;
+  h.cfg.simulation.wake.defaultMode = 'diving';
+  h.cfg.simulation.valueScore = { enabled: false };
+  const prioKey = 'group:456';
+  const prioState = h.getSimulationState(prioKey);
+  const prioEvent = (userId, text = '随便聊聊') => ({
+    self_id: 999, user_id: userId, message: [{ type: 'text', data: { text } }],
+    raw_message: text, sender: { nickname: '测试群友', card: '测试群友' }
+  });
+  const prioAt = (userId) => ({
+    ...prioEvent(userId, '在吗'),
+    message: [{ type: 'at', data: { qq: '999' } }, { type: 'text', data: { text: '在吗' } }]
+  });
+  prioState.wakeConfig = {
+    mode: 'active', infinite: true, confirmedBy: 'set_wake_config',
+    triggers: { atMention: true, nameMention: true, keywords: ['暗号'], question: true, poke: true, anyMessage: true, speakerIds: [], probability: 0 }
+  };
+  assert.equal(h.evaluateWakeTrigger(prioKey, prioState, prioEvent(777), 'group', '随便聊聊', '随便聊聊', false), null,
+    '全局潜水必须压住会话 anyMessage（即使会话 mode=active）');
+  assert.equal(h.evaluateWakeTrigger(prioKey, prioState, prioAt(777), 'group', '[@小鲸鱼] 在吗', '在吗', false), 'atMention',
+    '全局潜水时显式 @ 仍唤醒');
+  assert.equal(h.evaluateWakeTrigger(prioKey, prioState, prioEvent(777, '暗号 在吗'), 'group', '暗号 在吗', '暗号 在吗', false), 'keyword:暗号',
+    '全局潜水时关键词仍唤醒');
+
+  h.cfg.simulation.wake.defaultMode = 'active';
+  h.cfg.simulation.valueScore = { enabled: true, minScore: 99 };
+  prioState.wakeConfig = {
+    mode: 'diving', infinite: true, confirmedBy: 'set_wake_config',
+    triggers: { atMention: false, nameMention: false, keywords: [], question: false, poke: false, anyMessage: false, speakerIds: ['777'], probability: 0 }
+  };
+  assert.equal(h.evaluateWakeTrigger(prioKey, prioState, prioEvent(777), 'group', '随便聊聊', '随便聊聊', false), 'speaker:测试群友',
+    '全局活跃且评分 defer 时仍应命中指定成员');
+  prioState.wakeConfig.triggers = { atMention: false, nameMention: false, keywords: [], question: false, poke: false, anyMessage: false, speakerIds: [], probability: 0 };
+  assert.equal(h.evaluateWakeTrigger(prioKey, prioState, prioEvent(777), 'group', '随便聊聊', '随便聊聊', false), null,
+    '全局活跃但评分不通过且无定向触发时不唤醒');
+  h.cfg.simulation.valueScore = { enabled: false };
+  assert.match(h.evaluateWakeTrigger(prioKey, prioState, prioEvent(777), 'group', '随便聊聊', '随便聊聊', false), /^anyMessage:score/,
+    '全局活跃且评分通过时走泛监听');
+
+  h.cfg.simulation.wake.defaultMode = 'diving';
+  h.cfg.simulation.activityControl.deepDive = true;
+  assert.equal(h.evaluateWakeTrigger(prioKey, prioState, prioAt(123), 'group', '[@小鲸鱼] 在吗', '在吗', false), 'ownerAtMention',
+    '全局深潜仅主人直接 @ 唤醒');
+  assert.equal(h.evaluateWakeTrigger(prioKey, prioState, prioAt(777), 'group', '[@小鲸鱼] 在吗', '在吗', false), null,
+    '全局深潜非主人直接 @ 也不唤醒');
+  h.cfg.simulation.activityControl.deepDive = false;
+  console.log('OK 全局优先：潜水压住会话 anyMessage，活跃评分不吞指定成员/概率');
 
   // ── 4. 分享引擎总闸 / 模块开关：两层各拦一次 ───────────────────────────
   assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'shareModule', enabled: false } })).status, 200);

@@ -3988,14 +3988,69 @@ button.active,.primary {
   gap: 10px;
   min-width: 0
 }
-.feature-board-head h3 {
+.feature-board-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0
+}
+.feature-board-bar h3 {
   margin: 0;
+  min-width: 0;
   color: var(--text);
   font-family: var(--deck-font, inherit);
   font-size: 15px;
   font-weight: 700;
   letter-spacing: normal;
   text-transform: none
+}
+.feature-board-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin: -4px -8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer
+}
+.feature-board-toggle:hover {
+  background: var(--hover, rgba(127, 127, 127, .12))
+}
+.feature-board-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-border)
+}
+.feature-board-chevron {
+  font-size: 11px;
+  color: var(--muted);
+  transition: transform .15s ease
+}
+.feature-board-toggle[aria-expanded="false"] .feature-board-chevron {
+  transform: rotate(-90deg)
+}
+.feature-board-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text)
+}
+.feature-board-count {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap
+}
+.feature-board-body {
+  display: grid;
+  gap: 10px;
+  min-width: 0
+}
+.feature-board-body[hidden] {
+  display: none
 }
 .feature-board-head .meta {
   margin: 2px 0 0;
@@ -4596,12 +4651,13 @@ button.active,.primary {
       </div>
 
       </div></details>
-<details class="settings-group"><summary>唤醒推荐值（仅参考，AI 可不遵守）</summary><div class="settings-content">
+<details class="settings-group"><summary>唤醒推荐值 / 全局活跃控制</summary><div class="settings-content">
       <div class="row">
-        <label style="flex:1">默认模式</label>
+        <label style="flex:1">默认模式（全局活跃控制，覆盖会话级设置）</label>
         <select id="simWakeDefaultMode" style="width:120px"><option value="diving">潜水</option><option value="active">活跃</option></select>
         <label style="flex:1">默认下一次唤醒：无限期（永久）</label><input type="checkbox" id="simRecDefaultInfinite" style="width:auto">
       </div>
+      <div class="row"><div class="meta" id="simWakeGlobalHint" style="flex:1"></div></div>
       <div class="row">
         <label style="flex:1">推荐潜水时长（分）</label>
         <input type="number" id="simRecSleepMin" min="1" style="width:80px"> ~
@@ -5962,7 +6018,8 @@ function renderAdvancedFields(module) {
 
 function renderDependencies(module) {
   const deps = Array.isArray(module.dependencies) ? module.dependencies : [];
-  const shown = module.enabled ? deps : deps.filter((item) => !item.ok);
+  // 只在依赖未满足时提示；已就绪的依赖不重复刷绿条，避免每张卡都拖一排噪声。
+  const shown = deps.filter((item) => !item.ok);
   if (!shown.length) return '';
   return `<div class="feature-badges">${shown.map((item) => {
     const tone = item.ok ? 'ok' : (item.soft ? 'warn' : 'err');
@@ -6037,7 +6094,6 @@ function renderBoardMaster(board, module) {
   return `<div class="feature-board-head feature-board-master${dirty ? ' is-dirty' : ''}" data-module-id="${esc(module.id)}" data-search="${esc(search)}">
     <div class="feature-board-master-top">
       <div class="feature-board-title">
-        <h3>${esc(board.label)}</h3>
         <p class="meta">${esc(board.description)}</p>
       </div>
       <div class="feature-board-master-switch">
@@ -6068,11 +6124,56 @@ function renderBoardMaster(board, module) {
   </div>`;
 }
 
+// 功能板块折叠：状态存在 localStorage，刷新后保持；筛选时临时全部展开。
+const FEATURE_COLLAPSED_STORAGE_KEY = 'qq-console.featureCollapsed.v1';
+const featureCollapsedBoards = new Set();
+let featureCollapsedLoaded = false;
+function loadFeatureCollapsedBoards() {
+  if (featureCollapsedLoaded) return;
+  featureCollapsedLoaded = true;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FEATURE_COLLAPSED_STORAGE_KEY) || '[]');
+    if (Array.isArray(parsed)) parsed.forEach((id) => { if (typeof id === 'string' && id) featureCollapsedBoards.add(id); });
+  } catch (error) {}
+}
+function saveFeatureCollapsedBoards() {
+  try { localStorage.setItem(FEATURE_COLLAPSED_STORAGE_KEY, JSON.stringify([...featureCollapsedBoards])); } catch (error) {}
+}
+function featureFilterActive() {
+  const text = (document.getElementById('featureFilter')?.value || '').trim();
+  const state = document.getElementById('featureStateFilter')?.value || 'all';
+  return Boolean(text) || state !== 'all';
+}
+function featureBoardCounts(boardId) {
+  const modules = (featureControlState?.modules || []).filter((module) => module.board === boardId);
+  return { enabled: modules.filter((module) => featureChecked(module.id)).length, total: modules.length };
+}
+function updateFeatureBoardCounts() {
+  document.querySelectorAll('#featureSwitches .feature-board').forEach((board) => {
+    const target = board.querySelector('[data-board-count]');
+    if (!target) return;
+    const { enabled, total } = featureBoardCounts(board.dataset.board);
+    target.textContent = `${enabled}/${total} 项已开启`;
+  });
+}
+function applyBoardCollapseStates() {
+  const filtering = featureFilterActive();
+  document.querySelectorAll('#featureSwitches .feature-board').forEach((board) => {
+    const toggle = board.querySelector('[data-board-toggle]');
+    const body = board.querySelector('[data-board-body]');
+    if (!toggle || !body) return;
+    const collapsed = !filtering && featureCollapsedBoards.has(board.dataset.board);
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    body.hidden = collapsed;
+  });
+}
+
 function renderFeatureControl() {
   if (!featureControlState) return;
   unmountFeaturePanels();
   const container = document.getElementById('featureSwitches');
   if (!container) return;
+  loadFeatureCollapsedBoards();
   // 卡片一律从 modules 取，boards 只提供板块标题；避免两份模块副本不同步时
   // 告警说「被依赖拦住」、卡片却还显示「运行中」。
   const modules = Array.isArray(featureControlState.modules) ? featureControlState.modules : [];
@@ -6083,13 +6184,24 @@ function renderFeatureControl() {
     const cards = boardModules.filter((module) => !masterIds.has(module.id));
     const head = master
       ? renderBoardMaster(board, master)
-      : `<div class="feature-board-head"><h3>${esc(board.label)}</h3><p class="meta">${esc(board.description)}</p></div>`;
+      : `<div class="feature-board-head"><p class="meta">${esc(board.description)}</p></div>`;
+    const counts = featureBoardCounts(board.id);
     return `<section class="feature-board" data-board="${esc(board.id)}" aria-label="${esc(board.label)}">
-      ${head}
-      <div class="feature-cards">${cards.map(renderFeatureCard).join('')}</div>
+      <div class="feature-board-bar">
+        <h3><button type="button" class="feature-board-toggle" data-board-toggle="${esc(board.id)}" aria-expanded="true" aria-controls="feature-board-body-${esc(board.id)}">
+          <span class="feature-board-chevron" aria-hidden="true">▾</span>
+          <span class="feature-board-name">${esc(board.label)}</span>
+          <span class="feature-board-count" data-board-count="${esc(board.id)}">${counts.enabled}/${counts.total} 项已开启</span>
+        </button></h3>
+      </div>
+      <div class="feature-board-body" id="feature-board-body-${esc(board.id)}" data-board-body="${esc(board.id)}">
+        ${head}
+        <div class="feature-cards">${cards.map(renderFeatureCard).join('')}</div>
+      </div>
     </section>`;
   }).join('');
   mountFeaturePanels();
+  applyBoardCollapseStates();
   applyFeatureFilters();
   updateFeatureSummary();
   renderFeatureAlerts();
@@ -6154,9 +6266,15 @@ function applyFeatureFilters() {
     const masterMatch = Boolean(text && master?.dataset.search?.includes(text));
     board.hidden = !hasVisibleChild && !masterMatch;
   });
+  // 板块总闸不是 .feature-module，单独按可见性计入，否则「显示 20/23」会漏掉 3 个总闸。
+  // 折叠只是隐藏 body，不应影响筛选计数，所以按板块是否被筛选隐藏来判断。
+  const mastersShown = [...document.querySelectorAll('#featureSwitches .feature-board-master')]
+    .filter((el) => !el.closest('.feature-board[hidden]')).length;
+  featureFilterShown = shown + mastersShown;
   const empty = document.getElementById('featureEmpty');
-  if (empty) empty.hidden = shown > 0;
-  featureFilterShown = shown;
+  if (empty) empty.hidden = featureFilterShown > 0;
+  applyBoardCollapseStates();
+  updateFeatureBoardCounts();
   updateFeatureMetadata();
 }
 
@@ -6175,6 +6293,7 @@ function updateFeatureSummary() {
     save.disabled = dirty === 0;
     save.textContent = dirty ? `保存更改（${dirty}）` : '保存更改';
   }
+  updateFeatureBoardCounts();
 }
 
 function markFeatureDirty(id, enabled) {
@@ -6310,6 +6429,15 @@ document.getElementById('featureSwitches')?.addEventListener('change', (event) =
   markFeatureDirty(input.dataset.featureId, input.checked);
 });
 document.getElementById('featureSwitches')?.addEventListener('click', (event) => {
+  const boardToggle = event.target.closest('button[data-board-toggle]');
+  if (boardToggle) {
+    const id = boardToggle.dataset.boardToggle;
+    if (featureCollapsedBoards.has(id)) featureCollapsedBoards.delete(id);
+    else featureCollapsedBoards.add(id);
+    saveFeatureCollapsedBoards();
+    applyBoardCollapseStates();
+    return;
+  }
   const saveButton = event.target.closest('button[data-advanced-save]');
   if (saveButton) {
     saveFeatureAdvanced(saveButton.dataset.advancedSave);
@@ -7993,6 +8121,21 @@ async function loadSimConfig() {
     });
     const w = c.wake || {};
     document.getElementById('simWakeDefaultMode').value = w.defaultMode === 'active' ? 'active' : 'diving';
+    const globalMode = w.defaultMode === 'active' ? 'active' : 'diving';
+    const deepDive = c.activityControl?.deepDive === true;
+    const globalHint = document.getElementById('simWakeGlobalHint');
+    if (globalHint) {
+      if (globalMode === 'active') {
+        globalHint.textContent = deepDive
+          ? '全局活跃中：深潜开关已保存但暂不生效（深潜只加固潜水层）。'
+          : '全局活跃：所有群会话按活跃处理，覆盖各会话自己的唤醒模式。';
+      } else {
+        globalHint.textContent = deepDive
+          ? '全局潜水 + 深潜：群里只有主人本人直接 @ 小鲸鱼才会唤醒，其余消息一律不触发。'
+          : '全局潜水：覆盖各会话自己的「活跃」设置；@、关键词等触发条件仍按会话配置。';
+      }
+      globalHint.className = 'meta' + (globalMode === 'active' && deepDive ? ' warn' : '');
+    }
     document.getElementById('simRecDefaultInfinite').checked = w.recommendedDefaultInfinite !== false;
     document.getElementById('simRecSleepMin').value = Math.round((w.recommendedSleepMinMs || 300000) / 60000);
     document.getElementById('simRecSleepMax').value = Math.round((w.recommendedSleepMaxMs || 7200000) / 60000);
@@ -9165,7 +9308,11 @@ function setConsolePage(page, { updateHash = true, focus = false, target = '' } 
   if (updateHash && location.hash !== '#' + page) history.pushState({}, '', '#' + page);
   closeConsoleSearch();
   // 语音库按需加载：进入群聊剧场页时才探测（避免每次开控制台都压网关）。
-  if (page === 'simulation' && typeof loadVoiceLibrary === 'function') loadVoiceLibrary();
+  // 同时重读配置：功能页/高级设置可能刚改过开关，不刷新会拿旧状态回写。
+  if (page === 'simulation') {
+    if (typeof loadVoiceLibrary === 'function') loadVoiceLibrary();
+    if (typeof loadSimConfig === 'function') loadSimConfig();
+  }
   if (page === 'features') {
     if (typeof refreshFeatureControl === 'function') refreshFeatureControl();
     if (typeof refreshFeatures === 'function') refreshFeatures();
