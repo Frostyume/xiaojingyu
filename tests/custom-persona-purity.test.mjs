@@ -7,7 +7,12 @@ import http from 'node:http';
 import { test } from 'node:test';
 import { bridgeHarness } from './bridge-harness.mjs';
 import { createInnerLife } from '../services/persona/inner-life.js';
+import { featureVoiceInstruction } from '../runtime/orchestration/feature-voice.js';
+import { neutralVoiceInstruction } from '../runtime/persona/voice-delivery.js';
 import { PERSONA_MODES, renderPersonaMode } from '../runtime/persona/persona-mode.js';
+import { FEATURE_CARDS } from '../runtime/control/feature-control.js';
+import { listOwnerCapabilities } from '../runtime/control/owner-capabilities.js';
+import { listOwnerConfig } from '../runtime/control/owner-config.js';
 import { contentVoiceBlock, shareVoiceBlock } from '../runtime/persona/persona-voice.js';
 import { personaStyleContext } from '../runtime/persona/style-context.js';
 
@@ -18,6 +23,7 @@ const ROXY_CARD = '你是「Roxy」，一个冷静、直话直说的电台 DJ。
 const WHALE_CARD = '你是「小鲸鱼」，一只住在 QQ 里的鲸鱼娘。说话短，心软但嘴硬。';
 const FORBIDDEN = /小鲸鱼|鲸鱼|软萌|傲娇|嘴硬|本鱼|大肥鱼|D指导/;
 const MCP_SOURCE = fs.readFileSync(new URL('../mcp/qq-actions.js', import.meta.url), 'utf8');
+const RESTRICT_SOURCE = fs.readFileSync(new URL('../integrations/dsh/agent-presets/qq-tool-restrict.mjs', import.meta.url), 'utf8');
 
 function mcpDescription(name) {
   const marker = `'${name}'`;
@@ -123,6 +129,13 @@ function previewPrompts(inner) {
       comment: { name: '阿明', text: '这期挺稳的，@Roxy 怎么看' },
       images: [],
       comments: []
+    }),
+    reflection: inner.promptPreview('reflection', {}),
+    refine: inner.promptPreview('refine', {
+      kind: 'qzone',
+      text: '今晚的节目聊了输赢。',
+      ask: '短一点',
+      maxChars: 120
     })
   };
 }
@@ -139,6 +152,7 @@ test('Roxy：唤醒提示词、语气提醒、状态指令、内心生活、工�
     assert.doesNotMatch(prompt, FORBIDDEN, 'Roxy 唤醒提示词不得出现默认角色词');
     assert.doesNotMatch(prompt, /【人格内核/, '自定义角色不得注入默认人格内核');
     assert.match(prompt, /符合当前角色|角色卡/, '应给出按角色卡发挥的中性提示');
+    assert.match(prompt, /【称呼边界】/, '自定义角色要说明预设里的称呼不代表角色关系');
 
     const praise = h.buildToneNudgeLine(st, user('夸你乖就受着'), GROUP);
     assert.match(praise, /按当前角色卡/, '被夸时用中性提醒');
@@ -151,20 +165,34 @@ test('Roxy：唤醒提示词、语气提醒、状态指令、内心生活、工�
     const inner = makeInner(h);
     const persona = inner.personaBlock();
     assert.doesNotMatch(persona, FORBIDDEN, '内心生活状态段不得出现默认角色词');
+    assert.doesNotMatch(persona, /猫|独立游戏|音乐/, '自定义角色不注入默认角色的兴趣');
+    assert.match(persona, /以当前角色卡为准/, '没有自定义状态时用中性状态');
 
     const prompts = previewPrompts(inner);
     for (const [kind, text] of Object.entries(prompts)) {
       assert.ok(text.includes(ROXY_CARD), `${kind} 提示词应带 Roxy 角色卡`);
       assert.doesNotMatch(text, FORBIDDEN, `${kind} 提示词不得出现默认角色词`);
-      assert.match(text, /按当前角色卡|按角色卡/, `${kind} 提示词应要求按角色卡发挥`);
+      assert.match(text, /角色卡/, `${kind} 提示词应要求按角色卡发挥`);
     }
     assert.deepEqual(inner.promptPreview('mentions', { mentionNames: ['小鲸鱼', 'DeepSeek'] }), [ROXY], '@ 名单应使用当前角色名');
+    assert.doesNotMatch(prompts.reflection, /主人/, '自定义角色的反思输入不写死主人');
+    assert.match(prompts.reflection, /对方私聊/, '自定义角色反思输入用中性称呼');
+    assert.doesNotMatch(prompts.refine, /主人/, '自定义角色的草稿微调不写死主人');
+    assert.match(prompts.refine, /对方想这样调整/, '自定义角色草稿微调用中性称呼');
 
     const wording = ['qq_play_game', 'qq_send_sticker', 'qq_send_image', 'qq_collect_sticker', 'qq_speak', 'qq_get_self_image']
       .map(mcpDescription)
       .join('\n');
     assert.doesNotMatch(wording, FORBIDDEN, 'MCP 工具描述不得写死默认角色');
     assert.match(wording, /角色卡/, 'MCP 工具描述应指向当前角色卡');
+    assert.doesNotMatch(RESTRICT_SOURCE, /小鲸鱼/, '工具白名单拒绝理由不得绑定默认角色名');
+    const controlText = JSON.stringify(FEATURE_CARDS) + JSON.stringify(listOwnerCapabilities()) + JSON.stringify(listOwnerConfig(h.cfg));
+    assert.doesNotMatch(controlText, FORBIDDEN, '功能/能力/配置描述不得绑定默认角色');
+
+    const tts = { breeze: { baseInstruction: '固定音色', softInstruction: '整体偏软萌、带一点傲娇', softDelivery: '偏软萌、带一点傲娇', moodInstructions: { happy: '带一点小傲娇' } } };
+    assert.doesNotMatch(featureVoiceInstruction(tts, 'happy', { customRole: true }), FORBIDDEN);
+    assert.match(featureVoiceInstruction(tts, 'happy', { customRole: true }), /不要预设固定人设/);
+    assert.doesNotMatch(neutralVoiceInstruction(tts.breeze, 'happy'), FORBIDDEN);
   });
 });
 
@@ -178,6 +206,7 @@ test('默认角色回归：小鲸鱼的原有提示词和口吻保持不变', as
     const prompt = h.buildWakePrompt(GROUP, 'question');
     assert.match(prompt, /你是 DeepSeek 小鲸鱼/, '默认角色仍保留人格内核');
     assert.match(prompt, /只发像小鲸鱼的东西/, '默认角色仍保留鲸鱼非文字规则');
+    assert.doesNotMatch(prompt, /【称呼边界】/, '默认角色不额外注入称呼边界');
 
     st.recentMessages = [self('乖什么乖，我只是记性好')];
     assert.match(h.buildToneNudgeLine(st, user('真乖')), /害羞|嘴硬/, '默认角色被夸时保留先软后硬提醒');
@@ -187,11 +216,17 @@ test('默认角色回归：小鲸鱼的原有提示词和口吻保持不变', as
     assert.match(renderPersonaMode(PERSONA_MODES.steady, personaStyleContext({ name: '小鲸鱼' })), /按平时的软黏语气说话/);
 
     const inner = makeInner(h);
+    const persona = inner.personaBlock();
+    assert.match(persona, /猫|独立游戏|音乐/, '默认角色仍注入默认兴趣');
     const prompts = previewPrompts(inner);
     assert.match(prompts.share, /软和嘴硬都可以|第一句先写你自己的反应/, '默认分享口吻块保持原样');
     assert.match(prompts.qzone, /🐟/, '默认说说提示保留默认 emoji 示例');
     assert.match(prompts.comment, /软萌、先软后硬/, '默认评论回复保持原口吻');
     assert.match(prompts.mention, /软萌、先软后硬/, '默认 @ 回复保持原口吻');
+    assert.match(prompts.reflection, /主人私聊/, '默认角色反思输入保持原称呼');
+    assert.match(prompts.refine, /主人想这样调整/, '默认角色草稿微调保持原称呼');
+    const tts = { breeze: { baseInstruction: '固定音色', softDelivery: '偏软萌、带一点傲娇', moodInstructions: { happy: '带一点小傲娇' } } };
+    assert.match(featureVoiceInstruction(tts, 'happy'), /软萌/);
 
     const mentions = inner.promptPreview('mentions', { mentionNames: [] });
     assert.ok(mentions.includes('小鲸鱼') && mentions.includes('DeepSeek'), '默认角色 @ 名单保持原值');

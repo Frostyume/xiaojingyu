@@ -23,6 +23,7 @@ import { SENSITIVE_RE } from '../runtime/kernel/sensitive.js';
 import { serializeModelData } from '../services/social/qq-model-view.js';
 import { fetchWithBusyRetry, TtsBusyError } from '../runtime/persona/tts-busy-retry.js';
 import { featureEnabled } from '../runtime/control/feature-switches.js';
+import { neutralVoiceInstruction } from '../runtime/persona/voice-delivery.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -1654,7 +1655,9 @@ function shapeTtsText(text, mood) {
   return s;
 }
 
-function buildBreezeInstruction(breeze, style, mood = '') {
+function buildBreezeInstruction(breeze, style, mood = '', { customRole = false } = {}) {
+  // 自定义角色不套用默认角色的软萌/傲娇表演；声线仍是同一个音色。
+  if (customRole && style !== 'dark') return neutralVoiceInstruction(breeze, mood);
   const base = String(breeze.baseInstruction || '').trim();
   const legacy = String(style === 'dark' ? (breeze.darkInstruction || '') : (breeze.softInstruction || '')).trim();
   const delivery = String(style === 'dark' ? (breeze.darkDelivery || '') : (breeze.softDelivery || '')).trim();
@@ -1667,6 +1670,16 @@ function buildBreezeInstruction(breeze, style, mood = '') {
     moodText,
     override ? `这一句的表演以最后这段为准：${override}` : ''
   ].filter(Boolean).join(' ');
+}
+
+function currentRoleIsCustom() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(ROOT, 'state', 'current-role.json'), 'utf8'));
+    const name = String(raw?.role ?? '').trim();
+    return Boolean(name) && name !== '小鲸鱼';
+  } catch {
+    return false;
+  }
 }
 
 function pcm16ToWav(pcm, sampleRate = 24000, channels = 1) {
@@ -1703,7 +1716,7 @@ async function synthesizeBreeze({ text, explicitStyle = '', mood = '', t = {}, f
   if (!base) throw new Error('BreezeTTS baseUrl 未配置');
   const style = resolveVoiceStyle({ explicitStyle, t });
   const effectiveMood = resolveVoiceMood(mood, text);
-  const instruction = buildBreezeInstruction(b, style, effectiveMood);
+  const instruction = buildBreezeInstruction(b, style, effectiveMood, { customRole: currentRoleIsCustom() });
   if (!instruction) throw new Error(`BreezeTTS 缺少 ${style} instruction`);
   const cfgScale = Number(b.moodCfgScale?.[effectiveMood]) > 0
     ? Number(b.moodCfgScale[effectiveMood])
@@ -1857,12 +1870,12 @@ function pruneTtsFiles(dir, keep) {
 if (ttsCfg().enabled === true) {
   server.tool(
     'qq_speak',
-    '用你自己的声音说一句中文，生成语音条发到会话。始终是同一个中文音色（音色由系统设置决定，只改语气；自定义角色同样使用这个声线，不按角色卡换音色），dark 是同一个声音的冷傲版，不是换人。可以主动发，不用等对方点名：道晚安、撒娇、被夸、情绪很浓、聊得正热想插一句、冷场冒泡都适合。按这句话的内容传 mood：开心 happy、低落 sad、生气 angry、害羞 shy、困倦 sleepy、得意 proud、活泼 playful；不传就按这句话的情绪和人格设置自动选择。文本明确在说困/累/想睡/晚安时，mood 必须传 sleepy，哪怕当前心情很好；音色要跟这句话的状态走，而不是跟整体心情走。主人手动锁定的声线优先于单次 style，锁定后传 dark 也不会变。注意：① 一次最多 60 字，语音条不是长文，说短点；② 说完语音就不用再把同一句用文字重复一遍；③ 同一轮最多 1 条、同会话 10 分钟最多 5 条，别连着刷，也别替代正常回话；④ 返回的 verified=true 才代表语音真的发出去了，false 或报错就老老实实打字，别假装发了语音；⑤ 只用中文说话，没有日语声源；⑥ 只说你真会说的话，不念链接、工具说明或报错；⑦ 主人在某个群里刚说完话时，可以从那个群会话把语音发到别的群（群友插话即失效），主人在私聊用主人令牌则始终可以跨会话发语音。',
+    '用你自己的声音说一句中文，生成语音条发到会话。始终是同一个中文音色（音色由系统设置决定，只改语气；自定义角色同样使用这个声线，不按角色卡换音色），dark 是同一个声音的冷傲版，不是换人。可以主动发，不用等对方点名：道晚安、撒娇、被夸、情绪很浓、聊得正热想插一句、冷场冒泡都适合。按这句话的内容传 mood：开心 happy、低落 sad、生气 angry、害羞 shy、困倦 sleepy、得意 proud、活泼 playful；不传就按这句话的情绪和人格设置自动选择。文本明确在说困/累/想睡/晚安时，mood 必须传 sleepy，哪怕当前心情很好；音色要跟这句话的状态走，而不是跟整体心情走。操作者手动锁定的声线优先于单次 style，锁定后传 dark 也不会变。注意：① 一次最多 60 字，语音条不是长文，说短点；② 说完语音就不用再把同一句用文字重复一遍；③ 同一轮最多 1 条、同会话 10 分钟最多 5 条，别连着刷，也别替代正常回话；④ 返回的 verified=true 才代表语音真的发出去了，false 或报错就老老实实打字，别假装发了语音；⑤ 只用中文说话，没有日语声源；⑥ 只说你真会说的话，不念链接、工具说明或报错；⑦ 操作者在某个群里刚说完话时，可以从那个群会话把语音发到别的群（群友插话即失效），在操作者私聊用操作者令牌则始终可以跨会话发语音。',
     {
       key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
       token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
       text: z.string().describe('要说的话，中文纯文本，60 字以内'),
-      style: z.enum(['soft', 'dark']).optional().describe('声线：soft=柔和活泼，dark=同一个声音的冷傲版（不换音色）；不传则按人格情绪/主人设置自动选择'),
+      style: z.enum(['soft', 'dark']).optional().describe('声线：soft=柔和活泼，dark=同一个声音的冷傲版（不换音色）；不传则按人格情绪/操作者设置自动选择'),
       mood: z.enum(['happy', 'sad', 'angry', 'shy', 'sleepy', 'proud', 'playful']).optional().describe('这句话的语气：开心/低落/生气/害羞/困倦/得意/活泼；按内容选，不传就按内容自动选择'),
       label: z.string().optional().describe('可选：写进会话记录的说明，如「小声说了句晚安」')
     },

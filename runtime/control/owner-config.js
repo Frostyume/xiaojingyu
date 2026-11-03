@@ -40,7 +40,7 @@ const specs = [
   },
   {
     key: 'qzone.commentReply.mentionMaxPerDay', label: '@ 回复每天上限', type: 'number', min: 0, max: 20, unit: '条',
-    description: '好友动态 @ 小鲸鱼每天最多回几条'
+    description: '好友动态 @ 当前角色每天最多回几条'
   },
   {
     key: 'qzone.commentReply.requireApproval', label: '评论回复先审后发', type: 'boolean',
@@ -82,7 +82,7 @@ const specs = [
   },
   {
     key: 'tts.breeze.darkRecoverValence', label: '黑化恢复心情', type: 'number', min: -1, max: 0.2, unit: '',
-    description: 'valence 高于该值时恢复软萌；改动后需要重启 DSH',
+    description: 'valence 高于该值时恢复柔和声线；改动后需要重启 DSH',
     restart: 'dsh'
   },
   {

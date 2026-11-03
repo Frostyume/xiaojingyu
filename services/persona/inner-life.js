@@ -264,22 +264,24 @@ export function createInnerLife(deps) {
   }
 
   function savePersona(state) {
-    writeJson(files.persona, state);
+    writeJson(files.persona, { ...state, roleName: roleStyle().name });
   }
 
   function personaBlock() {
     try {
       const state = loadPersona();
       const il = ilCfg();
+      const style = roleStyle();
       const mode = derivePersonaMode(state, { quiet: isQuiet(il) });
-      return `${renderPersonaStateBlock(state)}\n${renderPersonaMode(mode, roleStyle())}`;
+      return `${renderPersonaStateBlock(state, { roleName: style.name, custom: style.custom })}\n${renderPersonaMode(mode, style)}`;
     } catch { return ''; }
   }
 
   function personaInfo() {
     const state = loadPersona();
+    const style = roleStyle();
     const mode = derivePersonaMode(state, { quiet: isQuiet(ilCfg()) });
-    return { block: `${renderPersonaStateBlock(state)}\n${renderPersonaMode(mode, roleStyle())}`, detail: describePersonaState(state), state, mode };
+    return { block: `${renderPersonaStateBlock(state, { roleName: style.name, custom: style.custom })}\n${renderPersonaMode(mode, style)}`, detail: describePersonaState(state), state, mode };
   }
 
   function loadCuriosity() {
@@ -504,7 +506,8 @@ export function createInnerLife(deps) {
       }
     };
     if (il.mood?.includeOwnerPrivate !== false && cfg.ownerQQ) {
-      try { addChat('主人私聊', getSimulationState(`private:${cfg.ownerQQ}`), 20); } catch {}
+      const ownerLabel = roleStyle().custom ? '对方的私聊' : '主人私聊';
+      try { addChat(ownerLabel, getSimulationState(`private:${cfg.ownerQQ}`), 20); } catch {}
     }
     const groupKeys = (Array.isArray(cfg.allow?.groups) ? cfg.allow.groups : [])
       .map((id) => `group:${String(id).replace(/^group:/, '')}`)
@@ -753,7 +756,7 @@ export function createInnerLife(deps) {
       lastPost ? `【你最近发过说说】${cleanLine(lastPost, 160)}` : ''
     ].filter(Boolean).join('\n\n');
     return buildBasePrompt(
-      '回顾下面的主人私聊、群聊、关系事件和自己的身体状态，像写日记一样更新你对世界、群友和自己的认识。只输出一个 JSON 对象，不要 markdown、不要解释。格式：\n' +
+      `回顾下面的${roleStyle().custom ? '对方' : '主人'}私聊、群聊、关系事件和自己的身体状态，像写日记一样更新你对世界、群友和自己的认识。只输出一个 JSON 对象，不要 markdown、不要解释。格式：\n` +
       '{"events":[{"what":"发生了什么，不超过30字","intensity":1-5,"valence":"positive|negative","arousal":"up|down|none","cause":"不超过12字"}],"moodCause":"不超过12字的整体心情原因","energy":{"direction":"up|down","intensity":1-5},"interests":[{"topic":"兴趣名","delta":-0.2..0.2}],"learnings":["最多3条，每条不超过40字，不要群友隐私/联系方式"],"quirks":["最多1条，不超过12字"]}\n' +
       '规则：最多 3 条 events；没有明显事件就输出 "events": []，不要用 0 填充。intensity 必须是 1–5，不要给小数。允许自己有低落、烦躁、被冷落，不要每次都回到平静；先判断当前心情是延续、加剧还是反转。明显好的事可以 positive，明显坏的事可以 negative；普通闲聊不必硬找情绪。不要编造没发生的事，不要写群友隐私。',
       extra
@@ -778,7 +781,7 @@ export function createInnerLife(deps) {
       '先给候选打 1~5 分：有趣、重要、群里能接话；低于 3 分就直接 SKIP，不要为了完成任务硬发。优先有反差、槽点、具体细节或确实重要的资讯；行业公告、技术安全说明、发布会流水账、排名统计、纯论文解读，除非真的重要且一句话能说清，否则别选。' +
       '候选里如果有 [S16] 赛果/爆冷/淘汰/晋级/冠军/纪录/争议，而且你最近还没在群里聊过比赛，优先从 S16 里挑；采访/教练发言/返图/海报这类没有具体爆点的，不要只因为挂着 S16 就选。' +
       '如果要提时间，必须和真实时间或候选里的发布时间一致；凌晨发生的事不能说成早上，几小时前不能说成刚刚，拿不准就别写具体时段或钟点。' +
-      (required ? '这次是主人点名要一条 S16 相关分享：必须从候选里选 1 条并输出 SHARE，不能输出 SKIP；只有候选全部打不开或与 S16 完全无关时才 SKIP。' : '') +
+      (required ? `这次是${roleStyle().custom ? '对方' : '主人'}点名要一条 S16 相关分享：必须从候选里选 1 条并输出 SHARE，不能输出 SKIP；只有候选全部打不开或与 S16 完全无关时才 SKIP。` : '') +
       '只要有一条让你有点想说，就分享；只有全部看过、全都无聊或不适合群里聊，才输出 SKIP。' +
       '输出格式只能是：\nSHARE\n<分享正文，必须包含候选里的一个原链接>\n或\nSKIP',
       `${groupStyle}${contentVoiceBlock(roleStyle())}
@@ -1326,7 +1329,7 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
       }
     }
     const timeoutMin = Math.round(il.approvalTimeoutMs / 60000);
-    const body = `【空间说说草稿】\n${text}${imageName ? `\n\n配图：${imageName}` : ''}\n\n回复「发」发布，回复「不发」放弃；想改就直接回我，比如「短一点」「别写猫，换成米饭」（${timeoutMin} 分钟内有效）`;
+    const body = `【空间说说草稿】\n${text}${imageName ? `\n\n配图：${imageName}` : ''}\n\n回复「发」发布，回复「不发」放弃；想改就直接回我，比如「短一点」「换个更具体的说法」（${timeoutMin} 分钟内有效）`;
     const sent = await sendOwner(body);
     const messageId = sent?.message_id ?? sent?.messageId ?? '';
     state.pendingDraft = { text, imageRef: image?.id || '', imageName, createdAt: Date.now(), expiresAt: Date.now() + il.approvalTimeoutMs, messageId };
@@ -4037,6 +4040,15 @@ ${formatTipCaption(item)}`;
     ].join('\n');
   }
 
+  function buildRefineTask({ kind = 'qzone', text = '', ask = '', maxChars = 150 } = {}) {
+    const isSignature = kind === 'signature';
+    const limit = Math.max(8, Math.min(200, Number(maxChars) || (isSignature ? 40 : 150)));
+    const ownerWord = roleStyle().custom ? '对方' : '主人';
+    return isSignature
+      ? `这是你的个性签名草稿：\n${text}\n\n${ownerWord}想这样调整：${ask}\n\n请按${ownerWord}的意思改一版，保留当前角色的口吻；只输出签名正文，不要引号、不要解释、不要标题，最多 ${limit} 字。`
+      : `这是你的空间说说草稿：\n${text}\n\n${ownerWord}想这样调整：${ask}\n\n请按${ownerWord}的意思改一版，保留当前角色的口吻；只输出说说正文，不要 IMG 行、不要引号、不要解释、不要标题，最多 ${limit} 字。`;
+  }
+
   /**
    * 主人私聊微调已有草稿。只改正文，不重新选题，也不发布。
    * kind: qzone | signature
@@ -4046,13 +4058,9 @@ ${formatTipCaption(item)}`;
     const ask = String(instruction ?? '').trim();
     if (!text) throw new Error('没有可修改的草稿');
     if (!ask) throw new Error('没有说明想怎么改');
-    const isSignature = kind === 'signature';
-    const limit = Math.max(8, Math.min(200, Number(maxChars) || (isSignature ? 40 : 150)));
-    const task = isSignature
-      ? `这是你的个性签名草稿：\n${text}\n\n主人想这样调整：${ask}\n\n请按主人的意思改一版，保留当前角色的口吻；只输出签名正文，不要引号、不要解释、不要标题，最多 ${limit} 字。`
-      : `这是你的空间说说草稿：\n${text}\n\n主人想这样调整：${ask}\n\n请按主人的意思改一版，保留当前角色的口吻；只输出说说正文，不要 IMG 行、不要引号、不要解释、不要标题，最多 ${limit} 字。`;
+    const task = buildRefineTask({ kind, text, ask, maxChars });
     const output = await runTurn(buildBasePrompt(task, `${contentVoiceBlock(roleStyle())}\n`), 120000);
-    const cleaned = cleanPost(output, limit);
+    const cleaned = cleanPost(output, Math.max(8, Math.min(200, Number(maxChars) || (kind === 'signature' ? 40 : 150))));
     if (!cleaned) throw new Error('改出来的内容为空或含敏感信息');
     return cleaned;
   }
@@ -4538,6 +4546,17 @@ ${formatTipCaption(item)}`;
       if (kind === 'comment') return buildCommentReplyPrompt(opts);
       if (kind === 'mention') return buildMentionReplyPrompt(opts);
       if (kind === 'mentions') return resolveMentionNames(opts);
+      if (kind === 'reflection') {
+        const il = ilCfg();
+        return reflectionPrompt(opts.state ?? null, {
+          ...opts,
+          il,
+          mode: opts.mode ?? derivePersonaMode(loadPersona(), { quiet: isQuiet(il) })
+        });
+      }
+      if (kind === 'refine') {
+        return buildBasePrompt(buildRefineTask(opts), `${contentVoiceBlock(roleStyle())}\n`);
+      }
       throw new Error(`未知预览类型：${kind}`);
     },
     personaBlock,

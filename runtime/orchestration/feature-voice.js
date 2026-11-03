@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { neutralVoiceInstruction } from '../persona/voice-delivery.js';
 
 const MOOD_OVERRIDES = {
   happy: '这句自然轻快，不要刻意装可爱：不要提高音调，不要奶声奶气，不要每个字都往上飘。',
@@ -32,8 +33,9 @@ function shapeText(text, mood) {
   return /[。！？!?…~～]$/.test(s) ? s : `${s}。`;
 }
 
-export function featureVoiceInstruction(tts, mood = '') {
+export function featureVoiceInstruction(tts, mood = '', { customRole = false } = {}) {
   const b = tts?.breeze || {};
+  if (customRole) return neutralVoiceInstruction(b, mood);
   const base = String(b.baseInstruction || '').trim();
   const delivery = String(b.softDelivery || '').trim();
   const moodText = String(b.moodInstructions?.[mood] || '').trim();
@@ -41,14 +43,14 @@ export function featureVoiceInstruction(tts, mood = '') {
   return [base, delivery, moodText, override ? `这一句的表演以最后这段为准：${override}` : ''].filter(Boolean).join(' ');
 }
 
-export async function synthesizeFeatureVoice({ text, mood = '', cfg, outDir }) {
+export async function synthesizeFeatureVoice({ text, mood = '', cfg, outDir, customRole = false }) {
   const b = cfg?.tts?.breeze || {};
   if (b.enabled === false || !b.opusUrl) throw new Error('Breeze 语音未启用');
   const clean = String(text || '').trim();
   if (!clean) throw new Error('语音内容为空');
   if (clean.length > 60) throw new Error('语音最多 60 字');
   const effectiveMood = resolveMood(mood, clean);
-  const instruction = featureVoiceInstruction(cfg.tts, effectiveMood);
+  const instruction = featureVoiceInstruction(cfg.tts, effectiveMood, { customRole });
   const ttsText = shapeText(clean, effectiveMood);
   const cfgScale = Number(b.moodCfgScale?.[effectiveMood]) > 0 ? Number(b.moodCfgScale[effectiveMood]) : (Number(b.cfgScale) || 3.5);
   const hash = crypto.createHash('sha1')

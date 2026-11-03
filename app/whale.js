@@ -2851,7 +2851,7 @@ async function main() {
             { name: '提醒', status: 'limited', desc: '默认只允许主人私聊和家人群；到点直接发预设提醒。' },
             { name: '天气', status: 'on', desc: 'Open-Meteo；按城市返回当前天气和今日温度/降水。' },
             { name: 'S16/LPL 订阅', status: subs.length ? 'on' : 'off', desc: '直播吧赛果源；只播真正赛果，带日期和旧赛程校验。' },
-            { name: '小游戏', status: 'on', desc: '猜拳、骰子、今日鲸鱼运势；有冷却，结合当前心情/精力。' }
+            { name: '小游戏', status: 'on', desc: '猜拳、骰子、今日运势；有冷却，结合当前心情/精力。' }
           ]
         },
         {
@@ -2922,7 +2922,8 @@ async function main() {
         text: feature.action.text,
         mood: feature.action.mood || '',
         cfg,
-        outDir: path.join(ROOT, 'audio', 'tts')
+        outDir: path.join(ROOT, 'audio', 'tts'),
+        customRole: isCustomRoleName(currentRoleName())
       });
       await sendVoiceFile(key, voice.path, { guard: true });
       return { status: 'sent', voice: voice.path, mood: voice.mood };
@@ -3022,7 +3023,7 @@ async function main() {
         let ok = false;
         if (feature.action.type === 'send_voice') {
           if (!featureEnabled(cfg, 'voice')) continue;
-          const voice = await synthesizeFeatureVoice({ text: feature.action.text, mood: feature.action.mood || '', cfg, outDir: path.join(ROOT, 'audio', 'tts') });
+          const voice = await synthesizeFeatureVoice({ text: feature.action.text, mood: feature.action.mood || '', cfg, outDir: path.join(ROOT, 'audio', 'tts'), customRole: isCustomRoleName(currentRoleName()) });
           await sendVoiceFile(key, voice.path, { guard: true });
           ok = true;
         } else {
@@ -16503,6 +16504,10 @@ async function main() {
           ? `【角色卡缺失】当前角色「${roleSnapshot.name}」没有可读的角色卡（personas/${roleSnapshot.name}.md 缺失或为空）；本轮不套用默认角色人格，按中性表达，补上角色卡后自动生效。\n\n`
           : `【角色卡缺失】已选默认角色「${roleSnapshot.name}」但读不到角色卡；本轮只使用内置默认人格。补上 personas/${roleSnapshot.name}.md 后恢复完整人格。\n\n`)
       : '';
+    // 预设/工具说明里的“主人/管理员”是操作者身份，不是角色的固定称呼；自定义角色以角色卡为准。
+    const roleAddressLine = roleSnapshot.custom
+      ? '【称呼边界】预置说明里的称呼只代表操作者身份，不代表角色关系；怎么称呼、亲疏程度以当前角色卡为准。\n\n'
+      : '';
     const identityLine = selfIdentityText();
     const personaText = innerLife?.personaBlock?.() || '';
     const personaLine = personaText ? `${personaText}\n\n` : '';
@@ -16661,7 +16666,7 @@ async function main() {
     // 分层 + 预算：未超预算时与旧版逐字一致；超了才按优先级丢可选段。
     // 顺序即输出顺序，调整顺序会改变人格/工具提示的相对位置，请谨慎。
     const sections = [
-      { id: 'role', text: roleLine + toneNudgeLine + roleUpdateLine + roleMissingLine, priority: 100 },
+      { id: 'role', text: roleLine + roleAddressLine + toneNudgeLine + roleUpdateLine + roleMissingLine, priority: 100 },
       { id: 'personaKernel', text: roleKernelLine, priority: 95, trim: true },
       { id: 'identity', text: identityLine, priority: 100 },
       { id: 'persona', text: personaLine, priority: 100, trim: true },
