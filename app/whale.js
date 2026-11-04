@@ -10460,9 +10460,11 @@ async function main() {
           try {
             const result = await innerLife.nudgeMood({
               what: String(body.what ?? body.cause ?? '').slice(0, 30),
+              type: typeof body.type === 'string' ? body.type : 'other',
               intensity: Number(body.intensity) || 0,
               valence: body.valence === 'negative' ? 'negative' : 'positive',
               arousal: ['up', 'down', 'none'].includes(body.arousal) ? body.arousal : 'none',
+              energy: body.energy && typeof body.energy === 'object' ? body.energy : null,
               cause: String(body.cause ?? '').slice(0, 20),
               sourceMessageId: body.sourceMessageId ?? null
             }, { dryRun: body.dryRun === true });
@@ -15885,6 +15887,8 @@ async function main() {
       plain: truncateText(String(plainContent ?? textContent), 200),
       tail: truncateTextTail(String(plainContent ?? textContent), 200),
       quoteTargetIsSelf: !!quoteTargetIsSelf,
+      atSelf: relationContext?.isAt === true,
+      directed: relationContext?.directed === true,
       quotedMessageId: quotedId || null,
       ...(quoted ? { quoted } : {}),
       isOwner: !!isOwner,

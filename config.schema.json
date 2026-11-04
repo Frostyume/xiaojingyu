@@ -779,6 +779,36 @@
             "mood": {
               "type": "object",
               "properties": {
+                "autoEvent": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "title": "Enabled",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "intensity": {
+                      "title": "Intensity",
+                      "type": "number",
+                      "default": 3
+                    },
+                    "maxPerDay": {
+                      "title": "Max Per Day",
+                      "type": "number",
+                      "default": 4
+                    },
+                    "maxPerHour": {
+                      "title": "Max Per Hour",
+                      "type": "number",
+                      "default": 1
+                    },
+                    "scanMs": {
+                      "title": "Scan Ms",
+                      "type": "number",
+                      "default": 60000
+                    }
+                  }
+                },
                 "budgets": {
                   "type": "object",
                   "properties": {
@@ -793,6 +823,16 @@
                       "default": 0.35
                     }
                   }
+                },
+                "causeClearDelta": {
+                  "title": "Cause Clear Delta",
+                  "type": "number",
+                  "default": 0.15
+                },
+                "causeTtlH": {
+                  "title": "Cause Ttl H",
+                  "type": "number",
+                  "default": 12
                 },
                 "circadian": {
                   "type": "object",
@@ -820,12 +860,12 @@
                     "valenceNegativeHalfLifeH": {
                       "title": "Valence Negative Half Life H",
                       "type": "number",
-                      "default": 20
+                      "default": 8
                     },
                     "valencePositiveHalfLifeH": {
                       "title": "Valence Positive Half Life H",
                       "type": "number",
-                      "default": 30
+                      "default": 36
                     }
                   }
                 },
@@ -837,6 +877,11 @@
                 "eventNudge": {
                   "type": "object",
                   "properties": {
+                    "autoScale": {
+                      "title": "Auto Scale",
+                      "type": "number",
+                      "default": 0.5
+                    },
                     "enabled": {
                       "title": "Enabled",
                       "type": "boolean",
@@ -850,12 +895,12 @@
                     "maxPerDay": {
                       "title": "Max Per Day",
                       "type": "number",
-                      "default": 6
+                      "default": 8
                     },
                     "maxPerHour": {
                       "title": "Max Per Hour",
                       "type": "number",
-                      "default": 2
+                      "default": 3
                     },
                     "minIntensity": {
                       "title": "Min Intensity",
@@ -919,13 +964,38 @@
                     }
                   }
                 },
+                "recovery": {
+                  "type": "object",
+                  "properties": {
+                    "afterH": {
+                      "title": "After H",
+                      "type": "number",
+                      "default": 2
+                    },
+                    "enabled": {
+                      "title": "Enabled",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "halfLifeH": {
+                      "title": "Half Life H",
+                      "type": "number",
+                      "default": 6
+                    },
+                    "targetFloor": {
+                      "title": "Target Floor",
+                      "type": "number",
+                      "default": 0.15
+                    }
+                  }
+                },
                 "setPoint": {
                   "type": "object",
                   "properties": {
                     "alpha": {
                       "title": "Alpha",
                       "type": "number",
-                      "default": 0.02
+                      "default": 0.01
                     },
                     "enabled": {
                       "title": "Enabled",
@@ -940,7 +1010,7 @@
                     "min": {
                       "title": "Min",
                       "type": "number",
-                      "default": 0
+                      "default": 0.1
                     }
                   }
                 }
@@ -3725,6 +3795,46 @@
       "advanced": false
     },
     {
+      "key": "simulation.innerLife.mood.autoEvent.enabled",
+      "label": "Enabled",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.autoEvent.intensity",
+      "label": "Intensity",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.autoEvent.maxPerDay",
+      "label": "Max Per Day",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.autoEvent.maxPerHour",
+      "label": "Max Per Hour",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.autoEvent.scanMs",
+      "label": "Scan Ms",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "simulation.innerLife.mood.budgets.maxDay",
       "label": "Max Day",
       "group": "群聊剧场",
@@ -3735,6 +3845,22 @@
     {
       "key": "simulation.innerLife.mood.budgets.maxHour",
       "label": "Max Hour",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.causeClearDelta",
+      "label": "Cause Clear Delta",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.causeTtlH",
+      "label": "Cause Ttl H",
       "group": "群聊剧场",
       "type": "number",
       "restart": "none",
@@ -3785,6 +3911,14 @@
       "label": "Enabled",
       "group": "群聊剧场",
       "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.eventNudge.autoScale",
+      "label": "Auto Scale",
+      "group": "群聊剧场",
+      "type": "number",
       "restart": "none",
       "advanced": false
     },
@@ -3895,6 +4029,38 @@
     {
       "key": "simulation.innerLife.mood.noise.sigma",
       "label": "Sigma",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.recovery.afterH",
+      "label": "After H",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.recovery.enabled",
+      "label": "Enabled",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.recovery.halfLifeH",
+      "label": "Half Life H",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.innerLife.mood.recovery.targetFloor",
+      "label": "Target Floor",
       "group": "群聊剧场",
       "type": "number",
       "restart": "none",

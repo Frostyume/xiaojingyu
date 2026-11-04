@@ -15,7 +15,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { createTurnCollector } from '../../channels/dsh/client.js';
-import { defaultPersonaState, normalizePersonaState, applyReflection, applyReflectionV3, applyMoodNudge, renderPersonaStateBlock, describePersonaState, MOOD_V3_DEFAULTS, targetEnergyAt, moodTierLabel, previewPersonaState } from './persona-state.js';
+import { defaultPersonaState, normalizePersonaState, applyReflection, applyReflectionV3, applyMoodNudge, renderPersonaStateBlock, describePersonaState, MOOD_V3_DEFAULTS, MOOD_EVENT_TYPES, EVENT_INTENSITY_GUIDE, targetEnergyAt, moodTierLabel, previewPersonaState } from './persona-state.js';
+import { collectAutoMoodEvents } from '../../runtime/persona/mood-events.js';
 import { appendMoodHistory, readMoodHistory, summarizeMoodHistory } from '../../runtime/persona/mood-history.js';
 import { derivePersonaMode, renderPersonaMode } from '../../runtime/persona/persona-mode.js';
 import { collectCandidates, rankCandidates, formatCandidatesForPrompt, extractUrls, candidateUrlKey } from './curiosity.js';
@@ -157,6 +158,9 @@ export function createInnerLife(deps) {
   let taskChain = Promise.resolve();
   let started = false;
   let running = false;
+  let moodScanTimer = null;
+  let moodAutoBootAt = 0;
+  const moodAutoSince = new Map();
 
   function ilCfg() {
     const raw = cfg.simulation?.innerLife && typeof cfg.simulation.innerLife === 'object' ? cfg.simulation.innerLife : {};
@@ -166,10 +170,12 @@ export function createInnerLife(deps) {
     curiosity.sources = merge(DEFAULTS.curiosity.sources, raw.curiosity?.sources);
     const mood = merge(MOOD_V3_DEFAULTS, raw.mood);
     mood.decay = merge(MOOD_V3_DEFAULTS.decay, raw.mood?.decay);
+    mood.recovery = merge(MOOD_V3_DEFAULTS.recovery, raw.mood?.recovery);
     mood.setPoint = merge(MOOD_V3_DEFAULTS.setPoint, raw.mood?.setPoint);
     mood.budgets = merge(MOOD_V3_DEFAULTS.budgets, raw.mood?.budgets);
     mood.history = merge(MOOD_V3_DEFAULTS.history, raw.mood?.history);
     mood.eventNudge = merge(MOOD_V3_DEFAULTS.eventNudge || {}, raw.mood?.eventNudge);
+    mood.autoEvent = merge(MOOD_V3_DEFAULTS.autoEvent || {}, raw.mood?.autoEvent);
     return {
       enabled: raw.enabled === true,
       dryRun: raw.dryRun === true,
@@ -757,8 +763,8 @@ export function createInnerLife(deps) {
     ].filter(Boolean).join('\n\n');
     return buildBasePrompt(
       `回顾下面的${roleStyle().custom ? '对方' : '主人'}私聊、群聊、关系事件和自己的身体状态，像写日记一样更新你对世界、群友和自己的认识。只输出一个 JSON 对象，不要 markdown、不要解释。格式：\n` +
-      '{"events":[{"what":"发生了什么，不超过30字","intensity":1-5,"valence":"positive|negative","arousal":"up|down|none","cause":"不超过12字"}],"moodCause":"不超过12字的整体心情原因","energy":{"direction":"up|down","intensity":1-5},"interests":[{"topic":"兴趣名","delta":-0.2..0.2}],"learnings":["最多3条，每条不超过40字，不要群友隐私/联系方式"],"quirks":["最多1条，不超过12字"]}\n' +
-      '规则：最多 3 条 events；没有明显事件就输出 "events": []，不要用 0 填充。intensity 必须是 1–5，不要给小数。允许自己有低落、烦躁、被冷落，不要每次都回到平静；先判断当前心情是延续、加剧还是反转。明显好的事可以 positive，明显坏的事可以 negative；普通闲聊不必硬找情绪。不要编造没发生的事，不要写群友隐私。',
+      `{"events":[{"what":"发生了什么，不超过30字","type":"${MOOD_EVENT_TYPES.join('|')}","intensity":1-5,"valence":"positive|negative","arousal":"up|down|none","energy":{"direction":"up|down","intensity":1-5},"cause":"不超过12字"}],"moodCause":"不超过12字的整体心情原因","energy":{"direction":"up|down","intensity":1-5},"interests":[{"topic":"兴趣名","delta":-0.2..0.2}],"learnings":["最多3条，每条不超过40字，不要群友隐私/联系方式"],"quirks":["最多1条，不超过12字"]}\n` +
+      `规则：最多 3 条 events；没有明显事件就输出 "events": []，不要用 0 填充。intensity 必须是 1–5 的整数：${EVENT_INTENSITY_GUIDE}。允许自己有低落、烦躁、被冷落，不要每次都回到平静；先判断当前心情是延续、加剧还是反转。明显好的事可以 positive，明显坏的事可以 negative；普通闲聊不必硬找情绪。不要编造没发生的事，不要写群友隐私。`,
       extra
     , '', { digestText, topics, anchor });
   }
@@ -4005,11 +4011,23 @@ ${formatTipCaption(item)}`;
     }
     saveInner(state);
     scheduleNext();
+    // 自动情绪事件只看启动之后的新消息，避免首次启动回放旧聊天。
+    moodAutoBootAt = now;
+    moodAutoSince.clear();
+    if (il.mood?.enabled !== false && il.mood?.autoEvent?.enabled === true) {
+      const scanMs = Math.max(15000, Number(il.mood?.autoEvent?.scanMs) || 60000);
+      if (moodScanTimer) clearInterval(moodScanTimer);
+      moodScanTimer = setInterval(() => {
+        try { sweepAutoMoodEvents(); } catch (error) { log(`[mood] 自动事件扫描失败：${error?.message ?? error}`); }
+      }, scanMs);
+      moodScanTimer.unref?.();
+    }
     log('[inner] 内心生活调度已启动');
   }
 
   function stop() {
     started = false;
+    if (moodScanTimer) { clearInterval(moodScanTimer); moodScanTimer = null; }
     if (timer === 'job') {
       try { deps.scheduler?.cancel?.(); } catch {}
     } else if (timer) {
@@ -4474,6 +4492,101 @@ ${formatTipCaption(item)}`;
     return false;
   }
 
+  // 自动情绪事件：只扫 @/引用自己/私聊/名字直呼的少数几类消息；普通闲聊不触发。
+  // 与模型手动 qq_mood_nudge 共用 sourceMessageId 去重，同一消息只记一次。
+  function autoMoodSources() {
+    const keys = [];
+    // includeOwnerPrivate 同时约束反思与自动事件：关掉后主人私聊不再影响心情。
+    if (ilCfg().mood?.includeOwnerPrivate !== false && cfg.ownerQQ) keys.push(`private:${cfg.ownerQQ}`);
+    for (const id of Array.isArray(cfg.allow?.groups) ? cfg.allow.groups : []) {
+      const key = `group:${String(id).replace(/^group:/, '')}`;
+      if (!/^group:\d+$/.test(key)) continue;
+      try {
+        if (!isSessionAllowedInCurrentMode(key)) continue;
+      } catch {
+        continue;
+      }
+      keys.push(key);
+    }
+    return [...new Set(keys)];
+  }
+
+  function autoMoodMessages(st) {
+    const seen = new Set();
+    const out = [];
+    for (const m of [...(st?.recentMessages || []), ...(st?.unread || [])]) {
+      if (!m) continue;
+      const id = m.messageId != null ? String(m.messageId) : (m.seq != null ? `seq:${m.seq}` : String(m.time || ''));
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(m);
+    }
+    return out;
+  }
+
+  function saveAutoMoodResult(event, result, il) {
+    savePersona(result.state);
+    const now = Date.now();
+    if (il.mood?.history?.enabled !== false) {
+      const mode = derivePersonaMode(result.state, { now, quiet: isQuiet(il) });
+      appendMoodHistory(files.moodHistory, {
+        at: now,
+        source: result.meta.source,
+        cause: result.state.mood.cause,
+        before: result.meta.before,
+        after: result.meta.after,
+        delta: result.meta.delta,
+        events: result.meta.events.map((item) => ({
+          what: item.what,
+          type: item.type,
+          intensity: item.intensity,
+          valence: item.valence,
+          auto: item.auto === true
+        })),
+        mode: mode.id,
+        label: result.state.mood.label,
+        labelRaw: result.meta.labelRaw,
+        setPoint: result.state.mood.setPoint
+      }, {
+        now,
+        keepDays: Number(il.mood?.history?.keepDays) || 180,
+        maxBytes: Number(il.mood?.history?.maxBytes) || 5 * 1024 * 1024
+      });
+    }
+    log(`[mood] 自动事件「${event.cause || event.type}」→ ${result.state.mood.label}`);
+  }
+
+  function sweepAutoMoodEvents() {
+    const il = ilCfg();
+    if (il.mood?.enabled === false || il.mood?.autoEvent?.enabled !== true) return { status: 'disabled' };
+    if (getMode() !== 'simulation' || isPaused()) return { status: 'skip' };
+    const now = Date.now();
+    const lookback = now - 24 * 3600 * 1000;
+    let applied = 0;
+    for (const key of autoMoodSources()) {
+      let st = null;
+      try { st = getSimulationState(key); } catch { continue; }
+      if (!st) continue;
+      const cursor = Number(moodAutoSince.get(key));
+      const since = Number.isFinite(cursor) && cursor > 0
+        ? Math.max(lookback, cursor)
+        : Math.max(lookback, moodAutoBootAt - 60 * 1000);
+      const messages = autoMoodMessages(st);
+      const events = collectAutoMoodEvents(messages, { key, since, limit: 4 });
+      const autoIntensity = Math.max(1, Math.min(5, Math.round(Number(il.mood?.autoEvent?.intensity) || 3)));
+      for (const event of events) {
+        const result = applyMoodNudge(loadPersona(), { ...event, intensity: autoIntensity }, { now, cfg: il.mood });
+        if (result.status !== 'ok') continue;
+        saveAutoMoodResult(event, result, il);
+        applied += 1;
+      }
+      // 游标推进到扫过的最后一条，普通闲聊只分类一次。
+      const latest = messages.reduce((max, m) => Math.max(max, Number(m.time) || 0), Number(moodAutoSince.get(key)) || 0);
+      if (latest > (Number(moodAutoSince.get(key)) || 0)) moodAutoSince.set(key, latest);
+    }
+    return { status: 'ok', applied };
+  }
+
   // 主人私聊直接指定内容发说说：不再走“草稿审核”，主人说发就发。
   // 即时心情事件：只给强度 ≥3 的明显事件，限频/去重后写入全局 persona-state。
   async function nudgeMood(event, { dryRun = false } = {}) {
@@ -4494,7 +4607,13 @@ ${formatTipCaption(item)}`;
           before: result.meta.before,
           after: result.meta.after,
           delta: result.meta.delta,
-          events: result.meta.events.map((item) => ({ what: item.what, intensity: item.intensity, valence: item.valence })),
+          events: result.meta.events.map((item) => ({
+            what: item.what,
+            type: item.type,
+            intensity: item.intensity,
+            valence: item.valence,
+            auto: item.auto === true
+          })),
           mode: mode.id,
           label: result.state.mood.label,
           labelRaw: result.meta.labelRaw,
@@ -4505,7 +4624,7 @@ ${formatTipCaption(item)}`;
           maxBytes: Number(il.mood?.history?.maxBytes) || 5 * 1024 * 1024
         });
       }
-      log(`[mood] 即时事件「${result.meta.events[0]?.what || ''}」强度 ${result.meta.events[0]?.intensity || ''} → ${result.state.mood.label}`);
+      log(`[mood] 即时事件「${result.meta.events[0]?.what || ''}」类型 ${result.meta.type} 强度 ${result.meta.events[0]?.intensity || ''} → ${result.state.mood.label}`);
     }
     return {
       status: dryRun ? 'dry-run' : 'ok',

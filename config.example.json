@@ -443,15 +443,21 @@
         "maxReflectionDelta": 0.3,
         "maxEventsPerReflection": 3,
         "decay": {
-          "valencePositiveHalfLifeH": 30,
-          "valenceNegativeHalfLifeH": 20,
+          "valencePositiveHalfLifeH": 36,
+          "valenceNegativeHalfLifeH": 8,
           "arousalHalfLifeH": 6,
           "energyHalfLifeH": 6
         },
+        "recovery": {
+          "enabled": true,
+          "targetFloor": 0.15,
+          "halfLifeH": 6,
+          "afterH": 2
+        },
         "setPoint": {
           "enabled": true,
-          "alpha": 0.02,
-          "min": 0,
+          "alpha": 0.01,
+          "min": 0.1,
           "max": 0.3
         },
         "circadian": {
@@ -468,10 +474,20 @@
         "eventNudge": {
           "enabled": true,
           "minIntensity": 3,
-          "maxPerHour": 2,
-          "maxPerDay": 6,
-          "maxDelta": 0.2
+          "maxPerHour": 3,
+          "maxPerDay": 8,
+          "maxDelta": 0.2,
+          "autoScale": 0.5
         },
+        "autoEvent": {
+          "enabled": true,
+          "intensity": 3,
+          "maxPerHour": 1,
+          "maxPerDay": 4,
+          "scanMs": 60000
+        },
+        "causeTtlH": 12,
+        "causeClearDelta": 0.15,
         "history": {
           "enabled": true,
           "keepDays": 180,

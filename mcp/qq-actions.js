@@ -2008,17 +2008,24 @@ if (cfg.simulation?.innerLife?.mood?.eventNudge?.enabled === true) {
       key: z.string().describe('会话 key'),
       token: z.string().describe('会话令牌'),
       what: z.string().describe('发生了什么，不超过30字'),
-      intensity: z.number().min(3).max(5).describe('情绪强度 3–5'),
+      type: z.enum(['praise', 'comfort', 'tease', 'insult', 'conflict', 'neglect', 'success', 'failure', 'rest', 'novelty', 'other'])
+        .optional()
+        .describe('事件类型：夸/安慰/调侃/辱骂/冲突/冷落/成功/失败/休息/新鲜事/其他'),
+      intensity: z.number().min(3).max(5).describe('情绪强度 3–5：3=明显 4=强 5=很强'),
       valence: z.enum(['positive', 'negative']).describe('正向/负向'),
       arousal: z.enum(['up', 'down', 'none']).optional().describe('兴奋度变化'),
+      energy: z.object({
+        direction: z.enum(['up', 'down']),
+        intensity: z.number().min(1).max(5)
+      }).optional().describe('精力变化；一般由 type 自动决定，需要额外调整时再填'),
       cause: z.string().describe('不超过20字的原因'),
       sourceMessageId: z.union([z.number(), z.string()]).optional().describe('触发这条心情的消息 id，用于去重')
     },
-    async ({ key, token, what, intensity, valence, arousal, cause, sourceMessageId }) => {
+    async ({ key, token, what, type, intensity, valence, arousal, energy, cause, sourceMessageId }) => {
       try {
         const data = await agentApi('/api/simulation/mood/nudge', {
           method: 'POST',
-          body: JSON.stringify({ key, token, what, intensity, valence, arousal: arousal || 'none', cause, sourceMessageId: sourceMessageId ?? null }),
+          body: JSON.stringify({ key, token, what, type: type || 'other', intensity, valence, arousal: arousal || 'none', energy: energy ?? null, cause, sourceMessageId: sourceMessageId ?? null }),
           headers: { 'x-agent-token': token },
           timeoutMs: 30000
         });

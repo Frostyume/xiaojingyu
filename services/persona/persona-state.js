@@ -6,6 +6,7 @@
 // v2（mood v3）核心：
 //   - 心情按真实时间半衰期衰减，而不是按反思次数衰减；
 //   - valence 有慢速设定点（setPoint），好/坏日子会留余温；
+//   - 长时间没有新的负面事件时，向温和的正向目标恢复，而不是慢慢爬回 0；
 //   - arousal 半衰期 6h，energy 按北京昼夜目标；
 //   - 反思给“强度 1–5 的事件”，代码负责幅度映射、每小时/每天上限；
 //   - 旧 v1 字段保留，关闭 v3 时 applyReflection 仍按旧逻辑工作。
@@ -29,21 +30,47 @@ const VALENCE_DELTA = [0.05, 0.10, 0.16, 0.23, 0.30];
 const AROUSAL_DELTA = [0.04, 0.08, 0.12, 0.18, 0.24];
 const ENERGY_DELTA = [0.04, 0.06, 0.09, 0.13, 0.18];
 
+// 事件类型：valence/arousal/energy 是相对强度 1–5 的权重，不是直接数值。
+// energy 用正负号表示回升/下降；arousal 同理。other 保持旧版线性映射。
+export const MOOD_EVENT_WEIGHTS = Object.freeze({
+  praise: { valence: 1.0, arousal: 0.35, energy: 0.20 },
+  comfort: { valence: 0.95, arousal: -0.15, energy: 0.50 },
+  tease: { valence: -0.25, arousal: 0.35, energy: -0.05 },
+  insult: { valence: -1.0, arousal: 0.45, energy: -0.15 },
+  conflict: { valence: -0.95, arousal: 0.55, energy: -0.40 },
+  neglect: { valence: -0.45, arousal: -0.20, energy: -0.15 },
+  success: { valence: 0.90, arousal: 0.35, energy: 0.15 },
+  failure: { valence: -0.60, arousal: -0.10, energy: -0.20 },
+  rest: { valence: 0.35, arousal: -0.35, energy: 0.80 },
+  novelty: { valence: 0.50, arousal: 0.40, energy: 0.10 },
+  other: { valence: 1, arousal: 1, energy: 0 }
+});
+export const MOOD_EVENT_TYPES = Object.freeze(Object.keys(MOOD_EVENT_WEIGHTS));
+export const EVENT_INTENSITY_GUIDE = '1=很轻（随口一句）2=有点感觉 3=明显（认真夸/被凶一句）4=强（很戳心/较重冲突）5=很强（当天最重的一件事）';
+
+const REPEAT_FACTOR_FLOOR = 0.35;
+const POSITIVE_FLOOR = 0.02;
+
 export const MOOD_V3_DEFAULTS = Object.freeze({
   enabled: true,
   includeOwnerPrivate: true,
   maxReflectionDelta: 0.30,
   maxEventsPerReflection: 3,
   decay: {
-    valencePositiveHalfLifeH: 30,
-    valenceNegativeHalfLifeH: 20,
+    valencePositiveHalfLifeH: 36,
+    valenceNegativeHalfLifeH: 8,
     arousalHalfLifeH: 6,
     energyHalfLifeH: 6
   },
-  setPoint: { enabled: true, alpha: 0.02, min: 0, max: 0.30 },
+  // 长时间没有新的负面事件时，向一个温和的正向目标恢复，而不是慢慢爬回 0。
+  recovery: { enabled: true, targetFloor: 0.15, halfLifeH: 6, afterH: 2 },
+  setPoint: { enabled: true, alpha: 0.01, min: 0.10, max: 0.30 },
   circadian: { enabled: true },
   budgets: { maxHour: 0.35, maxDay: 0.60 },
-  eventNudge: { enabled: false, minIntensity: 3, maxPerHour: 2, maxPerDay: 6, maxDelta: 0.20 },
+  eventNudge: { enabled: false, minIntensity: 3, maxPerHour: 3, maxPerDay: 8, maxDelta: 0.20, autoScale: 0.5 },
+  autoEvent: { enabled: true, intensity: 3, maxPerHour: 1, maxPerDay: 4, scanMs: 60000 },
+  causeTtlH: 12,
+  causeClearDelta: 0.15,
   history: { enabled: true, keepDays: 180 }
 });
 
@@ -154,13 +181,22 @@ export function defaultPersonaState(now = Date.now()) {
       valence: DEFAULT_SETPOINT,
       arousal: 0.44,
       label: moodTierLabel(DEFAULT_SETPOINT, 0.44),
+      labelRaw: '',
       cause: '',
+      causeAt: 0,
       setPoint: DEFAULT_SETPOINT,
       lastEventAt: 0,
+      lastNegativeAt: 0,
       lastDecayAt: now,
-      budget: { hourKey: '', hourNet: 0, dayKey: '', dayNet: 0 },
+      lastChange: null,
+      budget: {
+        hourKey: '', hourUp: 0, hourDown: 0, hourTypes: {},
+        dayKey: '', dayUp: 0, dayDown: 0, dayTypes: {},
+        hourNet: 0, dayNet: 0
+      },
       nudgeSeen: [],
-      nudgeTimes: []
+      nudgeTimes: [],
+      autoNudgeTimes: []
     },
     energy: 0.58,
     interests: [
@@ -175,14 +211,50 @@ export function defaultPersonaState(now = Date.now()) {
   };
 }
 
+function normalizeTypeCounts(raw) {
+  const out = {};
+  for (const type of MOOD_EVENT_TYPES) {
+    const n = Math.round(Number(raw?.[type]) || 0);
+    if (n > 0) out[type] = Math.min(99, n);
+  }
+  return out;
+}
+
+// 幂等迁移：旧 hourNet/dayNet 按符号拆到 up/down；已拆分过的状态原样保留。
 function normalizeBudget(raw) {
   const b = raw && typeof raw === 'object' ? raw : {};
+  const hasSplit = b.hourUp !== undefined || b.hourDown !== undefined;
+  let hourUp = clamp(b.hourUp, 0, 1, 0);
+  let hourDown = clamp(b.hourDown, 0, 1, 0);
+  if (!hasSplit) {
+    const net = clamp(b.hourNet, -1, 1, 0);
+    hourUp = Math.max(0, net);
+    hourDown = Math.max(0, -net);
+  }
+  let dayUp = clamp(b.dayUp, 0, 1, 0);
+  let dayDown = clamp(b.dayDown, 0, 1, 0);
+  if (b.dayUp === undefined && b.dayDown === undefined) {
+    const net = clamp(b.dayNet, -1, 1, 0);
+    dayUp = Math.max(0, net);
+    dayDown = Math.max(0, -net);
+  }
   return {
     hourKey: String(b.hourKey || ''),
-    hourNet: clamp(b.hourNet, -0.6, 0.6, 0),
+    hourUp,
+    hourDown,
+    hourTypes: normalizeTypeCounts(b.hourTypes),
     dayKey: String(b.dayKey || ''),
-    dayNet: clamp(b.dayNet, -1, 1, 0)
+    dayUp,
+    dayDown,
+    dayTypes: normalizeTypeCounts(b.dayTypes),
+    hourNet: hourUp - hourDown,
+    dayNet: dayUp - dayDown
   };
+}
+
+function normalizeEventType(raw) {
+  const type = String(raw ?? '').trim().toLowerCase();
+  return MOOD_EVENT_WEIGHTS[type] ? type : 'other';
 }
 
 export function normalizePersonaState(raw, now = Date.now()) {
@@ -192,23 +264,42 @@ export function normalizePersonaState(raw, now = Date.now()) {
   const arousal = clamp(mood.arousal, 0, 1, 0.44);
   const version = Number(base.version) || 1;
   // v1 没有 setPoint：按旧 valence 推一个温和起点，之后由真实事件缓慢漂移。
+  // 设定点保留一个正向下界，避免坏日子把基线永久压到 0。
   const setPoint = Number.isFinite(Number(mood.setPoint))
-    ? clamp(mood.setPoint, 0, 0.30, DEFAULT_SETPOINT)
-    : clamp(0.08 + 0.3 * (valence - 0.15), 0, 0.30, DEFAULT_SETPOINT);
+    ? clamp(mood.setPoint, 0.10, 0.30, DEFAULT_SETPOINT)
+    : clamp(0.08 + 0.3 * (valence - 0.15), 0.10, 0.30, DEFAULT_SETPOINT);
   const lastDecayAt = Number(mood.lastDecayAt) || Number(base.updatedAt) || now;
+  const tier = moodTierLabel(valence, arousal);
+  const legacyLabel = cleanText(mood.label, MAX_LABEL_CHARS);
+  const labelRaw = cleanText(mood.labelRaw, MAX_LABEL_CHARS)
+    || (legacyLabel && legacyLabel !== tier ? legacyLabel : '');
+  const cause = cleanText(mood.cause, 20);
+  const lastEventAt = Number(mood.lastEventAt) || 0;
+  const lastChangeRaw = mood.lastChange && typeof mood.lastChange === 'object' ? mood.lastChange : null;
   return {
     version: Math.max(2, version),
     mood: {
       valence,
       arousal,
-      label: cleanText(mood.label, MAX_LABEL_CHARS) || moodTierLabel(valence, arousal),
-      cause: cleanText(mood.cause, 20),
+      label: legacyLabel || tier,
+      labelRaw,
+      cause,
+      causeAt: cause ? (Number(mood.causeAt) || lastEventAt || now) : 0,
       setPoint,
-      lastEventAt: Number(mood.lastEventAt) || 0,
+      lastEventAt,
+      lastNegativeAt: Number(mood.lastNegativeAt) || 0,
       lastDecayAt,
+      lastChange: lastChangeRaw ? {
+        at: Number(lastChangeRaw.at) || 0,
+        dv: Number(lastChangeRaw.dv) || 0,
+        da: Number(lastChangeRaw.da) || 0,
+        de: Number(lastChangeRaw.de) || 0,
+        source: String(lastChangeRaw.source || '')
+      } : null,
       budget: normalizeBudget(mood.budget),
       nudgeSeen: Array.isArray(mood.nudgeSeen) ? mood.nudgeSeen.slice(-50) : [],
-      nudgeTimes: Array.isArray(mood.nudgeTimes) ? mood.nudgeTimes.slice(-100) : []
+      nudgeTimes: Array.isArray(mood.nudgeTimes) ? mood.nudgeTimes.slice(-100) : [],
+      autoNudgeTimes: Array.isArray(mood.autoNudgeTimes) ? mood.autoNudgeTimes.slice(-100) : []
     },
     energy: clamp(base.energy, 0, 1, 0.58),
     interests: normalizeInterests(base.interests, now),
@@ -260,40 +351,6 @@ export function targetArousalAt(now = Date.now()) {
   return clamp(0.45 + 0.05 * Math.cos((2 * Math.PI * (hour - 15)) / 24), 0.35, 0.55, 0.45);
 }
 
-/**
- * 读取态预览：按真实时间结算衰减，但不写回状态文件。
- * 反思仍然从 lastDecayAt 结算；这里只保证 live/提示词看到的是“此刻”的精力与心情。
- */
-export function previewPersonaState(previous, { now = Date.now(), cfg = {} } = {}) {
-  const state = normalizePersonaState(previous, now);
-  const decayCfg = { ...MOOD_V3_DEFAULTS.decay, ...(cfg?.decay || {}) };
-  const elapsedMs = Math.max(0, Math.min(7 * 24 * 3600e3, now - state.mood.lastDecayAt));
-  const positive = state.mood.valence >= state.mood.setPoint;
-  const valenceHalfH = positive ? decayCfg.valencePositiveHalfLifeH : decayCfg.valenceNegativeHalfLifeH;
-  const circadian = cfg?.circadian?.enabled !== false;
-  const valence = decayValue(state.mood.valence, state.mood.setPoint, valenceHalfH * 3600e3, elapsedMs);
-  const arousal = decayValue(
-    state.mood.arousal,
-    circadian ? targetArousalAt(now) : 0.45,
-    decayCfg.arousalHalfLifeH * 3600e3,
-    elapsedMs
-  );
-  const energy = decayValue(
-    state.energy,
-    circadian ? targetEnergyAt(now) : 0.6,
-    decayCfg.energyHalfLifeH * 3600e3,
-    elapsedMs
-  );
-  const label = chooseMoodLabel(valence, arousal, state.mood.labelRaw || '');
-  state.mood.valence = valence;
-  state.mood.arousal = arousal;
-  state.energy = energy;
-  state.mood.label = label.label;
-  state.mood.lastDecayAt = now;
-  state.updatedAt = now;
-  return state;
-}
-
 function mapIntensity(intensity, direction, table) {
   const i = Math.max(1, Math.min(5, Math.round(Number(intensity) || 1)));
   const sign = direction === 'negative' || direction === 'down' ? -1 : 1;
@@ -304,14 +361,31 @@ function normalizeEvents(reflection) {
   const list = Array.isArray(reflection?.events) ? reflection.events : [];
   return list.slice(0, 3).map((item) => {
     const intensity = Math.max(1, Math.min(5, Math.round(Number(item?.intensity) || 1)));
-    const valence = String(item?.valence || 'positive').toLowerCase() === 'negative' ? 'negative' : 'positive';
-    const arousalRaw = String(item?.arousal || 'none').toLowerCase();
-    const arousal = ['up', 'down', 'none'].includes(arousalRaw) ? arousalRaw : 'none';
+    const type = normalizeEventType(item?.type);
+    const weight = MOOD_EVENT_WEIGHTS[type];
+    const valenceRaw = String(item?.valence || '').toLowerCase();
+    const valence = valenceRaw === 'negative'
+      ? 'negative'
+      : valenceRaw === 'positive'
+        ? 'positive'
+        : (weight.valence < 0 ? 'negative' : 'positive');
+    const arousalRaw = String(item?.arousal || '').toLowerCase();
+    const arousalGiven = ['up', 'down', 'none'].includes(arousalRaw);
+    let arousal = arousalGiven ? arousalRaw : 'none';
+    // 显式给了 type 但没给 arousal 时，用类型自带的唤起方向；旧格式（other）保持 none。
+    if (!arousalGiven && type !== 'other' && weight.arousal !== 0) arousal = weight.arousal > 0 ? 'up' : 'down';
+    const energy = item?.energy && typeof item.energy === 'object' ? {
+      direction: String(item.energy.direction || 'up').toLowerCase() === 'down' ? 'down' : 'up',
+      intensity: Math.max(1, Math.min(5, Math.round(Number(item.energy.intensity) || 1)))
+    } : null;
     return {
       what: cleanText(item?.what, 30),
+      type,
       intensity,
       valence,
       arousal,
+      energy,
+      auto: item?.auto === true,
       cause: cleanText(item?.cause, 12),
       sourceMessageId: item?.sourceMessageId ?? null
     };
@@ -340,10 +414,16 @@ function ensureBudget(state, now, cfg = {}) {
   const b = state.mood.budget;
   if (b.hourKey !== keys.hourKey) {
     b.hourKey = keys.hourKey;
+    b.hourUp = 0;
+    b.hourDown = 0;
+    b.hourTypes = {};
     b.hourNet = 0;
   }
   if (b.dayKey !== keys.dayKey) {
     b.dayKey = keys.dayKey;
+    b.dayUp = 0;
+    b.dayDown = 0;
+    b.dayTypes = {};
     b.dayNet = 0;
   }
   return {
@@ -352,16 +432,122 @@ function ensureBudget(state, now, cfg = {}) {
   };
 }
 
-function applyValenceBudget(state, delta, cfg, now) {
+function repeatFactor(count) {
+  return Math.max(REPEAT_FACTOR_FLOOR, 1 / (1 + 0.4 * Math.max(0, Number(count) || 0)));
+}
+
+// 正负预算分开记账：负向额度用尽不会吞掉正向事件；同类事件按小时递减，但不归零。
+function applyValenceBudget(state, delta, cfg, now, type = 'other') {
   const limits = ensureBudget(state, now, cfg);
   const b = state.mood.budget;
-  const usedHour = Math.abs(Number(b.hourNet) || 0);
-  const usedDay = Math.abs(Number(b.dayNet) || 0);
+  const requested = Number(delta) || 0;
+  if (!requested) return 0;
+  const positive = requested > 0;
+  const hourKey = positive ? 'hourUp' : 'hourDown';
+  const dayKey = positive ? 'dayUp' : 'dayDown';
+  const usedHour = Number(b[hourKey]) || 0;
+  const usedDay = Number(b[dayKey]) || 0;
   const cap = Math.max(0, Math.min(limits.maxHour - usedHour, limits.maxDay - usedDay));
-  const applied = Math.max(-cap, Math.min(cap, Number(delta) || 0));
-  b.hourNet = clamp((Number(b.hourNet) || 0) + applied, -1, 1, 0);
-  b.dayNet = clamp((Number(b.dayNet) || 0) + applied, -1, 1, 0);
+  if (cap <= 0) return 0;
+  const eventType = normalizeEventType(type);
+  const count = Number(b.hourTypes?.[eventType]) || 0;
+  const scaled = requested * repeatFactor(count);
+  let applied = positive ? Math.min(cap, scaled) : Math.max(-cap, scaled);
+  // 明确的正向事件至少要有可观测变化（仍在额度内，不突破硬上限）。
+  if (positive && applied > 0 && applied < POSITIVE_FLOOR && cap >= POSITIVE_FLOOR) applied = POSITIVE_FLOOR;
+  b[hourKey] = clamp(usedHour + Math.abs(applied), 0, 1, usedHour);
+  b[dayKey] = clamp(usedDay + Math.abs(applied), 0, 1, usedDay);
+  b.hourTypes[eventType] = count + 1;
+  b.hourNet = Number(b.hourUp) - Number(b.hourDown);
+  b.dayNet = Number(b.dayUp) - Number(b.dayDown);
   return applied;
+}
+
+function causeTtlMs(cfg) {
+  const hours = Number(cfg?.causeTtlH);
+  return (Number.isFinite(hours) && hours >= 0 ? hours : MOOD_V3_DEFAULTS.causeTtlH) * HOUR_MS;
+}
+
+function expireCause(state, now, cfg) {
+  const m = state.mood;
+  if (!m.cause) { m.causeAt = 0; return; }
+  if (!Number(m.causeAt)) m.causeAt = Number(m.lastEventAt) || now;
+  if (now - m.causeAt > causeTtlMs(cfg)) {
+    m.cause = '';
+    m.causeAt = 0;
+  }
+}
+
+function decayMood(state, now, cfg) {
+  const decayCfg = { ...MOOD_V3_DEFAULTS.decay, ...(cfg?.decay || {}) };
+  const recovery = { ...MOOD_V3_DEFAULTS.recovery, ...(cfg?.recovery || {}) };
+  const m = state.mood;
+  const elapsedMs = Math.max(0, Math.min(7 * 24 * HOUR_MS, now - m.lastDecayAt));
+  const positive = m.valence >= m.setPoint;
+  const normalHalfH = positive ? decayCfg.valencePositiveHalfLifeH : decayCfg.valenceNegativeHalfLifeH;
+  const normalHalfMs = Math.max(1, normalHalfH) * HOUR_MS;
+  const targetFloor = Math.max(0, Number(recovery.targetFloor) || 0);
+  const recoveryTarget = Math.max(m.setPoint, targetFloor);
+  const recoveryHalfH = Number(recovery.halfLifeH) > 0 ? Number(recovery.halfLifeH) : MOOD_V3_DEFAULTS.recovery.halfLifeH;
+  const recoveryHalfMs = Math.max(1, recoveryHalfH) * HOUR_MS;
+  const afterMs = Math.max(0, Number(recovery.afterH) || 0) * HOUR_MS;
+
+  // 分段衰减：先按常态半衰期走到“安静满 afterH”的时刻，再切到更快恢复；
+  // 两段在切换点数值连续，只改变斜率，避免 2 小时边界突然跳一截。
+  let v = decayValue(m.valence, m.setPoint, normalHalfMs, elapsedMs);
+  if (recovery.enabled !== false && m.valence < recoveryTarget - 1e-9) {
+    const quietStart = (Number(m.lastNegativeAt) || 0) + afterMs;
+    const switchAt = Math.max(m.lastDecayAt, quietStart);
+    if (now > switchAt) {
+      const beforeSwitch = decayValue(m.valence, m.setPoint, normalHalfMs, Math.max(0, switchAt - m.lastDecayAt));
+      v = decayValue(beforeSwitch, recoveryTarget, recoveryHalfMs, now - switchAt);
+    }
+  }
+  return {
+    v,
+    a: decayValue(
+      m.arousal,
+      cfg?.circadian?.enabled === false ? BASELINE.arousal : targetArousalAt(now),
+      decayCfg.arousalHalfLifeH * HOUR_MS,
+      elapsedMs
+    ),
+    e: decayValue(
+      state.energy,
+      cfg?.circadian?.enabled === false ? BASELINE.energy : targetEnergyAt(now),
+      decayCfg.energyHalfLifeH * HOUR_MS,
+      elapsedMs
+    )
+  };
+}
+
+/**
+ * 读取态预览：按真实时间结算衰减，但不写回状态文件。
+ * 反思仍然从 lastDecayAt 结算；这里只保证 live/提示词看到的是“此刻”的精力与心情。
+ */
+export function previewPersonaState(previous, { now = Date.now(), cfg = {} } = {}) {
+  const state = normalizePersonaState(previous, now);
+  const moodCfg = { ...MOOD_V3_DEFAULTS, ...(cfg || {}) };
+  expireCause(state, now, moodCfg);
+  const decayed = decayMood(state, now, moodCfg);
+  const label = chooseMoodLabel(decayed.v, decayed.a, state.mood.labelRaw || '');
+  state.mood.valence = decayed.v;
+  state.mood.arousal = decayed.a;
+  state.energy = decayed.e;
+  state.mood.label = label.label;
+  state.mood.lastDecayAt = now;
+  state.updatedAt = now;
+  return state;
+}
+
+function noteEventDelta(state, now, { vDelta = 0, cfg = {} } = {}) {
+  state.mood.lastEventAt = now;
+  if (vDelta < -0.005) state.mood.lastNegativeAt = now;
+  state.mood.lastDecayAt = now;
+  const clearDelta = Number(cfg?.causeClearDelta);
+  if (state.mood.cause && Math.abs(vDelta) >= (Number.isFinite(clearDelta) && clearDelta > 0 ? clearDelta : MOOD_V3_DEFAULTS.causeClearDelta)) {
+    state.mood.cause = '';
+    state.mood.causeAt = 0;
+  }
 }
 
 /**
@@ -374,54 +560,71 @@ export function applyReflectionV3(previous, reflection, { now = Date.now(), cfg 
   const state = normalizePersonaState(previous, now);
   const input = reflection && typeof reflection === 'object' ? reflection : {};
   const before = { v: state.mood.valence, a: state.mood.arousal, e: state.energy };
-  const oldLabel = state.mood.label;
   const changes = [];
 
   const moodCfg = { ...MOOD_V3_DEFAULTS, ...(cfg || {}) };
-  const decayCfg = { ...MOOD_V3_DEFAULTS.decay, ...(cfg?.decay || {}) };
-  const decayMs = Math.max(0, Math.min(7 * 24 * HOUR_MS, now - state.mood.lastDecayAt));
-
-  const positive = state.mood.valence >= state.mood.setPoint;
-  const vHalf = (positive ? decayCfg.valencePositiveHalfLifeH : decayCfg.valenceNegativeHalfLifeH) * HOUR_MS;
-  let v = decayValue(state.mood.valence, state.mood.setPoint, vHalf, decayMs);
-  let a = decayValue(state.mood.arousal, targetArousalAt(now), decayCfg.arousalHalfLifeH * HOUR_MS, decayMs);
-  let e = decayValue(state.energy, targetEnergyAt(now), decayCfg.energyHalfLifeH * HOUR_MS, decayMs);
+  expireCause(state, now, moodCfg);
+  const decayed = decayMood(state, now, moodCfg);
+  let v = decayed.v;
+  let a = decayed.a;
+  let e = decayed.e;
 
   const events = normalizeEvents(input);
   let source = events.length ? 'events' : 'empty';
   let vDelta = 0;
   let aDelta = 0;
+  let eventEnergy = 0;
   let cause = cleanText(input.moodCause, 20) || state.mood.cause;
+  let causeIsNew = Boolean(cleanText(input.moodCause, 20));
 
   if (events.length) {
-    const eventV = events.slice(0, MOOD_V3_DEFAULTS.maxEventsPerReflection).map((event) => {
-      const base = mapIntensity(event.intensity, event.valence, VALENCE_DELTA);
-      return event.valence === 'negative' ? Math.max(-MOOD_V3_DEFAULTS.maxReflectionDelta, base * 1.1) : Math.min(MOOD_V3_DEFAULTS.maxReflectionDelta, base);
-    });
-    vDelta = applyValenceBudget(state, eventV.reduce((sum, x) => sum + x, 0), moodCfg, now);
-    for (const event of events.slice(0, MOOD_V3_DEFAULTS.maxEventsPerReflection)) {
-      if (event.arousal === 'none') continue;
-      aDelta += mapIntensity(event.intensity, event.arousal === 'down' ? 'down' : 'positive', AROUSAL_DELTA);
+    const limited = events.slice(0, MOOD_V3_DEFAULTS.maxEventsPerReflection);
+    for (const event of limited) {
+      const weight = MOOD_EVENT_WEIGHTS[event.type] || MOOD_EVENT_WEIGHTS.other;
+      let base = mapIntensity(event.intensity, event.valence, VALENCE_DELTA) * weight.valence;
+      if (event.type === 'other' && event.valence === 'negative') base *= 1.1;
+      base = clamp(base, -MOOD_V3_DEFAULTS.maxReflectionDelta, MOOD_V3_DEFAULTS.maxReflectionDelta, 0);
+      vDelta += applyValenceBudget(state, base, moodCfg, now, event.type);
+      if (event.arousal !== 'none') {
+        aDelta += mapIntensity(event.intensity, event.arousal === 'down' ? 'down' : 'positive', AROUSAL_DELTA) * Math.abs(weight.arousal || 1);
+      }
+      const idx = Math.max(1, Math.min(5, Math.round(Number(event.intensity) || 1))) - 1;
+      eventEnergy += ENERGY_DELTA[idx] * (Number(weight.energy) || 0);
+      if (event.energy) eventEnergy += normalizeEnergyInput(event.energy);
     }
-    const lastWithCause = [...events].reverse().find((event) => event.cause);
-    if (lastWithCause?.cause) cause = lastWithCause.cause;
+    const lastWithCause = [...limited].reverse().find((event) => event.cause);
+    if (lastWithCause?.cause) {
+      cause = lastWithCause.cause;
+      causeIsNew = true;
+    }
   } else if (input.mood && typeof input.mood === 'object') {
     // 旧格式：仍接受小数增量，但套用同样的每小时/每天上限。
     const rawV = clamp(input.mood.valence, -PERSONA_LIMITS.maxDelta, PERSONA_LIMITS.maxDelta, 0);
     const rawA = clamp(input.mood.arousal, -PERSONA_LIMITS.maxDelta, PERSONA_LIMITS.maxDelta, 0);
-    vDelta = applyValenceBudget(state, rawV, moodCfg, now);
+    vDelta = applyValenceBudget(state, rawV, moodCfg, now, 'other');
     aDelta = rawA;
     source = 'legacy';
   }
 
   v = clamp(v + vDelta, -1, 1, v);
   a = clamp(a + aDelta, 0, 1, a);
-  const energyDelta = normalizeEnergyInput(input.energy);
+  const energyDelta = clamp(eventEnergy, -0.20, 0.20) + normalizeEnergyInput(input.energy);
   e = clamp(e + energyDelta + (rested ? 0.06 : 0), 0, 1, e);
 
+  if (events.length || vDelta !== 0 || aDelta !== 0 || Math.abs(energyDelta) >= 1e-9) {
+    noteEventDelta(state, now, { vDelta, cfg: moodCfg });
+  } else {
+    state.mood.lastDecayAt = now;
+  }
+  if (causeIsNew) {
+    state.mood.cause = cause;
+    state.mood.causeAt = now;
+  }
+  expireCause(state, now, moodCfg);
+
   if (moodCfg.setPoint?.enabled !== false) {
-    const alpha = clamp(moodCfg.setPoint?.alpha, 0, 0.2, 0.02);
-    const min = clamp(moodCfg.setPoint?.min, 0, 0.3, 0);
+    const alpha = clamp(moodCfg.setPoint?.alpha, 0, 0.2, 0.01);
+    const min = clamp(moodCfg.setPoint?.min, 0.10, 0.3, 0.10);
     const max = clamp(moodCfg.setPoint?.max, min, 0.3, 0.3);
     state.mood.setPoint = clamp(state.mood.setPoint + alpha * (v - state.mood.setPoint), min, max, state.mood.setPoint);
   }
@@ -431,15 +634,21 @@ export function applyReflectionV3(previous, reflection, { now = Date.now(), cfg 
   state.mood.arousal = a;
   state.energy = e;
   state.mood.label = labelInfo.label;
-  state.mood.cause = cause;
+  state.mood.labelRaw = labelInfo.labelRaw || state.mood.labelRaw;
   state.mood.lastDecayAt = now;
-  if (events.length || vDelta !== 0 || aDelta !== 0 || energyDelta !== 0) state.mood.lastEventAt = now;
   state.updatedAt = now;
 
-  if (Math.abs(v - before.v) >= 0.01 || Math.abs(a - before.a) >= 0.01 || Math.abs(e - before.e) >= 0.01) {
+  const dv = v - before.v;
+  const da = a - before.a;
+  const de = e - before.e;
+  if (Math.max(Math.abs(dv), Math.abs(da), Math.abs(de)) >= 0.005) {
+    state.mood.lastChange = { at: now, dv, da, de, source };
+  }
+
+  if (Math.abs(dv) >= 0.01 || Math.abs(da) >= 0.01 || Math.abs(de) >= 0.01) {
     changes.push(`心情 → ${state.mood.label}`);
   }
-  if (Math.abs(e - before.e) >= 0.01) changes.push(`精力 ${e >= before.e ? '+' : ''}${(e - before.e).toFixed(2)}`);
+  if (Math.abs(de) >= 0.01) changes.push(`精力 ${de >= 0 ? '+' : ''}${de.toFixed(2)}`);
   for (const event of events) {
     if (event.what) changes.push(`事件「${event.what}」强度 ${event.intensity}`);
   }
@@ -489,9 +698,9 @@ export function applyReflectionV3(previous, reflection, { now = Date.now(), cfg 
       events,
       before,
       after: { v, a, e },
-      delta: { v: v - before.v, a: a - before.a, e: e - before.e },
+      delta: { v: dv, a: da, e: de },
       label: state.mood.label,
-      labelRaw: labelInfo.labelRaw || oldLabel
+      labelRaw: labelInfo.labelRaw || state.mood.labelRaw || ''
     }
   };
 }
@@ -580,64 +789,114 @@ export function applyReflection(previous, reflection, now = Date.now()) {
   return { state, changes, meta: { source: 'legacy-v1', before: oldMood, after: { ...state.mood }, delta: {} } };
 }
 
+const MS_CAP = 24 * HOUR_MS;
+
+function nudgeTimestamp(item) {
+  if (item && typeof item === 'object') return Number(item.at) || 0;
+  return Number(item) || 0;
+}
+
 export function applyMoodNudge(previous, event, { now = Date.now(), cfg = {}, dryRun = false } = {}) {
   const state = normalizePersonaState(previous, now);
   const moodCfg = { ...MOOD_V3_DEFAULTS, ...(cfg || {}) };
   const nudgeCfg = { ...MOOD_V3_DEFAULTS.eventNudge, ...(cfg?.eventNudge || {}) };
+  const autoCfg = { ...MOOD_V3_DEFAULTS.autoEvent, ...(cfg?.autoEvent || {}) };
   const input = normalizeEvents({ events: [event] })[0];
   if (!input) return { status: 'invalid', error: '缺少事件内容' };
-  if (input.intensity < (Number(nudgeCfg.minIntensity) || 3)) {
+  if (input.auto && autoCfg.enabled === false) return { status: 'disabled', error: '自动心情事件未启用' };
+  if (!input.auto && input.intensity < (Number(nudgeCfg.minIntensity) || 3)) {
     return { status: 'weak', error: `强度需 ≥ ${Number(nudgeCfg.minIntensity) || 3}` };
   }
-  const key = `${input.cause || input.what}|${input.sourceMessageId ?? ''}`;
-  const seen = (state.mood.nudgeSeen || []).filter((item) => now - Number(item.at || 0) < 24 * HOUR_MS);
+  const sourceId = input.sourceMessageId != null && String(input.sourceMessageId).trim()
+    ? String(input.sourceMessageId)
+    : '';
+  // 同一消息只记一次：模型手动 nudge 与自动事件共用同一把锁。
+  // 没有消息 id 时用分钟桶，拦掉工具重试造成的立即重复，但不阻止一分钟后新的独立事件。
+  const key = sourceId
+    ? `msg:${sourceId}`
+    : `${input.what || input.cause}|${input.cause}|${input.type}|${input.auto ? 'auto' : 'manual'}|${Math.floor(now / 60000)}`;
+  const seen = (state.mood.nudgeSeen || []).filter((item) => now - Number(item.at || 0) < MS_CAP);
   if (seen.some((item) => item.key === key)) return { status: 'duplicate', error: '同一事件已经记过' };
-  const times = (state.mood.nudgeTimes || []).filter((t) => now - Number(t) < 24 * HOUR_MS);
-  const hourCount = times.filter((t) => now - Number(t) < HOUR_MS).length;
-  if (hourCount >= (Number(nudgeCfg.maxPerHour) || 2)) return { status: 'limited', error: '本小时即时心情事件已达上限' };
-  if (times.length >= (Number(nudgeCfg.maxPerDay) || 6)) return { status: 'limited', error: '今天即时心情事件已达上限' };
+  const times = (state.mood.nudgeTimes || []).map(nudgeTimestamp).filter((t) => t > 0 && now - t < MS_CAP);
+  const autoTimes = (state.mood.autoNudgeTimes || []).map(nudgeTimestamp).filter((t) => t > 0 && now - t < MS_CAP);
+  if (input.auto) {
+    const hourCount = autoTimes.filter((t) => now - t < HOUR_MS).length;
+    if (hourCount >= (Number(autoCfg.maxPerHour) || 1)) return { status: 'limited', error: '本小时自动心情事件已达上限' };
+    if (autoTimes.length >= (Number(autoCfg.maxPerDay) || 4)) return { status: 'limited', error: '今天自动心情事件已达上限' };
+  } else {
+    const hourCount = times.filter((t) => now - t < HOUR_MS).length;
+    if (hourCount >= (Number(nudgeCfg.maxPerHour) || 2)) return { status: 'limited', error: '本小时即时心情事件已达上限' };
+    if (times.length >= (Number(nudgeCfg.maxPerDay) || 6)) return { status: 'limited', error: '今天即时心情事件已达上限' };
+  }
 
+  expireCause(state, now, moodCfg);
   const before = { v: state.mood.valence, a: state.mood.arousal, e: state.energy };
-  const decayCfg = { ...MOOD_V3_DEFAULTS.decay, ...(cfg?.decay || {}) };
-  const decayMs = Math.max(0, Math.min(7 * 24 * HOUR_MS, now - state.mood.lastDecayAt));
-  const positive = state.mood.valence >= state.mood.setPoint;
-  const vHalf = (positive ? decayCfg.valencePositiveHalfLifeH : decayCfg.valenceNegativeHalfLifeH) * HOUR_MS;
-  let v = decayValue(state.mood.valence, state.mood.setPoint, vHalf, decayMs);
-  let a = decayValue(state.mood.arousal, targetArousalAt(now), decayCfg.arousalHalfLifeH * HOUR_MS, decayMs);
-  const e = decayValue(state.energy, targetEnergyAt(now), decayCfg.energyHalfLifeH * HOUR_MS, decayMs);
+  const decayed = decayMood(state, now, moodCfg);
+  let v = decayed.v;
+  let a = decayed.a;
+  let e = decayed.e;
 
+  const weight = MOOD_EVENT_WEIGHTS[input.type] || MOOD_EVENT_WEIGHTS.other;
+  const autoScale = input.auto ? clamp(autoCfg.scale ?? nudgeCfg.autoScale, 0.1, 1, 0.5) : 1;
   const maxDelta = Number(nudgeCfg.maxDelta) > 0 ? Number(nudgeCfg.maxDelta) : 0.2;
-  let eventV = mapIntensity(input.intensity, input.valence, VALENCE_DELTA);
-  if (input.valence === 'negative') eventV *= 1.1;
+  let eventV = mapIntensity(input.intensity, input.valence, VALENCE_DELTA) * weight.valence * autoScale;
+  if (input.type === 'other' && input.valence === 'negative') eventV *= 1.1;
   eventV = Math.max(-maxDelta, Math.min(maxDelta, eventV));
-  const vDelta = applyValenceBudget(state, eventV, moodCfg, now);
-  const aDelta = input.arousal === 'none' ? 0 : mapIntensity(input.intensity, input.arousal === 'down' ? 'down' : 'positive', AROUSAL_DELTA);
+  const vDelta = applyValenceBudget(state, eventV, moodCfg, now, input.type);
+  const idx = Math.max(1, Math.min(5, Math.round(Number(input.intensity) || 1))) - 1;
+  let energyDelta = ENERGY_DELTA[idx] * (Number(weight.energy) || 0) * autoScale;
+  if (input.energy) energyDelta += normalizeEnergyInput(input.energy);
+  energyDelta = clamp(energyDelta, -0.20, 0.20);
+  const aDelta = input.arousal === 'none'
+    ? 0
+    : mapIntensity(input.intensity, input.arousal === 'down' ? 'down' : 'positive', AROUSAL_DELTA) * (Number(weight.arousal) ? Math.abs(weight.arousal) : 1) * autoScale;
   v = clamp(v + vDelta, -1, 1, v);
   a = clamp(a + aDelta, 0, 1, a);
+  e = clamp(e + energyDelta, 0, 1, e);
+
+  noteEventDelta(state, now, { vDelta, cfg: moodCfg });
+  state.mood.cause = input.cause || input.what;
+  state.mood.causeAt = now;
 
   const labelInfo = chooseMoodLabel(v, a, input.cause || input.what);
   state.mood.valence = v;
   state.mood.arousal = a;
   state.energy = e;
   state.mood.label = labelInfo.label;
-  state.mood.cause = input.cause || input.what;
-  state.mood.lastEventAt = now;
+  state.mood.labelRaw = labelInfo.labelRaw;
   state.mood.lastDecayAt = now;
   state.updatedAt = now;
-  if (!dryRun) {
-    state.mood.nudgeSeen = [...seen, { key, at: now }].slice(-50);
-    state.mood.nudgeTimes = [...times, now].slice(-100);
+  const dv = v - before.v;
+  const da = a - before.a;
+  const de = e - before.e;
+  if (Math.max(Math.abs(dv), Math.abs(da), Math.abs(de)) >= 0.005) {
+    state.mood.lastChange = { at: now, dv, da, de, source: input.auto ? 'auto-nudge' : 'nudge' };
   }
+  if (!dryRun) {
+    state.mood.nudgeSeen = [...seen, { key, at: now, type: input.type, auto: input.auto === true }].slice(-50);
+    if (input.auto) {
+      state.mood.autoNudgeTimes = [...autoTimes, now].slice(-100);
+    } else {
+      state.mood.nudgeTimes = [...times, now].slice(-100);
+    }
+  }
+  const changed = Math.abs(dv) >= 0.005 || Math.abs(da) >= 0.005 || Math.abs(de) >= 0.005;
   return {
     status: 'ok',
     state,
-    changes: [`即时心情 → ${state.mood.label}`, `事件「${input.what || input.cause}」强度 ${input.intensity}`],
+    changes: changed
+      ? [`即时心情 → ${state.mood.label}`, `事件「${input.what || input.cause}」强度 ${input.intensity}`]
+      : ['额度已满或幅度太小，数值保持不变'],
     meta: {
-      source: 'nudge',
+      source: input.auto ? 'auto-nudge' : 'nudge',
       events: [input],
       before,
       after: { v, a, e },
-      delta: { v: v - before.v, a: a - before.a, e: e - before.e },
+      delta: { v: dv, a: da, e: de },
+      applied: { v: vDelta, a: aDelta, e: energyDelta },
+      capped: !changed,
+      type: input.type,
+      auto: input.auto === true,
       label: state.mood.label,
       labelRaw: labelInfo.labelRaw || ''
     }
@@ -648,7 +907,11 @@ export function renderPersonaStateBlock(state, { roleName = '', custom = false }
   const s = normalizePersonaState(state);
   const moods = s.mood.label || '说不上来';
   const cause = String(s.mood.cause || '').trim();
-  const head = `【你现在的状态】心情：${moods}${cause ? `（因为${cause}）` : ''}（精力 ${Math.round(s.energy * 100)}%）`;
+  const lc = s.mood.lastChange;
+  const recentChange = lc && Number(lc.at) > 0 && Date.now() - Number(lc.at) < 2 * HOUR_MS
+    ? `；最近一次状态变化：心情 ${Number(lc.dv) >= 0 ? '+' : ''}${Number(lc.dv).toFixed(2)}、精力 ${Number(lc.de) >= 0 ? '+' : ''}${Number(lc.de).toFixed(2)}`
+    : '';
+  const head = `【你现在的状态】心情：${moods}${cause ? `（因为${cause}）` : ''}（精力 ${Math.round(s.energy * 100)}%）${recentChange}`;
   // 兴趣/口癖/学习是「写这份状态时的角色」的自我状态。自定义角色一律不注入默认角色的
   // 猫/独立游戏/音乐和旧口癖；切回默认后也不把自定义角色写下的内容当成自己。
   if (custom) return `${head}；兴趣、口癖和学习经历以当前角色卡为准`;
