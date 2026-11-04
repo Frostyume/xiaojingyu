@@ -838,9 +838,27 @@ function sanitizeRoleName(name) {
 }
 // qq_get_prompt 会把推荐唤醒关键词一起给模型；自定义角色下不能继续推荐默认角色名。
 const DEFAULT_PERSONA_WAKE_KEYWORDS = new Set(['小鲸鱼', 'DeepSeek', 'deepseek', 'DS', 'D老师', 'd老师', 'D指导', 'd指导', 'D师傅', 'd师傅', '深度求索', '大肥鱼', '鲸鱼', 'DeepSeek V3', 'DeepSeek R1', 'R1']);
-// 配置文件里是否显式写了关键词。未显式写时，自定义角色才用角色名/别名/中性词兜底。
+// 与 config.example.json 逐字一致：默认安装复制示例后，不能被当成“用户显式配置”。
+const EXAMPLE_MUST_REPLY_KEYWORDS = ['deepseek', '小鲸鱼', '大肥鱼', '鲸鱼', 'd指导', '在吗'];
+const EXAMPLE_WAKE_KEYWORDS = ['小鲸鱼', 'DeepSeek', 'deepseek', 'DS', 'D老师', 'd老师', 'D指导', 'd指导', 'D师傅', 'd师傅', '深度求索', '大肥鱼', '鲸鱼', 'DeepSeek V3', 'DeepSeek R1', 'R1'];
+// 配置文件里是否显式写了关键词。未显式写（或与示例默认值完全相同）时，自定义角色才用角色名/别名/中性词兜底。
 let socialKeywordsExplicit = false;
 let wakeKeywordsExplicit = false;
+function keywordList(value) {
+  if (Array.isArray(value)) return value.map(String);
+  if (typeof value === 'string') return value.split(/[,，\s]+/).map(String).filter(Boolean);
+  return null;
+}
+function sameKeywordList(list, example) {
+  if (!Array.isArray(list) || list.length !== example.length) return false;
+  return list.every((word, index) => String(word) === example[index]);
+}
+function isExplicitKeywordConfig(value, example) {
+  if (value === undefined) return false;
+  const list = keywordList(value);
+  if (!list) return true;
+  return !sameKeywordList(list, example);
+}
 function roleAwareRecommendations(recommended, { custom = false, roleName = '', fallbackKeywords = [] } = {}) {
   if (!custom || wakeKeywordsExplicit || !recommended) return recommended;
   const source = Array.isArray(recommended.wake?.recommendedKeywords) ? recommended.wake.recommendedKeywords : [];
@@ -877,8 +895,8 @@ function loadConfig() {
   if (!file || typeof file !== 'object' || Array.isArray(file)) {
     throw new Error(`配置格式错误：${p} 不存在或不是有效的 JSON 对象。\n请先复制 config.example.json 为 config.json（Windows 可用 copy config.example.json config.json），再填写 ownerQQ、allow 白名单与 SnowLuma 地址。`);
   }
-  socialKeywordsExplicit = Object.prototype.hasOwnProperty.call(file.social ?? {}, 'mustReplyKeywords');
-  wakeKeywordsExplicit = Object.prototype.hasOwnProperty.call(file.simulation?.wake ?? {}, 'recommendedKeywords');
+  socialKeywordsExplicit = isExplicitKeywordConfig(file.social?.mustReplyKeywords, EXAMPLE_MUST_REPLY_KEYWORDS);
+  wakeKeywordsExplicit = isExplicitKeywordConfig(file.simulation?.wake?.recommendedKeywords, EXAMPLE_WAKE_KEYWORDS);
   const cfg = {
     dsh: {
       baseUrl: 'http://127.0.0.1:3080',
@@ -8705,7 +8723,9 @@ async function main() {
               [merged[minK], merged[maxK]] = [merged[maxK], merged[minK]];
             }
           }
-          if (Object.prototype.hasOwnProperty.call(body, 'mustReplyKeywords')) socialKeywordsExplicit = true;
+          if (Object.prototype.hasOwnProperty.call(body, 'mustReplyKeywords')) {
+            socialKeywordsExplicit = isExplicitKeywordConfig(body.mustReplyKeywords, EXAMPLE_MUST_REPLY_KEYWORDS);
+          }
           if (Array.isArray(body.mustReplyKeywords)) merged.mustReplyKeywords = body.mustReplyKeywords.map(String);
           file.social = merged;
           writeConfigFile(file);
@@ -8846,7 +8866,9 @@ async function main() {
             if (merged.wake.preSleepWaitEnabled !== undefined) merged.wake.preSleepWaitEnabled = merged.wake.preSleepWaitEnabled === true;
             if (merged.wake.recommendedDefaultInfinite !== undefined) merged.wake.recommendedDefaultInfinite = merged.wake.recommendedDefaultInfinite === true;
             if (merged.wake.recommendedPoke !== undefined) merged.wake.recommendedPoke = merged.wake.recommendedPoke === true;
-            if (Object.prototype.hasOwnProperty.call(body.wake, 'recommendedKeywords')) wakeKeywordsExplicit = true;
+            if (Object.prototype.hasOwnProperty.call(body.wake, 'recommendedKeywords')) {
+              wakeKeywordsExplicit = isExplicitKeywordConfig(body.wake.recommendedKeywords, EXAMPLE_WAKE_KEYWORDS);
+            }
             if (merged.wake.recommendedKeywords !== undefined) {
               merged.wake.recommendedKeywords = (Array.isArray(merged.wake.recommendedKeywords) ? merged.wake.recommendedKeywords : String(merged.wake.recommendedKeywords).split(/[,，\s]+/)).map(String).filter(Boolean);
             }
@@ -13771,13 +13793,18 @@ async function main() {
   const selfAliases = new Set(); // QQ 昵称改过之后，旧称呼仍能触发“叫名字”
   // 自定义角色的默认关键词：角色名 + 已知别名 + 中性词，不再继承默认角色的鲸鱼词。
   const NEUTRAL_ROLE_KEYWORDS = ['在吗'];
+  const DEFAULT_PERSONA_IDENTITY_WORDS = new Set(['小鲸鱼', '鲸鱼', '大肥鱼', 'd指导', 'd老师', 'd师傅', 'deepseek', 'deepseek v3', 'deepseek r1', '深度求索']);
   const escapeRe = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function isDefaultPersonaIdentity(word) {
+    return DEFAULT_PERSONA_IDENTITY_WORDS.has(String(word ?? '').trim().toLowerCase());
+  }
   function roleDefaultKeywords() {
     const out = [];
     const seen = new Set();
     for (const raw of [currentRoleName(), ...selfAliases, ...NEUTRAL_ROLE_KEYWORDS]) {
       const word = String(raw ?? '').trim();
       if (!word) continue;
+      if (isDefaultPersonaIdentity(word)) continue;
       const key = word.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -13788,6 +13815,10 @@ async function main() {
   function roleAwareKeywords(configured, explicit) {
     if (!isCustomRoleName(currentRoleName()) || explicit) return configured;
     return roleDefaultKeywords();
+  }
+  function configuredWakeKeywords() {
+    const wake = cfg.simulation?.wake ?? {};
+    return Array.isArray(wake.recommendedKeywords) ? wake.recommendedKeywords.map(String) : [];
   }
   function effectiveMustReplyKeywords() {
     const configured = Array.isArray(cfg.social?.mustReplyKeywords)
@@ -13806,16 +13837,17 @@ async function main() {
     return { ...(cfg.social ?? {}), mustReplyKeywords: effectiveMustReplyKeywords() };
   }
   function aiMentionPattern() {
-    const parts = ['claude', 'chatgpt', 'gpt', 'deepseek', '\\bds\\b', 'ai', '人工智障', '机器人', '模型'];
     if (isCustomRoleName(currentRoleName())) {
+      // 自定义角色下不把默认人格词（含 DeepSeek）当成 AI 自称；只保留通用 AI 词和当前角色名/别名。
+      const parts = ['claude', 'chatgpt', 'gpt', 'ai', '人工智障', '机器人', '模型'];
       for (const name of [currentRoleName(), ...selfAliases]) {
-        const text = String(name ?? '').trim().toLowerCase();
-        if (text) parts.push(escapeRe(text));
+        const word = String(name ?? '').trim();
+        if (!word || isDefaultPersonaIdentity(word)) continue;
+        parts.push(escapeRe(word.toLowerCase()));
       }
-    } else {
-      parts.push('大肥鱼', '小鲸鱼', '鲸鱼', 'd指导', 'd老师', 'd师傅', '深度求索');
+      return new RegExp(parts.join('|'));
     }
-    return new RegExp(parts.join('|'));
+    return /deepseek|claude|chatgpt|gpt|大肥鱼|小鲸鱼|鲸鱼|d指导|d老师|d师傅|深度求索|\bds\b|ai|人工智障|机器人|模型/;
   }
   const DEFAULT_PERSONA_NAME_WORDS = ['小鲸鱼', '鲸鱼', '大肥鱼', 'd指导', 'd老师', 'd师傅', 'deepseek', '深度求索'];
   function mentionsDefaultPersonaName(lower) {
@@ -13955,7 +13987,7 @@ async function main() {
     const hardMax = Number(w.sleepMaxMs) || 0;
     if (hardMin > 0 && finiteMs < hardMin) finiteMs = hardMin;
     if (hardMax > 0 && finiteMs > hardMax) finiteMs = hardMax;
-    const configuredKeywords = Array.isArray(w.recommendedKeywords) ? w.recommendedKeywords.map(String) : [];
+    const configuredKeywords = configuredWakeKeywords();
     return {
       mode: defaultMode,
       infinite: defaultInfinite,
@@ -14002,6 +14034,23 @@ async function main() {
     let changed = false;
     for (const st of simulation.conversations.values()) {
       if (refreshDefaultWakeConfig(st)) changed = true;
+    }
+    if (changed) saveSimulationState();
+    return changed;
+  }
+
+  // 角色切换只刷新默认关键词，不重置会话自己的 mode/sleepUntil 等唤醒参数。
+  function refreshDefaultWakeKeywords() {
+    const keywords = roleAwareKeywords(configuredWakeKeywords(), wakeKeywordsExplicit);
+    let changed = false;
+    for (const st of simulation.conversations.values()) {
+      if (st.wakeConfig?.confirmedBy !== 'default' || !st.wakeConfig.triggers) continue;
+      if (sameKeywordList(st.wakeConfig.triggers.keywords, keywords)) continue;
+      st.wakeConfig = {
+        ...st.wakeConfig,
+        triggers: { ...st.wakeConfig.triggers, keywords: [...keywords] }
+      };
+      changed = true;
     }
     if (changed) saveSimulationState();
     return changed;
@@ -15317,8 +15366,8 @@ async function main() {
         clearedDigests += 1;
       }
     }
-    // 仍使用默认唤醒配置的会话跟随新角色的默认关键词；显式设置过的保持原样。
-    const refreshedWake = refreshAllDefaultWakeConfigs();
+    // 仍使用默认唤醒配置的会话只跟随新角色的默认关键词；显式设置过的不动。
+    const refreshedWake = refreshDefaultWakeKeywords();
     if (clearedDigests) saveSimulationState();
     if (reason) log(`角色已切换（${reason}）：${clearedCards} 个会话重注入角色卡，${clearedDigests} 个会话丢弃旧衔接摘要${refreshedWake ? '，默认唤醒关键词已按新角色刷新' : ''}`);
     return { clearedCards, clearedDigests, refreshedWake };
@@ -16331,11 +16380,12 @@ async function main() {
     if (!lower) return false;
     // 自定义角色名也算“叫到她了”：否则用户换成自己的角色后，群里叫名字唤不醒。
     const roleName = currentRoleName();
+    const custom = isCustomRoleName(roleName);
     const names = [
       selfNickname,
       ...[...selfAliases].map((a) => String(a).toLowerCase()),
-      isCustomRoleName(roleName) ? roleName.toLowerCase() : ''
-    ].filter(Boolean);
+      custom ? roleName.toLowerCase() : ''
+    ].filter(Boolean).filter((name) => !custom || !isDefaultPersonaIdentity(name));
     return names.some((name) => lower.includes(`@${name}`) || lower.includes(name));
   }
 
