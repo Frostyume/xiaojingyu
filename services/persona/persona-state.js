@@ -912,11 +912,15 @@ export function renderPersonaStateBlock(state, { roleName = '', custom = false }
     ? `；最近一次状态变化：心情 ${Number(lc.dv) >= 0 ? '+' : ''}${Number(lc.dv).toFixed(2)}、精力 ${Number(lc.de) >= 0 ? '+' : ''}${Number(lc.de).toFixed(2)}`
     : '';
   const head = `【你现在的状态】心情：${moods}${cause ? `（因为${cause}）` : ''}（精力 ${Math.round(s.energy * 100)}%）${recentChange}`;
+  // 群聊历史里很容易残留“趴着/犯困”的旧叙事；精力恢复后要用当前状态覆盖它。
+  const consistency = s.energy >= 0.55
+    ? '\n【状态一致性】精力已经恢复，不要再用“困/趴着/迷迷糊糊/没劲”描述当下状态，也不要复读之前的困倦设定；想表达不想接话就直接说懒得插。'
+    : '';
   // 兴趣/口癖/学习是「写这份状态时的角色」的自我状态。自定义角色一律不注入默认角色的
   // 猫/独立游戏/音乐和旧口癖；切回默认后也不把自定义角色写下的内容当成自己。
-  if (custom) return `${head}；兴趣、口癖和学习经历以当前角色卡为准`;
+  if (custom) return `${head}；兴趣、口癖和学习经历以当前角色卡为准${consistency}`;
   if (roleName && s.roleName && String(s.roleName) !== String(roleName)) {
-    return `${head}；上一角色的兴趣、口癖和学习经历不再沿用，等新的反思更新`;
+    return `${head}；上一角色的兴趣、口癖和学习经历不再沿用，等新的反思更新${consistency}`;
   }
   const interests = s.interests.slice(0, 3).map((item) => item.topic).join('、') || '还没什么特别迷的';
   const learnings = s.learnings.slice(0, 2).map((item) => item.text).join('；');
@@ -924,7 +928,7 @@ export function renderPersonaStateBlock(state, { roleName = '', custom = false }
   let line = `${head}；最近在迷：${interests}`;
   if (learnings) line += `；最近学到：${learnings}`;
   if (quirk) line += `；口癖：${quirk}`;
-  return line.length > 300 ? `${line.slice(0, 297)}…` : line;
+  return (line.length > 300 ? `${line.slice(0, 297)}…` : line) + consistency;
 }
 
 export function describePersonaState(state) {

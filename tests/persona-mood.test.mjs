@@ -242,6 +242,17 @@ ok('状态块会提示最近一次实际变化', () => {
   assert.ok(block.includes('最近一次状态变化'), block);
 });
 
+ok('精力恢复后状态块要求停止困倦叙事', () => {
+  const recovered = moodState({ valence: 0.2 }, { energy: 0.7 });
+  const block = renderPersonaStateBlock(recovered);
+  assert.match(block, /状态一致性/);
+  assert.match(block, /不要再用“困\/趴着\/迷迷糊糊\/没劲”/);
+  assert.match(block, /最近在迷：/, '默认角色的兴趣仍应保留');
+  assert.match(renderPersonaStateBlock(recovered, { custom: true }), /状态一致性/);
+  const tired = moodState({ valence: 0.1 }, { energy: 0.3 });
+  assert.doesNotMatch(renderPersonaStateBlock(tired), /状态一致性/);
+});
+
 ok('@自己/名字直呼的夸会自动归类', () => {
   const hit = classifyMoodEvent({ text: '小鲸鱼真可爱', isAt: true, sourceMessageId: 'g:1', receivedAt: now });
   assert.equal(hit?.type, 'praise');
