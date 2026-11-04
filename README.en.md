@@ -185,7 +185,9 @@ speaking and how she carries herself in each group are yours to change.
    diving and waking. When changing the character, edit only the former.
 2. **Change the character.** Copy `personas/小鲸鱼.md` to `personas/<new-name>.md` and rewrite it,
    or create a card in the console under **Persona & roles**. Then click **Enable** at the bottom-right
-   of that card. The owner can also send `/role <name>` in a private chat, and `/role clear` to go
+   of that card. Editing the default `personas/小鲸鱼.md` in place is not treated as a custom role and
+   the built-in persona kernel still applies; save it under a new name and switch to that card instead.
+   The owner can also send `/role <name>` in a private chat, and `/role clear` to go
    back to no character. `进入角色扮演：<name>` in a group does **not** work — persona switching is
    owner-only and console-side.
 3. **Give each group its own manners.** In **Group Theatre**, write a per-group initial prompt,
@@ -282,8 +284,25 @@ and settles down late at night.
   is a separate decision;
 - **Mood has inertia**: mood decays against real time and energy follows Beijing time, so one sentence
   cannot flip her from happy to broken;
+- **Social memory**: people she knows enter a local relationship graph with every nickname/group card,
+  relationship stage, a short impression, shared episodes and boundaries; memories are linked per
+  person and never copy the raw chat;
+- **Person dossiers**: the console's **Person dossiers** view lets you read and edit each person's
+  impression and owner note; group prompts only receive the current speaker's short card, never a QQ
+  number, raw scores or owner-private facts;
 - **Sharing has caps**: group shares, Qzone posts and share modules all obey daily counts, intervals
   and night silence.
+
+> The social-memory and person-dossier kernel currently ships in the runtime build; the open-source
+> package syncs the console and docs first, with the backend following by release.
+
+### Voice and compute
+
+Text chat needs no local GPU. Voice is optional: a local TTS service (GPT-SoVITS / BreezeTTS2) usually
+wants an NVIDIA GPU with about 6 GB of VRAM, and singing / SVC wants 12 GB or more. CPU inference works
+but the first sentence and longer lines will be noticeably slower. Without a GPU, keep voice and
+singing off — text chat is unaffected. Inbound voice transcription goes through SnowLuma's endpoint
+and needs no local GPU.
 
 You can steer all of it from a DM: `内心状态`, `跑一次分享`, `反思一下`, `发` / `不发`,
 `验证通过 <id>`. The full command table, example frequencies and probation rules are in
