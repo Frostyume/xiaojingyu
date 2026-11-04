@@ -838,6 +838,8 @@ function sanitizeRoleName(name) {
 }
 // qq_get_prompt 会把推荐唤醒关键词一起给模型；自定义角色下不能继续推荐默认角色名。
 const DEFAULT_PERSONA_WAKE_KEYWORDS = new Set(['小鲸鱼', 'DeepSeek', 'deepseek', 'DS', 'D老师', 'd老师', 'D指导', 'd指导', 'D师傅', 'd师傅', '深度求索', '大肥鱼', '鲸鱼', 'DeepSeek V3', 'DeepSeek R1', 'R1']);
+// 大小写归一后的同一份默认人格词表：昵称/旧昵称过滤、AI 身份判定、默认词识别都从这里派生。
+const DEFAULT_PERSONA_WAKE_KEYWORDS_LOWER = new Set([...DEFAULT_PERSONA_WAKE_KEYWORDS].map((word) => String(word).trim().toLowerCase()));
 // 与 config.example.json 逐字一致：默认安装复制示例后，不能被当成“用户显式配置”。
 const EXAMPLE_MUST_REPLY_KEYWORDS = ['deepseek', '小鲸鱼', '大肥鱼', '鲸鱼', 'd指导', '在吗'];
 const EXAMPLE_WAKE_KEYWORDS = ['小鲸鱼', 'DeepSeek', 'deepseek', 'DS', 'D老师', 'd老师', 'D指导', 'd指导', 'D师傅', 'd师傅', '深度求索', '大肥鱼', '鲸鱼', 'DeepSeek V3', 'DeepSeek R1', 'R1'];
@@ -862,7 +864,7 @@ function isExplicitKeywordConfig(value, example) {
 function roleAwareRecommendations(recommended, { custom = false, roleName = '', fallbackKeywords = [] } = {}) {
   if (!custom || wakeKeywordsExplicit || !recommended) return recommended;
   const source = Array.isArray(recommended.wake?.recommendedKeywords) ? recommended.wake.recommendedKeywords : [];
-  const kept = source.filter((word) => !DEFAULT_PERSONA_WAKE_KEYWORDS.has(String(word ?? '').trim()));
+  const kept = source.filter((word) => !DEFAULT_PERSONA_WAKE_KEYWORDS_LOWER.has(String(word ?? '').trim().toLowerCase()));
   const keywords = fallbackKeywords.length ? fallbackKeywords : [...new Set([roleName, ...kept].filter(Boolean))];
   const wake = recommended.wake && typeof recommended.wake === 'object'
     ? { ...recommended.wake, recommendedKeywords: keywords }
@@ -13793,18 +13795,18 @@ async function main() {
   const selfAliases = new Set(); // QQ 昵称改过之后，旧称呼仍能触发“叫名字”
   // 自定义角色的默认关键词：角色名 + 已知别名 + 中性词，不再继承默认角色的鲸鱼词。
   const NEUTRAL_ROLE_KEYWORDS = ['在吗'];
-  const DEFAULT_PERSONA_IDENTITY_WORDS = new Set(['小鲸鱼', '鲸鱼', '大肥鱼', 'd指导', 'd老师', 'd师傅', 'deepseek', 'deepseek v3', 'deepseek r1', '深度求索']);
   const escapeRe = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   function isDefaultPersonaIdentity(word) {
-    return DEFAULT_PERSONA_IDENTITY_WORDS.has(String(word ?? '').trim().toLowerCase());
+    return DEFAULT_PERSONA_WAKE_KEYWORDS_LOWER.has(String(word ?? '').trim().toLowerCase());
   }
   function roleDefaultKeywords() {
     const out = [];
     const seen = new Set();
-    for (const raw of [currentRoleName(), ...selfAliases, ...NEUTRAL_ROLE_KEYWORDS]) {
+    // 只过滤 QQ 昵称/旧昵称；用户可以把角色命名为「鲸鱼」「DeepSeek」「DS」「R1」。
+    const aliases = [...selfAliases].filter((alias) => !isDefaultPersonaIdentity(alias));
+    for (const raw of [currentRoleName(), ...aliases, ...NEUTRAL_ROLE_KEYWORDS]) {
       const word = String(raw ?? '').trim();
       if (!word) continue;
-      if (isDefaultPersonaIdentity(word)) continue;
       const key = word.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -13838,10 +13840,12 @@ async function main() {
   }
   function aiMentionPattern() {
     if (isCustomRoleName(currentRoleName())) {
-      // 自定义角色下不把默认人格词（含 DeepSeek）当成 AI 自称；只保留通用 AI 词和当前角色名/别名。
+      // 自定义角色下不把默认人格词（含 DeepSeek）当成 AI 自称；当前角色名始终保留。
       const parts = ['claude', 'chatgpt', 'gpt', 'ai', '人工智障', '机器人', '模型'];
-      for (const name of [currentRoleName(), ...selfAliases]) {
-        const word = String(name ?? '').trim();
+      const roleName = String(currentRoleName() ?? '').trim();
+      if (roleName) parts.push(escapeRe(roleName.toLowerCase()));
+      for (const alias of selfAliases) {
+        const word = String(alias ?? '').trim();
         if (!word || isDefaultPersonaIdentity(word)) continue;
         parts.push(escapeRe(word.toLowerCase()));
       }
@@ -13849,9 +13853,16 @@ async function main() {
     }
     return /deepseek|claude|chatgpt|gpt|大肥鱼|小鲸鱼|鲸鱼|d指导|d老师|d师傅|深度求索|\bds\b|ai|人工智障|机器人|模型/;
   }
-  const DEFAULT_PERSONA_NAME_WORDS = ['小鲸鱼', '鲸鱼', '大肥鱼', 'd指导', 'd老师', 'd师傅', 'deepseek', '深度求索'];
   function mentionsDefaultPersonaName(lower) {
-    return DEFAULT_PERSONA_NAME_WORDS.some((word) => lower.includes(word));
+    for (const word of DEFAULT_PERSONA_WAKE_KEYWORDS_LOWER) {
+      if (!word) continue;
+      if (/^[a-z0-9]+$/.test(word) && word.length <= 3) {
+        if (new RegExp(`(^|[^a-z0-9])${escapeRe(word)}([^a-z0-9]|$)`).test(lower)) return true;
+      } else if (lower.includes(word)) {
+        return true;
+      }
+    }
+    return false;
   }
   function isNeutralRoleKeyword(word) {
     const key = String(word ?? '').trim().toLowerCase();
@@ -16381,11 +16392,12 @@ async function main() {
     // 自定义角色名也算“叫到她了”：否则用户换成自己的角色后，群里叫名字唤不醒。
     const roleName = currentRoleName();
     const custom = isCustomRoleName(roleName);
-    const names = [
-      selfNickname,
-      ...[...selfAliases].map((a) => String(a).toLowerCase()),
-      custom ? roleName.toLowerCase() : ''
-    ].filter(Boolean).filter((name) => !custom || !isDefaultPersonaIdentity(name));
+    // 只过滤 QQ 昵称/旧昵称里的默认人格词；用户可以把角色命名为「鲸鱼」「DeepSeek」「DS」「R1」。
+    const nickname = custom && isDefaultPersonaIdentity(selfNickname) ? '' : selfNickname;
+    const aliases = [...selfAliases]
+      .map((a) => String(a).toLowerCase())
+      .filter((alias) => !custom || !isDefaultPersonaIdentity(alias));
+    const names = [nickname, ...aliases, custom ? roleName.toLowerCase() : ''].filter(Boolean);
     return names.some((name) => lower.includes(`@${name}`) || lower.includes(name));
   }
 

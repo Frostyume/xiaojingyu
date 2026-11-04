@@ -24,7 +24,20 @@ const WHALE_CARD = '你是「小鲸鱼」，一只住在 QQ 里的鲸鱼娘。�
 const FORBIDDEN = /小鲸鱼|鲸鱼|软萌|傲娇|嘴硬|本鱼|大肥鱼|D指导/;
 const MCP_SOURCE = fs.readFileSync(new URL('../mcp/qq-actions.js', import.meta.url), 'utf8');
 const RESTRICT_SOURCE = fs.readFileSync(new URL('../integrations/dsh/agent-presets/qq-tool-restrict.mjs', import.meta.url), 'utf8');
+const WHALE_SOURCE = fs.readFileSync(new URL('../app/whale.js', import.meta.url), 'utf8');
 const EXAMPLE_CONFIG = JSON.parse(fs.readFileSync(new URL('../config.example.json', import.meta.url), 'utf8'));
+
+function literalArray(name) {
+  const match = WHALE_SOURCE.match(new RegExp(`const ${name} = (\\[[^\\]]*\\]);`));
+  assert.ok(match, `找不到常量 ${name}`);
+  return Function(`return ${match[1]}`)();
+}
+
+function literalSet(name) {
+  const match = WHALE_SOURCE.match(new RegExp(`const ${name} = new Set\\((\\[[^\\]]*\\])\\);`));
+  assert.ok(match, `找不到常量 ${name}`);
+  return new Set(Function(`return ${match[1]}`)());
+}
 
 function exampleKeywordConfig() {
   return {
@@ -447,15 +460,48 @@ test('Roxy + QQ 昵称仍是小鲸鱼：昵称不触发名字唤醒/必回，@ �
   });
 });
 
+test('默认词常量与 config.example.json 一致，过滤表覆盖两者的默认人格词', () => {
+  assert.deepEqual(literalArray('EXAMPLE_MUST_REPLY_KEYWORDS'), EXAMPLE_CONFIG.social.mustReplyKeywords);
+  assert.deepEqual(literalArray('EXAMPLE_WAKE_KEYWORDS'), EXAMPLE_CONFIG.simulation.wake.recommendedKeywords);
+  const normalized = literalSet('DEFAULT_PERSONA_WAKE_KEYWORDS');
+  const covered = new Set([...normalized].map((word) => String(word).toLowerCase()));
+  for (const word of [...EXAMPLE_CONFIG.social.mustReplyKeywords, ...EXAMPLE_CONFIG.simulation.wake.recommendedKeywords]) {
+    const key = String(word).trim().toLowerCase();
+    if (key === '在吗') continue;
+    assert.ok(covered.has(key), `默认词过滤表缺少 ${word}`);
+  }
+  assert.ok(covered.has('ds') && covered.has('r1'), '过滤表覆盖 ds/r1 及大小写变体');
+});
+
 test('Roxy + 旧昵称别名小鲸鱼：鲸鱼词不进入默认关键词，也不唤醒', async () => {
   await withBridge({ roleFiles: { [ROXY]: ROXY_CARD }, role: ROXY, keepDefaultWake: true }, async (h) => {
     h.addSelfAlias('小鲸鱼');
+    h.addSelfAlias('DS');
+    h.addSelfAlias('R1');
     const st = h.getSimulationState(GROUP);
     st.wakeConfig.triggers.probability = 0;
     assert.doesNotMatch(st.wakeConfig.triggers.keywords.join(','), FORBIDDEN);
+    assert.ok(!st.wakeConfig.triggers.keywords.some((word) => ['ds', 'r1'].includes(word.toLowerCase())), 'DS/R1 不进入角色默认关键词');
     assert.doesNotMatch(h.effectiveMustReplyKeywords().join(','), FORBIDDEN);
     assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('小鲸鱼在吗'), 'group', '小鲸鱼在吗', '小鲸鱼在吗', false), null);
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('DS在吗'), 'group', 'DS在吗', 'DS在吗', false), null);
   });
+});
+
+test('角色本身叫默认词：鲸鱼/DeepSeek/DS 仍按当前角色名正常唤醒', async () => {
+  for (const roleName of ['鲸鱼', 'DeepSeek', 'DS']) {
+    await withBridge({ roleFiles: { [roleName]: `你是「${roleName}」，一个同名测试角色。` }, role: roleName, keepDefaultWake: true, selfName: '小鲸鱼' }, async (h) => {
+      const st = h.getSimulationState(GROUP);
+      st.wakeConfig.triggers.probability = 0;
+      assert.ok(st.wakeConfig.triggers.keywords.includes(roleName), `${roleName} 应进入角色默认关键词`);
+      assert.equal(
+        h.evaluateWakeTrigger(GROUP, st, groupEvent(`${roleName}在吗`), 'group', `${roleName}在吗`, `${roleName}在吗`, false),
+        'nameMention',
+        `${roleName}在吗 应按角色名唤醒`
+      );
+      assert.equal(h.isMustReplyText(`${roleName}在吗`), true, `${roleName}在吗 应触发必回`);
+    });
+  }
 });
 
 test('显式空关键词数组：自定义角色保持为空，不被默认值填回', async () => {
