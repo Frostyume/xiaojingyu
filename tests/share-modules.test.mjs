@@ -106,6 +106,56 @@ test('输出校验：知识/金融/资讯/趣闻', () => {
   assert.equal(validateShareOutput('fun', { text: '今天看到一个特别离谱的猫，居然会自己开冰箱。' }, fun, fun.facets[0]).ok, true);
 });
 
+test('技术词兜底：历史正文不再误报 tech-name-not-in-text', () => {
+  const module = normalizeShareModule({ template: 'knowledge' }, 'llm_tips');
+  const samples = [
+    '问一件很具体的事，它答得又快又稳，连细枝末节都给你，可一查，压根没这回事。这就是为什么大模型会一本正经胡说，因为它说话求的是顺，不是准。这里有两个词得说清：自信语气是它答什么都笃定，输出里没有“不确定”这个挡箭牌；知识边界是它不清楚自己哪里不会，也没法在回答之前先翻一遍书。具体做法是它顺着眼前那几句话往下接，接得越顺越像真的。不过这毛病多出在冷门、具体的事上，多问一句出处，常能看出虚实。',
+    '在手机上打一句话，它就能顺着说下去一大段，看着像很懂行。这背后就是大家说的大模型，简单说，它是个从海量文字里学出来的接话能手。这里有两个词得说清：参数是它学到的那些数值，像一本越记越厚的笔记；训练是拿海量文字反复练，让它学会每个位置接下来最可能是什么字。具体做法是先大量读、再一个字一个字往下接，所以看着像在琢磨，其实一直在猜。不过它没真去查过资料，碰上冷门、具体的事就可能说岔，写得长也不代表全对。'
+  ];
+  for (const text of samples) {
+    const result = validateShareOutput('knowledge', {
+      title: '大模型科普',
+      techName: 'Transformer',
+      text,
+      terms: [{ name: '参数', plain: '学到的数值' }, { name: '训练', plain: '反复练' }]
+    }, module, module.facets[0]);
+    assert.notEqual(result.error, 'tech-name-not-in-text');
+  }
+});
+
+test('技术词兜底：命中任一技术词即通过，没有技术词仍失败', () => {
+  const module = normalizeShareModule({ template: 'knowledge' }, 'llm_tips');
+  const hit = validateShareOutput('knowledge', {
+    title: '大模型为什么会接话',
+    techName: 'Transformer',
+    text: '大模型会顺着上下文往下接话，所以听起来很自然。'.repeat(8),
+    terms: [{ name: '上下文', plain: '前面说过的话' }, { name: '接话', plain: '顺着往下猜' }]
+  }, module, module.facets[0]);
+  assert.equal(hit.ok, true);
+  const miss = validateShareOutput('knowledge', {
+    title: '今天去公园',
+    techName: 'Transformer',
+    text: '今天天气不错，我们去公园散步，看到很多花开了。'.repeat(10),
+    terms: [{ name: '散步', plain: '慢慢走' }, { name: '花', plain: '开了的花' }]
+  }, module, module.facets[0]);
+  assert.equal(miss.error, 'tech-name-not-in-text');
+});
+
+test('技术词兜底：模块或 facet 的 content.techTerms 生效', () => {
+  const output = {
+    title: '它是个会接话的大本子',
+    techName: 'Transformer',
+    text: '大本子只会顺着前一句往下接，像鹦鹉学舌一样复述，并不真懂意思。'.repeat(6),
+    terms: [{ name: '复述', plain: '照着再说一遍' }, { name: '接话', plain: '顺着往下猜' }]
+  };
+  const plain = normalizeShareModule({ template: 'knowledge' }, 'llm_tips');
+  assert.equal(validateShareOutput('knowledge', output, plain, plain.facets[0]).error, 'tech-name-not-in-text');
+  const moduleLevel = normalizeShareModule({ template: 'knowledge', content: { techTerms: ['鹦鹉学舌'] } }, 'llm_tips');
+  assert.equal(validateShareOutput('knowledge', output, moduleLevel, moduleLevel.facets[0]).ok, true);
+  const facetLevel = normalizeShareModule({ template: 'knowledge', facets: [{ content: { techTerms: ['鹦鹉学舌'] } }] }, 'llm_tips');
+  assert.equal(validateShareOutput('knowledge', output, facetLevel, facetLevel.facets[0]).ok, true);
+});
+
 test('验证状态：必须明确通过', () => {
   const module = normalizeShareModule({ template: 'fun' }, 'f');
   assert.equal(verificationPending(module, { verification: { status: 'pending' } }), true);

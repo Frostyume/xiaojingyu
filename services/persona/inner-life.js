@@ -3336,6 +3336,11 @@ ${share.text}${share.item?.url ? `
       const validated = validateShareOutput(facet.template, raw.value, module, facet);
       if (!validated.ok) {
         lastError = validated.error;
+        if (validated.error === 'tech-name-not-in-text') {
+          fixHint = '正文没有出现任何技术词，请围绕当前主题自然写到大模型/模型/训练/提示词/参数/推理/上下文中的至少一个，不要只写标题。';
+          log(`[share:${moduleId}] 正文没有技术词，重写一次`);
+          continue;
+        }
         log(`[share:${moduleId}] 校验失败（${validated.error}），重试`);
         continue;
       }

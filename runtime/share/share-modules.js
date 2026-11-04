@@ -356,6 +356,23 @@ export function parseShareOutput(output) {
   }
 }
 
+/** 正文命中任一技术词即视为“写到了技术上”，不再死抠单一 techName。 */
+const DEFAULT_TECH_TERMS = ['大模型', '模型', '训练', '提示词', '参数', '推理', '上下文', '幻觉', 'token', '神经网络', '数据集', '微调', '注意力'];
+
+function techTermsFor(content) {
+  const custom = Array.isArray(content?.techTerms) ? content.techTerms : [];
+  const seen = new Set();
+  const terms = [];
+  for (const item of [...custom, ...DEFAULT_TECH_TERMS]) {
+    const term = String(item ?? '').replace(/\s+/g, ' ').trim();
+    const key = term.toLowerCase();
+    if (!term || seen.has(key)) continue;
+    seen.add(key);
+    terms.push(term);
+  }
+  return terms;
+}
+
 export function validateShareOutput(templateId, obj, module, facet) {
   const tpl = templateFor(templateId || facet?.template || module?.template);
   const content = merge(module?.content || {}, facet?.content);
@@ -377,7 +394,9 @@ export function validateShareOutput(templateId, obj, module, facet) {
   const techName = clampText(obj?.techName || '', 20);
   if (tpl.requireTechName && content.requireTechName !== false) {
     if (!techName) return { ok: false, error: 'missing-tech-name' };
-    if (!text.toLowerCase().includes(techName.toLowerCase())) return { ok: false, error: 'tech-name-not-in-text' };
+    const haystack = text.toLowerCase();
+    const hit = [techName, ...techTermsFor(content)].some((term) => haystack.includes(term.toLowerCase()));
+    if (!hit) return { ok: false, error: 'tech-name-not-in-text' };
   }
 
   const time = clampText(obj?.time || '', 40);
