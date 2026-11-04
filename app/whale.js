@@ -838,12 +838,16 @@ function sanitizeRoleName(name) {
 }
 // qq_get_prompt 会把推荐唤醒关键词一起给模型；自定义角色下不能继续推荐默认角色名。
 const DEFAULT_PERSONA_WAKE_KEYWORDS = new Set(['小鲸鱼', 'DeepSeek', 'deepseek', 'DS', 'D老师', 'd老师', 'D指导', 'd指导', 'D师傅', 'd师傅', '深度求索', '大肥鱼', '鲸鱼', 'DeepSeek V3', 'DeepSeek R1', 'R1']);
-function roleAwareRecommendations(recommended, { custom = false, roleName = '' } = {}) {
-  if (!custom || !recommended) return recommended;
+// 配置文件里是否显式写了关键词。未显式写时，自定义角色才用角色名/别名/中性词兜底。
+let socialKeywordsExplicit = false;
+let wakeKeywordsExplicit = false;
+function roleAwareRecommendations(recommended, { custom = false, roleName = '', fallbackKeywords = [] } = {}) {
+  if (!custom || wakeKeywordsExplicit || !recommended) return recommended;
   const source = Array.isArray(recommended.wake?.recommendedKeywords) ? recommended.wake.recommendedKeywords : [];
   const kept = source.filter((word) => !DEFAULT_PERSONA_WAKE_KEYWORDS.has(String(word ?? '').trim()));
+  const keywords = fallbackKeywords.length ? fallbackKeywords : [...new Set([roleName, ...kept].filter(Boolean))];
   const wake = recommended.wake && typeof recommended.wake === 'object'
-    ? { ...recommended.wake, recommendedKeywords: [...new Set([roleName, ...kept].filter(Boolean))] }
+    ? { ...recommended.wake, recommendedKeywords: keywords }
     : recommended.wake;
   return { ...recommended, wake };
 }
@@ -873,6 +877,8 @@ function loadConfig() {
   if (!file || typeof file !== 'object' || Array.isArray(file)) {
     throw new Error(`配置格式错误：${p} 不存在或不是有效的 JSON 对象。\n请先复制 config.example.json 为 config.json（Windows 可用 copy config.example.json config.json），再填写 ownerQQ、allow 白名单与 SnowLuma 地址。`);
   }
+  socialKeywordsExplicit = Object.prototype.hasOwnProperty.call(file.social ?? {}, 'mustReplyKeywords');
+  wakeKeywordsExplicit = Object.prototype.hasOwnProperty.call(file.simulation?.wake ?? {}, 'recommendedKeywords');
   const cfg = {
     dsh: {
       baseUrl: 'http://127.0.0.1:3080',
@@ -8658,7 +8664,7 @@ async function main() {
             const st = social.states.get(k);
             states[k] = { phase: st?.phase ?? 'idle' };
           }
-          sendJson({ config: cfg.social, pendingSummaries: stats, states });
+          sendJson({ config: socialConfigForView(), pendingSummaries: stats, states });
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/social') {
@@ -8699,12 +8705,13 @@ async function main() {
               [merged[minK], merged[maxK]] = [merged[maxK], merged[minK]];
             }
           }
+          if (Object.prototype.hasOwnProperty.call(body, 'mustReplyKeywords')) socialKeywordsExplicit = true;
           if (Array.isArray(body.mustReplyKeywords)) merged.mustReplyKeywords = body.mustReplyKeywords.map(String);
           file.social = merged;
           writeConfigFile(file);
           cfg.social = { ...cfg.social, ...merged };
           log('控制台：社交配置已更新');
-          sendJson({ ok: true, config: cfg.social });
+          sendJson({ ok: true, config: socialConfigForView() });
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/social/flush') {
@@ -8785,7 +8792,7 @@ async function main() {
         }
         // ── 群聊仿真模式（simulation）内部 Agent API ─────────────────────────
         if (req.method === 'GET' && url.pathname === '/api/simulation/config') {
-          sendJson({ ok: true, config: cfg.simulation ?? {} });
+          sendJson({ ok: true, config: simulationConfigForView() });
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/simulation/config') {
@@ -8839,6 +8846,7 @@ async function main() {
             if (merged.wake.preSleepWaitEnabled !== undefined) merged.wake.preSleepWaitEnabled = merged.wake.preSleepWaitEnabled === true;
             if (merged.wake.recommendedDefaultInfinite !== undefined) merged.wake.recommendedDefaultInfinite = merged.wake.recommendedDefaultInfinite === true;
             if (merged.wake.recommendedPoke !== undefined) merged.wake.recommendedPoke = merged.wake.recommendedPoke === true;
+            if (Object.prototype.hasOwnProperty.call(body.wake, 'recommendedKeywords')) wakeKeywordsExplicit = true;
             if (merged.wake.recommendedKeywords !== undefined) {
               merged.wake.recommendedKeywords = (Array.isArray(merged.wake.recommendedKeywords) ? merged.wake.recommendedKeywords : String(merged.wake.recommendedKeywords).split(/[,，\s]+/)).map(String).filter(Boolean);
             }
@@ -8964,7 +8972,7 @@ async function main() {
             || (body.activityControl && typeof body.activityControl === 'object' && Object.prototype.hasOwnProperty.call(body.activityControl, 'deepDive'));
           if (activityChanged) resyncActivityControl();
           log('控制台：群聊剧场配置已更新');
-          sendJson({ ok: true, config: cfg.simulation });
+          sendJson({ ok: true, config: simulationConfigForView() });
           return;
         }
         // ── 群风格覆盖：控制台专用，单条增删改，保存即热更新 ──────────────
@@ -9343,7 +9351,7 @@ async function main() {
               send: cfg.simulation?.send ?? {},
               wait: cfg.simulation?.wait ?? {},
               proactive: cfg.simulation?.proactive ?? {}
-            }, { custom: isCustomRoleName(roleState.role), roleName: String(roleState.role || '').trim() }),
+            }, { custom: isCustomRoleName(roleState.role), roleName: String(roleState.role || '').trim(), fallbackKeywords: roleDefaultKeywords() }),
             enabledTools,
             capabilities: {
               summary: '群聊/私聊、原图识图与接梗、原生收藏表情、图片库、中文语音、内心生活与QQ空间、提醒、天气、S16/LPL赛果订阅、猜拳/骰子/今日运势、控制台与实时监控页',
@@ -13761,6 +13769,62 @@ async function main() {
   let selfIdentityAt = 0;
   let selfIdentityRefreshing = false;
   const selfAliases = new Set(); // QQ 昵称改过之后，旧称呼仍能触发“叫名字”
+  // 自定义角色的默认关键词：角色名 + 已知别名 + 中性词，不再继承默认角色的鲸鱼词。
+  const NEUTRAL_ROLE_KEYWORDS = ['在吗'];
+  const escapeRe = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function roleDefaultKeywords() {
+    const out = [];
+    const seen = new Set();
+    for (const raw of [currentRoleName(), ...selfAliases, ...NEUTRAL_ROLE_KEYWORDS]) {
+      const word = String(raw ?? '').trim();
+      if (!word) continue;
+      const key = word.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(word);
+    }
+    return out;
+  }
+  function roleAwareKeywords(configured, explicit) {
+    if (!isCustomRoleName(currentRoleName()) || explicit) return configured;
+    return roleDefaultKeywords();
+  }
+  function effectiveMustReplyKeywords() {
+    const configured = Array.isArray(cfg.social?.mustReplyKeywords)
+      ? cfg.social.mustReplyKeywords.map(String).filter(Boolean)
+      : [];
+    return roleAwareKeywords(configured, socialKeywordsExplicit);
+  }
+  // 控制台读取配置时也按角色展示默认关键词；显式配置保持原样。
+  function simulationConfigForView() {
+    const sim = cfg.simulation ?? {};
+    if (!isCustomRoleName(currentRoleName()) || wakeKeywordsExplicit) return sim;
+    return { ...sim, wake: { ...(sim.wake ?? {}), recommendedKeywords: roleDefaultKeywords() } };
+  }
+  function socialConfigForView() {
+    if (!isCustomRoleName(currentRoleName()) || socialKeywordsExplicit) return cfg.social;
+    return { ...(cfg.social ?? {}), mustReplyKeywords: effectiveMustReplyKeywords() };
+  }
+  function aiMentionPattern() {
+    const parts = ['claude', 'chatgpt', 'gpt', 'deepseek', '\\bds\\b', 'ai', '人工智障', '机器人', '模型'];
+    if (isCustomRoleName(currentRoleName())) {
+      for (const name of [currentRoleName(), ...selfAliases]) {
+        const text = String(name ?? '').trim().toLowerCase();
+        if (text) parts.push(escapeRe(text));
+      }
+    } else {
+      parts.push('大肥鱼', '小鲸鱼', '鲸鱼', 'd指导', 'd老师', 'd师傅', '深度求索');
+    }
+    return new RegExp(parts.join('|'));
+  }
+  const DEFAULT_PERSONA_NAME_WORDS = ['小鲸鱼', '鲸鱼', '大肥鱼', 'd指导', 'd老师', 'd师傅', 'deepseek', '深度求索'];
+  function mentionsDefaultPersonaName(lower) {
+    return DEFAULT_PERSONA_NAME_WORDS.some((word) => lower.includes(word));
+  }
+  function isNeutralRoleKeyword(word) {
+    const key = String(word ?? '').trim().toLowerCase();
+    return NEUTRAL_ROLE_KEYWORDS.some((neutral) => neutral.toLowerCase() === key);
+  }
   const SILENT_TURN_TIMEOUT_MS = 300000; // 摘要静默名额 5 分钟未消费则作废，避免吞掉后续正常回复
   const social = {
     states: new Map(),             // key -> { phase: 'idle'|'active'|'probing'|'exiting', lastCheckAt, nextCheckAt, lastActiveMessageAt, activeEnteredAt, activeDeadlineAt, activeExitAt, probeDeadline }
@@ -13891,6 +13955,7 @@ async function main() {
     const hardMax = Number(w.sleepMaxMs) || 0;
     if (hardMin > 0 && finiteMs < hardMin) finiteMs = hardMin;
     if (hardMax > 0 && finiteMs > hardMax) finiteMs = hardMax;
+    const configuredKeywords = Array.isArray(w.recommendedKeywords) ? w.recommendedKeywords.map(String) : [];
     return {
       mode: defaultMode,
       infinite: defaultInfinite,
@@ -13899,7 +13964,7 @@ async function main() {
         atMention: w.recommendedAtMention !== false,
         nameMention: w.recommendedNameMention !== false,
         speakerIds: [],
-        keywords: Array.isArray(w.recommendedKeywords) ? w.recommendedKeywords.map(String) : [],
+        keywords: roleAwareKeywords(configuredKeywords, wakeKeywordsExplicit),
         question: w.recommendedQuestion !== false,
         poke: w.recommendedPoke !== false,
         anyMessage: defaultMode === 'active',
@@ -14704,7 +14769,10 @@ async function main() {
     const selfId = String(event?.self_id ?? '');
     if (selfId && lower.includes('@' + selfId)) return true;
     if (selfNameMatches(lower)) return true;
-    for (const kw of (cfg.social?.mustReplyKeywords ?? [])) {
+    const customRole = isCustomRoleName(currentRoleName());
+    const foreignPersona = customRole && mentionsDefaultPersonaName(lower);
+    for (const kw of effectiveMustReplyKeywords()) {
+      if (!socialKeywordsExplicit && foreignPersona && isNeutralRoleKeyword(kw)) continue;
       if (lower.includes(String(kw).toLowerCase())) return true;
     }
     if (isDirectedAtAi(textContent)) return true;
@@ -14714,7 +14782,7 @@ async function main() {
   // 是否"直接针对 AI"的提问/挑战：提到 AI 相关词且带疑问/比较，或对"你"开火，或追问催促
   function isDirectedAtAi(textContent) {
     const lower = String(textContent ?? '').toLowerCase();
-    const aiMention = /deepseek|claude|chatgpt|gpt|大肥鱼|小鲸鱼|鲸鱼|d指导|d老师|d师傅|深度求索|\bds\b|ai|人工智障|机器人|模型/.test(lower);
+    const aiMention = aiMentionPattern().test(lower);
     const challenge = /强|弱|行不行|能不能|会不会|是不是|一半|水平|垃圾|废物|白嫖|菜|不如|厉害|赢|输|比.*强|比.*弱/.test(lower);
     const question = /[?？吗呢吧]|怎么|为什么|哪|谁/.test(lower);
     if (aiMention && (question || challenge)) return true;
@@ -14732,7 +14800,10 @@ async function main() {
   function isMustReplyText(textContent) {
     const lower = String(textContent ?? '').toLowerCase();
     if (selfNameMatches(lower)) return true;
-    for (const kw of (cfg.social?.mustReplyKeywords ?? [])) {
+    const customRole = isCustomRoleName(currentRoleName());
+    const foreignPersona = customRole && mentionsDefaultPersonaName(lower);
+    for (const kw of effectiveMustReplyKeywords()) {
+      if (!socialKeywordsExplicit && foreignPersona && isNeutralRoleKeyword(kw)) continue;
       if (lower.includes(String(kw).toLowerCase())) return true;
     }
     if (isDirectedAtAi(textContent)) return true;
@@ -15246,9 +15317,11 @@ async function main() {
         clearedDigests += 1;
       }
     }
+    // 仍使用默认唤醒配置的会话跟随新角色的默认关键词；显式设置过的保持原样。
+    const refreshedWake = refreshAllDefaultWakeConfigs();
     if (clearedDigests) saveSimulationState();
-    if (reason) log(`角色已切换（${reason}）：${clearedCards} 个会话重注入角色卡，${clearedDigests} 个会话丢弃旧衔接摘要`);
-    return { clearedCards, clearedDigests };
+    if (reason) log(`角色已切换（${reason}）：${clearedCards} 个会话重注入角色卡，${clearedDigests} 个会话丢弃旧衔接摘要${refreshedWake ? '，默认唤醒关键词已按新角色刷新' : ''}`);
+    return { clearedCards, clearedDigests, refreshedWake };
   }
   const personaPackWarned = new Set();
   // 原始人格卡（按 mtime 缓存，不截断）。
@@ -16044,9 +16117,13 @@ async function main() {
     }
     if (Array.isArray(tr.keywords) && tr.keywords.length) {
       const lower = String(plainContent ?? '').toLowerCase();
+      const customRole = isCustomRoleName(currentRoleName());
+      // “在吗”这类中性词只用于叫当前角色；消息里明确在叫别的默认角色时不应顺带唤醒。
+      const foreignPersona = customRole && mentionsDefaultPersonaName(lower);
       for (const kw of tr.keywords) {
         const kwStr = String(kw ?? '').toLowerCase();
         if (!kwStr) continue;
+        if (!wakeKeywordsExplicit && foreignPersona && isNeutralRoleKeyword(kw)) continue;
         // 短英文/数字关键词（如 DS/R1）用词边界匹配，避免 ADS/BDSM/DSL 误触发。
         if (/^[a-z0-9]+$/.test(kwStr) && kwStr.length <= 4) {
           if (new RegExp(`\\b${kwStr}\\b`, 'i').test(lower)) return `keyword:${kw}`;

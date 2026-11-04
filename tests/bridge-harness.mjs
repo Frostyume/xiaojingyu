@@ -190,6 +190,8 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     isConversationBusy, simulationTurnStartAt, turnLeaseNoted, TURN_BUSY_LEASE_MS,
     settingFromDshNamespace, selfIdentityText, buildWakeReminderPrompt,
     evaluateWakeTrigger, wakeScoreDecision, buildContextDigest, maybeRotateSessionForContext,
+    isMustReplyText, effectiveMustReplyKeywords, roleDefaultKeywords,
+    addSelfAlias(value) { const alias = String(value ?? '').trim(); if (alias) selfAliases.add(alias); },
     isNightQuietNow, nightQuietConfig, buildToneNudgeLine, scheduleClingyFollowUp,
     getMode() { return currentMode; },
     signatureState,

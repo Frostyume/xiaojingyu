@@ -46,11 +46,18 @@ function fixtureConfig() {
   };
 }
 
-async function withBridge({ roleFiles = {}, role } = {}, run) {
+async function withBridge({ roleFiles = {}, role, extraConfig = {}, keepDefaultWake = false } = {}, run) {
   const files = {};
   for (const [name, card] of Object.entries(roleFiles)) files[`personas/${name}.md`] = card;
   if (role !== undefined) files['state/current-role.json'] = JSON.stringify({ role, mode: 'active' });
-  const h = await bridgeHarness({ files, config: fixtureConfig() });
+  const base = fixtureConfig();
+  if (keepDefaultWake) delete base.simulation.wake;
+  const config = {
+    ...base,
+    ...extraConfig,
+    simulation: { ...base.simulation, ...(extraConfig.simulation ?? {}) }
+  };
+  const h = await bridgeHarness({ files, config });
   h.setMode('simulation');
   h.setSelfIdentity(role === ROXY ? ROXY : '小鲸鱼', '10001');
   try {
@@ -236,7 +243,7 @@ test('默认角色回归：小鲸鱼的原有提示词和口吻保持不变', as
 });
 
 test('角色切换：默认 → Roxy 清除默认内核、名单和旧摘要；切回后恢复默认行为', async () => {
-  await withBridge({ roleFiles: { 小鲸鱼: WHALE_CARD, [ROXY]: ROXY_CARD }, role: '小鲸鱼' }, async (h) => {
+  await withBridge({ roleFiles: { 小鲸鱼: WHALE_CARD, [ROXY]: ROXY_CARD }, role: '小鲸鱼', keepDefaultWake: true }, async (h) => {
     const st = h.getSimulationState(GROUP);
     h.commitWakePrompt(GROUP, h.renderWakePrompt(GROUP, 'question'));
     assert.ok(st.roleCardVersion, '默认角色先拿到一次角色卡版本');
@@ -249,6 +256,8 @@ test('角色切换：默认 → Roxy 清除默认内核、名单和旧摘要；�
       assert.match(switched.json.notice, /自定义角色/);
       assert.equal(st.roleCardVersion, '', '切角色后角色卡版本失效');
       assert.equal(st.pendingDigest, '', '切角色后旧衔接摘要要清掉');
+      assert.ok(st.wakeConfig.triggers.keywords.includes(ROXY), '切角色后默认唤醒关键词跟随新角色');
+      assert.doesNotMatch(st.wakeConfig.triggers.keywords.join(','), FORBIDDEN, '切角色后不保留鲸鱼默认关键词');
 
       // QQ 昵称可能仍叫小鲸鱼；自定义角色下它只用于识别 @/引用，不代表人格。
       h.setSelfIdentity(ROXY, '10001');
@@ -266,6 +275,7 @@ test('角色切换：默认 → Roxy 清除默认内核、名单和旧摘要；�
       const whalePrompt = h.buildWakePrompt(GROUP, 'question');
       assert.match(whalePrompt, /你是 DeepSeek 小鲸鱼/);
       assert.match(whalePrompt, /只发像小鲸鱼的东西/);
+      assert.ok(st.wakeConfig.triggers.keywords.includes('小鲸鱼'), '切回默认后唤醒关键词恢复鲸鱼默认词');
       const mentions = inner.promptPreview('mentions', { mentionNames: [] });
       assert.ok(mentions.includes('小鲸鱼') && mentions.includes('DeepSeek'));
     });
@@ -303,5 +313,78 @@ test('只改默认角色文件：API 明确提示仍是默认角色，不算自�
       const prompt = h.buildWakePrompt(GROUP, 'question');
       assert.match(prompt, /你是 DeepSeek 小鲸鱼/, '同名改卡后默认内核仍生效');
     });
+  });
+});
+
+function groupEvent(text) {
+  return {
+    self_id: 999,
+    user_id: 777,
+    message: [{ type: 'text', data: { text } }],
+    raw_message: text,
+    sender: { nickname: '测试群友', card: '测试群友' }
+  };
+}
+
+test('Roxy：默认唤醒/必回关键词用角色名+别名+中性词，不继承鲸鱼词，也不因鲸鱼关键词唤醒', async () => {
+  await withBridge({ roleFiles: { [ROXY]: ROXY_CARD }, role: ROXY, keepDefaultWake: true }, async (h) => {
+    h.addSelfAlias('Roxy酱');
+    const st = h.getSimulationState(GROUP);
+    st.wakeConfig.triggers.probability = 0;
+    const keywords = st.wakeConfig.triggers.keywords;
+    assert.ok(keywords.includes(ROXY), '唤醒关键词包含当前角色名');
+    assert.ok(keywords.some((word) => word.toLowerCase() === 'roxy酱'), '唤醒关键词包含别名');
+    assert.ok(keywords.includes('在吗'), '唤醒关键词包含中性词');
+    assert.doesNotMatch(keywords.join(','), FORBIDDEN, '默认唤醒关键词不得继承鲸鱼词');
+    assert.doesNotMatch(h.effectiveMustReplyKeywords().join(','), FORBIDDEN, '默认必回关键词不得继承鲸鱼词');
+
+    const event = groupEvent('小鲸鱼在吗');
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, event, 'group', '小鲸鱼在吗', '小鲸鱼在吗', false), null,
+      '自定义角色不应因默认角色关键词唤醒');
+    assert.equal(h.isMustReplyText('小鲸鱼在吗'), false, '自定义角色不应因默认角色关键词必回');
+
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent(`${ROXY}在吗`), 'group', `${ROXY}在吗`, `${ROXY}在吗`, false), 'nameMention');
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('Roxy酱在吗'), 'group', 'Roxy酱在吗', 'Roxy酱在吗', false), 'nameMention');
+
+    await withConsole(h, async (port) => {
+      const sim = await request(port, '/api/simulation/config');
+      assert.doesNotMatch(sim.json.config.wake.recommendedKeywords.join(','), FORBIDDEN, '控制台默认唤醒关键词不应显示鲸鱼词');
+      const social = await request(port, '/api/social');
+      assert.doesNotMatch(social.json.config.mustReplyKeywords.join(','), FORBIDDEN, '控制台默认必回关键词不应显示鲸鱼词');
+    });
+  });
+});
+
+test('默认小鲸鱼仍命中原有鲸鱼关键词', async () => {
+  await withBridge({ roleFiles: { 小鲸鱼: WHALE_CARD }, role: '小鲸鱼', keepDefaultWake: true }, async (h) => {
+    const st = h.getSimulationState(GROUP);
+    st.wakeConfig.triggers.probability = 0;
+    const keywords = st.wakeConfig.triggers.keywords;
+    assert.ok(keywords.includes('小鲸鱼') && keywords.includes('大肥鱼') && keywords.includes('DeepSeek'), '默认关键词保持原值');
+    assert.match(
+      String(h.evaluateWakeTrigger(GROUP, st, groupEvent('大肥鱼在吗'), 'group', '大肥鱼在吗', '大肥鱼在吗', false)),
+      /keyword:大肥鱼/,
+      '默认角色仍命中鲸鱼关键词'
+    );
+    assert.equal(h.isMustReplyText('大肥鱼在吗'), true);
+  });
+});
+
+test('显式配置自定义关键词：唤醒与必回都按显式配置，不被角色默认值覆盖', async () => {
+  await withBridge({
+    roleFiles: { [ROXY]: ROXY_CARD },
+    role: ROXY,
+    extraConfig: {
+      social: { mustReplyKeywords: ['暗号'] },
+      simulation: { wake: { recommendedKeywords: [ROXY, '暗号'] } }
+    }
+  }, async (h) => {
+    const st = h.getSimulationState(GROUP);
+    st.wakeConfig.triggers.probability = 0;
+    assert.deepEqual(st.wakeConfig.triggers.keywords, [ROXY, '暗号'], '显式唤醒关键词原样保留');
+    assert.deepEqual(h.effectiveMustReplyKeywords(), ['暗号'], '显式必回关键词原样保留');
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('暗号在吗'), 'group', '暗号在吗', '暗号在吗', false), 'keyword:暗号');
+    assert.equal(h.isMustReplyText('暗号'), true);
+    assert.equal(h.isMustReplyText('小鲸鱼'), false, '显式配置不会额外继承鲸鱼词');
   });
 });
