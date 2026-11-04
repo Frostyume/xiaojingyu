@@ -2076,6 +2076,7 @@ async function main() {
   const learnerCollectors = new Map();  // sessionId -> turn collector
   const learnerWaiters = new Map();     // sessionId -> [{resolve,reject,timer}]
   const agentErrorNotifyAt = new Map(); // key -> timestamp：Agent 异常私下提醒主人的限频
+  const toolJsonRepairAt = new Map(); // key -> timestamp：工具参数 JSON 损坏后的自动重试限频
   const rejectNoticeAt = new Map();     // key -> timestamp：DSH 拒收时群内兜底句的限频
   let slangLearnerSessionId = null;
   let slangTaskChain = Promise.resolve();
@@ -5036,6 +5037,27 @@ async function main() {
     return entry;
   }
 
+  // 动图直接送视觉模型时，部分供应商只认静态首帧或直接报错。
+  // 预览校验用首帧，真正收藏仍提交原始 GIF/WebP/APNG；抽帧失败则回退原字节。
+  function firstFrameForVision(buffer, { mimeType = '', fileName = '' } = {}) {
+    if (!Buffer.isBuffer(buffer) || !buffer.length) return buffer;
+    if (!/image\/(gif|webp|apng)/i.test(String(mimeType || '')) && !/\.(gif|webp|apng)$/i.test(String(fileName || ''))) return buffer;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qq-sticker-frame-'));
+    const input = path.join(dir, 'input');
+    const output = path.join(dir, 'frame.png');
+    try {
+      fs.writeFileSync(input, buffer);
+      execFileSync(String(cfg.simulation?.voice?.ffmpegPath || 'ffmpeg'), ['-y', '-loglevel', 'error', '-i', input, '-frames:v', '1', output], { timeout: 15000 });
+      const frame = fs.readFileSync(output);
+      return frame.length ? frame : buffer;
+    } catch (error) {
+      log(`[sticker] 动图首帧提取失败，视觉校验回退原图：${error?.message ?? error}`);
+      return buffer;
+    } finally {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+    }
+  }
+
   // 收藏聊天里的一张表情（add_custom_face），并按 AI 看到的含义写简短备注（modify_custom_face）。
   async function collectSticker(key, messageRef, remark) {
     const assertSendAllowed = captureSendGuard(key);
@@ -5046,27 +5068,27 @@ async function main() {
     const mediaList = Array.isArray(found.media) ? found.media : [];
     if (!mediaList.length) throw new Error('这条消息没有可收藏的图片/表情');
     const media = mediaList[0];
-    let file = '';
-    if (media?.kind === 'image') {
-      // 优先取图片字节转 base64，避免 SnowLuma 直接下载聊天图片 URL 失败（带签名/防盗链）。
-      // 严禁把消息里的原始 media.url / media.file 直接交给 OneBot 去下载：那会绕过 SSRF/本地文件防护。
+    let source = null;
+    if (media?.kind === 'image' || media?.kind === 'sticker') {
+      // 图片段和市场/收藏表情段都走同一条安全取字节链路；mface 没有 get_image 缓存，
+      // fetchOneBotImage 会优先走 CDN 或用 emoji_id 推导地址。
       const img = await fetchOneBotImage(media);
-      if (img?.buffer) {
-        file = 'base64://' + img.buffer.toString('base64');
-      } else {
-        throw new Error('无法安全获取该图片字节，已拒绝收藏');
-      }
+      if (img?.buffer) source = { ...img };
     } else if (media?.kind === 'face') {
       const face = await fetchFaceMedia(media);
-      if (face?.buffer) file = 'base64://' + face.buffer.toString('base64');
+      if (face?.buffer) source = { buffer: face.buffer, mimeType: face.mimeType || 'image/png' };
     }
-    if (!file) throw new Error('无法获取该表情的图片源');
-    const buffer = Buffer.from(file.replace(/^base64:\/\//i, ''), 'base64');
-    const verdict = await isQVersionWhaleSticker(cfg, buffer, { roleName: currentRoleName() });
+    if (!source?.buffer) throw new Error('无法获取该表情的图片源');
+    const visionBuffer = firstFrameForVision(source.buffer, {
+      mimeType: source.mimeType,
+      fileName: media?.file || media?.url || ''
+    });
+    const verdict = await isQVersionWhaleSticker(cfg, visionBuffer, { roleName: currentRoleName() });
     if (!verdict.ok) {
       throw new Error(`只收藏符合当前角色形象的表情（${verdict.reason || '这张不符合形象'}）`);
     }
     assertSendAllowed();
+    const file = 'base64://' + source.buffer.toString('base64');
     const addRes = await bot.request('add_custom_face', { file });
     if (!addRes || addRes.status !== 'ok' || addRes.retcode !== 0) {
       throw new Error(`add_custom_face 失败: ${addRes?.wording || addRes?.retcode || 'unknown'}`);
@@ -16823,7 +16845,7 @@ async function main() {
     const initialPromptLine = initialPromptText ? `${initialPromptText}\n\n` : '';
     const groupProfile = cfg.simulation?.groupProfiles?.[key] ?? null;
     const groupStyleLine = groupProfile?.style ? `${String(groupProfile.style).trim()}\n\n` : '';
-    const multiReplyLine = '【多人对话：优先用 QQ 回复】群聊里不止一个人说话，或你要分别回应不同人的消息时，优先用 qq_reply（或带 replyToMessageId 的发送）做成 QQ 的“回复”，让每个人能对上你在回哪条；要回多个人就分别调用 qq_reply，每条一个 messageId，不要用一条普通消息把几句话串起来。只有当前只有一个人说话、且你回的就是最新一条时，才可以不引用。引用用消息里的 messageId；已引用就不必再 @，反之亦然。\n\n';
+    const multiReplyLine = '【多人对话：优先用 QQ 回复】群聊里不止一个人说话，或你要分别回应不同人的消息时，优先用 qq_reply（或带 replyToMessageId 的发送）做成 QQ 的“回复”，让每个人能对上你在回哪条；要回多个人就分别调用 qq_reply，每条一个 messageId，不要用一条普通消息把几句话串起来。只有当前只有一个人说话、且你回的就是最新一条时，才可以不引用。引用用消息里的 messageId；已引用就不必再 @，反之亦然。\n【发送格式】qq_send_message 的 messages 必须是 JSON 字符串数组；即使一条也写成 ["内容"]，中文、换行、颜文字、emoji 都放在英文双引号内，不能写成 messages: 你好。\n\n';
     // 分层 + 预算：未超预算时与旧版逐字一致；超了才按优先级丢可选段。
     // 顺序即输出顺序，调整顺序会改变人格/工具提示的相对位置，请谨慎。
     const sections = [
@@ -16965,6 +16987,15 @@ async function main() {
     const tokenLine = `【会话令牌】${st.agentToken}（调用仿真状态工具时请在参数中带上此令牌）\n\n`;
     const preSleepMs = Math.max(0, Number(cfg.simulation?.wake?.preSleepWaitMs) || 300000);
     return `${roleLine}${identityLine}${tokenLine}【提醒】你还没有完成回合收尾。请调用 qq_set_wake_config 设置下一次唤醒条件（例如继续潜水多久、@/名字/关键词/提问/概率/指定成员等），或者调用 qq_mark_read 表示你看过且决定不接。这是为了防止你忘记收尾后进入“永眠”。注意：设置潜水前先用 qq_wait_for_messages(timeoutMs=${preSleepMs}) 完成沉睡前观察；等待期间有人说话时查看 newMessages，判断不需要你参与即可收尾。`;
+  }
+
+  function buildToolJsonRepairPrompt(key) {
+    const roleState = readRoleState();
+    const roleLine = roleState.role ? `【当前角色】${roleState.role}（完整角色卡请调用 qq_get_prompt 查看）\n\n` : '';
+    const identityLine = selfIdentityText();
+    const st = getSimulationState(key);
+    const tokenLine = `【会话令牌】${st.agentToken}（调用仿真状态工具时请在参数中带上此令牌）\n\n`;
+    return `${roleLine}${identityLine}${tokenLine}【工具参数修正】你上一轮的工具参数不是合法 JSON，回合已中断，没有发出任何消息。请重新完成刚才想做的事。\n- qq_send_message 的 messages 必须是 JSON 字符串数组；即使只发一条，也写成 ["你好"]。\n- 中文、逗号、换行、颜文字、emoji 都必须放在英文双引号内；不要写成 messages: 你好。\n- 其他工具参数也必须是合法 JSON。不要向用户解释这次错误。\n如果不需要发言，用 qq_mark_read 或 qq_set_wake_config 收尾。`;
   }
 
   async function sendWakePrompt(key, reason) {
@@ -18329,7 +18360,7 @@ async function main() {
               // 则累计 noActionCount；达到阈值后自动重置 WakeConfig，避免 AI 卡死。
               const silentQueueNow = social.silentTurns.get(frame.sessionId) ?? [];
               const isSilentTurn = silentQueueNow.length > 0;
-              if (currentMode === 'simulation' && key && !isSilentTurn) {
+              if (currentMode === 'simulation' && key && !isSilentTurn && ended.reason.kind === 'completed') {
                 const st = getSimulationState(key);
                 const turnStart = simulationTurnStartAt.get(frame.sessionId) ?? 0;
                 const sendToolHit = sendToolSucceededSessions.has(frame.sessionId);
@@ -18381,7 +18412,13 @@ async function main() {
               if (pendingWakeKeys.has(key)) {
                 pendingWakeKeys.delete(key);
                 disarmPendingWakeLease(key);
-                if (wakeConfigUpdatedKeys.has(key) || markReadCalledKeys.has(key)) {
+                if (ended.reason.kind !== 'completed') {
+                  // 模型错误/中止不是“忘了收尾”：不提醒、不计数，避免提醒回合
+                  // 再次失败，形成“报错 → 提醒 → 再报错”的循环。
+                  wakeConfigUpdatedKeys.delete(key);
+                  markReadCalledKeys.delete(key);
+                  log(`[simulation] ${key} 非正常结束（${ended.reason.kind}），跳过唤醒收尾提醒`);
+                } else if (wakeConfigUpdatedKeys.has(key) || markReadCalledKeys.has(key)) {
                   ensureWakeable(getSimulationState(key), { key });
                   wakeConfigUpdatedKeys.delete(key);
                   markReadCalledKeys.delete(key);
@@ -18542,14 +18579,38 @@ async function main() {
               } else if (ended.reason.kind === 'error') {
                 const msg = ended.reason.error?.message ?? '未知错误';
                 const safeMsg = shouldAuditKey(key) && SENSITIVE_RE.test(msg) ? '（含敏感信息，已隐藏）' : msg.slice(0, 500);
+                const malformedToolJson = /tool input is invalid JSON/i.test(safeMsg);
                 // 以前这里只发 QQ、不写日志：出问题时 bridge.log 里什么都没有，排查只能靠猜（PR #24）。
                 log(`⚠️ agent 处理出错 (${key})：${safeMsg}`);
                 appendActivity(`${key} agent 处理出错：${safeMsg.slice(0, 80)}`);
                 if (currentMode === 'simulation') {
+                  // 模型偶尔会把 messages 写成未加引号的中文原文，DSH 在解析工具参数时
+                  // 直接报 MALFORMED_RESPONSE。参数没有进入 MCP，重试不会重复发送。
+                  if (key && malformedToolJson) {
+                    const last = Number(toolJsonRepairAt.get(key)) || 0;
+                    if (Date.now() - last > 2 * 60 * 1000) {
+                      toolJsonRepairAt.set(key, Date.now());
+                      log(`[simulation] ${key} 工具参数 JSON 损坏，1.5s 后自动重试一次`);
+                      appendActivity(`${key} 工具参数 JSON 损坏，自动重试`);
+                      setTimeout(() => {
+                        if (currentMode !== 'simulation' || simulation.paused || cfg.simulation?.enabled === false) return;
+                        deliverPrompt(key, buildToolJsonRepairPrompt(key)).then((result) => {
+                          if (result && result.ok === false) {
+                            log(`[simulation] ${key} 工具参数修复提示未接受：${String(result.error?.message || result.error || 'unknown').slice(0, 160)}`);
+                          }
+                        }).catch((error) => {
+                          log(`[simulation] ${key} 工具参数修复提示投递失败：${error?.message ?? error}`);
+                        });
+                      }, 1500);
+                    } else {
+                      log(`[simulation] ${key} 工具参数 JSON 再次损坏，本轮不自动重试（避免循环）`);
+                    }
+                  }
                   // 不把 DSH/上游的原始错误发到群里；瞬时网络/transport 错误只记日志，
-                  // 非瞬时错误私下提醒主人一次，避免刷屏和泄底。
+                  // 非瞬时错误私下提醒主人一次，避免刷屏和泄底。工具 JSON 损坏走自动重试，
+                  // 不再额外提醒，避免用户被同一类可恢复错误反复打扰。
                   const transient = /transport failed|fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|stream.*(closed|error)|timeout|timed out|429|502|503|overloaded/i.test(safeMsg);
-                  if (!transient && cfg.ownerQQ) {
+                  if (!transient && !malformedToolJson && cfg.ownerQQ) {
                     const last = Number(agentErrorNotifyAt.get(key)) || 0;
                     if (Date.now() - last > 30 * 60 * 1000) {
                       agentErrorNotifyAt.set(key, Date.now());

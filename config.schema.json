@@ -815,7 +815,7 @@
                     "energyHalfLifeH": {
                       "title": "Energy Half Life H",
                       "type": "number",
-                      "default": 10
+                      "default": 6
                     },
                     "valenceNegativeHalfLifeH": {
                       "title": "Valence Negative Half Life H",

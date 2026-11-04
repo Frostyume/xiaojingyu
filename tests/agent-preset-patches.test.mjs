@@ -60,6 +60,8 @@ for (const name of PRESETS) {
   const patchPersona = row.config.plugins.find((r) => r.id === 'persona');
   ok(typeof srcPersona?.config?.prefix === 'string' && srcPersona.config.prefix === patchPersona?.config?.prefix,
     `${name}: persona.prefix 逐字一致（${srcPersona?.config?.prefix?.length ?? 0} 字符）`);
+  ok(srcPersona.config.prefix.includes('messages 必须是 JSON 字符串数组'),
+    `${name}: 工具协议要求 messages 使用 JSON 字符串数组`);
 }
 
 console.log('## 3. 守卫行引用方式：只用「profile 目录可解析」的裸说明符');

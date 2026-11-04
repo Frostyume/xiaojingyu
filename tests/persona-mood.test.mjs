@@ -6,6 +6,7 @@ import {
   applyReflection,
   decayValue,
   targetEnergyAt,
+  previewPersonaState,
   moodTierLabel,
   chooseMoodLabel,
   MOOD_V3_DEFAULTS
@@ -76,6 +77,20 @@ ok('精力目标在 0.30–0.75', () => {
     const e = targetEnergyAt(d.getTime());
     assert.ok(e >= 0.30 && e <= 0.75, `hour ${h} energy ${e}`);
   }
+});
+
+ok('读取态按真实时间预览恢复，不写回原对象', () => {
+  const at = new Date('2026-11-04T10:08:00+08:00').getTime();
+  const stored = normalizePersonaState({
+    version: 2,
+    mood: { valence: 0.04, arousal: 0.31, setPoint: 0.1, lastDecayAt: at },
+    energy: 0.2946,
+    updatedAt: at
+  }, at);
+  const preview = previewPersonaState(stored, { now: at + 4.3 * 3600e3, cfg: MOOD_V3_DEFAULTS });
+  assert.ok(preview.energy > 0.38, `preview energy=${preview.energy}`);
+  assert.ok(preview.energy > stored.energy);
+  assert.equal(stored.energy, 0.2946, '预览不能改持久化状态');
 });
 
 ok('v1 兼容路径仍限制 ±0.15', () => {

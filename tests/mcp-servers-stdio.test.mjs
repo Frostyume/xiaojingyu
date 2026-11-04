@@ -32,6 +32,13 @@ for (const { serverName, script } of SERVERS) {
     // 校验 DSH 的命名契约：mcp__<serverName>__<rawName>
     const bad = names.filter((n) => !/^[A-Za-z0-9_-]{1,64}$/.test(n));
     if (bad.length) { console.log(`   ⚠️ 不符合 DSH 工具名契约: ${bad.join(', ')}`); failures += 1; }
+    if (serverName === 'snowluma') {
+      const send = tools.find((tool) => tool.name === 'qq_send_message');
+      const messages = send?.inputSchema?.properties?.messages;
+      const arrayOnly = messages?.type === 'array' && messages?.items?.type === 'string';
+      console.log(`   ${arrayOnly ? '✅' : '❌'} qq_send_message.messages 使用 JSON 字符串数组（防止模型输出未加引号的中文）`);
+      if (!arrayOnly) failures += 1;
+    }
   } catch (error) {
     console.log(`❌ ${serverName}: ${error?.message ?? error}`);
     failures += 1;

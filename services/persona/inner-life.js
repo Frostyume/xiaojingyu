@@ -15,7 +15,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { createTurnCollector } from '../../channels/dsh/client.js';
-import { defaultPersonaState, normalizePersonaState, applyReflection, applyReflectionV3, applyMoodNudge, renderPersonaStateBlock, describePersonaState, MOOD_V3_DEFAULTS, targetEnergyAt, moodTierLabel } from './persona-state.js';
+import { defaultPersonaState, normalizePersonaState, applyReflection, applyReflectionV3, applyMoodNudge, renderPersonaStateBlock, describePersonaState, MOOD_V3_DEFAULTS, targetEnergyAt, moodTierLabel, previewPersonaState } from './persona-state.js';
 import { appendMoodHistory, readMoodHistory, summarizeMoodHistory } from '../../runtime/persona/mood-history.js';
 import { derivePersonaMode, renderPersonaMode } from '../../runtime/persona/persona-mode.js';
 import { collectCandidates, rankCandidates, formatCandidatesForPrompt, extractUrls, candidateUrlKey } from './curiosity.js';
@@ -269,7 +269,7 @@ export function createInnerLife(deps) {
 
   function personaBlock() {
     try {
-      const state = loadPersona();
+      const state = previewPersonaState(loadPersona(), { now: Date.now(), cfg: ilCfg().mood });
       const il = ilCfg();
       const style = roleStyle();
       const mode = derivePersonaMode(state, { quiet: isQuiet(il) });
@@ -278,7 +278,7 @@ export function createInnerLife(deps) {
   }
 
   function personaInfo() {
-    const state = loadPersona();
+    const state = previewPersonaState(loadPersona(), { now: Date.now(), cfg: ilCfg().mood });
     const style = roleStyle();
     const mode = derivePersonaMode(state, { quiet: isQuiet(ilCfg()) });
     return { block: `${renderPersonaStateBlock(state, { roleName: style.name, custom: style.custom })}\n${renderPersonaMode(mode, style)}`, detail: describePersonaState(state), state, mode };
@@ -737,8 +737,8 @@ export function createInnerLife(deps) {
   }
 
   function reflectionPrompt(st, { digestText = '', topics = [], anchor = '', il, mode } = {}) {
-    const state = normalizePersonaState(loadPersona());
     const now = Date.now();
+    const state = previewPersonaState(loadPersona(), { now, cfg: il?.mood });
     const history = readMoodHistory(files.moodHistory, { days: 7, limit: 300, now });
     const summary = summarizeMoodHistory(history, { now, state });
     const inner = loadInner();
@@ -1077,7 +1077,7 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
   }
 
   function qzoneStyleHint(style = roleStyle()) {
-    const persona = loadPersona();
+    const persona = previewPersonaState(loadPersona(), { now: Date.now(), cfg: ilCfg().mood });
     const energy = Number(persona.energy) || 0;
     const valence = Number(persona.mood?.valence) || 0;
     const tone = energy < 0.35
@@ -2622,7 +2622,7 @@ ${othersLine}拟回复：${reply}
       log('[inner] 反思跳过：今天没有群聊也没有分享');
       return { status: 'skip' };
     }
-    const mode = derivePersonaMode(loadPersona(), { now, quiet: isQuiet(il) });
+    const mode = derivePersonaMode(previewPersonaState(loadPersona(), { now, cfg: il.mood }), { now, quiet: isQuiet(il) });
     const prompt = reflectionPrompt(target?.st ?? null, { ...md, il, mode });
     const output = await runTurn(prompt, 180000);
     const reflection = firstJsonObject(output);

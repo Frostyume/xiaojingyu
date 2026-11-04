@@ -38,7 +38,7 @@ export const MOOD_V3_DEFAULTS = Object.freeze({
     valencePositiveHalfLifeH: 30,
     valenceNegativeHalfLifeH: 20,
     arousalHalfLifeH: 6,
-    energyHalfLifeH: 10
+    energyHalfLifeH: 6
   },
   setPoint: { enabled: true, alpha: 0.02, min: 0, max: 0.30 },
   circadian: { enabled: true },
@@ -258,6 +258,40 @@ export function targetArousalAt(now = Date.now()) {
   const p = beijingParts(now);
   const hour = p.hour + (p.minute || 0) / 60;
   return clamp(0.45 + 0.05 * Math.cos((2 * Math.PI * (hour - 15)) / 24), 0.35, 0.55, 0.45);
+}
+
+/**
+ * 读取态预览：按真实时间结算衰减，但不写回状态文件。
+ * 反思仍然从 lastDecayAt 结算；这里只保证 live/提示词看到的是“此刻”的精力与心情。
+ */
+export function previewPersonaState(previous, { now = Date.now(), cfg = {} } = {}) {
+  const state = normalizePersonaState(previous, now);
+  const decayCfg = { ...MOOD_V3_DEFAULTS.decay, ...(cfg?.decay || {}) };
+  const elapsedMs = Math.max(0, Math.min(7 * 24 * 3600e3, now - state.mood.lastDecayAt));
+  const positive = state.mood.valence >= state.mood.setPoint;
+  const valenceHalfH = positive ? decayCfg.valencePositiveHalfLifeH : decayCfg.valenceNegativeHalfLifeH;
+  const circadian = cfg?.circadian?.enabled !== false;
+  const valence = decayValue(state.mood.valence, state.mood.setPoint, valenceHalfH * 3600e3, elapsedMs);
+  const arousal = decayValue(
+    state.mood.arousal,
+    circadian ? targetArousalAt(now) : 0.45,
+    decayCfg.arousalHalfLifeH * 3600e3,
+    elapsedMs
+  );
+  const energy = decayValue(
+    state.energy,
+    circadian ? targetEnergyAt(now) : 0.6,
+    decayCfg.energyHalfLifeH * 3600e3,
+    elapsedMs
+  );
+  const label = chooseMoodLabel(valence, arousal, state.mood.labelRaw || '');
+  state.mood.valence = valence;
+  state.mood.arousal = arousal;
+  state.energy = energy;
+  state.mood.label = label.label;
+  state.mood.lastDecayAt = now;
+  state.updatedAt = now;
+  return state;
 }
 
 function mapIntensity(intensity, direction, table) {

@@ -446,7 +446,7 @@
           "valencePositiveHalfLifeH": 30,
           "valenceNegativeHalfLifeH": 20,
           "arousalHalfLifeH": 6,
-          "energyHalfLifeH": 10
+          "energyHalfLifeH": 6
         },
         "setPoint": {
           "enabled": true,
