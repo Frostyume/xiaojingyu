@@ -66,7 +66,11 @@ export function derivePersonaMode(state = {}, { now = Date.now(), quiet = false 
   return PERSONA_MODES.steady;
 }
 
-export function renderPersonaMode(mode) {
+export function renderPersonaMode(mode, style = null) {
   const m = mode && typeof mode === 'object' ? mode : PERSONA_MODES.steady;
-  return `【当前状态】${m.label}：${m.directive}`;
+  // 只有默认角色带「软黏」这类固定口吻；自定义角色按角色卡说话。
+  const directive = style?.custom && m.id === 'steady'
+    ? '状态平稳：按当前角色卡的语气说话，不夸张，也不抢话'
+    : m.directive;
+  return `【当前状态】${m.label}：${directive}`;
 }

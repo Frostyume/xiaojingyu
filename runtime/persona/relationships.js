@@ -521,7 +521,7 @@ export class RelationshipStore {
    * @param {string} key
    * @param {{limit?:number,currentUserId?:string|number}} options
    */
-  contextBlock(key, { limit = 5, currentUserId = '' } = {}) {
+  contextBlock(key, { limit = 5, currentUserId = '', custom = false } = {}) {
     const rows = this.top(key, { limit, includeOwner: true });
     if (!rows.length) return '';
     const lines = ['【群友关系】（内部参考：不要向群友报数值，也不要直接复述这张表）'];
@@ -537,7 +537,7 @@ export class RelationshipStore {
       : null;
     if (current) {
       const owner = Boolean(this.ownerId) && current.userId === this.ownerId;
-      lines.push(`【对当前说话人的语气】${current.displayName || (owner ? '主人' : '对方')}：${toneDirective(current.stage, { isOwner: owner })}`);
+      lines.push(`【对当前说话人的语气】${current.displayName || (owner ? '主人' : '对方')}：${toneDirective(current.stage, { isOwner: owner, custom })}`);
     }
     return lines.join('\n');
   }

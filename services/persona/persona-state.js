@@ -214,6 +214,8 @@ export function normalizePersonaState(raw, now = Date.now()) {
     interests: normalizeInterests(base.interests, now),
     learnings: normalizeLearnings(base.learnings, now),
     quirks: normalizeQuirks(base.quirks),
+    // 最近一次写入这份状态时启用的角色；用于换角色后不把上一角色的口癖/兴趣当成当前角色。
+    roleName: String(base.roleName ?? '').trim().slice(0, 40),
     updatedAt: Number(base.updatedAt) || now,
     changelog: Array.isArray(base.changelog) ? base.changelog.slice(-MAX_CHANGELOG) : []
   };
@@ -608,14 +610,21 @@ export function applyMoodNudge(previous, event, { now = Date.now(), cfg = {}, dr
   };
 }
 
-export function renderPersonaStateBlock(state) {
+export function renderPersonaStateBlock(state, { roleName = '', custom = false } = {}) {
   const s = normalizePersonaState(state);
   const moods = s.mood.label || '说不上来';
   const cause = String(s.mood.cause || '').trim();
+  const head = `【你现在的状态】心情：${moods}${cause ? `（因为${cause}）` : ''}（精力 ${Math.round(s.energy * 100)}%）`;
+  // 兴趣/口癖/学习是「写这份状态时的角色」的自我状态。自定义角色一律不注入默认角色的
+  // 猫/独立游戏/音乐和旧口癖；切回默认后也不把自定义角色写下的内容当成自己。
+  if (custom) return `${head}；兴趣、口癖和学习经历以当前角色卡为准`;
+  if (roleName && s.roleName && String(s.roleName) !== String(roleName)) {
+    return `${head}；上一角色的兴趣、口癖和学习经历不再沿用，等新的反思更新`;
+  }
   const interests = s.interests.slice(0, 3).map((item) => item.topic).join('、') || '还没什么特别迷的';
   const learnings = s.learnings.slice(0, 2).map((item) => item.text).join('；');
   const quirk = s.quirks.length ? s.quirks[s.quirks.length - 1] : '';
-  let line = `【你现在的状态】心情：${moods}${cause ? `（因为${cause}）` : ''}（精力 ${Math.round(s.energy * 100)}%）；最近在迷：${interests}`;
+  let line = `${head}；最近在迷：${interests}`;
   if (learnings) line += `；最近学到：${learnings}`;
   if (quirk) line += `；口癖：${quirk}`;
   return line.length > 300 ? `${line.slice(0, 297)}…` : line;

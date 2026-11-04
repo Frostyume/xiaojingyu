@@ -558,6 +558,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
               const injectMax = state.roleInjectMax;
               return {
                 name,
+                custom: name !== '小鲸鱼',
                 bytes: Buffer.byteLength(content, 'utf8'),
                 chars: content.length,
                 lines: content.split('\n').length,

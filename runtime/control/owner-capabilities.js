@@ -77,7 +77,7 @@ export const OWNER_CAPABILITIES = [
     label: '声线/语气',
     kind: 'config',
     status: 'ready',
-    description: '软萌/黑化/自动声线；单句 mood 表演。',
+    description: '柔和/冷傲/自动声线；单句 mood 表演。',
     tools: ['qq_owner_admin', 'qq_speak'],
     targets: ['self'],
     preview: 'voice'

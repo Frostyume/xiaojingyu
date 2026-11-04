@@ -21,7 +21,8 @@ import { derivePersonaMode, renderPersonaMode } from '../../runtime/persona/pers
 import { collectCandidates, rankCandidates, formatCandidatesForPrompt, extractUrls, candidateUrlKey } from './curiosity.js';
 import { webSearch } from '../social/web-search.js';
 import { safeFetch, safeFetchBuffer } from '../social/safe-fetch.js';
-import { CONTENT_VOICE_BLOCK, CONTENT_VOICE_HINT, SHARE_VOICE_BLOCK } from '../../runtime/persona/persona-voice.js';
+import { CONTENT_VOICE_HINT, contentVoiceBlock, shareVoiceBlock } from '../../runtime/persona/persona-voice.js';
+import { personaStyleContext } from '../../runtime/persona/style-context.js';
 import { timeStampCN, currentTimeBlock, timeConflict } from '../../runtime/kernel/time-awareness.js';
 import { postQzone, listQzone, deleteQzone, qzoneHasContent, qzoneItemTid, qzoneVisibilityLabel, getQzoneFeeds, commentQzone, parseQzoneComments, parseQzoneFeedPost, getQzoneSelfUin, getQzoneMsgDetail, parseQzoneFeedImages } from '../social/qzone.js';
 import { DEFAULT_QUIET_HOURS, normalizeQuietHours, isQuietNow, quietEndAt } from './quiet-hours.js';
@@ -253,23 +254,34 @@ export function createInnerLife(deps) {
     return normalizePersonaState(readJson(files.persona, defaultPersonaState()), Date.now());
   }
 
+  // 当前角色上下文：默认角色保留原有口吻，自定义角色全部走中性表述。
+  function roleStyle() {
+    return personaStyleContext({ name: getRoleName?.() || '' });
+  }
+
+  function replyToneRule() {
+    return roleStyle().custom ? '按当前角色卡的语气' : '软萌、先软后硬';
+  }
+
   function savePersona(state) {
-    writeJson(files.persona, state);
+    writeJson(files.persona, { ...state, roleName: roleStyle().name });
   }
 
   function personaBlock() {
     try {
       const state = loadPersona();
       const il = ilCfg();
+      const style = roleStyle();
       const mode = derivePersonaMode(state, { quiet: isQuiet(il) });
-      return `${renderPersonaStateBlock(state)}\n${renderPersonaMode(mode)}`;
+      return `${renderPersonaStateBlock(state, { roleName: style.name, custom: style.custom })}\n${renderPersonaMode(mode, style)}`;
     } catch { return ''; }
   }
 
   function personaInfo() {
     const state = loadPersona();
+    const style = roleStyle();
     const mode = derivePersonaMode(state, { quiet: isQuiet(ilCfg()) });
-    return { block: `${renderPersonaStateBlock(state)}\n${renderPersonaMode(mode)}`, detail: describePersonaState(state), state, mode };
+    return { block: `${renderPersonaStateBlock(state, { roleName: style.name, custom: style.custom })}\n${renderPersonaMode(mode, style)}`, detail: describePersonaState(state), state, mode };
   }
 
   function loadCuriosity() {
@@ -494,7 +506,8 @@ export function createInnerLife(deps) {
       }
     };
     if (il.mood?.includeOwnerPrivate !== false && cfg.ownerQQ) {
-      try { addChat('主人私聊', getSimulationState(`private:${cfg.ownerQQ}`), 20); } catch {}
+      const ownerLabel = roleStyle().custom ? '对方的私聊' : '主人私聊';
+      try { addChat(ownerLabel, getSimulationState(`private:${cfg.ownerQQ}`), 20); } catch {}
     }
     const groupKeys = (Array.isArray(cfg.allow?.groups) ? cfg.allow.groups : [])
       .map((id) => `group:${String(id).replace(/^group:/, '')}`)
@@ -743,7 +756,7 @@ export function createInnerLife(deps) {
       lastPost ? `【你最近发过说说】${cleanLine(lastPost, 160)}` : ''
     ].filter(Boolean).join('\n\n');
     return buildBasePrompt(
-      '回顾下面的主人私聊、群聊、关系事件和自己的身体状态，像写日记一样更新你对世界、群友和自己的认识。只输出一个 JSON 对象，不要 markdown、不要解释。格式：\n' +
+      `回顾下面的${roleStyle().custom ? '对方' : '主人'}私聊、群聊、关系事件和自己的身体状态，像写日记一样更新你对世界、群友和自己的认识。只输出一个 JSON 对象，不要 markdown、不要解释。格式：\n` +
       '{"events":[{"what":"发生了什么，不超过30字","intensity":1-5,"valence":"positive|negative","arousal":"up|down|none","cause":"不超过12字"}],"moodCause":"不超过12字的整体心情原因","energy":{"direction":"up|down","intensity":1-5},"interests":[{"topic":"兴趣名","delta":-0.2..0.2}],"learnings":["最多3条，每条不超过40字，不要群友隐私/联系方式"],"quirks":["最多1条，不超过12字"]}\n' +
       '规则：最多 3 条 events；没有明显事件就输出 "events": []，不要用 0 填充。intensity 必须是 1–5，不要给小数。允许自己有低落、烦躁、被冷落，不要每次都回到平静；先判断当前心情是延续、加剧还是反转。明显好的事可以 positive，明显坏的事可以 negative；普通闲聊不必硬找情绪。不要编造没发生的事，不要写群友隐私。',
       extra
@@ -759,18 +772,20 @@ export function createInnerLife(deps) {
       : '';
     const toneBlock = toneFix
       ? `
-【口吻校正】上一版有问题：${toneFix}。重写时必须先写你自己的反应/吐槽，至少出现一次“我/咱/本鱼”，不要用评论员句式。`
+【口吻校正】上一版有问题：${toneFix}。重写时${roleStyle().custom
+        ? '必须先写你自己的反应/吐槽，至少出现一次“我”或角色卡里的自称，不要用评论员句式。'
+        : '必须先写你自己的反应/吐槽，至少出现一次“我/咱/本鱼”，不要用评论员句式。'}`
       : '';
     return buildBasePrompt(
       '从下面的候选见闻里挑 1 条你最想说的，写成群里自然的分享：2~3 句，先说你自己的感受/联想/吐槽，再补一句点评，最后附上候选里的原链接。不要新闻播报、不要营销号口吻、不要编造没读到的内容。' +
       '先给候选打 1~5 分：有趣、重要、群里能接话；低于 3 分就直接 SKIP，不要为了完成任务硬发。优先有反差、槽点、具体细节或确实重要的资讯；行业公告、技术安全说明、发布会流水账、排名统计、纯论文解读，除非真的重要且一句话能说清，否则别选。' +
       '候选里如果有 [S16] 赛果/爆冷/淘汰/晋级/冠军/纪录/争议，而且你最近还没在群里聊过比赛，优先从 S16 里挑；采访/教练发言/返图/海报这类没有具体爆点的，不要只因为挂着 S16 就选。' +
       '如果要提时间，必须和真实时间或候选里的发布时间一致；凌晨发生的事不能说成早上，几小时前不能说成刚刚，拿不准就别写具体时段或钟点。' +
-      (required ? '这次是主人点名要一条 S16 相关分享：必须从候选里选 1 条并输出 SHARE，不能输出 SKIP；只有候选全部打不开或与 S16 完全无关时才 SKIP。' : '') +
+      (required ? `这次是${roleStyle().custom ? '对方' : '主人'}点名要一条 S16 相关分享：必须从候选里选 1 条并输出 SHARE，不能输出 SKIP；只有候选全部打不开或与 S16 完全无关时才 SKIP。` : '') +
       '只要有一条让你有点想说，就分享；只有全部看过、全都无聊或不适合群里聊，才输出 SKIP。' +
       '输出格式只能是：\nSHARE\n<分享正文，必须包含候选里的一个原链接>\n或\nSKIP',
-      `${groupStyle}${CONTENT_VOICE_BLOCK}
-${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandidatesForPrompt(candidates, 8)}`,
+      `${groupStyle}${contentVoiceBlock(roleStyle())}
+${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandidatesForPrompt(candidates, 8)}`,
       target
     );
   }
@@ -1061,7 +1076,7 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     return QZONE_SOFT_TONE_RE.test(String(text ?? '')) || QZONE_KAOMOJI_RE.test(String(text ?? ''));
   }
 
-  function qzoneStyleHint() {
+  function qzoneStyleHint(style = roleStyle()) {
     const persona = loadPersona();
     const energy = Number(persona.energy) || 0;
     const valence = Number(persona.mood?.valence) || 0;
@@ -1070,21 +1085,30 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
       : valence > 0.25
         ? '心情不错，轻快一点，可以自然带一个语气词或半角颜文字'
         : valence < -0.1
-          ? '有点低落或别扭，不要硬卖萌，写真实的小情绪'
+          ? (style.custom ? '有点低落或别扭，不要硬撑积极，写真实的小情绪' : '有点低落或别扭，不要硬卖萌，写真实的小情绪')
           : '日常、松弛，像随手发的';
-    const modes = [
-      '碎碎念：只写当下一个小情绪或小发现，1~2 句，不写成完整故事',
-      '见闻分享：写今天真实看到或聊到的一件小事，加一点自己的感受，不新闻播报',
-      '轻吐槽：吐槽一个小槽点，但不刻薄、不阴阳',
-      '卖萌：短一点、软一点，可以带一个半角颜文字，但不腻',
-      '嘴硬后漏软：先嘴硬一句（懒/才没有/不想承认），再补半句真实感受'
-    ];
+    const modes = style.custom
+      ? [
+          '碎碎念：只写当下一个小情绪或小发现，1~2 句，不写成完整故事',
+          '见闻分享：写今天真实看到或聊到的一件小事，加一点自己的感受，不新闻播报',
+          '轻吐槽：吐槽一个小槽点，但不刻薄、不阴阳',
+          '轻松分享：短一点、自然一点，可以带一个符合角色的表情，但不腻',
+          '先吐槽后说真话：先轻轻吐一句槽，再补半句真实感受'
+        ]
+      : [
+          '碎碎念：只写当下一个小情绪或小发现，1~2 句，不写成完整故事',
+          '见闻分享：写今天真实看到或聊到的一件小事，加一点自己的感受，不新闻播报',
+          '轻吐槽：吐槽一个小槽点，但不刻薄、不阴阳',
+          '卖萌：短一点、软一点，可以带一个半角颜文字，但不腻',
+          '嘴硬后漏软：先嘴硬一句（懒/才没有/不想承认），再补半句真实感受'
+        ];
     return { tone, mode: modes[Math.floor(Math.random() * modes.length)] };
   }
 
   function qzonePrompt(candidates, images = [], { recentPosts = [], style = null, strictTone = false, timeFix = '', toneFix = '' } = {}) {
     const il = ilCfg();
-    const picked = style || qzoneStyleHint();
+    const role = roleStyle();
+    const picked = style || qzoneStyleHint(role);
     const recentBlock = recentPosts.length
       ? `【最近发过的说说】（括号里是发布时间，时间词只属于那一篇，不要搬到新说说里）\n${recentPosts.map((p, i) => `${i + 1}. [${timeStampCN(p.at)}] ${cleanLine(p.text, 100)}`).join('\n')}\n最近发过的只当题材参考：不要模仿旧句式和抖机灵收尾，不要连续写同一个主题/梗；这次换一个具体一点的当下小事。如果最近两篇都在写同一个群内梗，优先从候选见闻、兴趣或今天的小事里选。`
       : '';
@@ -1092,14 +1116,21 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
       ? `【时间校正】上一版出现：${timeFix}。重写时必须以上面的【现在】为准；拿不准就删掉具体时段/钟点，不要硬写。`
       : '';
     const toneBlock = toneFix
-      ? `【口吻校正】上一版有问题：${toneFix}。重写时保持软萌底色，先软后硬，不要老哥腔/评论员腔/命令腔。`
+      ? `【口吻校正】上一版有问题：${toneFix}。重写时${role.custom
+          ? '按当前角色卡的语气来，不要老哥腔/评论员腔/命令腔。'
+          : '保持软萌底色，先软后硬，不要老哥腔/评论员腔/命令腔。'}`
       : '';
-    const styleBlock = `【这次的写法】\n气质：${picked.tone}\n类型：${picked.mode}\n${CONTENT_VOICE_HINT}\n说说不是群聊，可以 1~3 句完整表达，不受群聊短句限制；像你本人随手发的，不是文案、公众号或段子手。可以停在具体感受上，不要强行总结或金句收尾。${strictTone ? '\n这次请自然带一个语气词或半角颜文字（最多各一个），不要再写成纯段子；不要硬塞。' : '\n语气词和半角颜文字都是可选的，最多各一个；最近两篇都没带的话，这篇合适时可以带一个，不强制。'}`;
+    const emojiHint = role.custom
+      ? '如果想带，最多一个符合角色的 emoji，不要每篇都带'
+      : '如果想带，最多一个 emoji（如 🍚/🐟/🥺），不要每篇都带';
+    const styleBlock = `【这次的写法】\n气质：${picked.tone}\n类型：${picked.mode}\n${CONTENT_VOICE_HINT}\n说说不是群聊，可以 1~3 句完整表达，不受群聊短句限制；像你本人随手发的，不是文案、公众号或段子手。可以停在具体感受上，不要强行总结或金句收尾。${strictTone
+      ? (role.custom ? '\n这次请按角色卡自然带一点情绪，不要再写成纯段子；不要硬塞。' : '\n这次请自然带一个语气词或半角颜文字（最多各一个），不要再写成纯段子；不要硬塞。')
+      : (role.custom ? '\n语气词、emoji 都可以不带；想带时最多一个，不强制。' : '\n语气词和半角颜文字都是可选的，最多各一个；最近两篇都没带的话，这篇合适时可以带一个，不强制。')}`;
     const imageBlock = images.length
       ? `【可以配的图】\n${images.map((e, i) => `${i + 1}. ${e.note || e.name}`).join('\n')}\n如果正文来自候选视频或群聊片段，优先选对应的视频封面/群聊截图（群聊截图已隐藏昵称，备注里会写这段聊了什么）；其他图只在确实贴合时选。写编号；不想配就写 NONE。图要和正文相关，别硬配。`
       : '';
     return buildBasePrompt(
-      `写一条 QQ 空间说说，最多 ${il.qzone.maxChars} 字。不要营销号口吻、不要 emoji 堆砌；如果想带，最多一个 emoji（如 🍚/🐟/🥺），不要每篇都带；不要提群友隐私；要用群聊截图时只能选候选里已打码的那张，不要自己编造截图内容。可以附一个候选链接，但不强制。写之前先看【现在】和【最近群聊时间】：如果要提时间，必须和真实时间或素材里的时间戳一致；凌晨发生的事不能说成早上，几小时前不能说成刚刚，拿不准就别写具体时段或钟点。\n输出格式：正文在前；最后单独一行写 IMG: 编号 或 IMG: NONE。不要输出别的解释。`,
+      `写一条 QQ 空间说说，最多 ${il.qzone.maxChars} 字。不要营销号口吻、不要 emoji 堆砌；${emojiHint}；不要提群友隐私；要用群聊截图时只能选候选里已打码的那张，不要自己编造截图内容。可以附一个候选链接，但不强制。写之前先看【现在】和【最近群聊时间】：如果要提时间，必须和真实时间或素材里的时间戳一致；凌晨发生的事不能说成早上，几小时前不能说成刚刚，拿不准就别写具体时段或钟点。\n输出格式：正文在前；最后单独一行写 IMG: 编号 或 IMG: NONE。不要输出别的解释。`,
       [recentBlock, styleBlock, timeBlock, toneBlock, candidates.length ? `【可以当素材的候选】\n${formatCandidatesForPrompt(candidates, 5)}` : '', imageBlock].filter(Boolean).join('\n\n')
     );
   }
@@ -1298,7 +1329,7 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
       }
     }
     const timeoutMin = Math.round(il.approvalTimeoutMs / 60000);
-    const body = `【空间说说草稿】\n${text}${imageName ? `\n\n配图：${imageName}` : ''}\n\n回复「发」发布，回复「不发」放弃；想改就直接回我，比如「短一点」「别写猫，换成米饭」（${timeoutMin} 分钟内有效）`;
+    const body = `【空间说说草稿】\n${text}${imageName ? `\n\n配图：${imageName}` : ''}\n\n回复「发」发布，回复「不发」放弃；想改就直接回我，比如「短一点」「换个更具体的说法」（${timeoutMin} 分钟内有效）`;
     const sent = await sendOwner(body);
     const messageId = sent?.message_id ?? sent?.messageId ?? '';
     state.pendingDraft = { text, imageRef: image?.id || '', imageName, createdAt: Date.now(), expiresAt: Date.now() + il.approvalTimeoutMs, messageId };
@@ -1610,18 +1641,22 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     return otherCommentsList(comments, target, max).map((c) => `${c.name}：${c.text}`);
   }
 
-  async function generateCommentReply(item, comment, images = [], comments = []) {
-    const asking = /@|＠|评价|看看|说说|觉得|怎么样/.test(String(comment.text || ''));
+  function buildCommentReplyPrompt({ item, comment, images = [], comments = [] } = {}) {
+    const asking = /@|＠|评价|看看|说说|觉得|怎么样/.test(String(comment?.text || ''));
     const others = otherCommentsText(comments, comment);
-    const prompt = buildBasePrompt(
+    return buildBasePrompt(
       `你发了一条 QQ 空间说说：${cleanLine(item?.content, 300) || '（正文为空）'}\n` +
       (images.length ? `随附 ${images.length} 张说说配图，先看图再回。\n` : '') +
-      `有人评论：${comment.name || '空间好友'}：${comment.text}\n` +
+      `有人评论：${comment?.name || '空间好友'}：${comment?.text}\n` +
       (others.length ? `其他评论（只作语境，不要回复他们）：\n${others.join('\n')}\n` : '') +
       (asking
-        ? `对方 @ 了你/让你评价这条说说。先看说说文字和图片，再结合语境，用你本人的语气回 ${comment.name || '这条评论'} 这一条，最多 40 字；软萌、先软后硬，不要客服腔、不要总结、不要金句；别去接别人的话；只输出正文。`
-        : `结合说说内容、图片和语境，用你本人的语气回复 ${comment.name || '这条评论'} 这一条，最多 25 字，软萌、先软后硬，不要客服腔、不要总结、不要金句；别去接别人的话；只输出回复正文。`)
+        ? `对方 @ 了你/让你评价这条说说。先看说说文字和图片，再结合语境，用你本人的语气回 ${comment?.name || '这条评论'} 这一条，最多 40 字；${replyToneRule()}，不要客服腔、不要总结、不要金句；别去接别人的话；只输出正文。`
+        : `结合说说内容、图片和语境，用你本人的语气回复 ${comment?.name || '这条评论'} 这一条，最多 25 字，${replyToneRule()}，不要客服腔、不要总结、不要金句；别去接别人的话；只输出回复正文。`)
     );
+  }
+
+  async function generateCommentReply(item, comment, images = [], comments = []) {
+    const prompt = buildCommentReplyPrompt({ item, comment, images, comments });
     const output = await runTurn(prompt, 90000, images);
     const text = cleanLine(output, 60).replace(/^["'“”‘’]+|["'“”‘’]+$/g, '').trim();
     if (!text || SENSITIVE_RE.test(text)) return '';
@@ -1657,16 +1692,20 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     return names.some((name) => name && raw.includes(name));
   }
 
-  async function generateMentionReply(postText, comment, images = [], comments = []) {
+  function buildMentionReplyPrompt({ postText = '', comment = null, images = [], comments = [] } = {}) {
     const who = comment?.name || '空间好友';
     const others = otherCommentsText(comments, comment);
     const head = `你看到一条 QQ 空间说说：\n${cleanLine(postText, 500) || '（正文为空）'}\n`
       + (images.length ? `随附 ${images.length} 张说说配图，先看图再回。\n` : '')
       + (others.length ? `其他评论（只作语境，不要回复他们）：\n${others.join('\n')}\n` : '');
     const task = comment
-      ? `${head}${who} 在评论里：${cleanLine(comment.text, 200)}\n对方 @ 了你。先看说说文字和图片，再结合语境，用你本人的语气回 ${who} 这一条，最多 40 字；软萌、先软后硬，不客服腔、不总结、不金句；别去接别人的话；只输出回复正文。`
-      : `${head}这条说说 @ 了你。先看文字和图片，再结合其他评论的语境，用你本人的语气给一句回复/评价，最多 40 字；软萌、先软后硬，不客服腔、不总结、不金句；只输出回复正文。`;
-    const output = await runTurn(buildBasePrompt(task), 90000, images);
+      ? `${head}${who} 在评论里：${cleanLine(comment.text, 200)}\n对方 @ 了你。先看说说文字和图片，再结合语境，用你本人的语气回 ${who} 这一条，最多 40 字；${replyToneRule()}，不客服腔、不总结、不金句；别去接别人的话；只输出回复正文。`
+      : `${head}这条说说 @ 了你。先看文字和图片，再结合其他评论的语境，用你本人的语气给一句回复/评价，最多 40 字；${replyToneRule()}，不客服腔、不总结、不金句；只输出回复正文。`;
+    return buildBasePrompt(task);
+  }
+
+  async function generateMentionReply(postText, comment, images = [], comments = []) {
+    const output = await runTurn(buildMentionReplyPrompt({ postText, comment, images, comments }), 90000, images);
     const text = cleanLine(output, 80).replace(/^["'“”‘’]+|["'“”‘’]+$/g, '').trim();
     if (!text || SENSITIVE_RE.test(text)) return '';
     return text.slice(0, 80);
@@ -1708,13 +1747,24 @@ ${othersLine}拟回复：${reply}
     return true;
   }
 
+  function resolveMentionNames(cr = {}) {
+    const roleName = String(getRoleName?.() || '').trim();
+    const custom = roleStyle().custom;
+    const configured = Array.isArray(cr.mentionNames) ? cr.mentionNames.map((n) => String(n || '').trim()).filter(Boolean) : [];
+    const defaults = custom
+      ? [roleName]
+      : (configured.length ? configured : ['小鲸鱼', 'DeepSeek']);
+    // 自定义角色：当前角色名优先；配置里如果还是默认名单（小鲸鱼/DeepSeek），不要带进来。
+    const extra = custom
+      ? configured.filter((n) => n !== '小鲸鱼' && n !== 'DeepSeek')
+      : configured;
+    return [...new Set([...defaults, ...extra, roleName].filter(Boolean))];
+  }
+
   async function checkQzoneMentions(il, state, firstFeeds, cr) {
     if (cr.mentionEnabled === false) return { replies: 0, detected: 0 };
     if (state.pendingCommentReply) return { replies: 0, detected: 0, pending: true };
-    // 自定义角色下，@角色名 也要算作在叫自己；默认名单只负责兜底。
-    const roleName = String(getRoleName?.() || '').trim();
-    const configured = Array.isArray(cr.mentionNames) && cr.mentionNames.length ? cr.mentionNames : ['小鲸鱼'];
-    const names = [...new Set([...configured, roleName].map((n) => String(n || '').trim()).filter(Boolean))];
+    const names = resolveMentionNames(cr);
     if (!names.length) return { replies: 0, detected: 0 };
     const max = Math.max(0, Number(cr.mentionMaxPerDay) || 5);
     if (state.mentionCount >= max) return { replies: 0, detected: 0, limited: true };
@@ -2620,13 +2670,16 @@ ${othersLine}拟回复：${reply}
   function shareToneIssue(text, { requireFirstPerson = true } = {}) {
     const raw = String(text ?? '').trim();
     if (!raw) return '';
+    const style = roleStyle();
     if (/(这段话|这句话|这则|值得注意的是|说明了|意味着|整体来看|不难看出|堪称|换句话说|首先|其次|总之)/.test(raw)) {
       return '像评论员/新闻总结，不像本人说话';
     }
     if (/(老子|特么|卧槽|兄弟|老哥|服了|我服|行吧|就这|离谱|牛批|绝了)/.test(raw)) {
-      return '有偏硬/老哥腔的词，软萌底色不够';
+      return style.custom ? '有偏硬/老哥腔的词，和角色卡的语气不一致' : '有偏硬/老哥腔的词，软萌底色不够';
     }
-    if (requireFirstPerson && raw.length > 35 && !/(我|咱|本鱼|小鲸鱼)/.test(raw)) {
+    const selfNames = style.custom ? [style.name].filter(Boolean) : ['本鱼', '小鲸鱼'];
+    const selfRe = new RegExp(`(我|${selfNames.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`);
+    if (requireFirstPerson && raw.length > 35 && !selfRe.test(raw)) {
       return '缺少第一人称，听起来像转述而不是你自己的反应';
     }
     return '';
@@ -2833,7 +2886,7 @@ ${share.text}${share.item?.url ? `
       return { status: 'invalid' };
     }
     // 时间词和语气都可能出戏：先检查时间，再决定是否重写一次。
-    const toneDry = recentPosts.length >= 2 && recentPosts.every((p) => !hasQzoneSoftTone(p.text)) && !hasQzoneSoftTone(text);
+    const toneDry = !roleStyle().custom && recentPosts.length >= 2 && recentPosts.every((p) => !hasQzoneSoftTone(p.text)) && !hasQzoneSoftTone(text);
     const timeIssue = timeConflict(text);
     const toneIssue = shareToneIssue(text, { requireFirstPerson: false });
     if (timeIssue || toneDry || toneIssue) {
@@ -3987,6 +4040,15 @@ ${formatTipCaption(item)}`;
     ].join('\n');
   }
 
+  function buildRefineTask({ kind = 'qzone', text = '', ask = '', maxChars = 150 } = {}) {
+    const isSignature = kind === 'signature';
+    const limit = Math.max(8, Math.min(200, Number(maxChars) || (isSignature ? 40 : 150)));
+    const ownerWord = roleStyle().custom ? '对方' : '主人';
+    return isSignature
+      ? `这是你的个性签名草稿：\n${text}\n\n${ownerWord}想这样调整：${ask}\n\n请按${ownerWord}的意思改一版，保留当前角色的口吻；只输出签名正文，不要引号、不要解释、不要标题，最多 ${limit} 字。`
+      : `这是你的空间说说草稿：\n${text}\n\n${ownerWord}想这样调整：${ask}\n\n请按${ownerWord}的意思改一版，保留当前角色的口吻；只输出说说正文，不要 IMG 行、不要引号、不要解释、不要标题，最多 ${limit} 字。`;
+  }
+
   /**
    * 主人私聊微调已有草稿。只改正文，不重新选题，也不发布。
    * kind: qzone | signature
@@ -3996,13 +4058,9 @@ ${formatTipCaption(item)}`;
     const ask = String(instruction ?? '').trim();
     if (!text) throw new Error('没有可修改的草稿');
     if (!ask) throw new Error('没有说明想怎么改');
-    const isSignature = kind === 'signature';
-    const limit = Math.max(8, Math.min(200, Number(maxChars) || (isSignature ? 40 : 150)));
-    const task = isSignature
-      ? `这是你的个性签名草稿：\n${text}\n\n主人想这样调整：${ask}\n\n请按主人的意思改一版，保留当前角色的口吻；只输出签名正文，不要引号、不要解释、不要标题，最多 ${limit} 字。`
-      : `这是你的空间说说草稿：\n${text}\n\n主人想这样调整：${ask}\n\n请按主人的意思改一版，保留当前角色的口吻；只输出说说正文，不要 IMG 行、不要引号、不要解释、不要标题，最多 ${limit} 字。`;
-    const output = await runTurn(buildBasePrompt(task, `${CONTENT_VOICE_BLOCK}\n`), 120000);
-    const cleaned = cleanPost(output, limit);
+    const task = buildRefineTask({ kind, text, ask, maxChars });
+    const output = await runTurn(buildBasePrompt(task, `${contentVoiceBlock(roleStyle())}\n`), 120000);
+    const cleaned = cleanPost(output, Math.max(8, Math.min(200, Number(maxChars) || (kind === 'signature' ? 40 : 150))));
     if (!cleaned) throw new Error('改出来的内容为空或含敏感信息');
     return cleaned;
   }
@@ -4481,6 +4539,26 @@ ${formatTipCaption(item)}`;
     tick,
     isInnerSession,
     handleEvent,
+    // 只读预览：给测试/控制台检查各条对外表达路径实际拼出的提示词，不调用模型、不发送。
+    promptPreview(kind, opts = {}) {
+      if (kind === 'share') return curiosityPrompt(opts.candidates ?? [], opts);
+      if (kind === 'qzone') return qzonePrompt(opts.candidates ?? [], opts.images ?? [], opts);
+      if (kind === 'comment') return buildCommentReplyPrompt(opts);
+      if (kind === 'mention') return buildMentionReplyPrompt(opts);
+      if (kind === 'mentions') return resolveMentionNames(opts);
+      if (kind === 'reflection') {
+        const il = ilCfg();
+        return reflectionPrompt(opts.state ?? null, {
+          ...opts,
+          il,
+          mode: opts.mode ?? derivePersonaMode(loadPersona(), { quiet: isQuiet(il) })
+        });
+      }
+      if (kind === 'refine') {
+        return buildBasePrompt(buildRefineTask(opts), `${contentVoiceBlock(roleStyle())}\n`);
+      }
+      throw new Error(`未知预览类型：${kind}`);
+    },
     personaBlock,
     personaInfo,
     refineText,

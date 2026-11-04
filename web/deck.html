@@ -4691,7 +4691,7 @@ button.active,.primary {
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="listReminders"> <span><b>qq_list_reminders</b><span class="meta">查看当前会话待发送提醒</span></span></label>
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="cancelReminder"> <span><b>qq_cancel_reminder</b><span class="meta">取消待发送提醒</span></span></label>
         <label class="sim-tool-item"><input type="checkbox" data-sim-tool="weather"> <span><b>qq_weather</b><span class="meta">查询城市天气（Open-Meteo）</span></span></label>
-        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="playGame"> <span><b>qq_play_game</b><span class="meta">猜拳/骰子/今日鲸鱼运势</span></span></label>
+        <label class="sim-tool-item"><input type="checkbox" data-sim-tool="playGame"> <span><b>qq_play_game</b><span class="meta">猜拳/骰子/今日运势</span></span></label>
       </div>
       <div class="meta" style="margin-top:6px">群聊剧场黑话学习：AI 可用 <code>qq_slang_submit</code> 提交陌生词，也可由桥接自动提取；管理员在「黑话词库」页面筛选确认后，词条会自动写入黑话提示词并注入 <code>qq_get_prompt</code> 与后续唤醒。</div>
 
@@ -5956,6 +5956,19 @@ async function refreshRoles() {
         badge.textContent = '启用中';
         head.appendChild(badge);
       }
+      if (role.custom === false) {
+        const badge = document.createElement('span');
+        badge.className = 'persona-badge';
+        badge.textContent = '默认角色';
+        badge.title = '默认角色会叠加内置人格内核；编辑这张卡只改角色卡文本，不算自定义角色';
+        head.appendChild(badge);
+      } else if (role.custom === true) {
+        const badge = document.createElement('span');
+        badge.className = 'persona-badge';
+        badge.textContent = '自定义';
+        badge.title = '自定义角色只使用角色卡，不套用内置默认人格';
+        head.appendChild(badge);
+      }
       if (role.truncated) {
         const badge = document.createElement('span');
         badge.className = 'persona-badge warn';
@@ -5989,6 +6002,7 @@ async function refreshRoles() {
         event.stopPropagation();
         const res = await api('/api/role', 'POST', { role: role.name });
         if (res.ok) {
+          if (res.notice) setRoleMsg(res.notice, true);
           await refreshRoles();
           refresh();
         } else {
@@ -8630,7 +8644,7 @@ document.getElementById('roleCreate').addEventListener('click', async () => {
   }
   const endpoint = editing || exists ? '/api/roles/update' : '/api/roles/create';
   const r = await api(endpoint, 'POST', { name, content });
-  setRoleMsg(r.ok ? `✅ 已保存「${name}」` : ('❌ ' + (r.error || '失败')), r.ok);
+  setRoleMsg(r.ok ? `✅ 已保存「${name}」${r.notice ? ' · ' + r.notice : ''}` : ('❌ ' + (r.error || '失败')), r.ok);
   if (r.ok) {
     roleEditorState = { mode: 'edit', name };
     document.getElementById('roleEditorWarnings').textContent = (r.warnings || []).length ? '⚠️ ' + r.warnings.join('；') : '';
