@@ -13796,6 +13796,33 @@ async function main() {
   // 自定义角色的默认关键词：角色名 + 已知别名 + 中性词，不再继承默认角色的鲸鱼词。
   const NEUTRAL_ROLE_KEYWORDS = ['在吗'];
   const escapeRe = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // 纯 ASCII 名字按词边界匹配，避免 DS 命中 friends / Roxy 命中 proxy；中文名继续用包含匹配。
+  function namePattern(word) {
+    const text = String(word ?? '').trim().toLowerCase();
+    if (!text) return '';
+    if (/^[a-z0-9]+$/.test(text)) return `(^|[^a-z0-9])${escapeRe(text)}([^a-z0-9]|$)`;
+    return escapeRe(text);
+  }
+  function nameMatchesText(lower, word, custom = false) {
+    const text = String(word ?? '').trim().toLowerCase();
+    if (!text) return false;
+    if (custom && /^[a-z0-9]+$/.test(text)) {
+      return new RegExp(namePattern(text)).test(lower);
+    }
+    return lower.includes(text);
+  }
+  function keywordMatchesText(lower, word, custom = false) {
+    const key = String(word ?? '').trim().toLowerCase();
+    if (!key) return false;
+    if (/^[a-z0-9]+$/.test(key) && key.length <= 4) {
+      return new RegExp(`\\b${escapeRe(key)}\\b`, 'i').test(lower);
+    }
+    // 自定义角色下“在吗”不能从 friends在吗 这类英文单词尾部误触发。
+    if (custom && isNeutralRoleKeyword(word)) {
+      return new RegExp(`(^|[^a-z0-9])${escapeRe(key)}`).test(lower);
+    }
+    return lower.includes(key);
+  }
   function isDefaultPersonaIdentity(word) {
     return DEFAULT_PERSONA_WAKE_KEYWORDS_LOWER.has(String(word ?? '').trim().toLowerCase());
   }
@@ -13841,15 +13868,15 @@ async function main() {
   function aiMentionPattern() {
     if (isCustomRoleName(currentRoleName())) {
       // 自定义角色下不把默认人格词（含 DeepSeek）当成 AI 自称；当前角色名始终保留。
-      const parts = ['claude', 'chatgpt', 'gpt', 'ai', '人工智障', '机器人', '模型'];
+      const parts = ['claude', 'chatgpt', 'gpt', 'ai', '人工智障', '机器人', '模型'].map(namePattern);
       const roleName = String(currentRoleName() ?? '').trim();
-      if (roleName) parts.push(escapeRe(roleName.toLowerCase()));
+      if (roleName) parts.push(namePattern(roleName));
       for (const alias of selfAliases) {
         const word = String(alias ?? '').trim();
         if (!word || isDefaultPersonaIdentity(word)) continue;
-        parts.push(escapeRe(word.toLowerCase()));
+        parts.push(namePattern(word));
       }
-      return new RegExp(parts.join('|'));
+      return new RegExp(parts.filter(Boolean).join('|'));
     }
     return /deepseek|claude|chatgpt|gpt|大肥鱼|小鲸鱼|鲸鱼|d指导|d老师|d师傅|深度求索|\bds\b|ai|人工智障|机器人|模型/;
   }
@@ -14833,7 +14860,7 @@ async function main() {
     const foreignPersona = customRole && mentionsDefaultPersonaName(lower);
     for (const kw of effectiveMustReplyKeywords()) {
       if (!socialKeywordsExplicit && foreignPersona && isNeutralRoleKeyword(kw)) continue;
-      if (lower.includes(String(kw).toLowerCase())) return true;
+      if (keywordMatchesText(lower, kw, customRole && !socialKeywordsExplicit)) return true;
     }
     if (isDirectedAtAi(textContent)) return true;
     return false;
@@ -14864,7 +14891,7 @@ async function main() {
     const foreignPersona = customRole && mentionsDefaultPersonaName(lower);
     for (const kw of effectiveMustReplyKeywords()) {
       if (!socialKeywordsExplicit && foreignPersona && isNeutralRoleKeyword(kw)) continue;
-      if (lower.includes(String(kw).toLowerCase())) return true;
+      if (keywordMatchesText(lower, kw, customRole && !socialKeywordsExplicit)) return true;
     }
     if (isDirectedAtAi(textContent)) return true;
     return false;
@@ -16184,12 +16211,7 @@ async function main() {
         const kwStr = String(kw ?? '').toLowerCase();
         if (!kwStr) continue;
         if (!wakeKeywordsExplicit && foreignPersona && isNeutralRoleKeyword(kw)) continue;
-        // 短英文/数字关键词（如 DS/R1）用词边界匹配，避免 ADS/BDSM/DSL 误触发。
-        if (/^[a-z0-9]+$/.test(kwStr) && kwStr.length <= 4) {
-          if (new RegExp(`\\b${kwStr}\\b`, 'i').test(lower)) return `keyword:${kw}`;
-        } else if (lower.includes(kwStr)) {
-          return `keyword:${kw}`;
-        }
+        if (keywordMatchesText(lower, kw, customRole && !wakeKeywordsExplicit)) return `keyword:${kw}`;
       }
     }
     if (tr.question && isDirectedAtAi(plainContent)) return 'question';
@@ -16398,7 +16420,7 @@ async function main() {
       .map((a) => String(a).toLowerCase())
       .filter((alias) => !custom || !isDefaultPersonaIdentity(alias));
     const names = [nickname, ...aliases, custom ? roleName.toLowerCase() : ''].filter(Boolean);
-    return names.some((name) => lower.includes(`@${name}`) || lower.includes(name));
+    return names.some((name) => lower.includes(`@${name}`) || nameMatchesText(lower, name, custom));
   }
 
   // 连续纯文字计数：比单个渠道的节奏更硬，连续两轮纯文字后要求本轮必须补一次非文字表达。

@@ -485,11 +485,46 @@ test('Roxy + 旧昵称别名小鲸鱼：鲸鱼词不进入默认关键词，也�
     assert.doesNotMatch(h.effectiveMustReplyKeywords().join(','), FORBIDDEN);
     assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('小鲸鱼在吗'), 'group', '小鲸鱼在吗', '小鲸鱼在吗', false), null);
     assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('DS在吗'), 'group', 'DS在吗', 'DS在吗', false), null);
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('R1在吗'), 'group', 'R1在吗', 'R1在吗', false), null);
   });
 });
 
-test('角色本身叫默认词：鲸鱼/DeepSeek/DS 仍按当前角色名正常唤醒', async () => {
-  for (const roleName of ['鲸鱼', 'DeepSeek', 'DS']) {
+test('ASCII 名字按词边界匹配：friends/gods/proxy 不误唤醒，DS/R1/Roxy 正常', async () => {
+  await withBridge({ roleFiles: { DS: '你是「DS」。' }, role: 'DS', keepDefaultWake: true }, async (h) => {
+    const st = h.getSimulationState(GROUP);
+    st.wakeConfig.triggers.probability = 0;
+    for (const text of ['DS在吗', 'DS 在吗', 'ds，在吗']) {
+      assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent(text), 'group', text, text, false), 'nameMention', `${text} 应唤醒 DS`);
+    }
+    assert.equal(h.isMustReplyText('DS在吗'), true);
+    for (const text of ['friends在吗', 'gods']) {
+      assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent(text), 'group', text, text, false), null, `${text} 不应唤醒 DS`);
+      assert.equal(h.isMustReplyText(text), false, `${text} 不应触发 DS 必回`);
+    }
+  });
+
+  await withBridge({ roleFiles: { R1: '你是「R1」。' }, role: 'R1', keepDefaultWake: true }, async (h) => {
+    const st = h.getSimulationState(GROUP);
+    st.wakeConfig.triggers.probability = 0;
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('R1在吗'), 'group', 'R1在吗', 'R1在吗', false), 'nameMention');
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('r1，在吗'), 'group', 'r1，在吗', 'r1，在吗', false), 'nameMention');
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('car1在吗'), 'group', 'car1在吗', 'car1在吗', false), null, '包含 r1 的英文单词不误唤醒');
+  });
+
+  await withBridge({ roleFiles: { [ROXY]: ROXY_CARD }, role: ROXY, keepDefaultWake: true }, async (h) => {
+    const st = h.getSimulationState(GROUP);
+    st.wakeConfig.triggers.probability = 0;
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('Roxy酱在吗'), 'group', 'Roxy酱在吗', 'Roxy酱在吗', false), 'nameMention');
+    assert.equal(h.evaluateWakeTrigger(GROUP, st, groupEvent('proxy在吗'), 'group', 'proxy在吗', 'proxy在吗', false), null, 'proxy 不应叫到 Roxy');
+  });
+
+  await withBridge({ roleFiles: { 小鲸鱼: WHALE_CARD }, role: '小鲸鱼' }, async (h) => {
+    assert.equal(h.isMustReplyText('小鲸鱼厉害吗'), true, '默认角色逐字回归');
+  });
+});
+
+test('角色本身叫默认词：鲸鱼/DeepSeek/DS/R1 仍按当前角色名正常唤醒', async () => {
+  for (const roleName of ['鲸鱼', 'DeepSeek', 'DS', 'R1']) {
     await withBridge({ roleFiles: { [roleName]: `你是「${roleName}」，一个同名测试角色。` }, role: roleName, keepDefaultWake: true, selfName: '小鲸鱼' }, async (h) => {
       const st = h.getSimulationState(GROUP);
       st.wakeConfig.triggers.probability = 0;
