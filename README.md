@@ -309,7 +309,13 @@ coding agent**，并盯完「实现 → 测试 → 你确认 → 合并 → 失�
   <sub>运行总览 · 浅色主题（离线演示数据；深色主题见 <a href="assets/screenshots/console-dark.png">console-dark.png</a>）</sub>
 </p>
 
-默认在 `http://127.0.0.1:3100`，13 个任务页：运行总览、功能总览、会话与审批、人格与角色、群聊剧场、
+<p align="center">
+  <img src="assets/screenshots/console-features.png" width="860" alt="控制台功能控制页：按板块管理模块开关">
+  <br>
+  <sub>功能控制 · 板块总闸与模块开关（离线演示数据）</sub>
+</p>
+
+默认在 `http://127.0.0.1:3100`，13 个任务页：运行总览、功能控制、会话与审批、人格与角色、群聊剧场、
 群聊洞察、资源库、黑话词库、令牌与花费、访问与安全、调试与运维、可靠性与配置、工具参考。
 浅色 / 深色主题、响应式、草稿保护，不引用任何外部字体或统计脚本。
 逐页说明见 [状态页与控制台](docs/guides/CONSOLE.md)。

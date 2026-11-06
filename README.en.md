@@ -374,6 +374,12 @@ token, listening on `127.0.0.1` by default. Panel-by-panel details are in
   <sub>Overview · light theme (offline demo data; the dark theme is in <a href="assets/screenshots/console-dark.png">console-dark.png</a>)</sub>
 </p>
 
+<p align="center">
+  <img src="assets/screenshots/console-features.png" width="860" alt="Console feature control page: board gates and module switches">
+  <br>
+  <sub>Feature control · board gates and module switches (offline demo data)</sub>
+</p>
+
 It runs at `http://127.0.0.1:3100` and has 13 task pages: overview, features, sessions and approvals,
 persona and roles, Group Theatre, group insights, library, slang, usage and cost, access and security,
 debug and operations, reliability and config, and tool reference. Light / dark themes, responsive
