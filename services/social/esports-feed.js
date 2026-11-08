@@ -17,7 +17,8 @@ const LOL_TEAM_RE = /\b(AL|BLG|TES|JDG|IG|WBG|LNG|EDG|RNG|FPX|OMG|WE|TT|RA|UP|NI
 const NON_LOL_RE = /PGL|VCT|TYLOO|瓦|CS2|CS:GO|DOTA|Dota|NBA|布加勒斯特|BLAST|IEM|Major|Valorant|无畏契约|王者荣耀|KPL|和平精英/i;
 const RESULT_STRONG_RE = /赛果|战报|汇总|比分|全败|全胜|首日|本轮|第[一二三四五六七八九十]+轮|16强|八强|四强|半决赛|决赛|晋级|出局|淘汰|瑞士轮|让一追二|横扫|零封|BO[135]|战胜|击败|不敌|落败|取胜|拿下/i;
 const RESULT_WEAK_RE = /战绩|首胜|连胜|连败|爆冷/i;
-const RESULT_NOISE_RE = /排名|盘点|采访|专访|热议|媒体|预测|抽签|赛程|海报|预热|名单|官宣|倒计时|返图|花絮|数据|记录|最佳|MVP|高光|集锦|镜头|赛后|群访|监督|社媒|发文|宁王|管泽元|笑笑|西卡|Rita|解说|众解说|韩网|评论|发声|吐槽|两年前的今天|一年前的今天|几年前|回顾|经典|历史上的今天|周年|当年|曾经|重温/i;
+// 宣传片/预告/回放/采访/数据盘点这类标题即使带赛段词，也不能当“刚打完的赛果”播报。
+const RESULT_NOISE_RE = /排名|盘点|采访|专访|热议|媒体|预测|抽签|赛程|海报|预热|名单|官宣|倒计时|返图|花絮|数据|记录|最佳|MVP|高光|集锦|镜头|赛后|群访|监督|社媒|发文|宁王|管泽元|笑笑|西卡|Rita|解说|众解说|韩网|评论|发声|吐槽|两年前的今天|一年前的今天|几年前|回顾|经典|历史上的今天|周年|当年|曾经|重温|宣传片|预告片|预告|视频|回放|合集|纪录片|短片|应援|主播|语录|交手记录|交手|连续|六届|几年|统计|抽签/i;
 
 /** 标题/摘要是否在讲 S16/世界赛（允许只写队名或赛段）。 */
 export function isS16Content(text) {
@@ -31,9 +32,31 @@ export function isStrongResultTitle(title) {
   return RESULT_STRONG_RE.test(String(title || '')) && !RESULT_NOISE_RE.test(String(title || ''));
 }
 
-const RESULT_INFO_RE = /全败|全胜|16强|八强|四强|半决赛|决赛|出局|晋级|淘汰|比分|赛果|战报|汇总|瑞士轮|连胜|连败|让一追二|横扫|零封/g;
-const RESULT_WIN_RE = /战胜|击败|不敌|落败|取胜|拿下/g;
-const HEADLINE_NOISE_RE = /抽签|海报|预测|采访|专访|排名|盘点|花絮|集锦|镜头|名单|官宣|监督|社媒|发文|解说|韩网|评论|热议|吐槽/g;
+const LOL_TEAM_ALL_RE = /\b(AL|BLG|TES|JDG|IG|WBG|LNG|EDG|RNG|FPX|OMG|WE|TT|RA|UP|NIP|LGD|T1|HLE|GEN|DK|KT|DRX|NS|BRO|FOX|G2|FNC|MAD|KC|MKOI|LYON|TL|FLY|100T|C9|TSM|PSG|CFO|GAM|VKS)\b/gi;
+
+/** 提取文本里能识别的 LoL 队名（大写去重）。 */
+export function extractLolTeams(text) {
+  const out = new Set();
+  for (const m of String(text || '').matchAll(LOL_TEAM_ALL_RE)) out.add(String(m[1]).toUpperCase());
+  return [...out];
+}
+
+// 比分：3-1 / 3:1 / 3：1 / 3比1 / 三比一。阿拉伯数字限 0-4（BO5 最多 3），
+// 并用 lookaround 排除 16-14 这种“交手记录总比分”，避免当成本场赛果。
+const SCORE_SRC = '(?<!\\d)[0-4]\\s*[-:：]\\s*[0-4](?!\\d)|(?<!\\d)[0-4]\\s*比\\s*[0-4](?!\\d)|[零一二三四五六七八九十]{1,3}\\s*比\\s*[零一二三四五六七八九十]{1,3}';
+const SCORE_EVIDENCE_RE = new RegExp(SCORE_SRC);
+const SCORE_EVIDENCE_G = new RegExp(SCORE_SRC, 'g');
+const WIN_EVIDENCE_RE = /战胜|击败|横扫|零封|拿下|不敌|落败|取胜/;
+
+/** 文本里是否有明确比分（3-1、3:1、三比一 等）。 */
+export function hasScoreEvidence(text) {
+  return SCORE_EVIDENCE_RE.test(String(text || ''));
+}
+
+// 赛段词只说明“打到哪一轮”，单独出现绝不能当赛果。
+const STAGE_INFO_RE = /全败|全胜|16强|八强|四强|半决赛|决赛|出局|晋级|淘汰|比分|赛果|战报|汇总|瑞士轮|连胜|连败/g;
+const RESULT_WIN_RE = /战胜|击败|横扫|零封|不敌|落败|取胜|拿下|让一追二/g;
+const HEADLINE_NOISE_RE = /抽签|海报|预测|采访|专访|排名|盘点|花絮|集锦|镜头|名单|官宣|监督|社媒|发文|解说|韩网|评论|热议|吐槽|宣传片|预告片|预告|视频|回放|合集|纪录片|短片|应援|主播|语录|交手记录|交手|连续|六届|几年|数据|统计|赛程/g;
 const HEADLINE_STALE_RE = /两年前的今天|一年前的今天|几年前|回顾|经典|历史上的今天|周年|当年|曾经|重温/;
 
 /** 标题里“能确认的赛果信息”打分；没有正文时也用它挑最值得播报的一条。 */
@@ -41,14 +64,26 @@ export function resultHeadlineRank(title) {
   const text = String(title || '');
   if (!text || OLD_SEASON_RE.test(text) || HEADLINE_STALE_RE.test(text)) return -99;
   let score = 0;
-  for (const _ of text.matchAll(RESULT_INFO_RE)) score += 3;
+  for (const _ of text.matchAll(STAGE_INFO_RE)) score += 1;
+  for (const _ of text.matchAll(SCORE_EVIDENCE_G)) score += 4;
   for (const _ of text.matchAll(RESULT_WIN_RE)) score += 2;
-  for (const _ of text.matchAll(HEADLINE_NOISE_RE)) score -= 2;
+  for (const _ of text.matchAll(HEADLINE_NOISE_RE)) score -= 3;
   return score;
 }
 
+/**
+ * 硬条件版赛果判定：有比分证据，或“胜负词 + 可识别的对阵”，且不含噪声词。
+ * 只有赛段词（四强/决赛/淘汰/晋级…）一律不算。
+ */
 export function isResultHeadline(title) {
-  return resultHeadlineRank(title) >= 3;
+  const text = String(title || '');
+  if (!text || OLD_SEASON_RE.test(text) || HEADLINE_STALE_RE.test(text)) return false;
+  if (RESULT_NOISE_RE.test(text)) return false;
+  // 赛果标题必须点名双方；只点名一支队的评论稿（“TES超话…0:3”）不能当赛果。
+  if (extractLolTeams(text).length < 2) return false;
+  if (hasScoreEvidence(text)) return true;
+  if (!WIN_EVIDENCE_RE.test(text)) return false;
+  return /(?:\bvs\.?\b|对阵|对战)/i.test(text);
 }
 
 function decodeEntities(s) {
@@ -169,7 +204,7 @@ export async function fetchEsportsFeed({ listUrl = LIST_URL, maxItems = 12, summ
       .join('\n');
   }
   const summaryDate = (summaryUrl.match(/\/(\d{4}-\d{2}-\d{2})\//) || [])[1] || '';
-  const summaryKind = resultHeadlineRank(summaryTitle) >= 3 ? 'result' : 'news';
+  const summaryKind = isResultHeadline(summaryTitle) ? 'result' : 'news';
   return { updatedAt: Date.now(), items, summaryTitle, summaryUrl, summary, summaryDate, summaryKind, summaryQuality, source: 'zhibo8' };
 }
 
@@ -198,7 +233,8 @@ export function buildEsportsFeedFromSearch(results, { query = '' } = {}) {
     summaryUrl: first.url,
     summary: summary.slice(0, 1400),
     summaryDate: first.date,
-    summaryKind: isStrongResultTitle(first.title) ? 'result' : 'news',
+    // 搜索兜底（含百科条目/宣传标题）无法证明“刚打完”，永远只当资讯，不触发赛果播报。
+    summaryKind: 'news',
     summaryQuality: 'search',
     source: 'search',
     query

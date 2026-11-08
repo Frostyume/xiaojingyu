@@ -99,7 +99,8 @@ import { reconcileTaskSessions, defaultDbFile } from '../runtime/orchestration/q
 import { DEFAULT_QUIET_HOURS, normalizeQuietHours, isQuietNow, quietEndAt } from '../services/persona/quiet-hours.js';
 import { loadImageStore, saveImageStore, findImage, searchImages, formatImageList, addImageBuffer, imageFilePath, buildImageContext, buildImageStrategyHint } from '../services/media/image-lib.js';
 import { fetchEsportsFeed, buildEsportsFeedBlock, buildEsportsFeedFromSearch, isS16Content } from '../services/social/esports-feed.js';
-import { parseScheduleMatches, parseOfficialSchedule, mergeScheduleMatches, buildScheduleLines, nextScheduleMatch, shanghaiDateKey, shanghaiHourMinute, addDaysKey, STAGE_SCHEDULE, OFFICIAL_SCHEDULE_URL } from '../services/social/esports-schedule.js';
+import { parseScheduleMatches, parseOfficialSchedule, mergeScheduleMatches, buildScheduleLines, nextScheduleMatch, shouldSkipResultBroadcast, shanghaiDateKey, shanghaiHourMinute, addDaysKey, STAGE_SCHEDULE, OFFICIAL_SCHEDULE_URL } from '../services/social/esports-schedule.js';
+import { dayStatsFromAudit, decideBroadcast, pruneAuditLines, resultMatchKey, createSkipAuditThrottle } from '../services/social/broadcast-limits.js';
 import { webSearch } from '../services/social/web-search.js';
 import { isQVersionWhaleSticker } from '../services/media/vision.js';
 import { loadReminderStore, saveReminderStore, addReminder, listReminders, cancelReminder, dueReminders } from '../services/social/reminders.js';
@@ -249,6 +250,7 @@ const REMINDERS_FILE = path.join(STATE_DIR, 'reminders.json');
 const OWNER_FEATURES_FILE = path.join(STATE_DIR, 'owner-features.json');
 const SUBSCRIPTIONS_FILE = path.join(STATE_DIR, 'subscriptions.json');
 const ESPORTS_SCHEDULE_FILE = path.join(STATE_DIR, 'esports-schedule.json');
+const ESPORTS_BROADCAST_AUDIT_FILE = path.join(STATE_DIR, 'esports-broadcast-audit.jsonl');
 const SIGNATURE_FILE = path.join(STATE_DIR, 'signature.json');
 const VOICE_STYLE_FILE = path.join(STATE_DIR, 'voice-style.json');
 const ACTIVITY_LOG = path.join(STATE_DIR, 'qq-activity.log');
@@ -2107,6 +2109,8 @@ async function main() {
   let esportsFeedLastError = '';
   let esportsBroadcastAt = 0;
   let esportsBroadcastInfo = '';
+  // skip 审计降噪：同一会话同一原因一小时内只落一行（仅内存，重启失效无妨）。
+  const shouldLogBroadcastSkip = createSkipAuditThrottle({ windowMs: 60 * 60 * 1000 });
   const loadedSchedule = readJsonSafe(ESPORTS_SCHEDULE_FILE, {});
   let esportsSchedule = {
     matches: Array.isArray(loadedSchedule?.matches) ? loadedSchedule.matches : [],
@@ -2675,6 +2679,8 @@ async function main() {
     if (!subs.length) { esportsBroadcastInfo = '没有配置订阅'; return; }
     let triggered = 0;
     let lastSkip = '';
+    // 赛果类资讯必须过官方赛程闸门：当日 status 还不是 3 就说明比赛没打完。
+    const resultGate = shouldSkipResultBroadcast({ feed, matches: esportsSchedule.matches, now: Date.now() });
     for (const sub of subs) {
       if (!sub || sub.enabled === false || String(sub.topic || 's16') !== 's16') continue;
       const key = canonicalSimulationKey(String(sub.key || '').trim());
@@ -2682,6 +2688,7 @@ async function main() {
       if (!isS16Content(feed.summaryTitle)) { lastSkip = '摘要与 S16 无关'; continue; }
       // 只有真正的赛果/战报/汇总才触发主动播报；“用时排名/数据盘点”这类文章不吵群。
       if (feed.summaryKind !== 'result') { lastSkip = '最新内容不是赛果'; continue; }
+      if (resultGate.skip) { lastSkip = resultGate.reason; continue; }
       const stateKey = `${key}:s16`;
       const prev = subscriptionState[stateKey] || {};
       const hash = crypto.createHash('sha1')
@@ -2690,27 +2697,66 @@ async function main() {
       if (prev.hash === hash) { lastSkip = '与上次播报相同'; continue; }
       const now = Date.now();
       const day = localDayKey();
-      const count = prev.day === day ? Number(prev.count) || 0 : 0;
       const maxPerDay = Math.max(1, Number(sub.maxPerDay) || 2);
-      if (count >= maxPerDay) { lastSkip = `今日已达 ${maxPerDay} 条上限`; continue; }
       const minGap = Math.max(60000, Number(sub.minGapMs) || 30 * 60 * 1000);
-      if (prev.lastAt && now - prev.lastAt < minGap) { lastSkip = '距离上次播报不足最小间隔'; continue; }
+      // 限频以 append-only 审计为准；subscriptionState 只做展示缓存，
+      // 即使快照被旧版本覆盖/重置，也不会让上限和最小间隔失效。
+      const stats = dayStatsFromAudit(readBroadcastAuditLines(), { key: stateKey, day });
+      // 同一场赛果换一篇文章也不能再播：优先用官方赛程那场，没有对局时退回标题队伍。
+      const matchKey = resultMatchKey({
+        day: resultGate.match ? String(resultGate.match.date || day).slice(0, 10) : day,
+        teams: resultGate.match ? [resultGate.match.teamA, resultGate.match.teamB] : (resultGate.teams || [])
+      });
+      const verdict = decideBroadcast({
+        count: stats.count, lastAt: stats.lastAt, now, maxPerDay, minGapMs: minGap,
+        matchKey, seenMatchKeys: stats.matchKeys
+      });
+      if (!verdict.allow) {
+        lastSkip = verdict.reason;
+        if (shouldLogBroadcastSkip(`${stateKey}|${verdict.reason}`, now)) {
+          appendBroadcastAudit({ at: now, key: stateKey, decision: 'skip', reason: verdict.reason });
+        }
+        continue;
+      }
       // 凌晨不主动吵群；赛果在早上 8 点后的下一次刷新补播。
       const hour = Number(new Date().toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'Asia/Shanghai' }));
       if (Number.isFinite(hour) && hour < 8) { lastSkip = '凌晨不主动播报'; continue; }
       const st = getSimulationState(key);
       // 首次唤醒必须走 bootstrap（带初始提示词/角色引导）；订阅不能抢在它前面。
       if (!st.bootstrapSent) { lastSkip = '会话尚未完成首次引导'; continue; }
-      st.pendingBroadcast = {
+      const pending = {
         title: feed.summaryTitle || '',
         summary: String(feed.summary || '').slice(0, 1200),
         url: feed.summaryUrl,
         at: now,
-        topic: 's16'
+        topic: 's16',
+        summaryKind: feed.summaryKind || ''
       };
+      const official = resultGate.match && String(resultGate.match.status ?? '') === '3' ? resultGate.match : null;
+      if (official) {
+        pending.officialScore = resultGate.officialScore || `${Number(official.scoreA) || 0}-${Number(official.scoreB) || 0}`;
+        pending.scheduleStatus = '3';
+        pending.teamA = official.teamA;
+        pending.teamB = official.teamB;
+        pending.scoreA = Number(official.scoreA) || 0;
+        pending.scoreB = Number(official.scoreB) || 0;
+      }
+      st.pendingBroadcast = pending;
       saveSimulationState();
-      subscriptionState[stateKey] = { hash, lastAt: now, day, count: count + 1, lastUrl: feed.summaryUrl };
+      subscriptionState[stateKey] = { hash, lastAt: now, day, count: stats.count + 1, lastUrl: feed.summaryUrl };
       saveSubscriptionState();
+      appendBroadcastAudit({
+        at: now,
+        key: stateKey,
+        decision: 'broadcast',
+        title: feed.summaryTitle || '',
+        url: feed.summaryUrl,
+        source: feed.source || '',
+        summaryKind: feed.summaryKind || '',
+        scheduleStatus: pending.scheduleStatus || '',
+        officialScore: pending.officialScore || '',
+        matchKey
+      });
       try {
         innerLife?.noteLegacyShare?.({ moduleId: 's16', facetId: 'news', url: feed.summaryUrl, title: feed.summaryTitle || '', text: feed.summary || '', at: now });
       } catch {}
@@ -2765,6 +2811,37 @@ async function main() {
   function saveSubscriptionState() {
     try { atomicWriteJson(SUBSCRIPTIONS_FILE, subscriptionState); } catch (error) {
       log(`⚠️ 订阅状态保存失败：${error?.message ?? error}`);
+    }
+  }
+
+  function readBroadcastAuditLines() {
+    try {
+      return fs.readFileSync(ESPORTS_BROADCAST_AUDIT_FILE, 'utf8').split(/\r?\n/).filter((line) => line.trim());
+    } catch (error) {
+      if (error?.code !== 'ENOENT') log(`⚠️ 播报审计读取失败（按空审计处理）：${error?.message ?? error}`);
+      return [];
+    }
+  }
+
+  function appendBroadcastAudit(entry) {
+    try {
+      fs.mkdirSync(STATE_DIR, { recursive: true });
+      fs.appendFileSync(ESPORTS_BROADCAST_AUDIT_FILE, `${JSON.stringify(entry)}\n`, 'utf8');
+    } catch (error) {
+      log(`⚠️ 播报审计写入失败（不影响播报）：${error?.message ?? error}`);
+      return;
+    }
+    pruneBroadcastAudit();
+  }
+
+  function pruneBroadcastAudit() {
+    try {
+      const lines = readBroadcastAuditLines();
+      const kept = pruneAuditLines(lines, { now: Date.now(), maxAgeDays: 30, maxLines: 5000 });
+      if (kept.length === lines.length) return;
+      atomicWriteText(ESPORTS_BROADCAST_AUDIT_FILE, kept.length ? `${kept.join('\n')}\n` : '');
+    } catch (error) {
+      log(`⚠️ 播报审计裁剪失败（忽略）：${error?.message ?? error}`);
     }
   }
 
@@ -3401,6 +3478,7 @@ async function main() {
   function startReminderLoop() {
     loadRemindersSafe();
     loadSubscriptionState();
+    pruneBroadcastAudit();
     // 旧进程 fork 的唤醒没有退出回执，启动时对账一次，别让状态永远停在 running。
     try {
       const reconciled = reconcileInterruptedWake(path.join(STATE_DIR, 'orchestrator'));
@@ -16910,9 +16988,16 @@ async function main() {
       meta.broadcast = b;
       const qualityNote = esportsFeed?.summaryQuality === 'titles'
         ? '注意：这条只有标题，没有正文。只播标题能确认的事实，不要编比分、局数或比赛细节。'
-        : '以这条最新赛果为准，覆盖上下文里的旧赛程。';
+        : '只能播报材料里白纸黑字出现的比分和胜负；材料没有比分就写「比分还没查到」，禁止补选手、英雄、经济差、KDA 等细节。';
+      const officialLine = b.officialScore
+        ? `\n官方比分（以此为准）：${b.teamA || ''} ${Number(b.scoreA) || 0}-${Number(b.scoreB) || 0} ${b.teamB || ''}`
+          + `\n本条材料只对应这一场：${b.teamA || ''} vs ${b.teamB || ''}。只播这一场，不要改播上下文里的其它比赛。`
+        : '';
+      const kindNote = b.summaryKind && b.summaryKind !== 'result'
+        ? '\n这条是资讯/宣传，不是赛果，禁止宣布胜负。'
+        : '';
       const scheduleText = esportsScheduleBlock();
-      return `${base}【订阅播报｜S16】这不是群友提问，不要问“这是什么意思”。\n当前最新进展：\n${b.title || ''}\n${b.summary || ''}\n来源：${b.url || ''}\n${scheduleText ? `${scheduleText}\n` : ''}${qualityNote}\n请直接用你自己的语气发一条 2~4 句的群消息：第一句说清楚结果/进展，第二句说你注意到的细节或感受，最后可以轻轻问一句群友怎么看。不要新闻腔、不要照抄标题、不要一次念完。除非标题完全无法确认事实，否则不要用 qq_mark_read 收尾。`;
+      return `${base}【订阅播报｜S16】这不是群友提问，不要问“这是什么意思”。\n当前最新进展：\n${b.title || ''}\n${b.summary || ''}\n来源：${b.url || ''}\n${scheduleText ? `${scheduleText}\n` : ''}${qualityNote}${officialLine}${kindNote}\n请直接用你自己的语气发一条 2~4 句的群消息：第一句说清楚结果/进展，第二句说你注意到的细节或感受，最后可以轻轻问一句群友怎么看。不要新闻腔、不要照抄标题、不要一次念完。除非标题完全无法确认事实，否则不要用 qq_mark_read 收尾。`;
     }
     if (reason === 'bootstrap') {
       const deepLine = isDeepDive(key) ? '\n当前处于深潜模式：群里只有主人直接 @ 你才会唤醒，其余消息不会打扰你。' : '';
@@ -18613,7 +18698,7 @@ async function main() {
                   // 不把 DSH/上游的原始错误发到群里；瞬时网络/transport 错误只记日志，
                   // 非瞬时错误私下提醒主人一次，避免刷屏和泄底。工具 JSON 损坏走自动重试，
                   // 不再额外提醒，避免用户被同一类可恢复错误反复打扰。
-                  const transient = /transport failed|fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|stream.*(closed|error)|timeout|timed out|429|502|503|overloaded/i.test(safeMsg);
+                  const transient = /transport failed|fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|stream.*(closed|error)|stream ended before message_stop|STREAM_CLOSED|timeout|timed out|429|502|503|overloaded/i.test(safeMsg);
                   if (!transient && !malformedToolJson && cfg.ownerQQ) {
                     const last = Number(agentErrorNotifyAt.get(key)) || 0;
                     if (Date.now() - last > 30 * 60 * 1000) {

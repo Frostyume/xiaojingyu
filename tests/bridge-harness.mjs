@@ -61,6 +61,7 @@ import * as featureControl from '../runtime/control/feature-control.js';
 import * as coreTimeAwareness from '../runtime/kernel/time-awareness.js';
 import * as esportsSchedule from '../services/social/esports-schedule.js';
 import * as esportsFeed from '../services/social/esports-feed.js';
+import * as broadcastLimits from '../services/social/broadcast-limits.js';
 import { unwrap, createTurnCollector } from '../channels/dsh/client.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -262,6 +263,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     ...coreTtsEmotion, ...coreSpeech, ...coreFeatureLoader, ...coreEventBus, ...coreTransport, ...coreBudget, ...coreSignature, ...controlTiers, ...ownerConfig, ...featureSwitches, ...featureControl, ...coreTimeAwareness,
     ...esportsSchedule,
     ...esportsFeed,
+    ...broadcastLimits,
     deepMergeConfig: coreHealth.deepMerge,
     // ACL 收紧会 spawn icacls 去改**真实**文件系统；测试不该做这件事（同理见下面的
     // cleanupTemp / processAudioVolume 桩）。桩成成功，让 hardenStateDirAcl 走正常分支。

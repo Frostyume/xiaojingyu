@@ -263,7 +263,7 @@ test('esports: 只写队名/赛段的 S16 标题也能识别，排除 CS2/NBA', 
     { title: 'T1 3-1 HLE 晋级四强', url: 'https://example.com/a', snippet: '2026-10-27 赛果' }
   ], { query: 'S16 最新赛果' });
   assert.equal(searched.source, 'search');
-  assert.equal(searched.summaryKind, 'result');
+  assert.equal(searched.summaryKind, 'news', '搜索兜底无法证明刚打完，只能当资讯');
   assert.equal(searched.summaryDate, '2026-10-27');
 });
 

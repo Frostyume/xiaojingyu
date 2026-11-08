@@ -6,6 +6,8 @@
 //
 // 时间基准统一为北京时间（UTC+8）。所有展示都必须带日期，不能只说“今晚”。
 
+import { extractLolTeams } from './esports-feed.js';
+
 export const SHANGHAI_OFFSET_MS = 8 * 3600 * 1000;
 
 /** S16 官方赛程数据（腾讯 LPL 赛事官网的 JSON，含最新抽签结果）。 */
@@ -171,9 +173,19 @@ export function buildScheduleLines({ matches = [], now = Date.now(), days = 7, s
     if (list.length) {
       const parts = list.map((m) => {
         const isNext = next && next.date === m.date && next.time === m.time && next.teamA === m.teamA && next.teamB === m.teamB;
-        const isPast = date === today && m.time && m.time < nowTime;
-        const tag = isNext ? '下一场' : (isPast ? '已结束' : '');
-        return `${m.time || '时间待定'} ${m.teamA} vs ${m.teamB}${m.format ? `（${m.format}）` : ''}${tag ? ` ${tag}` : ''}`;
+        // 以官方 MatchStatus 为准：1 未开始 / 2 进行中 / 3 已结束。
+        // 只有完全没有 status 的旧缓存才回退时钟判断。
+        const status = String(m.status ?? '').trim();
+        const isPastByClock = date === today && m.time && m.time < nowTime;
+        const tag = isNext
+          ? '下一场'
+          : status === '3'
+            ? '已结束'
+            : status === '2'
+              ? '进行中'
+              : (!status && isPastByClock ? '已结束' : '');
+        const score = status === '3' ? ` ${Number(m.scoreA) || 0}-${Number(m.scoreB) || 0}` : '';
+        return `${m.time || '时间待定'} ${m.teamA} vs ${m.teamB}${m.format ? `（${m.format}）` : ''}${tag ? ` ${tag}` : ''}${score}`;
       });
       lines.push(`${head}${stage ? ` · ${stage.stage} ${stage.time} 开赛` : ''}：${parts.join('；')}`);
     } else {
@@ -183,6 +195,47 @@ export function buildScheduleLines({ matches = [], now = Date.now(), days = 7, s
   return {
     lines,
     text: lines.length ? `【S16 赛程（北京时间 UTC+8）】\n${lines.join('\n')}` : ''
+  };
+}
+
+/** 查同一天同一对阵（不区分主客顺序）的赛程记录。 */
+export function scheduleStatusOf(matches = [], { date = '', teamA = '', teamB = '' } = {}) {
+  const a = String(teamA || '').toUpperCase();
+  const b = String(teamB || '').toUpperCase();
+  if (!date || !a || !b) return null;
+  return (Array.isArray(matches) ? matches : []).find((m) => m
+    && m.date === date
+    && ((String(m.teamA || '').toUpperCase() === a && String(m.teamB || '').toUpperCase() === b)
+      || (String(m.teamA || '').toUpperCase() === b && String(m.teamB || '').toUpperCase() === a))) || null;
+}
+
+/**
+ * 赛果播报闸门：官方赛程显示该对局还没结束时，禁止按“赛果”播报。
+ * 只有 summaryKind === 'result' 才校验；找不到对局或状态缺失时不拦截（少发不误拦）。
+ */
+export function shouldSkipResultBroadcast({ feed, matches = [], now = Date.now(), date = '' } = {}) {
+  if (String(feed?.summaryKind || '') !== 'result') return { skip: false, reason: '不是赛果', match: null, teams: [] };
+  // 只按标题判定“对应哪场”：正文常提别的队，拼进来会把评论稿误配到真实对局。
+  const titleTeams = extractLolTeams(String(feed?.summaryTitle || ''));
+  if (titleTeams.length < 2) return { skip: false, reason: '标题未点名双方', match: null, teams: [] };
+  const teams = new Set(titleTeams);
+  const day = String(date || feed?.summaryDate || shanghaiDateKey(now)).slice(0, 10);
+  const match = (Array.isArray(matches) ? matches : []).find((m) => m
+    && String(m.date || '').slice(0, 10) === day
+    && teams.has(String(m.teamA || '').toUpperCase())
+    && teams.has(String(m.teamB || '').toUpperCase()));
+  if (!match) return { skip: false, reason: '当日赛程里没有该对局', match: null, teams: titleTeams };
+  const status = String(match.status ?? '').trim();
+  if (status && status !== '3') {
+    return { skip: true, reason: `比赛尚未结束（官方赛程 status=${status}）`, match, scheduleStatus: status, teams: titleTeams };
+  }
+  return {
+    skip: false,
+    reason: status === '3' ? '官方赛程已结束' : '官方赛程状态缺失',
+    match,
+    scheduleStatus: status,
+    teams: titleTeams,
+    officialScore: status === '3' ? `${Number(match.scoreA) || 0}-${Number(match.scoreB) || 0}` : ''
   };
 }
 
