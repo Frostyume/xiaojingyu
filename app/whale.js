@@ -61,6 +61,12 @@ import {
   markStickerUsed
 } from '../services/media/sticker-lib.js';
 import { createInnerLife } from '../services/persona/inner-life.js';
+import { createOuterWorldStore } from '../services/social/outer-world/store.js';
+import { chunkText, dedupeKey, digestChunks, pickNextSource } from '../services/social/outer-world/pipeline.js';
+import { normalizeNovelSource, readChapter } from '../services/social/outer-world/sources/novel.js';
+import { evaluateUrl, redactUrlForAudit } from '../services/social/outer-world/policy.js';
+import { createRateLimiter } from '../services/social/outer-world/ratelimit.js';
+import { probeSubtitleTool, fetchSubtitleTrack } from '../services/social/outer-world/media/subtitle.js';
 import { openDatabase, pruneDatabase } from '../runtime/kernel/db.js';
 import { Outbox } from '../runtime/kernel/outbox.js';
 import { JobQueue } from '../runtime/kernel/jobs.js';
@@ -1253,6 +1259,25 @@ function loadConfig() {
     summaryMaxChars: 1400,
     ...((cfg.simulation?.esportsFeed && typeof cfg.simulation.esportsFeed === 'object' && !Array.isArray(cfg.simulation.esportsFeed)) ? cfg.simulation.esportsFeed : {})
   };
+
+  // simulation.outerWorld：出门见闻（读书线 + 视频字幕线）。默认全关；运行期每次调度重新读 cfg。
+  {
+    const ow = cfg.simulation?.outerWorld && typeof cfg.simulation.outerWorld === 'object' && !Array.isArray(cfg.simulation.outerWorld)
+      ? cfg.simulation.outerWorld
+      : {};
+    const at = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
+    const schedule = at(ow.schedule);
+    cfg.simulation.outerWorld = {
+      leisure: { enabled: false, sources: [], maxItemsPerDay: 2, noteChars: 600, tokenBudget: 60000, ytDlpPath: '', subtitleLang: 'zh-Hans', subtitleTimeoutMs: 60000, ...at(ow.leisure) },
+      browse: { enabled: false, policy: 'public', allowlist: [], blockedDomains: [], maxSteps: 8, snapshotChars: 1000, readOnly: true, ...at(ow.browse) },
+      digest: { enabled: false, pushToOwner: false, mentionPolicy: 'natural', ...at(ow.digest) },
+      schedule: {
+        minGapMs: 7200000,
+        ...schedule,
+        window: { start: '09:00', end: '23:00', idleOnly: true, ...at(schedule.window) }
+      }
+    };
+  }
 
   // simulation.reminders：提醒默认只在主人私聊和家人群可用，避免变成陌生群的定时闹钟。
   cfg.simulation.reminders = {
@@ -3404,6 +3429,290 @@ async function main() {
     return queued;
   }
 
+  // ── 出门见闻（读书线 + 视频字幕线，默认全关） ─────────────────────────────
+  // 关闭时不写任何状态文件：store 的读方法返回安全默认，只有成功的 run 才落盘。
+  const outerWorldStore = createOuterWorldStore({ dir: STATE_DIR });
+  const outerWorldLimiter = createRateLimiter({ perDomainPerDay: 20, perSecond: 1 });
+  const OUTER_WORLD_FETCH_CHARS = 512 * 1024;
+
+  function outerWorldConfig() {
+    const value = cfg.simulation?.outerWorld;
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  }
+
+  function outerWorldEnabled() {
+    return featureEnabled(cfg, 'outerWorld') && outerWorldConfig().leisure?.enabled === true;
+  }
+
+  /** 配置里的 sources 允许对象数组、JSON 字符串或逗号分隔地址；统一成 novel / video 源。 */
+  function outerWorldSources(raw) {
+    let list = raw;
+    if (typeof list === 'string') {
+      try {
+        const parsed = JSON.parse(list);
+        list = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        list = list.split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
+      }
+    }
+    if (!Array.isArray(list)) return [];
+    return list
+      .map((item) => {
+        const value = typeof item === 'string' ? { url: item } : item;
+        if (value && String(value.type || '').toLowerCase() === 'video') {
+          const url = String(value.url || '').trim();
+          if (!url) return null;
+          return { id: String(value.id || '').trim() || `video:${url}`, type: 'video', title: String(value.title || url).slice(0, 80), url, chapters: [] };
+        }
+        return normalizeNovelSource(value);
+      })
+      .filter(Boolean);
+  }
+
+  /** 与 readChapter 相同的章节定位，用于在抓取前做去重。 */
+  function outerWorldTarget(source, progress) {
+    const chapters = Array.isArray(source.chapters) ? source.chapters : [];
+    const raw = Number(progress?.chapterIndex);
+    const index = Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : 0;
+    if (chapters.length > 0 && index >= chapters.length) return null;
+    const url = chapters.length > 0 ? chapters[index]?.url : source.url;
+    if (!url) return null;
+    const title = (chapters.length > 0 ? chapters[index]?.title : '') || source.title;
+    return { url, title, chapterIndex: index };
+  }
+
+  /** 抓正文：先过访问策略与域名限速，再由 safeFetch 做 SSRF 校验，限量 512KB。 */
+  async function outerWorldFetchText(url) {
+    const browse = outerWorldConfig().browse ?? {};
+    const verdict = evaluateUrl(url, {
+      policy: browse.policy,
+      allowlist: browse.allowlist,
+      blockedDomains: browse.blockedDomains
+    });
+    if (!verdict.allow) throw new Error(`policy:${verdict.reason}`);
+    const limited = outerWorldLimiter.check(verdict.host);
+    if (!limited.allow) throw new Error(`ratelimit:${limited.reason}`);
+    const res = await safeFetch(verdict.url, OUTER_WORLD_FETCH_CHARS);
+    if (Number(res.statusCode) < 200 || Number(res.statusCode) >= 300) throw new Error(`http:${res.statusCode}`);
+    return res.body;
+  }
+
+  /** 摘要生成：复用内心会话；内心生活未挂载或显式关闭时返回 null，调用方直接跳过。 */
+  function outerWorldGenerate() {
+    if (!innerLife || typeof innerLife.runTurn !== 'function') return null;
+    if (cfg.simulation?.innerLife?.enabled === false) return null;
+    return (prompt) => innerLife.runTurn(prompt, 60000);
+  }
+
+  async function runOuterWorld(reason = 'manual', overrides = {}) {
+    if (!outerWorldEnabled()) return { ok: false, enabled: false, reason: 'disabled' };
+    const leisure = outerWorldConfig().leisure ?? {};
+    const day = shanghaiDayKey();
+    const quota = outerWorldStore.quota.get(day);
+    const maxItems = Math.max(0, Math.floor(Number(leisure.maxItemsPerDay) || 0));
+    if (maxItems > 0 && quota.items >= maxItems) return { ok: false, enabled: true, reason: 'quota', quota };
+    const tokenBudget = Math.max(0, Math.floor(Number(leisure.tokenBudget) || 0));
+    if (tokenBudget > 0 && quota.tokens >= tokenBudget) return { ok: false, enabled: true, reason: 'token-budget', quota };
+    if (outerWorldStore.circuit.isOpen()) return { ok: false, enabled: true, reason: 'circuit-open', circuit: outerWorldStore.circuit.get() };
+    const sources = outerWorldSources(leisure.sources)
+      .filter((source) => outerWorldStore.progress.get(source.id)?.done !== true);
+    const skip = (skipReason) => {
+      outerWorldStore.audit.append({ kind: 'skip', reason: skipReason, trigger: reason });
+      return { ok: true, enabled: true, skipped: true, reason: skipReason };
+    };
+    if (!sources.length) return skip('no-source');
+    const source = pickNextSource({ sources, store: outerWorldStore, now: () => Date.now() });
+    if (!source) return skip('no-candidate');
+    const progress = outerWorldStore.progress.get(source.id) || {};
+    const target = outerWorldTarget(source, progress);
+    if (!target) return skip('no-target');
+    const noteKey = dedupeKey({ title: target.title, url: target.url });
+    if (outerWorldStore.notes.dedupeHas(noteKey)) {
+      outerWorldStore.progress.set(source.id, {
+        chapterIndex: target.chapterIndex + 1,
+        lastReadAt: Date.now(),
+        ...(source.type === 'video' ? { done: true } : {})
+      });
+      return skip('duplicate');
+    }
+    const generate = typeof overrides.generate === 'function' ? overrides.generate : outerWorldGenerate();
+    if (!generate) return skip('no-generator');
+    const fetchText = typeof overrides.fetchText === 'function' ? overrides.fetchText : outerWorldFetchText;
+    try {
+      let chapter;
+      if (source.type === 'video') {
+        // 字幕线：只取字幕轨，不下载视频；缺 yt-dlp 或无字幕时按失败退避，不吞掉。
+        const sub = await fetchSubtitleTrack({
+          url: source.url,
+          workDir: path.join(STATE_DIR, 'outer-world', 'tmp'),
+          ytDlpPath: String(leisure.ytDlpPath || '').trim(),
+          lang: String(leisure.subtitleLang || 'zh-Hans'),
+          timeoutMs: Math.min(120000, Math.max(10000, Number(leisure.subtitleTimeoutMs) || 60000))
+        });
+        if (!sub.ok) throw Object.assign(new Error(sub.reason || 'subtitle-failed'), { outerReason: `subtitle:${sub.reason || 'failed'}` });
+        chapter = { ok: true, sourceId: source.id, chapterIndex: 0, title: source.title, url: source.url, text: sub.text, nextProgress: { chapterIndex: 1, done: true } };
+      } else {
+        chapter = await readChapter({ source, progress, fetchText });
+      }
+      if (!chapter.ok) throw Object.assign(new Error(chapter.reason || 'read-failed'), { outerReason: chapter.reason || 'read-failed' });
+      const chunks = chunkText(chapter.text, { maxChars: 1200 });
+      const digest = await digestChunks({ chunks, generate, noteChars: Math.max(1, Number(leisure.noteChars) || 600) });
+      if (!digest.ok) throw Object.assign(new Error('digest-failed'), { outerReason: 'digest-failed' });
+      const tokens = Math.max(1, Math.ceil((chapter.text.length + digest.summary.length) / 4));
+      if (tokenBudget > 0 && quota.tokens + tokens > tokenBudget) return skip('token-budget');
+      const note = {
+        title: chapter.title || target.title,
+        sourceId: source.id,
+        sourceType: source.type || 'url',
+        chapterIndex: chapter.chapterIndex,
+        summary: digest.summary,
+        quote: digest.quote,
+        dedupeKey: noteKey,
+        sourceHost: redactUrlForAudit(chapter.url || target.url),
+        at: Date.now()
+      };
+      const appended = outerWorldStore.notes.append(note);
+      outerWorldStore.notes.dedupeAdd(noteKey);
+      const nextIndex = chapter.nextProgress?.chapterIndex ?? target.chapterIndex + 1;
+      const finished = chapter.nextProgress?.done === true
+        || (Array.isArray(source.chapters) && source.chapters.length > 0 && nextIndex >= source.chapters.length);
+      outerWorldStore.progress.set(source.id, {
+        chapterIndex: nextIndex,
+        lastReadAt: Date.now(),
+        ...(finished ? { done: true } : {})
+      });
+      outerWorldStore.quota.inc(day, { items: 1, tokens });
+      outerWorldStore.audit.append({ kind: 'read', sourceId: source.id, host: note.sourceHost, chapterIndex: note.chapterIndex, tokens, trigger: reason, noteId: appended.id });
+      outerWorldStore.circuit.ok();
+      if (outerWorldConfig().digest?.pushToOwner === true && ownerChatKey()) {
+        try { await sendToQQ(ownerChatKey(), `出门见闻：${note.title}\n${note.summary}`); } catch {}
+      }
+      return { ok: true, enabled: true, note: { ...note, id: appended.id } };
+    } catch (error) {
+      const failed = error?.outerReason || String(error?.message ?? error).slice(0, 120);
+      outerWorldStore.circuit.fail(failed);
+      outerWorldStore.audit.append({ kind: 'fail', sourceId: source.id, reason: failed, trigger: reason });
+      return { ok: false, enabled: true, reason: failed };
+    }
+  }
+
+  /** 提示词只给最近一张卡片的标题 + 一句摘要；不带网址、不带原文。 */
+  function outerWorldPromptLine() {
+    if (!outerWorldEnabled()) return '';
+    const cutoff = Date.now() - 24 * 3600 * 1000;
+    const note = outerWorldStore.notes.list({ limit: 10 }).find((row) => (Number(row.at) || 0) >= cutoff);
+    if (!note) return '';
+    const title = String(note.title || '').trim().slice(0, 60);
+    const summary = String(note.summary || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    return `【出门见闻】你最近看了《${title}》：${summary}。自然聊到再提，不主动刷屏。\n\n`;
+  }
+
+  function outerWorldNotesText(limit = 5) {
+    const rows = outerWorldStore.notes.list({ limit: Math.max(1, Number(limit) || 5) });
+    if (!rows.length) return '还没有出门见闻。先打开「出门见闻」并配置阅读来源。';
+    return ['最近见闻：', ...rows.map((row, index) => {
+      const when = new Date(Number(row.at) || Date.now()).toLocaleString('zh-CN', { hour12: false });
+      return `${index + 1}. [${String(row.id).slice(0, 8)}] ${when} 看了《${row.title}》：${row.summary}`;
+    })].join('\n');
+  }
+
+  function outerWorldNoteDetail(prefix) {
+    const want = String(prefix ?? '').trim().toLowerCase();
+    if (!want) return '';
+    const hits = outerWorldStore.notes.list({ limit: 200 })
+      .filter((row) => String(row.id).toLowerCase().startsWith(want));
+    if (!hits.length) return `没有找到 id 前缀「${want}」的见闻。`;
+    if (hits.length > 1) return `「${want}」同时匹配 ${hits.length} 条，请把 id 打长一点。`;
+    const note = hits[0];
+    const when = new Date(Number(note.at) || Date.now()).toLocaleString('zh-CN', { hour12: false });
+    return [`【见闻 ${note.id}】`, `${when} 看了《${note.title}》`, note.summary,
+      note.quote ? `摘句：${note.quote}` : '', `来源：${note.sourceHost || '未知'}`]
+      .filter(Boolean).join('\n');
+  }
+
+  /** 停止出门：打开熔断，清掉排队与历史失败；主人显式 /出门 会先 reset。 */
+  function stopOuterWorld(reason = 'owner-stop') {
+    for (let i = 0; i < 5 && !outerWorldStore.circuit.isOpen(); i += 1) outerWorldStore.circuit.fail(reason);
+    const pending = jobQueue?.clearPending('outerWorld.run', '主人停止出门见闻') || 0;
+    const dead = jobQueue?.clearDead?.('outerWorld.run', '主人停止出门见闻：历史失败不再重试') || 0;
+    outerWorldStore.audit.append({ kind: 'stop', reason });
+    return { cleared: pending + dead, circuit: outerWorldStore.circuit.get() };
+  }
+
+  function outerWorldStatus() {
+    const leisure = outerWorldConfig().leisure ?? {};
+    const subtitle = probeSubtitleTool({ ytDlpPath: String(leisure.ytDlpPath || '').trim() });
+    return {
+      enabled: outerWorldEnabled(),
+      day: shanghaiDayKey(),
+      quota: outerWorldStore.quota.get(shanghaiDayKey()),
+      circuit: outerWorldStore.circuit.get(),
+      subtitle,
+      limits: {
+        maxItemsPerDay: Number(leisure.maxItemsPerDay) || 0,
+        noteChars: Number(leisure.noteChars) || 600,
+        tokenBudget: Number(leisure.tokenBudget) || 0
+      },
+      noteCount: outerWorldStore.notes.list({ limit: 200 }).length
+    };
+  }
+
+  const OUTER_WORLD_DAY_MS = 24 * 3600 * 1000;
+  const OUTER_WORLD_NIGHT = 8 * 3600 * 1000;
+
+  function outerWorldClock(hhmm, fallback) {
+    const match = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm ?? '').trim());
+    if (!match) return fallback;
+    const minutes = Number(match[1]) * 60 + Number(match[2]);
+    return minutes >= 0 && minutes < 24 * 60 ? minutes : fallback;
+  }
+
+  function outerWorldWindowAt(ms) {
+    const window = outerWorldConfig().schedule?.window ?? {};
+    const startMin = outerWorldClock(window.start, 9 * 60);
+    const endMin = outerWorldClock(window.end, 23 * 60);
+    const midnight = Math.floor((Number(ms) + OUTER_WORLD_NIGHT) / OUTER_WORLD_DAY_MS) * OUTER_WORLD_DAY_MS - OUTER_WORLD_NIGHT;
+    const nowMin = Math.floor((Number(ms) - midnight) / 60000);
+    const inside = endMin > startMin
+      ? nowMin >= startMin && nowMin < endMin
+      : nowMin >= startMin || nowMin < endMin;
+    return { inside, midnight, startMin, startToday: midnight + startMin * 60000 };
+  }
+
+  /** 下一条见闻的时间：配额用满顺延到次日窗口；间隔不够就等满 minGap；熔断期 6h 后再试。 */
+  function nextOuterWorldAt(nowMs = Date.now()) {
+    const schedule = outerWorldConfig().schedule ?? {};
+    if (outerWorldStore.circuit.isOpen()) return nowMs + 6 * 3600 * 1000;
+    const leisure = outerWorldConfig().leisure ?? {};
+    const maxItems = Math.max(0, Math.floor(Number(leisure.maxItemsPerDay) || 0));
+    const quota = outerWorldStore.quota.get(shanghaiDayKey(nowMs));
+    const gap = Math.max(60000, Number(schedule.minGapMs) || 7200000);
+    const win = outerWorldWindowAt(nowMs);
+    let at;
+    if (maxItems > 0 && quota.items >= maxItems) {
+      at = win.midnight + OUTER_WORLD_DAY_MS + win.startMin * 60000;
+    } else {
+      const lastAt = Number(outerWorldStore.notes.list({ limit: 1 })[0]?.at) || 0;
+      at = Math.max(nowMs, lastAt ? lastAt + gap : 0);
+      const check = outerWorldWindowAt(at);
+      if (!check.inside) at = check.startToday <= at ? check.startToday + OUTER_WORLD_DAY_MS : check.startToday;
+    }
+    return Math.max(nowMs + 60 * 1000, at);
+  }
+
+  function syncOuterWorldJob() {
+    // 审计文件只在启动/配置变更时裁一次，避免无限增长（30 天 / 最近 5000 行）。
+    try { outerWorldStore.audit.prune({ days: 30, maxLines: 5000 }); } catch {}
+    if (!jobQueue) return 0;
+    if (!outerWorldEnabled()) {
+      return (jobQueue.clearPending('outerWorld.run', '出门见闻已关闭') || 0)
+        + (jobQueue.clearDead?.('outerWorld.run', '出门见闻已关闭：历史失败不再重试') || 0);
+    }
+    const at = nextOuterWorldAt();
+    jobQueue.enqueue({ type: 'outerWorld.run', dedupeKey: 'outerWorld.run', runAfter: at, maxAttempts: 2 });
+    return at;
+  }
+
   // 配置热更新后重排所有受模块总开关影响的定时任务；关闭时排程会自行清空。
   function resyncFeatureSchedules(changed) {
     const keys = (Array.isArray(changed) ? changed : []).map(String);
@@ -3421,10 +3730,12 @@ async function main() {
       && !touches('simulation.innerLife')
       && !touches('simulation.shareModules')
       && !touches('simulation.signature')
+      && !touches('simulation.outerWorld')
       && !touches('simulation.dailyReport')) return;
     try { innerLife?.reschedule?.(); } catch (error) { log(`[features] 内心生活排程刷新失败：${error?.message ?? error}`); }
     try { syncSignatureJob(); } catch (error) { log(`[features] 签名排程刷新失败：${error?.message ?? error}`); }
     try { syncDailyReportJobs(); } catch (error) { log(`[features] 日报排程刷新失败：${error?.message ?? error}`); }
+    try { syncOuterWorldJob(); } catch (error) { log(`[features] 出门见闻排程刷新失败：${error?.message ?? error}`); }
   }
 
   // 控制台功能开关/高级设置共用的写配置入口：校验 → 落盘 → 热更新 → 重排排程。
@@ -7067,6 +7378,26 @@ async function main() {
         }
         if (req.method === 'GET' && url.pathname === '/api/content') {
           sendJson({ ok: true, ...buildContentSnapshot() });
+          return;
+        }
+        // ── 出门见闻：控制台专用（见闻列表不含网址/原文，只有标题与摘要） ─────
+        if (req.method === 'GET' && url.pathname === '/api/outer-world/status') {
+          sendJson({ ok: true, ...outerWorldStatus() });
+          return;
+        }
+        if (req.method === 'GET' && url.pathname === '/api/outer-world/notes') {
+          const limit = Math.max(1, Math.min(20, Number(url.searchParams.get('limit')) || 5));
+          sendJson({ ok: true, enabled: outerWorldEnabled(), notes: outerWorldStore.notes.list({ limit }) });
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/outer-world/run') {
+          outerWorldStore.circuit.reset();
+          const result = await runOuterWorld('api');
+          sendJson({ ok: result.ok === true, enabled: result.enabled !== false, ...result });
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/outer-world/stop') {
+          sendJson({ ok: true, enabled: outerWorldEnabled(), ...stopOuterWorld('api') });
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/esports/refresh') {
@@ -16871,6 +17202,7 @@ async function main() {
     const esportsLine = esportsRelevant
       ? `${buildEsportsFeedBlock(esportsFeed, { maxChars: cfg.simulation?.esportsFeed?.summaryMaxChars ?? 1400 })}【实时信息】上面的赛果来自直播吧；需要更细的比分/首发时，用来源链接抓正文，不要凭印象补。\n\n`
       : '';
+    const outerWorldLine = outerWorldPromptLine();
     const scheduleLine = esportsRelevant && esportsScheduleText ? `${esportsScheduleText}\n\n` : '';
     const scheduleAnswerLine = scheduleQuestion && scheduleLine
       ? '【赛程回答格式】对方问的是赛程/时间：必须逐条列出【S16 赛程】里的比赛，格式为“日期 + 北京时间 + 队伍A vs 队伍B + BO几 + 已结束/下一场”；不要只总结“都打完了”或只提最后一场。下一比赛日如果还没抽签，要写“对阵待抽签/官方更新”，不要编。\n\n'
@@ -16966,6 +17298,7 @@ async function main() {
       { id: 'longTerm', text: longTermLine, priority: 75, trim: true },
       { id: 'relationships', text: relationshipLine, priority: 70, trim: true },
       { id: 'esports', text: esportsLine, priority: 15, trim: true },
+      { id: 'outerWorld', text: outerWorldLine, priority: 43, trim: true },
       { id: 'schedule', text: `${scheduleLine}${scheduleAnswerLine}`, priority: 90, trim: true },
       { id: 'participation', text: participationLine, priority: 60, trim: true },
       { id: 'preSleep', text: preSleepLine, priority: 100 },
@@ -17878,6 +18211,29 @@ async function main() {
       if (plainContent === '/active' || plainContent === '/speak') {
         writeRoleState(roleState.role, 'active');
         await sendToQQ(key, '已退出静默模式，恢复正常回复。');
+        return;
+      }
+      // 出门见闻：主人私聊查看最近见闻 / 立即跑一次 / 停止；复用这里的 owner 门控。
+      if (plainContent === '/见闻' || plainContent.startsWith('/见闻 ')) {
+        if (kind !== 'private') { await sendToQQ(key, '见闻命令仅主人私聊可用。'); return; }
+        const arg = plainContent.slice('/见闻'.length).trim();
+        await sendToQQ(key, arg ? outerWorldNoteDetail(arg) : outerWorldNotesText(5));
+        return;
+      }
+      if (plainContent === '/出门') {
+        if (kind !== 'private') { await sendToQQ(key, '出门命令仅主人私聊可用。'); return; }
+        if (!outerWorldEnabled()) { await sendToQQ(key, '出门见闻未开启：先在功能控制里打开「出门见闻」。'); return; }
+        outerWorldStore.circuit.reset();
+        const result = await runOuterWorld('owner');
+        await sendToQQ(key, result.ok
+          ? (result.note ? `出门看完了《${result.note.title}》\n${result.note.summary}` : `这次没看：${result.reason}`)
+          : `这次没看：${result.reason}`);
+        return;
+      }
+      if (plainContent === '/停止出门') {
+        if (kind !== 'private') { await sendToQQ(key, '停止出门命令仅主人私聊可用。'); return; }
+        stopOuterWorld('owner-stop');
+        await sendToQQ(key, '已停止出门见闻并清空排队任务；下次需要再手动 /出门。');
         return;
       }
       // 高危动作的二次确认。必须在这里拦下：不能让它进入模型上下文，
@@ -19301,6 +19657,14 @@ async function main() {
     jobQueue.register('reminder.due', handleReminderJob);
     if (!featureHost?.has('daily-report')) jobQueue.register('dailyReport', handleDailyReportJob);
     jobQueue.register('signature.auto', handleSignatureJob);
+    jobQueue.register('outerWorld.run', async () => {
+      if (!outerWorldEnabled()) return { status: 'disabled', reason: 'outerWorld disabled' };
+      const result = await runOuterWorld('schedule');
+      if (result.reason === 'circuit-open') return { retryAfterMs: 6 * 3600 * 1000 };
+      const next = nextOuterWorldAt();
+      // 失败时至少等 30 分钟，避免把偶发网络错误变成连续熔断。
+      return { retryAfterMs: Math.max(result.ok ? 60 * 1000 : 30 * 60 * 1000, next - Date.now()) };
+    });
     jobQueue.register('inner-life.tick', async () => {
       if (!innerLife) return { retryAfterMs: 60000 };
       await innerLife.tick();
@@ -19322,6 +19686,8 @@ async function main() {
     }
     const sigAt = syncSignatureJob();
     if (sigAt) log(`[signature] 下次自动更新约 ${new Date(sigAt).toLocaleString('zh-CN', { hour12: false })}`);
+    const outerAt = syncOuterWorldJob();
+    if (outerAt) log(`[outerWorld] 下次出门见闻约 ${new Date(outerAt).toLocaleString('zh-CN', { hour12: false })}`);
     jobQueue.start();
   }
   // 启动重放放在连接建立之后：DSH/SnowLuma 没就绪时排队，不丢消息。

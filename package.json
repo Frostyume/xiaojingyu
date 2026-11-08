@@ -1,6 +1,6 @@
 {
   "name": "xiaojingyu",
-  "version": "1.1.1",
+  "version": "1.3.0",
   "private": true,
   "license": "MIT",
   "description": "Bridge between SnowLuma (OneBot v11 / QQ) and DeepSeek Harness Web API: QQ messages become DSH agent prompts, agent replies go back to QQ. Targets the DSH Cookie-auth / slash-RPC / remote.mux protocol generation, so it deliberately names no DSH version here.",
@@ -18,7 +18,8 @@
     "test:features": "node tests/feature-switches.test.mjs && node tests/feature-control-runtime.test.mjs",
     "test:stage4": "node tests/stage4.test.mjs",
     "test:esports": "node tests/broadcast-limits.test.mjs && node tests/esports-fact-gate.test.mjs",
-    "verify": "node tools/gen-config-schema.mjs --check && node tools/gen-console-api.mjs --check && npm run test:core && npm run test:persona && npm run test:stage2 && npm run test:stage3 && npm run test:features && npm run test:stage4 && npm run test:audit && npm run test:esports",
+    "test:outer-world": "node tests/outer-world.test.mjs",
+    "verify": "node tools/gen-config-schema.mjs --check && node tools/gen-console-api.mjs --check && npm run test:core && npm run test:persona && npm run test:stage2 && npm run test:stage3 && npm run test:features && npm run test:stage4 && npm run test:audit && npm run test:esports && npm run test:outer-world",
     "doctor": "node tools/healthcheck.mjs",
     "handoff": "node tools/handoff.mjs",
     "test:handoff": "node tests/handoff.test.mjs",

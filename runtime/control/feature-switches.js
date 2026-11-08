@@ -22,6 +22,7 @@ export const FEATURE_MODULES = Object.freeze([
   { id: 'customShare', label: '自定义分享模块', description: '你在控制台自建的其他分享模块' },
   { id: 'dailyReport', label: '群日报', description: '每天定时把群统计发到群里' },
   { id: 'esportsFeed', label: '赛事资讯', description: '定时抓取 S16 赛事资讯与赛程' },
+  { id: 'outerWorld', label: '出门见闻', description: '让她自己看书/看视频字幕，把见闻带回来' },
   { id: 'ownerFeature', label: '功能中心', description: '定时消息、自动回复、语音消息等主人功能' }
 ]);
 

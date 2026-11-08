@@ -149,6 +149,17 @@ const FIELD_META = {
   'simulation.innerLife.dryRun': { label: '内心生活演练模式', group: '内心生活', restart: 'none' },
   'simulation.innerLife.qzone.enabled': { label: 'QQ 空间', group: '内心生活', restart: 'none' },
   'simulation.innerLife.groupShare.enabled': { label: '群内分享', group: '内心生活', restart: 'none' },
+  'simulation.outerWorld.leisure.enabled': { label: '读书线', group: '出门见闻', restart: 'none', description: '让她自己读公开网页/电子书，生成见闻卡片；默认关闭' },
+  'simulation.outerWorld.leisure.maxItemsPerDay': { label: '每天最多见闻', group: '出门见闻', restart: 'none', min: 0, max: 20, advanced: true },
+  'simulation.outerWorld.leisure.noteChars': { label: '摘要字数上限', group: '出门见闻', restart: 'none', min: 80, max: 2000, advanced: true },
+  'simulation.outerWorld.leisure.tokenBudget': { label: '每日 token 预算', group: '出门见闻', restart: 'none', min: 0, max: 10000000, advanced: true },
+  'simulation.outerWorld.leisure.ytDlpPath': { label: 'yt-dlp 路径', group: '出门见闻', restart: 'none', advanced: true, description: '留空时依次查 YT_DLP_PATH 与 PATH；只用于视频字幕' },
+  'simulation.outerWorld.leisure.subtitleLang': { label: '字幕语言', group: '出门见闻', restart: 'none', advanced: true },
+  'simulation.outerWorld.browse.policy': { label: '访问策略', group: '出门见闻', restart: 'none', enum: ['public', 'allowlist'], advanced: true },
+  'simulation.outerWorld.digest.pushToOwner': { label: '生成后私聊主人', group: '出门见闻', restart: 'none', advanced: true },
+  'simulation.outerWorld.schedule.minGapMs': { label: '最小间隔（ms）', group: '出门见闻', restart: 'none', min: 60000, max: 86400000, advanced: true },
+  'simulation.outerWorld.schedule.window.start': { label: '窗口开始', group: '出门见闻', restart: 'none', advanced: true },
+  'simulation.outerWorld.schedule.window.end': { label: '窗口结束', group: '出门见闻', restart: 'none', advanced: true },
 
   // ── 上下文 / 成本 / 记忆 / 路由 ───────────────────────────────────────────
   'simulation.context.wakeBudgetTokens': { label: '唤醒 prompt token 预算', group: '上下文与成本', restart: 'none', min: 300, max: 20000, description: '超出时按优先级丢可选段，核心人格/工具协议不丢' },
@@ -439,6 +450,23 @@ export function migrateConfigObject(input, { now = Date.now() } = {}) {
     from = 2;
     notes.push('v1 → v2：新增 storage 段');
   }
+
+  // 出门见闻：旧配置没有这一段时补默认对象（全部关闭），不改变已有行为。
+  const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+  cfg.simulation = isObject(cfg.simulation) ? cfg.simulation : {};
+  const ow = isObject(cfg.simulation.outerWorld) ? cfg.simulation.outerWorld : null;
+  const owNext = {
+    leisure: { enabled: false, sources: [], maxItemsPerDay: 2, noteChars: 600, tokenBudget: 60000, ytDlpPath: '', subtitleLang: 'zh-Hans', subtitleTimeoutMs: 60000, ...(isObject(ow?.leisure) ? ow.leisure : {}) },
+    browse: { enabled: false, policy: 'public', allowlist: [], blockedDomains: [], maxSteps: 8, snapshotChars: 1000, readOnly: true, ...(isObject(ow?.browse) ? ow.browse : {}) },
+    digest: { enabled: false, pushToOwner: false, mentionPolicy: 'natural', ...(isObject(ow?.digest) ? ow.digest : {}) },
+    schedule: {
+      minGapMs: 7200000,
+      ...(isObject(ow?.schedule) ? ow.schedule : {}),
+      window: { start: '09:00', end: '23:00', idleOnly: true, ...(isObject(ow?.schedule?.window) ? ow.schedule.window : {}) }
+    }
+  };
+  if (!ow) notes.push('新增 simulation.outerWorld 默认段（全关）');
+  cfg.simulation.outerWorld = owNext;
 
   return { config: cfg, from: originalFrom, to: CONFIG_VERSION, changed: notes.length > 0, notes, at: now };
 }

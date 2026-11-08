@@ -1222,6 +1222,160 @@
             }
           }
         },
+        "outerWorld": {
+          "type": "object",
+          "properties": {
+            "browse": {
+              "type": "object",
+              "properties": {
+                "allowlist": {
+                  "title": "Allowlist",
+                  "type": "array",
+                  "default": []
+                },
+                "blockedDomains": {
+                  "title": "Blocked Domains",
+                  "type": "array",
+                  "default": []
+                },
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": false
+                },
+                "maxSteps": {
+                  "title": "Max Steps",
+                  "type": "number",
+                  "default": 8
+                },
+                "readOnly": {
+                  "title": "Read Only",
+                  "type": "boolean",
+                  "default": true
+                },
+                "snapshotChars": {
+                  "title": "Snapshot Chars",
+                  "type": "number",
+                  "default": 1000
+                },
+                "policy": {
+                  "title": "访问策略",
+                  "type": "string",
+                  "default": "public",
+                  "enum": [
+                    "public",
+                    "allowlist"
+                  ]
+                }
+              }
+            },
+            "digest": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": false
+                },
+                "mentionPolicy": {
+                  "title": "Mention Policy",
+                  "type": "string",
+                  "default": "natural"
+                },
+                "pushToOwner": {
+                  "title": "生成后私聊主人",
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "leisure": {
+              "type": "object",
+              "properties": {
+                "sources": {
+                  "title": "Sources",
+                  "type": "array",
+                  "default": []
+                },
+                "subtitleTimeoutMs": {
+                  "title": "Subtitle Timeout Ms",
+                  "type": "number",
+                  "default": 60000
+                },
+                "enabled": {
+                  "title": "读书线",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "让她自己读公开网页/电子书，生成见闻卡片；默认关闭"
+                },
+                "maxItemsPerDay": {
+                  "title": "每天最多见闻",
+                  "type": "number",
+                  "default": 2,
+                  "minimum": 0,
+                  "maximum": 20
+                },
+                "noteChars": {
+                  "title": "摘要字数上限",
+                  "type": "number",
+                  "default": 600,
+                  "minimum": 80,
+                  "maximum": 2000
+                },
+                "subtitleLang": {
+                  "title": "字幕语言",
+                  "type": "string",
+                  "default": "zh-Hans"
+                },
+                "tokenBudget": {
+                  "title": "每日 token 预算",
+                  "type": "number",
+                  "default": 60000,
+                  "minimum": 0,
+                  "maximum": 10000000
+                },
+                "ytDlpPath": {
+                  "title": "yt-dlp 路径",
+                  "type": "string",
+                  "default": "",
+                  "description": "留空时依次查 YT_DLP_PATH 与 PATH；只用于视频字幕"
+                }
+              }
+            },
+            "schedule": {
+              "type": "object",
+              "properties": {
+                "window": {
+                  "type": "object",
+                  "properties": {
+                    "idleOnly": {
+                      "title": "Idle Only",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "end": {
+                      "title": "窗口结束",
+                      "type": "string",
+                      "default": "23:00"
+                    },
+                    "start": {
+                      "title": "窗口开始",
+                      "type": "string",
+                      "default": "09:00"
+                    }
+                  }
+                },
+                "minGapMs": {
+                  "title": "最小间隔（ms）",
+                  "type": "number",
+                  "default": 7200000,
+                  "minimum": 60000,
+                  "maximum": 86400000
+                }
+              }
+            }
+          }
+        },
         "ownerFeatures": {
           "type": "object",
           "properties": {
@@ -2206,6 +2360,12 @@
           "type": "boolean",
           "default": false,
           "description": "llm_tips 分享模块（大模型科普）"
+        },
+        "outerWorld": {
+          "title": "总开关：出门见闻",
+          "type": "boolean",
+          "default": false,
+          "description": "让她自己看书/看视频字幕，把见闻带回来"
         },
         "ownerFeature": {
           "title": "总开关：功能中心",
@@ -4307,6 +4467,94 @@
       "advanced": false
     },
     {
+      "key": "simulation.outerWorld.browse.allowlist",
+      "label": "Allowlist",
+      "group": "群聊剧场",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.browse.blockedDomains",
+      "label": "Blocked Domains",
+      "group": "群聊剧场",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.browse.enabled",
+      "label": "Enabled",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.browse.maxSteps",
+      "label": "Max Steps",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.browse.readOnly",
+      "label": "Read Only",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.browse.snapshotChars",
+      "label": "Snapshot Chars",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.digest.enabled",
+      "label": "Enabled",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.digest.mentionPolicy",
+      "label": "Mention Policy",
+      "group": "群聊剧场",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.leisure.sources",
+      "label": "Sources",
+      "group": "群聊剧场",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.leisure.subtitleTimeoutMs",
+      "label": "Subtitle Timeout Ms",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.schedule.window.idleOnly",
+      "label": "Idle Only",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "simulation.ownerFeatures.enabled",
       "label": "Enabled",
       "group": "群聊剧场",
@@ -5191,6 +5439,14 @@
     {
       "key": "features.llmTips",
       "label": "总开关：大模型科普",
+      "group": "功能总开关",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "features.outerWorld",
+      "label": "总开关：出门见闻",
       "group": "功能总开关",
       "type": "boolean",
       "restart": "none",
@@ -6231,6 +6487,106 @@
       "type": "boolean",
       "restart": "none",
       "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.browse.policy",
+      "label": "访问策略",
+      "group": "出门见闻",
+      "type": "string",
+      "restart": "none",
+      "advanced": true,
+      "enum": [
+        "public",
+        "allowlist"
+      ]
+    },
+    {
+      "key": "simulation.outerWorld.digest.pushToOwner",
+      "label": "生成后私聊主人",
+      "group": "出门见闻",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.outerWorld.leisure.enabled",
+      "label": "读书线",
+      "group": "出门见闻",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.outerWorld.leisure.maxItemsPerDay",
+      "label": "每天最多见闻",
+      "group": "出门见闻",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 20
+    },
+    {
+      "key": "simulation.outerWorld.leisure.noteChars",
+      "label": "摘要字数上限",
+      "group": "出门见闻",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 80,
+      "max": 2000
+    },
+    {
+      "key": "simulation.outerWorld.leisure.subtitleLang",
+      "label": "字幕语言",
+      "group": "出门见闻",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.outerWorld.leisure.tokenBudget",
+      "label": "每日 token 预算",
+      "group": "出门见闻",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 10000000
+    },
+    {
+      "key": "simulation.outerWorld.leisure.ytDlpPath",
+      "label": "yt-dlp 路径",
+      "group": "出门见闻",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.outerWorld.schedule.minGapMs",
+      "label": "最小间隔（ms）",
+      "group": "出门见闻",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "simulation.outerWorld.schedule.window.end",
+      "label": "窗口结束",
+      "group": "出门见闻",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.outerWorld.schedule.window.start",
+      "label": "窗口开始",
+      "group": "出门见闻",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
     },
     {
       "key": "features.disabled",

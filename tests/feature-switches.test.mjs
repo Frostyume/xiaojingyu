@@ -39,20 +39,20 @@ import {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8').replace(/^\uFEFF/, '');
 
-// 开源库没有生活管家（lifeButler），所以是 15 个模块。
+// 开源库没有生活管家（lifeButler），所以是 16 个模块。
 const EXPECTED = [
   'qzone', 'qzoneCommentReply', 'signature', 'voice',
   'share', 'shareModule', 'aiTips', 'lifeFun', 'financeTips', 'llmTips',
-  's16Share', 'customShare', 'dailyReport', 'esportsFeed', 'ownerFeature'
+  's16Share', 'customShare', 'dailyReport', 'esportsFeed', 'outerWorld', 'ownerFeature'
 ];
 
 // 1. 模块清单与默认值
 assert.deepEqual([...FEATURE_IDS].sort(), [...EXPECTED].sort(), '模块 id 必须与设计一致');
-assert.equal(FEATURE_IDS.length, 15);
+assert.equal(FEATURE_IDS.length, 16);
 for (const id of FEATURE_IDS) assert.equal(FEATURE_DEFAULTS[id], false, `${id} 默认必须关闭`);
 
 const example = JSON.parse(read('config.example.json'));
-assert.deepEqual(Object.keys(example.features).sort(), ['disabled', ...EXPECTED].sort(), '示例配置必须包含 15 个开关');
+assert.deepEqual(Object.keys(example.features).sort(), ['disabled', ...EXPECTED].sort(), '示例配置必须包含 16 个开关');
 for (const id of FEATURE_IDS) assert.equal(example.features[id], false, `示例配置 ${id} 默认必须为 false`);
 
 const normalized = normalizeFeatureConfig(example.features);
@@ -209,7 +209,7 @@ assert.notEqual(sharePreview.status, 'disabled', '分享模块 dryRun 预览不�
 // 9. 控制台信息架构：群聊剧场总闸 + 15 个 features 模块各一张卡
 const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatNightQuiet'];
 assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS].sort());
-assert.equal(FEATURE_CARDS.length, 20);
+assert.equal(FEATURE_CARDS.length, 21);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
 assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'ops', 'owner']);
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'chat').master, 'groupChat');

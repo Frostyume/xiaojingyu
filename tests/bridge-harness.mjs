@@ -62,6 +62,12 @@ import * as coreTimeAwareness from '../runtime/kernel/time-awareness.js';
 import * as esportsSchedule from '../services/social/esports-schedule.js';
 import * as esportsFeed from '../services/social/esports-feed.js';
 import * as broadcastLimits from '../services/social/broadcast-limits.js';
+import * as outerWorldStoreModule from '../services/social/outer-world/store.js';
+import * as outerWorldPipeline from '../services/social/outer-world/pipeline.js';
+import * as outerWorldNovel from '../services/social/outer-world/sources/novel.js';
+import * as outerWorldPolicy from '../services/social/outer-world/policy.js';
+import * as outerWorldRatelimit from '../services/social/outer-world/ratelimit.js';
+import * as outerWorldSubtitle from '../services/social/outer-world/media/subtitle.js';
 import { unwrap, createTurnCollector } from '../channels/dsh/client.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -196,6 +202,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     isNightQuietNow, nightQuietConfig, buildToneNudgeLine, scheduleClingyFollowUp,
     getMode() { return currentMode; },
     signatureState,
+    runOuterWorld, outerWorldStatus, stopOuterWorld, syncOuterWorldJob,
     handleSignatureJob,
     handleSignatureOwnerCommand,
     handleDailyReportJob,
@@ -264,6 +271,12 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     ...esportsSchedule,
     ...esportsFeed,
     ...broadcastLimits,
+    ...outerWorldStoreModule,
+    ...outerWorldPipeline,
+    ...outerWorldNovel,
+    ...outerWorldPolicy,
+    ...outerWorldRatelimit,
+    ...outerWorldSubtitle,
     deepMergeConfig: coreHealth.deepMerge,
     // ACL 收紧会 spawn icacls 去改**真实**文件系统；测试不该做这件事（同理见下面的
     // cleanupTemp / processAudioVolume 桩）。桩成成功，让 hardenStateDirAcl 走正常分支。

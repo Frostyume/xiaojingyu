@@ -509,6 +509,40 @@
       "maxItems": 12,
       "summaryMaxChars": 1400
     },
+    "outerWorld": {
+      "leisure": {
+        "enabled": false,
+        "sources": [],
+        "maxItemsPerDay": 2,
+        "noteChars": 600,
+        "tokenBudget": 60000,
+        "ytDlpPath": "",
+        "subtitleLang": "zh-Hans",
+        "subtitleTimeoutMs": 60000
+      },
+      "browse": {
+        "enabled": false,
+        "policy": "public",
+        "allowlist": [],
+        "blockedDomains": [],
+        "maxSteps": 8,
+        "snapshotChars": 1000,
+        "readOnly": true
+      },
+      "digest": {
+        "enabled": false,
+        "pushToOwner": false,
+        "mentionPolicy": "natural"
+      },
+      "schedule": {
+        "minGapMs": 7200000,
+        "window": {
+          "start": "09:00",
+          "end": "23:00",
+          "idleOnly": true
+        }
+      }
+    },
     "reminders": {
       "enabled": true,
       "allowedKeys": [],
@@ -583,6 +617,7 @@
     "customShare": false,
     "dailyReport": false,
     "esportsFeed": false,
+    "outerWorld": false,
     "ownerFeature": false
   },
   "tts": {

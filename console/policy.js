@@ -27,7 +27,11 @@ export const ADMIN_ONLY_SIM_PATHS = new Set([
   '/api/simulation/initial-prompt',
   '/api/simulation/group-profiles',
   '/api/simulation/group-profile',
-  '/api/simulation/wake-preview'
+  '/api/simulation/wake-preview',
+  '/api/outer-world/status',
+  '/api/outer-world/notes',
+  '/api/outer-world/run',
+  '/api/outer-world/stop'
 ]);
 
 /** 实时状态页的静态外壳（不含数据，允许未带令牌先加载）。 */

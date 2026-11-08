@@ -114,6 +114,15 @@ export class JobQueue {
     ).changes;
   }
 
+  /** 丢弃某类型的历史失败任务（dead）；用于「主人明确停止后不要再自动重试」。 */
+  clearDead(type, note = '已放弃的历史失败任务') {
+    const at = this.now();
+    return this.db.run(
+      'UPDATE jobs SET state = \'cancelled\', last_error = ?, updated_at = ?, finished_at = ? WHERE type = ? AND state = \'dead\'',
+      note, at, at, String(type)
+    ).changes;
+  }
+
   recover() {
     const at = this.now();
     const stale = this.db.run(

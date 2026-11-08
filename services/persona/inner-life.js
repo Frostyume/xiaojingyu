@@ -4691,6 +4691,7 @@ ${formatTipCaption(item)}`;
     nudgeMood,
     statusText,
     runJob,
+    runTurn,
     getState: loadInner,
     getCandidates: loadCuriosity,
     refreshCandidates: (force = true) => refreshCandidates(ilCfg(), { force }),

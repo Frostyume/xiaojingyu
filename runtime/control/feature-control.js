@@ -327,6 +327,25 @@ const CARD_LIST = [
     ]
   },
   {
+    id: 'outerWorld',
+    board: 'social',
+    label: '出门见闻',
+    keywords: '出门 见闻 读书 看书 视频 字幕 outerWorld',
+    description: '她自己找书或视频字幕看，把有意思的见闻带回来；默认关闭。',
+    onEffect: '按时间窗与每日上限自己读书/看字幕，生成见闻卡片；聊天里自然聊到才提一句，不刷屏。',
+    offEffect: '停止出门，已排队的见闻任务清空；历史见闻保留。',
+    dangerousOff: false,
+    dependencies: [
+      dep('simulation.outerWorld.leisure.enabled', '读书线子开关', { enableValue: true })
+    ],
+    advanced: [
+      { key: 'simulation.outerWorld.leisure.maxItemsPerDay', label: '每天最多见闻', type: 'number', min: 0, max: 20, default: 2 },
+      { key: 'simulation.outerWorld.leisure.noteChars', label: '摘要字数上限', type: 'number', min: 80, max: 2000, default: 600 },
+      { key: 'simulation.outerWorld.digest.pushToOwner', label: '生成后私聊我', type: 'boolean', default: false },
+      { key: 'simulation.outerWorld.leisure.ytDlpPath', label: 'yt-dlp 路径（视频字幕）', type: 'text', default: '' }
+    ]
+  },
+  {
     id: 'signature',
     board: 'social',
     label: '个性签名',

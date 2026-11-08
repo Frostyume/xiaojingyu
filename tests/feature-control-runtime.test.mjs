@@ -56,6 +56,7 @@ const h = await bridgeHarness({
       },
       shareModules: { enabled: true },
       signature: { enabled: true },
+      outerWorld: { leisure: { enabled: true } },
       esportsFeed: { enabled: true },
       dailyReport: { enabled: true, at: '21:30', maxItems: 8, groups: ['group:456'] },
       ownerFeatures: { enabled: true }
@@ -96,7 +97,7 @@ try {
   assert.equal(snap.json.boards.find((b) => b.id === 'chat').master, 'groupChat');
   assert.equal(snap.json.boards.find((b) => b.id === 'shareEngine').master, 'shareModule');
   assert.deepEqual(snap.json.modules.map((m) => m.id).sort(), FEATURE_CARDS.map((c) => c.id).sort());
-  assert.equal(snap.json.modules.length, 20);
+  assert.equal(snap.json.modules.length, 21);
   for (const module of snap.json.modules) {
     assert.equal(typeof module.enabled, 'boolean', `${module.id} 必须只有一个布尔主开关`);
     assert.ok(module.board, `${module.id} 必须归属板块`);

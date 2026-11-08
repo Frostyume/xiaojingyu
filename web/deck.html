@@ -5300,6 +5300,17 @@ button.active,.primary {
         </div>
       </details>
 
+      <details class="content-feature" data-feature-panel="outerWorld">
+        <summary><b>出门见闻</b><span class="meta" id="owSummary"></span></summary>
+        <div class="row" style="margin-top:10px">
+          <button id="owRun" class="small">立即出门</button>
+          <button id="owStop" class="small">停止</button>
+          <span class="meta" id="owMsg"></span>
+        </div>
+        <div id="owStatus" class="meta content-history">（读取中…）</div>
+        <div class="content-history"><b>最近见闻</b><div id="owNotes" class="meta" style="margin-top:4px">（读取中…）</div></div>
+      </details>
+
       <details class="content-feature" data-feature-panel="share">
         <summary><b>主动分享</b><span class="meta" id="shareSummary"></span></summary>
         <div class="content-controls">
@@ -6260,6 +6271,9 @@ function renderAdvancedFields(module) {
     }
     if (field.type === 'time') {
       return `<label for="${domId}">${esc(field.label)}<input id="${domId}" type="time" data-advanced-key="${esc(field.key)}" value="${esc(field.value ?? '')}"></label>`;
+    }
+    if (field.type === 'text') {
+      return `<label for="${domId}">${esc(field.label)}<input id="${domId}" type="text" data-advanced-key="${esc(field.key)}" value="${esc(field.value ?? '')}"></label>`;
     }
     const attrs = [
       `id="${domId}"`,
@@ -7479,6 +7493,53 @@ async function saveGithubToken(token) {
   }
 }
 
+function renderOuterWorld(status, notes) {
+  const box = document.getElementById('owStatus');
+  if (box) {
+    box.textContent = '';
+    const q = status.quota || {};
+    const c = status.circuit || {};
+    const limits = status.limits || {};
+    const sub = status.subtitle || {};
+    const lines = [
+      `状态：${status.enabled ? '开启' : '关闭'}`,
+      `今日：${q.items || 0}/${limits.maxItemsPerDay || 0} 条 · token ${q.tokens || 0}/${limits.tokenBudget || 0}`,
+      `熔断：${Number(c.fails) || 0} 次失败${c.lastError ? `（${c.lastError}）` : ''}`,
+      `视频字幕：${sub.ok ? `可用（${sub.source || ''} ${sub.version || ''}）` : '不可用（缺 yt-dlp 或未安装）'}`
+    ];
+    for (const line of lines) {
+      const row = document.createElement('div');
+      row.textContent = line;
+      box.appendChild(row);
+    }
+  }
+  const list = document.getElementById('owNotes');
+  if (!list) return;
+  list.textContent = '';
+  const rows = Array.isArray(notes) ? notes : [];
+  if (!rows.length) { list.textContent = '还没有见闻。'; return; }
+  for (const note of rows.slice(0, 5)) {
+    const row = document.createElement('div');
+    const when = note.at ? new Date(Number(note.at)).toLocaleString('zh-CN', { hour12: false }) : '';
+    row.textContent = `${when} 《${note.title || ''}》：${note.summary || ''}`;
+    list.appendChild(row);
+  }
+}
+
+async function refreshOuterWorld() {
+  const summary = document.getElementById('owSummary');
+  try {
+    const [status, notes] = await Promise.all([api('/api/outer-world/status'), api('/api/outer-world/notes?limit=5')]);
+    if (!status?.ok) throw new Error(status?.error || '读取失败');
+    if (summary) summary.textContent = status.enabled ? `今天 ${status.quota?.items || 0} 条` : '已关闭';
+    renderOuterWorld(status, notes?.notes);
+  } catch (error) {
+    if (summary) summary.textContent = '读取失败';
+    const box = document.getElementById('owStatus');
+    if (box) box.textContent = '读取失败：' + (error?.message || error);
+  }
+}
+
 async function refreshContent() {
   const msg = document.getElementById('contentMsg');
   const metrics = document.getElementById('contentMetrics');
@@ -7493,6 +7554,7 @@ async function refreshContent() {
     contentState = r;
     msg.textContent = '已同步';
     msg.className = 'meta ok';
+    void refreshOuterWorld();
 
     const metric = (label, value, hint) => `<div class="metric"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(hint || '')}</small></div>`;
     const esp = r.esports || {};
@@ -7897,6 +7959,32 @@ document.getElementById('lifeReminderList')?.addEventListener('click', async (ev
 });
 
 document.getElementById('contentRefresh')?.addEventListener('click', refreshContent);
+
+document.getElementById('owRun')?.addEventListener('click', async () => {
+  const msg = document.getElementById('owMsg');
+  try {
+    const r = await api('/api/outer-world/run', 'POST', {});
+    msg.textContent = r.ok ? (r.note ? `看完《${r.note.title}》` : `这次没看：${r.reason}`) : `这次没看：${r.reason}`;
+    msg.className = r.ok ? 'meta ok' : 'meta err';
+    await refreshOuterWorld();
+  } catch (error) {
+    msg.textContent = '触发失败：' + (error?.message || error);
+    msg.className = 'meta err';
+  }
+});
+
+document.getElementById('owStop')?.addEventListener('click', async () => {
+  const msg = document.getElementById('owMsg');
+  try {
+    const r = await api('/api/outer-world/stop', 'POST', {});
+    msg.textContent = r.ok ? `已停止（清理 ${r.cleared || 0} 个排队任务）` : '停止失败';
+    msg.className = r.ok ? 'meta ok' : 'meta err';
+    await refreshOuterWorld();
+  } catch (error) {
+    msg.textContent = '停止失败：' + (error?.message || error);
+    msg.className = 'meta err';
+  }
+});
 document.getElementById('espSave')?.addEventListener('click', () => contentApplyConfig({
   'simulation.esportsFeed.refreshMs': Math.max(1, contentNumber('espRefreshMin', 5)) * 60000,
   'simulation.esportsFeed.maxItems': Math.max(1, contentNumber('espMaxItems', 12)),
