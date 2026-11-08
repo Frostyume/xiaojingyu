@@ -477,6 +477,16 @@ async function extractPage(page, kind) {
       return { author, content, floor: 1 };
     }
 
+    // 帖子头部「全部回复 (N)」是该帖可见回复总数（含楼中楼，不等于楼层数），
+    // 平台不暴露页码总数；仅作体量参考，不能代替跨页去重。
+    function tiebaReportedReplyTotal(doc) {
+      const body = doc.body;
+      if (!body) return null;
+      const text = String(body.innerText || '').replace(/\s+/g, ' ');
+      const match = /全部回复\s*[（(]\s*(\d+)\s*[)）]/.exec(text);
+      return match ? Number(match[1]) : null;
+    }
+
     // The PC thread is a virtual list: only a few floors are mounted at a time.
     // Harvest mounted floors while scrolling, dedupe by platform data-id, then
     // return them in first-mounted (floor) order. This reads one page only; it
@@ -501,7 +511,7 @@ async function extractPage(page, kind) {
       };
       let capped = harvest();
       const scroller = doc.querySelector('div.thread-container');
-      if (seen.size === 0 && !scroller) return { comments: [], truncated: false }; // 未 hydrate：不滚动
+      if (seen.size === 0 && !scroller) return { comments: [], truncated: false, totalReplies: tiebaReportedReplyTotal(doc) }; // 未 hydrate：不滚动
       if (scroller) {
         // 先回顶，避免一进页就停在中间楼层而漏掉最前几楼
         scroller.scrollTop = 0;
@@ -547,7 +557,7 @@ async function extractPage(page, kind) {
         charsLeft -= row.content.length;
       }
       if (maxCount > 0 && seen.size >= maxCount) truncated = true;
-      return { comments, truncated };
+      return { comments, truncated, totalReplies: tiebaReportedReplyTotal(doc) };
     }
 
     const tiebaResult = kind==='thread' ? await tiebaCollectThreadComments(document, { maxComments:40,maxCommentChars:6000,maxAuthorChars:50 }) : null;
@@ -557,7 +567,7 @@ async function extractPage(page, kind) {
       text_truncated: rawText.length > maxText,
       links,
       links_truncated: linksTruncated,
-      ...(tiebaResult ? {comments:tiebaResult.comments,comments_truncated:tiebaResult.truncated} : {}),
+      ...(tiebaResult ? {comments:tiebaResult.comments,comments_truncated:tiebaResult.truncated,thread_reply_total:tiebaResult.totalReplies} : {}),
     };
   }, { maxText: MAX_TEXT, maxLinks: MAX_LINKS, origin: ORIGIN, kind });
 }
@@ -590,7 +600,8 @@ function pageResult(request, observedAt, finalUrl, statusCode, extracted, status
     links: extracted.links,
     links_truncated: extracted.links_truncated,
     ...(request.kind === 'thread' && status === 'page-read' && Array.isArray(extracted.comments) ?
-      {comments:extracted.comments,comments_truncated:extracted.comments_truncated === true} : {}),
+      {comments:extracted.comments,comments_truncated:extracted.comments_truncated === true,
+        ...(Number.isInteger(extracted.thread_reply_total) ? {thread_reply_total:extracted.thread_reply_total} : {})} : {}),
     untrusted_evidence: true,
     ...extra,
   };
