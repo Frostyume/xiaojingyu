@@ -122,6 +122,7 @@ function validateRead(input) {
     }
     return {
       kind: 'thread',
+      page: pn,
       url: `${ORIGIN}/p/${input.thread_id}?pn=${pn}`,
     };
   }
@@ -584,6 +585,23 @@ function evidenceLevel(request, status) {
   return request.kind === 'forum' ? 'forum-leads' : 'thread-visible-page';
 }
 
+// Tieba clamps an out-of-range pn to a real page instead of failing. When a later-page
+// request comes back with floor 1 among its comments, the site served page 1, so a
+// sequential reader must treat it as the end of reachable content.
+function threadPageMeta(request, status, extracted) {
+  if (request.kind !== 'thread' || status !== 'page-read') return {};
+  const floors = Array.isArray(extracted.comments) ?
+    extracted.comments.map((row) => row.floor).filter(Number.isInteger) : [];
+  const firstFloor = floors.length > 0 ? Math.min(...floors) : null;
+  const lastFloor = floors.length > 0 ? Math.max(...floors) : null;
+  return {
+    page: request.page,
+    page_first_floor: firstFloor,
+    page_last_floor: lastFloor,
+    page_clamped: Number.isInteger(request.page) && request.page > 1 && firstFloor === 1,
+  };
+}
+
 function pageResult(request, observedAt, finalUrl, statusCode, extracted, status, extra = {}) {
   return {
     status,
@@ -602,6 +620,7 @@ function pageResult(request, observedAt, finalUrl, statusCode, extracted, status
     ...(request.kind === 'thread' && status === 'page-read' && Array.isArray(extracted.comments) ?
       {comments:extracted.comments,comments_truncated:extracted.comments_truncated === true,
         ...(Number.isInteger(extracted.thread_reply_total) ? {thread_reply_total:extracted.thread_reply_total} : {})} : {}),
+    ...threadPageMeta(request, status, extracted),
     untrusted_evidence: true,
     ...extra,
   };
