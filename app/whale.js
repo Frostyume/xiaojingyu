@@ -11512,6 +11512,8 @@ async function main() {
             const merged = deepMergeConfig(cfg, applyConfigPatch({}, { [applied.path]: applied.stored }));
             for (const k of Object.keys(cfg)) delete cfg[k];
             Object.assign(cfg, merged);
+            // 白名单键也走同一条重排：只改开关时若不重排，见闻/签名/日报要等一次重启才续上。
+            resyncFeatureSchedules([applied.path]);
             sendJson({ ok: true, key: applied.spec.key, value: applied.value, before: beforeValue, restart: applied.spec.restart || 'none' });
             return;
           } catch (error) {

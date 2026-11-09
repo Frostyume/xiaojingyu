@@ -18,7 +18,7 @@
     "test:features": "node tests/feature-switches.test.mjs && node tests/feature-control-runtime.test.mjs",
     "test:stage4": "node tests/stage4.test.mjs",
     "test:esports": "node tests/broadcast-limits.test.mjs && node tests/esports-fact-gate.test.mjs",
-    "test:outer-world": "node tests/outer-world.test.mjs",
+    "test:outer-world": "node tests/outer-world.test.mjs && node tests/outer-world-schedule.test.mjs",
     "verify": "node tools/gen-config-schema.mjs --check && node tools/gen-console-api.mjs --check && npm run test:core && npm run test:persona && npm run test:stage2 && npm run test:stage3 && npm run test:features && npm run test:stage4 && npm run test:audit && npm run test:esports && npm run test:outer-world",
     "doctor": "node tools/healthcheck.mjs",
     "handoff": "node tools/handoff.mjs",
