@@ -341,6 +341,7 @@ const CARD_LIST = [
     advanced: [
       { key: 'simulation.outerWorld.leisure.maxItemsPerDay', label: '每天最多见闻', type: 'number', min: 0, max: 20, default: 2 },
       { key: 'simulation.outerWorld.leisure.noteChars', label: '摘要字数上限', type: 'number', min: 80, max: 2000, default: 600 },
+      { key: 'simulation.outerWorld.leisure.digestChars', label: '单次摘要材料上限', type: 'number', min: 800, max: 20000, default: 6000 },
       { key: 'simulation.outerWorld.digest.pushToOwner', label: '生成后私聊我', type: 'boolean', default: false },
       { key: 'simulation.outerWorld.leisure.ytDlpPath', label: 'yt-dlp 路径（视频字幕）', type: 'text', default: '' }
     ]

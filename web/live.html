@@ -115,6 +115,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
 #signals .row{padding:9px 10px;border:1px solid var(--line);background:#0a1424;border-radius:8px;font-size:11px;line-height:1.5}
 #signals .muted{margin-top:3px}
 /* bonds */
+.rel-graph svg{display:block;width:100%;height:auto}
 .bonds-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .bonds-tabs button{background:#0a1424;border:1px solid var(--line);color:var(--muted);padding:4px 9px;font:inherit;font-size:10px;cursor:pointer}
 .bonds-tabs button.on{border-color:var(--pink);color:var(--pink);box-shadow:0 0 8px rgba(244,114,182,.25)}
@@ -226,6 +227,11 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
   </section>
 
   <section class="card flow span-12" id="flow"></section>
+
+  <section class="card span-12">
+    <h2>关系图谱 <span class="tag">GRAPH</span></h2>
+    <div class="rel-graph" id="relGraph"></div>
+  </section>
 
   <section class="card span-12">
     <h2>羁绊 <span class="tag">BONDS</span></h2>
@@ -414,6 +420,86 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
   }
 
   let bondGroupId = null;
+  // 关系图谱：羁绊越大节点越大、离中心越近、连线越粗；同名跨群的人只取羁绊最高的一条。
+  function relationshipGraphMembers(rel) {
+    const people = new Map();
+    for (const group of (Array.isArray(rel?.groups) ? rel.groups : [])) {
+      for (const member of (Array.isArray(group?.members) ? group.members : [])) {
+        const key = String(member?.id || member?.name || '');
+        if (!key || !member?.name) continue;
+        const prev = people.get(key);
+        if (!prev || (Number(member.bond) || 0) > (Number(prev.bond) || 0)) people.set(key, { ...member });
+      }
+    }
+    return [...people.values()];
+  }
+
+  function renderRelationshipGraph(host, { ownerName = '主人', members = [], height = 300 } = {}) {
+    if (!host) return;
+    host.textContent = '';
+    const list = (Array.isArray(members) ? members : [])
+      .filter((m) => m && m.name)
+      .map((m) => ({ ...m, bond: Math.max(0, Math.min(100, Number(m.bond) || 0)) }))
+      .sort((a, b) => b.bond - a.bond)
+      .slice(0, 12);
+    if (!list.length) {
+      host.appendChild(el('div', 'empty', '还在积累互动，暂时没有可画的关系节点'));
+      return;
+    }
+    const ns = 'http://www.w3.org/2000/svg';
+    const W = 760;
+    const H = height;
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', '关系图谱');
+    const cx = W / 2;
+    const cy = H / 2;
+    const maxR = Math.min(W, H) / 2 - 44;
+    const minR = 58;
+    const stageColors = ['#7f93b8', '#60a5fa', '#5eead4', '#34d399', '#fbbf24', '#f472b6'];
+    const pts = list.map((m, i) => {
+      const angle = (i / Math.max(1, list.length)) * Math.PI * 2 - Math.PI / 2;
+      const dist = minR + (1 - m.bond / 100) * (maxR - minR);
+      return { m, x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist };
+    });
+    for (const p of pts) {
+      const line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', cx); line.setAttribute('y1', cy);
+      line.setAttribute('x2', p.x); line.setAttribute('y2', p.y);
+      line.setAttribute('stroke', '#314a75');
+      line.setAttribute('stroke-width', String(0.8 + (p.m.bond / 100) * 2.4));
+      line.setAttribute('stroke-opacity', String(0.3 + (p.m.bond / 100) * 0.5));
+      svg.appendChild(line);
+    }
+    const center = document.createElementNS(ns, 'circle');
+    center.setAttribute('cx', cx); center.setAttribute('cy', cy); center.setAttribute('r', '14');
+    center.setAttribute('fill', '#f472b6'); center.setAttribute('fill-opacity', '0.92');
+    svg.appendChild(center);
+    const centerText = document.createElementNS(ns, 'text');
+    centerText.setAttribute('x', cx); centerText.setAttribute('y', cy + 28);
+    centerText.setAttribute('text-anchor', 'middle'); centerText.setAttribute('font-size', '11'); centerText.setAttribute('fill', '#dbe7ff');
+    centerText.textContent = ownerName;
+    svg.appendChild(centerText);
+    for (const p of pts) {
+      const r = 5 + (p.m.bond / 100) * 12;
+      const dot = document.createElementNS(ns, 'circle');
+      dot.setAttribute('cx', p.x); dot.setAttribute('cy', p.y); dot.setAttribute('r', String(r));
+      dot.setAttribute('fill', stageColors[Math.max(0, Math.min(5, Number(p.m.stage) || 0))]);
+      dot.setAttribute('fill-opacity', '0.92');
+      const title = document.createElementNS(ns, 'title');
+      title.textContent = `${p.m.name} · ${p.m.stageLabel || ''} · 羁绊 ${Math.round(p.m.bond)} · 互动 ${Number(p.m.interactions) || 0}`;
+      dot.appendChild(title);
+      svg.appendChild(dot);
+      const label = document.createElementNS(ns, 'text');
+      label.setAttribute('x', p.x); label.setAttribute('y', p.y + r + 11);
+      label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '10'); label.setAttribute('fill', '#7f93b8');
+      label.textContent = String(p.m.name).slice(0, 8);
+      svg.appendChild(label);
+    }
+    host.appendChild(svg);
+  }
+
   function renderRelationships(rel) {
     const box = $('bonds'); clear(box);
     const ownerBox = $('bondOwner'); clear(ownerBox);
@@ -682,7 +768,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
     const lastTxt = (t) => (t ? ago(t) : '还没发过');
     addSignal('表达节奏', `表情 ${lastTxt(ex.lastStickerAt)} · 图 ${lastTxt(ex.lastImageAt)} · 语音 ${lastTxt(ex.lastVoiceAt)}`, `上限：消息 ${cap.sendPerMinute ?? 12}/分 · 语音 ${cap.voicePerMinute ?? 6}/分 · 群分享 ${cap.sharePerDay ?? 20}/天 · 说说 ${cap.qzonePerDay ?? 10}/天`);
     const esp = c.esports || {};
-    const espMain = esp.title ? `${esp.kind === 'result' ? '[赛果] ' : '[资讯] '}${esp.title}` : (esp.error ? '抓取失败：' + esp.error : '暂无 S16 资讯');
+    const espMain = esp.enabled === false ? '已关闭' : (esp.title ? `${esp.kind === 'result' ? '[赛果] ' : '[资讯] '}${esp.title}` : (esp.error ? '抓取失败：' + esp.error : '暂无 S16 资讯'));
     const espSub = [esp.updatedAt ? '更新 ' + ago(esp.updatedAt) : '', esp.date || '', esp.source === 'search' ? '联网搜索' : esp.source === 'zhibo8' ? '直播吧' : '', esp.loading ? '抓取中' : '', esp.broadcastInfo ? '播报：' + esp.broadcastInfo : '', esp.schedule?.next ? `下一场 ${esp.schedule.next.date.slice(5)} ${esp.schedule.next.time || ''} ${esp.schedule.next.teamA} vs ${esp.schedule.next.teamB}` : ''].filter(Boolean).join(' · ');
     addSignal('S16 赛事', espMain, espSub);
     const sh = c.share || {};
@@ -725,7 +811,9 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
     }
     }
     const libSig = c.library || {};
-    addSignal('资源库', `${libSig.stickers ?? 0} 表情 / ${libSig.images ?? 0} 图片`, '收藏表情与配图库');
+    addSignal('资源库', libSig.enabled === false ? '已关闭' : `${libSig.stickers ?? 0} 表情 / ${libSig.images ?? 0} 图片`, libSig.enabled === false ? '表情包体系已关闭' : '收藏表情与配图库');
+    const stq = c.stickerCollect || {};
+    addSignal('表情补收', stq.enabled === false ? '已关闭' : `${Number(stq.pending) || 0} 条待补`, stq.enabled === false ? '队列保留，重新打开后继续补收' : '网络抖动没存上的表情会自动重试');
     const cc = c.crossChat || {};
     addSignal('跨会话', `${cc.groups?.length ?? 0} 群 / ${cc.privates?.length ?? 0} 好友`, '主人私聊可跨会话读取/发送');
     const se = c.search || {};
@@ -770,6 +858,9 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
     }
 
     renderRelationships(data.relationships);
+    renderRelationshipGraph($('relGraph'), {
+      members: data.relationships && data.relationships.enabled !== false ? relationshipGraphMembers(data.relationships) : []
+    });
 
     const feed = $('feed'); clear(feed);
     const events = Array.isArray(data.activity) ? data.activity : [];

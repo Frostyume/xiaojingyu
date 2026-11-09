@@ -9,7 +9,7 @@ She is present the way a friend is: she reads the room, picks her moment, rememb
 and actually does things when you ask.</p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.3.2-5B8DEF?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-1.3.3-5B8DEF?style=flat-square">
   <img alt="node" src="https://img.shields.io/badge/Node.js-%E2%89%A5%2022.13-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat-square&logo=windows&logoColor=white">
   <img alt="dsh" src="https://img.shields.io/badge/DSH-0.2.0--rc.2-1B1F3B?style=flat-square">
@@ -27,7 +27,7 @@ and actually does things when you ask.</p>
 </p>
 
 > [!NOTE]
-> Current version **v1.3.2**, verified item by item against **DSH 0.2.0-rc.2**. This release improves retries and the deferred collection queue, compresses oversized attachments automatically, and continues hardening the Outer World access policy.
+> Current version **v1.3.3**, verified item by item against **DSH 0.2.0-rc.2**. This release reads only the body text of long works with a configurable digest budget, makes the deferred sticker collection honour the sticker switch, tells "turned off" apart from "nothing today" on the live page, and draws relationships as a node-and-edge graph.
 > (`npm run verify:adaptation`). The first stable release, `v1.0.0`, shipped on 2026-11-03;
 > the `v0.1.x` / `v0.2.x` tags belong to upstream
 > [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) and are unrelated to this project.

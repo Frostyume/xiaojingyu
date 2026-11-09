@@ -519,6 +519,7 @@
         "sources": [],
         "maxItemsPerDay": 2,
         "noteChars": 600,
+        "digestChars": 6000,
         "tokenBudget": 60000,
         "ytDlpPath": "",
         "subtitleLang": "zh-Hans",

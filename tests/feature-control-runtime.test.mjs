@@ -155,6 +155,22 @@ try {
   assert.equal(aiVoice.json.reason, 'features.voice=false');
   console.log('OK 签名 / 赛事 / 语音：关闭后统一 403，语音预览例外');
 
+  // ── 3a. 实时快照的能力 enabled 必须与运行期门控一致，界面才能区分「关掉」和「没数据」──
+  assert.equal(h.buildLiveSnapshot().content.esports.enabled, false, '赛事总开关关闭时快照要报关闭');
+  h.cfg.features.esportsFeed = true;
+  assert.equal(h.buildLiveSnapshot().content.esports.enabled, true, '细项与分享引擎都开时快照才报开启');
+  h.cfg.features.shareModule = false;
+  assert.equal(h.buildLiveSnapshot().content.esports.enabled, false, '分享引擎总闸关闭时快照也要报关闭');
+  h.cfg.features.shareModule = true;
+  h.cfg.features.esportsFeed = false;
+  assert.equal(h.buildLiveSnapshot().content.stickerCollect.enabled, true, '表情体系默认开着');
+  assert.equal(h.buildLiveSnapshot().content.library.enabled, true, '资源库随表情体系报开启');
+  h.cfg.simulation.sticker = { ...(h.cfg.simulation.sticker ?? {}), enabled: false };
+  assert.equal(h.buildLiveSnapshot().content.stickerCollect.enabled, false, '表情体系关闭时补收要报关闭');
+  assert.equal(h.buildLiveSnapshot().content.library.enabled, false, '表情体系关闭时资源库也要报关闭');
+  h.cfg.simulation.sticker.enabled = true;
+  console.log('OK 实时快照：赛事/表情能力 enabled 与运行期门控一致');
+
   // ── 3b. 群日报：关闭后任务直接 disabled；打开后越过总闸（模式不符只顺延）──
   assert.equal((await call('/api/features/control', { method: 'POST', body: { id: 'dailyReport', enabled: false } })).status, 200);
   const reportOff = await h.handleDailyReportJob({ key: 'group:456', payload: { date: '2000-01-01' } });

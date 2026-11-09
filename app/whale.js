@@ -62,7 +62,7 @@ import {
 } from '../services/media/sticker-lib.js';
 import { createInnerLife } from '../services/persona/inner-life.js';
 import { createOuterWorldStore } from '../services/social/outer-world/store.js';
-import { chunkText, dedupeKey, digestChunks, pickNextSource } from '../services/social/outer-world/pipeline.js';
+import { chunkText, dedupeKey, digestChunks, limitDigestChunks, pickBodyText, pickNextSource } from '../services/social/outer-world/pipeline.js';
 import { normalizeNovelSource, readChapter } from '../services/social/outer-world/sources/novel.js';
 import { evaluateUrl, redactUrlForAudit } from '../services/social/outer-world/policy.js';
 import { createRateLimiter } from '../services/social/outer-world/ratelimit.js';
@@ -1276,7 +1276,7 @@ function loadConfig() {
     const at = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
     const schedule = at(ow.schedule);
     cfg.simulation.outerWorld = {
-      leisure: { enabled: false, sources: [], maxItemsPerDay: 2, noteChars: 600, tokenBudget: 60000, ytDlpPath: '', subtitleLang: 'zh-Hans', subtitleTimeoutMs: 60000, ...at(ow.leisure) },
+      leisure: { enabled: false, sources: [], maxItemsPerDay: 2, noteChars: 600, digestChars: 6000, tokenBudget: 60000, ytDlpPath: '', subtitleLang: 'zh-Hans', subtitleTimeoutMs: 60000, ...at(ow.leisure) },
       browse: { enabled: false, policy: 'public', allowlist: [], blockedDomains: [], maxSteps: 8, snapshotChars: 1000, readOnly: true, ...at(ow.browse) },
       digest: { enabled: false, pushToOwner: false, mentionPolicy: 'natural', ...at(ow.digest) },
       schedule: {
@@ -2661,9 +2661,16 @@ async function main() {
     }).text;
   }
 
+  /** 赛事资讯的运行期门控：分享引擎总闸 && 功能开关 && 细项开关，实时页据此区分「关掉」和「今天没播」。 */
+  function esportsFeedGateOpen() {
+    return shareEngineEnabled(cfg)
+      && featureEnabled(cfg, 'esportsFeed')
+      && (cfg.simulation?.esportsFeed?.enabled !== false);
+  }
+
   async function refreshEsportsFeed() {
     const ec = cfg.simulation?.esportsFeed ?? {};
-    if (!shareEngineEnabled(cfg) || !featureEnabled(cfg, 'esportsFeed') || ec.enabled === false || esportsFeedLoading) return;
+    if (!esportsFeedGateOpen() || esportsFeedLoading) return;
     esportsFeedLoading = true;
     try {
       let feed;
@@ -3539,7 +3546,7 @@ async function main() {
       outerWorldStore.progress.set(source.id, {
         chapterIndex: target.chapterIndex + 1,
         lastReadAt: Date.now(),
-        ...(source.type === 'video' ? { done: true } : {})
+        ...(source.type === 'video' || !(Array.isArray(source.chapters) && source.chapters.length) ? { done: true } : {})
       });
       return skip('duplicate');
     }
@@ -3563,10 +3570,11 @@ async function main() {
         chapter = await readChapter({ source, progress, fetchText });
       }
       if (!chapter.ok) throw Object.assign(new Error(chapter.reason || 'read-failed'), { outerReason: chapter.reason || 'read-failed' });
-      const chunks = chunkText(chapter.text, { maxChars: 1200 });
-      const digest = await digestChunks({ chunks, generate, noteChars: Math.max(1, Number(leisure.noteChars) || 600) });
+      const chunks = chunkText(pickBodyText(chapter.text), { maxChars: 1200 });
+      const material = limitDigestChunks(chunks, leisure.digestChars);
+      const digest = await digestChunks({ chunks: material.chunks, generate, noteChars: Math.max(1, Number(leisure.noteChars) || 600) });
       if (!digest.ok) throw Object.assign(new Error('digest-failed'), { outerReason: 'digest-failed' });
-      const tokens = Math.max(1, Math.ceil((chapter.text.length + digest.summary.length) / 4));
+      const tokens = Math.max(1, Math.ceil((material.chars + digest.summary.length) / 4));
       if (tokenBudget > 0 && quota.tokens + tokens > tokenBudget) return skip('token-budget');
       const note = {
         title: chapter.title || target.title,
@@ -3582,8 +3590,9 @@ async function main() {
       const appended = outerWorldStore.notes.append(note);
       outerWorldStore.notes.dedupeAdd(noteKey);
       const nextIndex = chapter.nextProgress?.chapterIndex ?? target.chapterIndex + 1;
-      const finished = chapter.nextProgress?.done === true
-        || (Array.isArray(source.chapters) && source.chapters.length > 0 && nextIndex >= source.chapters.length);
+      const hasChapters = Array.isArray(source.chapters) && source.chapters.length > 0;
+      // 单页来源（没有章节目录）读完一次即视为完结，否则每次调度都空转去重。
+      const finished = chapter.nextProgress?.done === true || (hasChapters ? nextIndex >= source.chapters.length : true);
       outerWorldStore.progress.set(source.id, {
         chapterIndex: nextIndex,
         lastReadAt: Date.now(),
@@ -3659,6 +3668,7 @@ async function main() {
       limits: {
         maxItemsPerDay: Number(leisure.maxItemsPerDay) || 0,
         noteChars: Number(leisure.noteChars) || 600,
+        digestChars: Math.max(800, Math.min(20000, Number(leisure.digestChars) || 6000)),
         tokenBudget: Number(leisure.tokenBudget) || 0
       },
       noteCount: outerWorldStore.notes.list({ limit: 200 }).length
@@ -4042,7 +4052,7 @@ async function main() {
         timeoutMs: Number(searchCfg.timeoutMs) || 35000
       },
       esports: {
-        enabled: cfg.simulation?.esportsFeed?.enabled !== false,
+        enabled: esportsFeedGateOpen(),
         refreshMs: Number(cfg.simulation?.esportsFeed?.refreshMs) || 300000,
         maxItems: Number(cfg.simulation?.esportsFeed?.maxItems) || 12,
         shareEnabled: cfg.simulation?.innerLife?.curiosity?.sources?.s16 !== false,
@@ -4160,7 +4170,12 @@ async function main() {
         }))
       },
       allowGroups: Array.isArray(cfg.allow?.groups) ? cfg.allow.groups.map((id) => (/^group:/.test(String(id)) ? String(id) : `group:${id}`)) : [],
+      stickerCollect: {
+        enabled: stickerEnabled(),
+        pending: (() => { try { return loadPendingStickers().length; } catch { return 0; } })()
+      },
       library: {
+        enabled: stickerEnabled(),
         stickers: Array.isArray(stickerEntries) ? stickerEntries.length : 0,
         images: Array.isArray(imageEntries) ? imageEntries.length : 0
       },
@@ -5524,6 +5539,8 @@ async function main() {
 
   // 补收队列处理：逐条压缩/上传；压缩后仍超限就放弃并提示重发。
   async function processPendingStickers() {
+    // 表情体系关闭时队列原样留着：不上传、不发消息、不清空，重新打开后继续补收。
+    if (!stickerEnabled()) return { status: 'disabled', reason: 'simulation.sticker.enabled=false' };
     const list = loadPendingStickers();
     if (!list.length) return { status: 'idle' };
     const keep = [];

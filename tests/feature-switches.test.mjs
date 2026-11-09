@@ -335,6 +335,14 @@ const consoleHtml = read('web/deck.html');
 assert.match(consoleHtml, /id="featureSwitches"/);
 assert.match(consoleHtml, /id="featureSwitchesSave"/);
 assert.match(consoleHtml, /data-feature-id/);
+// 关闭态在实时页/概览要写「已关闭」，不能只报一个 0 让人以为功能开着却没数据。
+const liveHtml = read('web/live.html');
+assert.match(liveHtml, /esp\.enabled === false \? '已关闭'/, '赛事关闭时实时页显示已关闭');
+assert.match(liveHtml, /stq\.enabled === false \? '已关闭'/, '收藏补收关闭时显示已关闭而不是条数');
+assert.match(liveHtml, /libSig\.enabled === false \? '已关闭'/, '表情体系关闭时资源库显示已关闭');
+assert.match(liveHtml, /const dist = minR \+ \(1 - m\.bond \/ 100\) \* \(maxR - minR\)/, '关系图谱按羁绊决定离中心的距离');
+assert.match(liveHtml, /dot\.setAttribute\('r', String\(r\)\)/, '关系图谱节点半径随羁绊增大');
+assert.match(liveHtml, /0\.8 \+ \(p\.m\.bond \/ 100\) \* 2\.4/, '关系图谱连线粗细随羁绊增大');
 assert.match(read('app/whale.js'), /cfg\.simulation\?\.innerLife\?\.enabled !== true\) return;/, '空间评论轮询必须再判内心生活总闸');
 assert.match(consoleHtml, /const shown = deps\.filter\(\(item\) => !item\.ok\)/, '依赖只提示未满足项，避免满屏绿条');
 assert.match(consoleHtml, /featureFilterShown = shown \+ mastersShown/, '显示计数必须包含板块总闸');

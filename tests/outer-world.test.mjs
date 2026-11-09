@@ -8,7 +8,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { bridgeHarness } from './bridge-harness.mjs';
 import { createOuterWorldStore, shanghaiDayKey } from '../services/social/outer-world/store.js';
-import { chunkText, dedupeKey, pickNextSource } from '../services/social/outer-world/pipeline.js';
+import { chunkText, dedupeKey, limitDigestChunks, pickBodyText, pickNextSource } from '../services/social/outer-world/pipeline.js';
 import { evaluateUrl, detectLoginWall } from '../services/social/outer-world/policy.js';
 import { createRateLimiter } from '../services/social/outer-world/ratelimit.js';
 import { cleanVtt, fetchSubtitleTrack } from '../services/social/outer-world/media/subtitle.js';
@@ -133,6 +133,59 @@ test('假源跑通：写卡片/进度/配额/审计，提示词只带标题与�
     const again = await h.runOuterWorld('test', { fetchText: fakeFetch(), generate: fakeGenerate });
     assert.equal(again.ok, false);
     assert.equal(again.reason, 'quota', '达到每日上限后应直接跳过');
+  } finally {
+    await h.close();
+  }
+});
+
+test('模块层：正文提取跳页眉、按章回起取，摘要材料按预算截断', () => {
+  const header = '图书编号与制作说明。\n\n*** START OF THE PROJECT GUTENBERG EBOOK TEST BOOK ***\n\n';
+  assert.equal(pickBodyText(`${header}序言：这本书写得很慢。\n\nCHAPTER II\n\n正文从这里开始。`).startsWith('CHAPTER II'), true);
+  assert.equal(pickBodyText(`${header}小引。\n\n第三回 她出门了\n\n正文从这里开始。`).startsWith('第三回'), true);
+  assert.equal(pickBodyText('没有页眉也没有章节标题的一段普通正文。'), '没有页眉也没有章节标题的一段普通正文。');
+  assert.equal(pickBodyText(''), '');
+
+  const wide = Array.from({ length: 10 }, () => '句'.repeat(1000));
+  assert.deepEqual(limitDigestChunks(wide, 2500).chunks, wide.slice(0, 2));
+  assert.equal(limitDigestChunks(wide, 2500).chars, 2000);
+  // 预算下限 800 时哪怕第一块更长也要留下一块，否则没有任何材料可摘要。
+  const capped = limitDigestChunks(wide, 1);
+  assert.equal(capped.chunks.length, 1);
+  assert.equal(capped.chars, 1000);
+  assert.deepEqual(limitDigestChunks([], 800), { chunks: [], chars: 0 });
+});
+
+test('单页来源读完即完结；超长正文按 digestChars 截断后再摘要', async () => {
+  const longHtml = `<html><body><p>${'第一段内容写得比较慢，她读到这里停了一下。'.repeat(200)}</p><p>${'第二段继续往下讲，句子不长。'.repeat(200)}</p></body></html>`;
+  const prompts = [];
+  const h = await bridgeHarness({
+    config: {
+      features: { outerWorld: true },
+      simulation: {
+        outerWorld: {
+          leisure: {
+            enabled: true, sources: [{ title: '长读物', url: 'https://example.com/long' }],
+            maxItemsPerDay: 1, noteChars: 120, digestChars: 800, tokenBudget: 0
+          },
+          digest: { pushToOwner: false }
+        }
+      }
+    }
+  });
+  try {
+    const result = await h.runOuterWorld('test', {
+      fetchText: async () => longHtml,
+      generate: async (prompt) => {
+        prompts.push(prompt);
+        return JSON.stringify({ summary: '她把开头这一段读完了。', quote: '第一段内容写得比较慢' });
+      }
+    });
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.ok(prompts.length === 1, '只应消化一次材料');
+    assert.ok(prompts[0].length < 2500, `喂给模型的材料应按预算截断，实际 ${prompts[0].length}`);
+    const progress = JSON.parse(fs.readFileSync(path.join(h.temp, 'state', 'leisure-progress.json'), 'utf8'));
+    assert.equal(Object.values(progress)[0].done, true, '没有章节目录的单页来源读完一次即完结');
+    assert.equal(h.outerWorldStatus().limits.digestChars, 800);
   } finally {
     await h.close();
   }

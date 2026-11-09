@@ -7579,12 +7579,12 @@ async function refreshContent() {
     const mem = r.memory || {};
     const lib = r.library || {};
     metrics.innerHTML = [
-      metric('S16 资讯', esp.title ? (esp.kind === 'result' ? '有赛果' : '有更新') : (esp.error ? '抓取失败' : '暂无'), esp.updatedAt ? '更新于 ' + fmtAgoMs(Date.now() - esp.updatedAt) : '未抓取'),
+      metric('S16 资讯', esp.enabled === false ? '已关闭' : (esp.title ? (esp.kind === 'result' ? '有赛果' : '有更新') : (esp.error ? '抓取失败' : '暂无')), esp.enabled === false ? '分享引擎或赛事开关未开' : (esp.updatedAt ? '更新于 ' + fmtAgoMs(Date.now() - esp.updatedAt) : '未抓取')),
       metric('今日分享', String(sh.today ?? 0), `目标 ${sh.target || '未设置'} / 上限 ${sh.maxPerDay ?? 0}`),
       metric('空间说说', `${qz.today ?? 0}/${qz.maxPerDay ?? 0}`, qz.paused ? '已暂停' : (qz.pendingDraft ? '有待审草稿' : '正常运行')),
       metric('跨会话记忆', String(mem.personalCount ?? 0), `长期记忆共 ${mem.total ?? 0} 条`),
       metric('联网搜索', String(se.provider || 'auto'), se.configured ? (se.model || '已配置') : '未配置凭据'),
-      metric('资源库', `${lib.stickers ?? 0} / ${lib.images ?? 0}`, '表情 / 图片'),
+      metric('资源库', lib.enabled === false ? '已关闭' : `${lib.stickers ?? 0} / ${lib.images ?? 0}`, lib.enabled === false ? '表情包体系已关闭' : '表情 / 图片'),
       metric('跨会话', `${r.crossChat?.groups?.length ?? 0} 群 / ${r.crossChat?.privates?.length ?? 0} 好友`, '主人私聊可读取/发送'),
       metric('声线', r.voiceStyle?.effective === 'dark' ? '黑化' : '软萌', `${r.voiceStyle?.mode === 'auto' ? '自动' : '手动'} · valence ${Number(r.voiceStyle?.valence ?? 0).toFixed(2)} · ${r.voiceStyle?.transport?.mode === 'opus' ? 'Opus ' + (r.voiceStyle?.transport?.bitrate || '32k') : 'WAV'}${r.voiceStyle?.transport?.normalize ? ' · 响度 ' + (r.voiceStyle?.transport?.loudness || 'normal') : ''}`),
       metric('表达上限', `${r.expression?.caps?.sendPerMinute ?? 12}/分`, `语音 ${r.expression?.caps?.voicePerMinute ?? 6}/分 · 群分享 ${r.expression?.caps?.sharePerDay ?? 20}/天 · 说说 ${r.expression?.caps?.qzonePerDay ?? 10}/天`)

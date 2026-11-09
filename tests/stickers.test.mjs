@@ -348,6 +348,44 @@ console.log('## 取图重试与过大附件压缩');
   }
 }
 
+console.log('## 补收队列：表情体系开关门控');
+{
+  const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+  const h = await bridgeHarness({
+    config: {
+      allow: { private: ['123'], groups: ['456'] },
+      consoleAuth: { enabled: false },
+      simulation: { sticker: { enabled: false } }
+    },
+    files: {
+      'state/pending-stickers.json': [{
+        id: 'pending-gate', key: 'private:123', remark: '', file: `base64://${gif.toString('base64')}`,
+        at: Date.now(), attempts: 1, lastProblem: 'timeout'
+      }]
+    }
+  });
+  try {
+    h.setMode('simulation');
+    h.setSnowlumaConnected(true);
+    let uploads = 0;
+    h.bot.request = async (action) => {
+      if (action === 'add_custom_face') { uploads += 1; return { status: 'ok', retcode: 0, data: { emoji_id: 'fixture-gate' } }; }
+      return { status: 'ok', retcode: 0, data: [] };
+    };
+    const off = await h.processPendingStickers();
+    ok(off?.status === 'disabled', '表情体系关闭时补收直接返回 disabled');
+    const queueFile = path.join(h.temp, 'state/pending-stickers.json');
+    ok(uploads === 0, '关闭时不发起上传');
+    const kept = JSON.parse(fs.readFileSync(queueFile, 'utf8'));
+    ok(kept.length === 1 && kept[0].id === 'pending-gate', '关闭时队列一条都不删');
+
+    h.cfg.simulation.sticker.enabled = true;
+    const on = await h.processPendingStickers();
+    ok(uploads === 1 && on?.status === 'done', '重新打开后同一队列继续补收并清空');
+    ok(JSON.parse(fs.readFileSync(queueFile, 'utf8')).length === 0, '补收成功后队列落盘为空');
+  } finally { await h.close(); }
+}
+
 console.log('## 模型工具：按引用 messageId 删除');
 {
   const h = await bridgeHarness({

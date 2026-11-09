@@ -156,6 +156,7 @@ const FIELD_META = {
   'simulation.outerWorld.leisure.enabled': { label: '读书线', group: '出门见闻', restart: 'none', description: '让她自己读公开网页/电子书，生成见闻卡片；默认关闭' },
   'simulation.outerWorld.leisure.maxItemsPerDay': { label: '每天最多见闻', group: '出门见闻', restart: 'none', min: 0, max: 20, advanced: true },
   'simulation.outerWorld.leisure.noteChars': { label: '摘要字数上限', group: '出门见闻', restart: 'none', min: 80, max: 2000, advanced: true },
+  'simulation.outerWorld.leisure.digestChars': { label: '单次摘要材料上限（字符）', group: '出门见闻', restart: 'none', min: 800, max: 20000, advanced: true, description: '整本一次喂给模型会爆上下文，按预算只取开头若干块' },
   'simulation.outerWorld.leisure.tokenBudget': { label: '每日 token 预算', group: '出门见闻', restart: 'none', min: 0, max: 10000000, advanced: true },
   'simulation.outerWorld.leisure.ytDlpPath': { label: 'yt-dlp 路径', group: '出门见闻', restart: 'none', advanced: true, description: '留空时依次查 YT_DLP_PATH 与 PATH；只用于视频字幕' },
   'simulation.outerWorld.leisure.subtitleLang': { label: '字幕语言', group: '出门见闻', restart: 'none', advanced: true },
@@ -460,7 +461,7 @@ export function migrateConfigObject(input, { now = Date.now() } = {}) {
   cfg.simulation = isObject(cfg.simulation) ? cfg.simulation : {};
   const ow = isObject(cfg.simulation.outerWorld) ? cfg.simulation.outerWorld : null;
   const owNext = {
-    leisure: { enabled: false, sources: [], maxItemsPerDay: 2, noteChars: 600, tokenBudget: 60000, ytDlpPath: '', subtitleLang: 'zh-Hans', subtitleTimeoutMs: 60000, ...(isObject(ow?.leisure) ? ow.leisure : {}) },
+    leisure: { enabled: false, sources: [], maxItemsPerDay: 2, noteChars: 600, digestChars: 6000, tokenBudget: 60000, ytDlpPath: '', subtitleLang: 'zh-Hans', subtitleTimeoutMs: 60000, ...(isObject(ow?.leisure) ? ow.leisure : {}) },
     browse: { enabled: false, policy: 'public', allowlist: [], blockedDomains: [], maxSteps: 8, snapshotChars: 1000, readOnly: true, ...(isObject(ow?.browse) ? ow.browse : {}) },
     digest: { enabled: false, pushToOwner: false, mentionPolicy: 'natural', ...(isObject(ow?.digest) ? ow.digest : {}) },
     schedule: {

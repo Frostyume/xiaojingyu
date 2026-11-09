@@ -49,6 +49,38 @@ export function chunkText(text, { maxChars = 1200 } = {}) {
   return chunks.filter((c) => c.trim().length > 0);
 }
 
+const GUTENBERG_START_RE = /\*\*\*\s*START OF (?:THE|THIS) PROJECT GUTENBERG EBOOK[^*]*\*\*\*/i;
+const CHAPTER_HEAD_RE = /(?:^|\n)\s*(?:CHAPTER|Chapter)\s+[IVXLC0-9]+[^\n]{0,60}|(?:^|\n)\s*第[一二三四五六七八九十百零〇\d]+[章回]/;
+
+/**
+ * 去页眉：先跳过古登堡 *** START OF ... *** 之前的版权/制作说明，
+ * 再从第一个章回标题（Chapter N / 第 N 章·回）起取正文；两者都没有就原样返回。
+ */
+export function pickBodyText(text) {
+  let body = String(text ?? '');
+  const marker = GUTENBERG_START_RE.exec(body);
+  if (marker) body = body.slice(marker.index + marker[0].length);
+  const chapter = CHAPTER_HEAD_RE.exec(body);
+  if (chapter) body = body.slice(chapter.index);
+  return body.trim();
+}
+
+/** 整本一次塞给模型会爆上下文：按字符预算从开头取若干块，超预算的第一块之外全部丢掉。 */
+export function limitDigestChunks(chunks = [], digestChars = 6000) {
+  const budget = Math.max(800, Math.min(20000, Number(digestChars) || 6000));
+  const parts = (Array.isArray(chunks) ? chunks : []).map((chunk) => String(chunk ?? '')).filter((chunk) => chunk.trim());
+  const picked = [];
+  let chars = 0;
+  for (const chunk of parts) {
+    if (chars + chunk.length > budget) break;
+    picked.push(chunk);
+    chars += chunk.length;
+  }
+  if (picked.length) return { chunks: picked, chars };
+  const first = parts[0] || '';
+  return { chunks: first ? [first] : [], chars: first.length };
+}
+
 /** 稳定短哈希：同标题/地址/开头内容 → 同 key。 */
 export function dedupeKey({ title = '', url = '', text = '' } = {}) {
   const material = `${String(title)}\n${String(url)}\n${String(text).slice(0, 200)}`;

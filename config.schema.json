@@ -1302,6 +1302,14 @@
                   "type": "number",
                   "default": 60000
                 },
+                "digestChars": {
+                  "title": "单次摘要材料上限（字符）",
+                  "type": "number",
+                  "default": 6000,
+                  "minimum": 800,
+                  "maximum": 20000,
+                  "description": "整本一次喂给模型会爆上下文，按预算只取开头若干块"
+                },
                 "enabled": {
                   "title": "读书线",
                   "type": "boolean",
@@ -6532,6 +6540,16 @@
       "type": "boolean",
       "restart": "none",
       "advanced": true
+    },
+    {
+      "key": "simulation.outerWorld.leisure.digestChars",
+      "label": "单次摘要材料上限（字符）",
+      "group": "出门见闻",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 800,
+      "max": 20000
     },
     {
       "key": "simulation.outerWorld.leisure.enabled",
