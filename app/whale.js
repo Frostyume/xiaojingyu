@@ -5448,6 +5448,38 @@ async function main() {
   }
 
   // 收藏聊天里的一张表情（add_custom_face），并按 AI 看到的含义写简短备注（modify_custom_face）。
+  // 收藏失败时的补收队列：网络抖动导致 add_custom_face 持续失败时，先落盘稍后自动重试。
+  const STICKER_TRANSIENT_RE = /fetch failed|timeout|timed out|ENOTFOUND|EAI_AGAIN|ECONNRESET|ETIMEDOUT|socket hang up|HTTP 5\d\d/i;
+  const PENDING_STICKERS_FILE = path.join(STATE_DIR, 'pending-stickers.json');
+  const PENDING_STICKER_MAX = 5;
+  const PENDING_STICKER_MAX_ATTEMPTS = 6;
+  const PENDING_STICKER_RETRY_MS = 5 * 60 * 1000;
+
+  function loadPendingStickers() {
+    const list = readJsonSafe(PENDING_STICKERS_FILE, []);
+    return Array.isArray(list) ? list.filter((item) => item && item.file && item.key) : [];
+  }
+
+  function savePendingStickers(list) {
+    try {
+      atomicWriteJson(PENDING_STICKERS_FILE, (Array.isArray(list) ? list : []).slice(-PENDING_STICKER_MAX));
+    } catch (error) {
+      log(`[sticker] 补收队列保存失败：${error?.message ?? error}`);
+    }
+  }
+
+  function scheduleStickerCollectJob(delayMs = PENDING_STICKER_RETRY_MS) {
+    if (!jobQueue) return;
+    try {
+      jobQueue.enqueue({
+        type: 'sticker.collect',
+        dedupeKey: 'sticker.collect',
+        runAfter: Date.now() + Math.max(1000, Number(delayMs) || PENDING_STICKER_RETRY_MS),
+        maxAttempts: 2
+      });
+    } catch {}
+  }
+
   async function collectSticker(key, messageRef, remark) {
     const assertSendAllowed = captureSendGuard(key);
     const st = getSimulationState(key);
@@ -5478,9 +5510,62 @@ async function main() {
     }
     assertSendAllowed();
     const file = 'base64://' + source.buffer.toString('base64');
-    const addRes = await bot.request('add_custom_face', { file });
+    // 上传层可能是 SnowLuma 自己的 fetch（DNS 抖动/代理干扰）；只对瞬时错误重试，
+    // 业务错误（例如表情库满）立即返回，避免把“不符合要求”误报成网络问题。
+    const transientRe = STICKER_TRANSIENT_RE;
+    const rawDelays = cfg.simulation?.sticker?.collect?.retryDelaysMs;
+    const delays = Array.isArray(rawDelays) && rawDelays.length
+      ? rawDelays.map((n) => Math.max(0, Number(n) || 0)).slice(0, 2)
+      : [1500, 5000];
+    const bufferMd5 = crypto.createHash('md5').update(source.buffer).digest('hex').toUpperCase();
+    const existingByMd5 = () => (Array.isArray(stickerEntries) ? stickerEntries : [])
+      .find((entry) => entry && bufferMd5 && String(entry.md5 || '').toUpperCase() === bufferMd5) || null;
+    let addRes = null;
+    let lastProblem = '';
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      if (attempt > 1) {
+        appendActivity(`${key} 收藏表情第 ${attempt}/3 次尝试（上次：${lastProblem || 'unknown'}）`);
+        await sleep(delays[attempt - 2] ?? 5000);
+      }
+      try {
+        addRes = await bot.request('add_custom_face', { file });
+      } catch (error) {
+        addRes = null;
+        lastProblem = String(error?.message ?? error);
+      }
+      if (addRes && addRes.status === 'ok' && addRes.retcode === 0) {
+        if (attempt > 1) appendActivity(`${key} 收藏表情第 ${attempt} 次重试成功`);
+        break;
+      }
+      lastProblem = String(addRes?.wording || addRes?.retcode || lastProblem || 'unknown');
+      if (!transientRe.test(lastProblem)) break;
+    }
     if (!addRes || addRes.status !== 'ok' || addRes.retcode !== 0) {
-      throw new Error(`add_custom_face 失败: ${addRes?.wording || addRes?.retcode || 'unknown'}`);
+      // 重试后没拿到回执，但同图已在本地库里：视为成功，别让模型误报“手滑”。
+      const existing = existingByMd5();
+      if (existing) {
+        appendActivity(`${key} 收藏表情未拿到回执，但本地已有同图（${existing.id}），按成功处理`);
+        return { emojiId: existing.id, entry: existing, remark: '', reused: true };
+      }
+      if (transientRe.test(lastProblem)) {
+        const maxRemarkChars = Math.max(1, Number(cfg.simulation?.sticker?.collect?.maxRemarkChars) || 20);
+        const cleanRemark = String(remark ?? '').trim().slice(0, maxRemarkChars);
+        const pending = loadPendingStickers();
+        pending.push({
+          id: crypto.createHash('sha1').update(`${Date.now()}|${key}|${bufferMd5}`).digest('hex').slice(0, 10),
+          key,
+          remark: cleanRemark,
+          file,
+          at: Date.now(),
+          attempts: 1,
+          lastProblem
+        });
+        savePendingStickers(pending);
+        appendActivity(`${key} 收藏表情网络不稳，已加入补收队列（${pending.length} 条）`);
+        scheduleStickerCollectJob();
+        return { pending: true, emojiId: '', entry: null, remark: cleanRemark, message: '网络不稳，已先记下，稍后自动补收藏' };
+      }
+      throw new Error(`add_custom_face 失败: ${lastProblem || 'unknown'}`);
     }
     const emojiId = String(addRes.data?.emoji_id || '');
     if (!emojiId) throw new Error('add_custom_face 未返回 emoji_id');
@@ -11902,6 +11987,12 @@ async function main() {
           try {
             const result = await collectSticker(key, messageRef, remark);
             saveSimulationState();
+            if (result.pending) {
+              log(`[sticker] AI 收藏表情排队补收 ${key}: ${result.message}`);
+              appendActivity(`${key} [sticker] AI 收藏表情排队补收：${result.message}`);
+              sendJson({ ok: true, pending: true, key, message: result.message, remark: result.remark });
+              return;
+            }
             log(`[sticker] AI 收藏表情 ${key}: ${result.emojiId}${result.remark ? '（备注：' + result.remark + '）' : ''}`);
             appendActivity(`${key} [sticker] AI 收藏表情：${result.remark || result.emojiId}`);
             sendJson({ ok: true, key, sticker: result.entry, emojiId: result.emojiId, remark: result.remark });
@@ -19670,6 +19761,45 @@ async function main() {
       await innerLife.tick();
       return { status: 'ok' };
     });
+    // 收藏补收：每 5 分钟重试一次，最多 6 次；成功后同步本地库并回一句。
+    jobQueue.register('sticker.collect', async () => {
+      const list = loadPendingStickers();
+      if (!list.length) return { status: 'idle' };
+      const keep = [];
+      for (const item of list) {
+        const attempts = Math.max(0, Number(item.attempts) || 0);
+        try {
+          const res = await bot.request('add_custom_face', { file: item.file });
+          if (res && res.status === 'ok' && res.retcode === 0) {
+            const emojiId = String(res.data?.emoji_id || '');
+            if (item.remark && emojiId) {
+              try { await bot.request('modify_custom_face', { emoji_id: emojiId, desc: item.remark }); } catch {}
+            }
+            try { await syncStickerLibrary(true); } catch {}
+            try { await sendToQQ(item.key, '刚才那个表情收好了'); } catch {}
+            log(`[sticker] 补收成功 ${item.key}: ${emojiId}`);
+            continue;
+          }
+          const wording = String(res?.wording || res?.retcode || 'unknown');
+          if (STICKER_TRANSIENT_RE.test(wording) && attempts + 1 < PENDING_STICKER_MAX_ATTEMPTS) {
+            keep.push({ ...item, attempts: attempts + 1, lastProblem: wording });
+            continue;
+          }
+          log(`[sticker] 补收放弃 ${item.key}: ${wording}`);
+          try { await sendToQQ(item.key, '刚才那个表情还是没存上，你方便时再发一次吧'); } catch {}
+        } catch (error) {
+          const message = String(error?.message ?? error);
+          if (STICKER_TRANSIENT_RE.test(message) && attempts + 1 < PENDING_STICKER_MAX_ATTEMPTS) {
+            keep.push({ ...item, attempts: attempts + 1, lastProblem: message });
+          } else {
+            log(`[sticker] 补收放弃 ${item.key}: ${message}`);
+          }
+        }
+      }
+      savePendingStickers(keep);
+      return keep.length ? { retryAfterMs: PENDING_STICKER_RETRY_MS } : { status: 'done' };
+    });
+    if (loadPendingStickers().length) scheduleStickerCollectJob(60 * 1000);
   }
   if (featureHost) await featureHost.start();
   // 实时状态页的慢数据：群名 10 分钟、TTS 10 秒、token 汇总 30 秒；全部不阻塞主流程。

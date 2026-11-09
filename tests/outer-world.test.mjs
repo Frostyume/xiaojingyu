@@ -10,6 +10,7 @@ import { bridgeHarness } from './bridge-harness.mjs';
 import { createOuterWorldStore, shanghaiDayKey } from '../services/social/outer-world/store.js';
 import { chunkText, dedupeKey, pickNextSource } from '../services/social/outer-world/pipeline.js';
 import { evaluateUrl, detectLoginWall } from '../services/social/outer-world/policy.js';
+import { createRateLimiter } from '../services/social/outer-world/ratelimit.js';
 import { cleanVtt, fetchSubtitleTrack } from '../services/social/outer-world/media/subtitle.js';
 import { isAdminOnlyRequest } from '../console/policy.js';
 
@@ -203,6 +204,25 @@ test('模块层：关闭态零文件、去重、分块、VTT、访问策略、�
     assert.equal(evaluateUrl('https://example.com/book').allow, true);
     assert.equal(detectLoginWall('请先登录后查看全文', { minContentChars: 200 }), true);
     assert.equal(detectLoginWall('正文'.repeat(200), { minContentChars: 200 }), false);
+    assert.equal(detectLoginWall('Login', { minContentChars: 200 }), true);
+
+    // 末尾点号主机名归一：访问与黑名单/白名单都按无点号的域名比对。
+    const dotted = evaluateUrl('https://example.com./book');
+    assert.equal(dotted.allow, true);
+    assert.equal(dotted.host, 'example.com');
+    assert.equal(evaluateUrl('https://example.com/book', { blockedDomains: ['example.com.'] }).reason, 'blocked-domain');
+    assert.equal(evaluateUrl('https://example.com/book', { policy: 'allowlist', allowlist: ['example.com.'] }).allow, true);
+    assert.equal(evaluateUrl('https://example.com/app.bin').allow, true, 'bin 不再按下载拦截');
+
+    // 每日上限 0 = 不限；限速间隔向上取整，避免浮点截断后过于宽松。
+    let at = 0;
+    const unlimited = createRateLimiter({ perDomainPerDay: 0, perSecond: 1000, now: () => (at += 10) });
+    for (let i = 0; i < 25; i += 1) assert.equal(unlimited.check('example.com').allow, true, '每日上限 0 不限制次数');
+    let boundedAt = 0;
+    const bounded = createRateLimiter({ perDomainPerDay: 2, perSecond: 1000, now: () => (boundedAt += 10) });
+    assert.equal(bounded.check('example.com').allow, true);
+    assert.equal(bounded.check('example.com').allow, true);
+    assert.equal(bounded.check('example.com').reason, 'daily-limit');
 
     const workDir = path.join(dir, 'tmp');
     const missing = await fetchSubtitleTrack({ url: 'https://example.com/video', workDir, ytDlpPath: '', envPath: '', pathBin: '' });

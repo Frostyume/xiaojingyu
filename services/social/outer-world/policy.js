@@ -7,8 +7,8 @@ import { URL } from 'node:url';
 
 const LOGIN_RE = /login|signin|sign-in|passport|sso|oauth|auth|verify|captcha|register|signup/i;
 const PAY_RE = /pay|checkout|order|billing|subscribe/i;
-const DOWNLOAD_RE = /\.(zip|exe|msi|apk|dmg|iso|7z|rar|tar|gz|bin)(?:$|[?#])/i;
-const LOGIN_WALL_RE = /请先登录|扫码登录|登录后查看|登录查看全文|登录后继续|Sign in to continue|Log in to see|Log in or sign up|Please log in/i;
+const DOWNLOAD_RE = /\.(zip|exe|msi|apk|dmg|iso|7z|rar|tar|gz)(?:$|[?#])/i;
+const LOGIN_WALL_RE = /请先登录|扫码|登录后查看|登录查看全文|登录后继续|Sign in|Log in|Login/i;
 
 const PRIVATE_HOSTS = ['localhost', '::1', '[::1]'];
 const PRIVATE_PREFIXES = ['127.', '10.', '192.168.', '169.254.'];
@@ -33,7 +33,7 @@ function isPrivateHost(host) {
 function hostMatches(host, domain) {
   const d = String(domain || '').trim().toLowerCase();
   if (!d) return false;
-  const bare = d.replace(/^(https?:)?\/\//, '').replace(/\/.*$/, '');
+  const bare = d.replace(/^(https?:)?\/\//, '').replace(/\/.*$/, '').replace(/\.+$/g, '');
   return host === bare || host.endsWith(`.${bare}`);
 }
 
@@ -50,7 +50,7 @@ export function normalizeUrl(raw) {
     ok: true,
     url: parsed.href,
     protocol: parsed.protocol,
-    host: parsed.hostname.toLowerCase(),
+    host: parsed.hostname.toLowerCase().replace(/\.+$/g, ''),
     hasCredentials: Boolean(parsed.username || parsed.password),
     pathname: parsed.pathname,
     search: parsed.search

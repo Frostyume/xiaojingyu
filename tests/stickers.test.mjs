@@ -95,7 +95,11 @@ console.log('## sticker-lib 纯函数');
 
 console.log('## 配置文件');
 {
-  const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
+  // 公开仓默认不带 config.json（本机配置被 gitignore）；没有就退回到随库发布的示例配置。
+  const cfgPath = fs.existsSync(path.join(ROOT, 'config.json'))
+    ? path.join(ROOT, 'config.json')
+    : path.join(ROOT, 'config.example.json');
+  const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
   const tools = cfg.simulation?.tools ?? {};
   ok(tools.listStickers === true, 'config listStickers=true');
   ok(tools.getStickerImage === true, 'config getStickerImage=true');
@@ -150,6 +154,87 @@ console.log('## Q 版表情视觉校验');
   const no = await isQVersionWhaleSticker(cfg, Buffer.alloc(200, 1));
   ok(no.ok === false && /真人/.test(no.reason), '非 Q 版被拒绝');
   globalThis.fetch = originalFetch;
+}
+
+console.log('## 收藏上传重试与补收队列');
+{
+  const makeHarness = async (addFaceImpl) => {
+    const h = await bridgeHarness({
+      config: {
+        allow: { private: ['123'], groups: ['456'] },
+        consoleAuth: { enabled: false },
+        simulation: { sticker: { collect: { retryDelaysMs: [0, 0] } } }
+      },
+      globals: { isQVersionWhaleSticker: async () => ({ ok: true, reason: '' }) }
+    });
+    h.setMode('simulation');
+    h.setSnowlumaConnected(true);
+    const st = h.getSimulationState('private:123');
+    st.recentMessages.push({
+      messageId: '900', sender: '群友', text: '[图片]', isSelf: false,
+      media: [{ kind: 'image', file: 'fixture.image' }], time: Date.now()
+    });
+    const realRequest = h.bot.request.bind(h.bot);
+    const calls = { add: 0 };
+    h.bot.request = async (action, params) => {
+      if (action === 'add_custom_face') {
+        calls.add += 1;
+        return addFaceImpl(calls.add, params);
+      }
+      if (action === 'fetch_custom_face_detail') return { status: 'ok', retcode: 0, data: [] };
+      if (action === 'modify_custom_face') return { status: 'ok', retcode: 0 };
+      return realRequest(action, params);
+    };
+    return { h, calls };
+  };
+
+  const first = await makeHarness((n) => (n === 1
+    ? { status: 'failed', retcode: 1200, wording: 'fetch failed: ECONNRESET' }
+    : { status: 'ok', retcode: 0, data: { emoji_id: 'fixture-emoji' } }));
+  try {
+    const res = await first.h.collectSticker('private:123', '900', '笑死');
+    ok(first.calls.add === 2, '首次瞬时失败、第二次成功，共 2 次上传调用');
+    ok(res.emojiId === 'fixture-emoji' && !res.pending, '返回正常收藏结果');
+  } finally { await first.h.close(); }
+
+  const second = await makeHarness(() => ({ status: 'failed', retcode: 1200, wording: '收藏表情已达上限' }));
+  try {
+    let threw = '';
+    try { await second.h.collectSticker('private:123', '900', '笑死'); } catch (error) { threw = error.message; }
+    ok(second.calls.add === 1, '业务错误只调用 1 次、不重试');
+    ok(/add_custom_face 失败/.test(threw) && !/网络不稳/.test(threw), '业务错误原样抛出');
+  } finally { await second.h.close(); }
+}
+
+{
+  const h = await bridgeHarness({
+    config: {
+      allow: { private: ['123'], groups: ['456'] },
+      consoleAuth: { enabled: false },
+      simulation: { sticker: { collect: { retryDelaysMs: [0, 0] } } }
+    },
+    globals: { isQVersionWhaleSticker: async () => ({ ok: true, reason: '' }) }
+  });
+  try {
+    h.setMode('simulation');
+    h.setSnowlumaConnected(true);
+    const st = h.getSimulationState('private:123');
+    st.recentMessages.push({
+      messageId: '901', sender: '群友', text: '[图片]', isSelf: false,
+      media: [{ kind: 'image', file: 'fixture.image' }], time: Date.now()
+    });
+    let addCalls = 0;
+    h.bot.request = async (action) => {
+      if (action === 'add_custom_face') { addCalls += 1; return { status: 'failed', retcode: 1200, wording: 'timed out' }; }
+      return { status: 'ok', retcode: 0, data: [] };
+    };
+    const res = await h.collectSticker('private:123', '901', '笑死');
+    const saved = JSON.parse(fs.readFileSync(path.join(h.temp, 'state/pending-stickers.json'), 'utf8'));
+    ok(addCalls === 3 && res.pending === true, '三次瞬时失败后转补收队列');
+    ok(/网络不稳/.test(res.message), '返回补收提示而不是硬失败');
+    ok(saved.length === 1 && saved[0].key === 'private:123' && String(saved[0].file).startsWith('base64://')
+      && saved[0].attempts === 1, 'pending-stickers.json 落盘 1 条');
+  } finally { await h.close(); }
 }
 
 console.log('## 模型工具：按引用 messageId 删除');

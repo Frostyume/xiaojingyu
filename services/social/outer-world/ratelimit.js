@@ -12,7 +12,7 @@ function shanghaiDayKey(ms = Date.now()) {
 export function createRateLimiter({ perDomainPerDay = 20, perSecond = 1, now = () => Date.now() } = {}) {
   const daily = Math.max(0, Number(perDomainPerDay) || 0);
   const rate = Math.max(0.1, Number(perSecond) || 1);
-  const gapMs = Math.floor(1000 / rate);
+  const gapMs = Math.ceil(1000 / rate);
   const entries = new Map();
 
   return {

@@ -6,6 +6,25 @@
 
 更早的开发没有单独整理，可以翻 [提交历史](https://github.com/Frostyume/xiaojingyu/commits/main)。
 
+## 1.3.1 — 2026-11-09
+
+收藏上传重试与补收队列、访问策略加固、无代理启动脚本。
+
+### 修复
+
+- **收藏表情上传重试**：`add_custom_face` 遇到瞬时网络错误重试 3 次（默认约 1.5s / 5s 退避，可用 `simulation.sticker.collect.retryDelaysMs` 覆盖）；业务错误不重试。重试后没拿到回执但本地已有同 md5 表情时按成功处理。
+- **补收队列**：三次仍为瞬时失败时不再硬失败，而是写入 `state/pending-stickers.json`（最多 5 条）并返回“网络不稳，已先记下，稍后自动补收藏”。新增 `sticker.collect` 作业每 5 分钟重试、最多 6 次；成功则改备注、同步本地库并回一句，非瞬时错误放弃并提示重发；启动时有积压会排一次。
+
+### 安全
+
+- 出门见闻访问策略加固：主机名末尾点号归一化，域名黑名单/白名单同样去点；登录墙特征扩展到“扫码 / Login / Log in / Sign in”等常见页头；下载扩展名列表同步（不含 `bin`）。
+- 域名限速的最小间隔改为向上取整（`Math.ceil(1000/rate)`），避免浮点截断后比设定更宽松；`perDomainPerDay=0` 明确表示不限次数。
+
+### 工具
+
+- 新增 `tools/start-snowluma-clean.mjs`：清空大小写形式的 `HTTP(S)_PROXY` / `ALL_PROXY` 并设置 `NO_PROXY=*` 后启动 SnowLuma，只从 `snowluma.launcherPath` / `snowluma.homeDir` / `SNOWLUMA_LAUNCHER` 解析路径。
+- 新增 `docs/guides/SNOWLUMA_PROXY.md`，说明 SnowLuma 2.4 图片上传受代理影响的症状、原因与用法。
+
 ## 1.3.0 — 2026-11-09
 
 出门见闻：她开始有自己的读物和见闻，默认关闭。

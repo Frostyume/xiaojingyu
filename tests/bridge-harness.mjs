@@ -207,6 +207,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     handleSignatureOwnerCommand,
     handleDailyReportJob,
     getStickerEntries: () => stickerEntries,
+    collectSticker,
     getImageEntries: () => imageEntries,
     buildSignaturePreview,
     setSelfIdentity(display, id) {
