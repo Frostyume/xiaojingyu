@@ -62,7 +62,10 @@ import {
 } from '../services/media/sticker-lib.js';
 import { createInnerLife } from '../services/persona/inner-life.js';
 import { createOuterWorldStore } from '../services/social/outer-world/store.js';
-import { chunkText, dedupeKey, digestChunks, limitDigestChunks, pickBodyText, pickNextSource } from '../services/social/outer-world/pipeline.js';
+import {
+  chunkText, digestBudget, digestChunks, isSegmentedSource, isSourceFinished, limitDigestChunks,
+  migrateLegacySegmentedProgress, pickBodyText, pickNextSource, readCharOffset, segmentDedupeKey
+} from '../services/social/outer-world/pipeline.js';
 import { normalizeNovelSource, readChapter } from '../services/social/outer-world/sources/novel.js';
 import { evaluateUrl, redactUrlForAudit } from '../services/social/outer-world/policy.js';
 import { createRateLimiter } from '../services/social/outer-world/ratelimit.js';
@@ -3529,7 +3532,12 @@ async function main() {
     const tokenBudget = Math.max(0, Math.floor(Number(leisure.tokenBudget) || 0));
     if (tokenBudget > 0 && quota.tokens >= tokenBudget) return { ok: false, enabled: true, reason: 'token-budget', quota };
     if (outerWorldStore.circuit.isOpen()) return { ok: false, enabled: true, reason: 'circuit-open', circuit: outerWorldStore.circuit.get() };
-    const sources = outerWorldSources(leisure.sources)
+    // 每轮消化的字符预算：单页连续阅读与旧数据迁移共用同一个量。
+    const digestChars = digestBudget(leisure.digestChars);
+    const configuredSources = outerWorldSources(leisure.sources);
+    // 旧语义读一轮就把单页来源标 done 且没有 charOffset；这里先纠偏，让见闻线继续走下去。
+    migrateLegacySegmentedProgress({ sources: configuredSources, store: outerWorldStore, digestChars });
+    const sources = configuredSources
       .filter((source) => outerWorldStore.progress.get(source.id)?.done !== true);
     const skip = (skipReason) => {
       outerWorldStore.audit.append({ kind: 'skip', reason: skipReason, trigger: reason });
@@ -3541,13 +3549,17 @@ async function main() {
     const progress = outerWorldStore.progress.get(source.id) || {};
     const target = outerWorldTarget(source, progress);
     if (!target) return skip('no-target');
-    const noteKey = dedupeKey({ title: target.title, url: target.url });
+    const hasChapters = Array.isArray(source.chapters) && source.chapters.length > 0;
+    // 单页长篇按字符偏移连续分段；章节/字幕来源不进这个分支。
+    const segmented = isSegmentedSource(source);
+    const charOffset = readCharOffset(progress, segmented);
+    const noteKey = segmentDedupeKey({ title: target.title, url: target.url, chapterIndex: target.chapterIndex, segmented });
     if (outerWorldStore.notes.dedupeHas(noteKey)) {
-      outerWorldStore.progress.set(source.id, {
-        chapterIndex: target.chapterIndex + 1,
-        lastReadAt: Date.now(),
-        ...(source.type === 'video' || !(Array.isArray(source.chapters) && source.chapters.length) ? { done: true } : {})
-      });
+      // 命中去重时分段来源只推进偏移，不能像旧语义那样直接判完结。
+      const patch = { chapterIndex: target.chapterIndex + 1, lastReadAt: Date.now() };
+      if (segmented) patch.charOffset = charOffset + digestChars;
+      else if (source.type === 'video') patch.done = true;
+      outerWorldStore.progress.set(source.id, patch);
       return skip('duplicate');
     }
     const generate = typeof overrides.generate === 'function' ? overrides.generate : outerWorldGenerate();
@@ -3570,8 +3582,15 @@ async function main() {
         chapter = await readChapter({ source, progress, fetchText });
       }
       if (!chapter.ok) throw Object.assign(new Error(chapter.reason || 'read-failed'), { outerReason: chapter.reason || 'read-failed' });
-      const chunks = chunkText(pickBodyText(chapter.text), { maxChars: 1200 });
-      const material = limitDigestChunks(chunks, leisure.digestChars);
+      const bodyText = pickBodyText(chapter.text);
+      if (segmented && charOffset >= bodyText.length) {
+        // 偏移已越过正文末尾（如旧数据迁移的书整本不足一轮消化量）：补记完结，不再产出卡片。
+        outerWorldStore.progress.set(source.id, { chapterIndex: target.chapterIndex, charOffset, lastReadAt: Date.now(), done: true });
+        return skip('finished');
+      }
+      // 裁剪完成后再取偏移，保证 charOffset 始终相对同一份裁剪后正文。
+      const chunks = chunkText(segmented ? bodyText.slice(charOffset) : bodyText, { maxChars: 1200 });
+      const material = limitDigestChunks(chunks, digestChars);
       const digest = await digestChunks({ chunks: material.chunks, generate, noteChars: Math.max(1, Number(leisure.noteChars) || 600) });
       if (!digest.ok) throw Object.assign(new Error('digest-failed'), { outerReason: 'digest-failed' });
       const tokens = Math.max(1, Math.ceil((material.chars + digest.summary.length) / 4));
@@ -3590,12 +3609,21 @@ async function main() {
       const appended = outerWorldStore.notes.append(note);
       outerWorldStore.notes.dedupeAdd(noteKey);
       const nextIndex = chapter.nextProgress?.chapterIndex ?? target.chapterIndex + 1;
-      const hasChapters = Array.isArray(source.chapters) && source.chapters.length > 0;
-      // 单页来源（没有章节目录）读完一次即视为完结，否则每次调度都空转去重。
-      const finished = chapter.nextProgress?.done === true || (hasChapters ? nextIndex >= source.chapters.length : true);
+      const nextOffset = charOffset + material.chars;
+      // 章节来源按章数收尾；分段来源只有偏移走到裁剪后正文末尾才完结；字幕来源走 nextProgress.done。
+      const finished = isSourceFinished({
+        segmented,
+        hasChapters,
+        nextIndex,
+        chapterCount: hasChapters ? source.chapters.length : 0,
+        nextOffset,
+        bodyLength: bodyText.length,
+        doneBySource: chapter.nextProgress?.done === true
+      });
       outerWorldStore.progress.set(source.id, {
         chapterIndex: nextIndex,
         lastReadAt: Date.now(),
+        ...(segmented ? { charOffset: nextOffset } : {}),
         ...(finished ? { done: true } : {})
       });
       outerWorldStore.quota.inc(day, { items: 1, tokens });
@@ -3668,7 +3696,7 @@ async function main() {
       limits: {
         maxItemsPerDay: Number(leisure.maxItemsPerDay) || 0,
         noteChars: Number(leisure.noteChars) || 600,
-        digestChars: Math.max(800, Math.min(20000, Number(leisure.digestChars) || 6000)),
+        digestChars: digestBudget(leisure.digestChars),
         tokenBudget: Number(leisure.tokenBudget) || 0
       },
       noteCount: outerWorldStore.notes.list({ limit: 200 }).length
@@ -11484,6 +11512,8 @@ async function main() {
             const merged = deepMergeConfig(cfg, applyConfigPatch({}, { [applied.path]: applied.stored }));
             for (const k of Object.keys(cfg)) delete cfg[k];
             Object.assign(cfg, merged);
+            // 白名单键也走同一条重排：只改开关时若不重排，见闻/签名/日报要等一次重启才续上。
+            resyncFeatureSchedules([applied.path]);
             sendJson({ ok: true, key: applied.spec.key, value: applied.value, before: beforeValue, restart: applied.spec.restart || 'none' });
             return;
           } catch (error) {

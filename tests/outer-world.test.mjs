@@ -8,17 +8,24 @@ import path from 'node:path';
 import http from 'node:http';
 import { bridgeHarness } from './bridge-harness.mjs';
 import { createOuterWorldStore, shanghaiDayKey } from '../services/social/outer-world/store.js';
-import { chunkText, dedupeKey, limitDigestChunks, pickBodyText, pickNextSource } from '../services/social/outer-world/pipeline.js';
+import {
+  chunkText, dedupeKey, digestBudget, isSegmentedSource, isSourceFinished, limitDigestChunks,
+  migrateLegacySegmentedProgress, pickBodyText, pickNextSource, readCharOffset, segmentDedupeKey
+} from '../services/social/outer-world/pipeline.js';
 import { evaluateUrl, detectLoginWall } from '../services/social/outer-world/policy.js';
 import { createRateLimiter } from '../services/social/outer-world/ratelimit.js';
 import { cleanVtt, fetchSubtitleTrack } from '../services/social/outer-world/media/subtitle.js';
 import { isAdminOnlyRequest } from '../console/policy.js';
 
-function request(port, pathname, { method = 'GET', token = '', body } = {}) {
+function request(port, pathname, { method = 'GET', token = '', agentToken = '', body } = {}) {
   return new Promise((resolve, reject) => {
     const payload = body === undefined ? undefined : JSON.stringify(body);
     const headers = { host: `127.0.0.1:${port}` };
     if (token) headers['x-console-token'] = token;
+    if (agentToken) {
+      headers['x-agent-token'] = agentToken;
+      headers['x-agent-call'] = '1';
+    }
     if (payload !== undefined) {
       headers['content-type'] = 'application/json';
       headers.origin = `http://127.0.0.1:${port}`;
@@ -110,12 +117,14 @@ test('假源跑通：写卡片/进度/配额/审计，提示词只带标题与�
     const notes = fs.readFileSync(notesFile, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     assert.equal(notes.length, 1);
     assert.equal(notes[0].sourceHost, 'example.com');
-    assert.equal(notes[0].dedupeKey, dedupeKey({ title: '测试读物', url: 'https://example.com/book' }));
+    assert.equal(notes[0].dedupeKey, `${dedupeKey({ title: '测试读物', url: 'https://example.com/book' })}:p0`, '单页分段来源的去重 key 带分段序号');
 
     const progress = JSON.parse(fs.readFileSync(path.join(h.temp, 'state', 'leisure-progress.json'), 'utf8'));
     const progressRows = Object.values(progress);
     assert.equal(progressRows.length, 1);
     assert.equal(progressRows[0].chapterIndex, 1, '读完一章后进度应推进');
+    assert.equal(progressRows[0].done, true, '整本在一轮预算内读完，才允许标完结');
+    assert.ok(Number(progressRows[0].charOffset) > 0, '单页来源应记录读到的字符偏移');
 
     const status = h.outerWorldStatus();
     assert.equal(status.enabled, true);
@@ -155,7 +164,72 @@ test('模块层：正文提取跳页眉、按章回起取，摘要材料按预�
   assert.deepEqual(limitDigestChunks([], 800), { chunks: [], chars: 0 });
 });
 
-test('单页来源读完即完结；超长正文按 digestChars 截断后再摘要', async () => {
+test('模块层：分段阅读的纯函数（预算、分段判定、带序号 key、完结判定、偏移读取）', () => {
+  assert.equal(digestBudget(undefined), 6000);
+  assert.equal(digestBudget(10), 800, '预算有下限');
+  assert.equal(digestBudget(999999), 20000, '预算有上限');
+  assert.equal(digestBudget('6000'), 6000);
+
+  assert.equal(isSegmentedSource({ type: 'url', chapters: [] }), true, '无章节目录的单页文本源分段连续读');
+  assert.equal(isSegmentedSource({ type: 'gutenberg', url: 'https://example.invalid/a' }), true);
+  assert.equal(isSegmentedSource({ type: 'video', url: 'https://example.invalid/v', chapters: [] }), false, '字幕源不进分段分支');
+  assert.equal(isSegmentedSource({ type: 'url', chapters: [{ title: '一', url: 'https://example.invalid/1' }] }), false, '章节源逐章推进');
+  assert.equal(isSegmentedSource(null), false);
+
+  const base = dedupeKey({ title: '书', url: 'https://example.invalid/a' });
+  assert.equal(segmentDedupeKey({ title: '书', url: 'https://example.invalid/a', chapterIndex: 0, segmented: false }), base);
+  assert.equal(segmentDedupeKey({ title: '书', url: 'https://example.invalid/a', chapterIndex: 2, segmented: true }), `${base}:p2`);
+  assert.notEqual(
+    segmentDedupeKey({ title: '书', url: 'https://example.invalid/a', chapterIndex: 0, segmented: true }),
+    segmentDedupeKey({ title: '书', url: 'https://example.invalid/a', chapterIndex: 1, segmented: true })
+  );
+
+  assert.equal(readCharOffset({ charOffset: 6000 }, true), 6000);
+  assert.equal(readCharOffset({ charOffset: 6000 }, false), 0, '非分段源不看偏移');
+  assert.equal(readCharOffset({ charOffset: -5 }, true), 0);
+  assert.equal(readCharOffset({}, true), 0);
+  assert.equal(readCharOffset(null, true), 0);
+
+  assert.equal(isSourceFinished({ segmented: true, hasChapters: false, nextOffset: 6000, bodyLength: 8003 }), false);
+  assert.equal(isSourceFinished({ segmented: true, hasChapters: false, nextOffset: 8003, bodyLength: 8003 }), true);
+  assert.equal(isSourceFinished({ segmented: false, hasChapters: true, nextIndex: 2, chapterCount: 3 }), false);
+  assert.equal(isSourceFinished({ segmented: false, hasChapters: true, nextIndex: 3, chapterCount: 3 }), true);
+  assert.equal(isSourceFinished({ segmented: true, hasChapters: false, nextOffset: 10, bodyLength: 8003, doneBySource: true }), true, '来源自己声明读完就读完');
+});
+
+test('模块层：旧 done:true 且无 charOffset 的单页进度行会被纠偏', () => {
+  const rows = new Map([
+    ['legacy', { chapterIndex: 1, lastReadAt: 1, done: true }],
+    ['new', { chapterIndex: 3, lastReadAt: 1, done: true, charOffset: 24000 }],
+    ['chaptered', { chapterIndex: 9, lastReadAt: 1, done: true }],
+    ['video', { chapterIndex: 1, lastReadAt: 1, done: true }],
+    ['unfinished', { chapterIndex: 1, lastReadAt: 1 }]
+  ]);
+  const writes = [];
+  const store = {
+    progress: {
+      get: (id) => (rows.has(id) ? { ...rows.get(id) } : null),
+      set: (id, patch) => { writes.push([id, patch]); rows.set(id, { ...rows.get(id), ...patch }); return null; }
+    }
+  };
+  const sources = [
+    { id: 'legacy', type: 'url', url: 'https://example.invalid/legacy', chapters: [] },
+    { id: 'new', type: 'url', url: 'https://example.invalid/new', chapters: [] },
+    { id: 'chaptered', type: 'gutenberg', url: 'https://example.invalid/c', chapters: [{ title: '一', url: 'https://example.invalid/1' }] },
+    { id: 'video', type: 'video', url: 'https://example.invalid/v', chapters: [] },
+    { id: 'unfinished', type: 'url', url: 'https://example.invalid/u', chapters: [] }
+  ];
+  assert.deepEqual(migrateLegacySegmentedProgress({ sources, store, digestChars: 6000 }), ['legacy'], '只纠偏单页遗留行');
+  assert.deepEqual(writes, [['legacy', { done: false, charOffset: 6000 }]], '从一轮消化量处续读，不重读开头');
+  assert.equal(rows.get('new').done, true, '新语义的 done 行不动');
+  assert.equal(rows.get('chaptered').done, true, '章节源不动');
+  assert.equal(rows.get('video').done, true, '字幕源不动');
+  assert.equal(rows.get('unfinished').done, undefined);
+  // store 缺失或写入失败时保持原样，不抛异常。
+  assert.deepEqual(migrateLegacySegmentedProgress({ sources, store: null, digestChars: 6000 }), []);
+});
+
+test('单页长篇：材料按 digestChars 预算截断，没读完不标 done，只记偏移', async () => {
   const longHtml = `<html><body><p>${'第一段内容写得比较慢，她读到这里停了一下。'.repeat(200)}</p><p>${'第二段继续往下讲，句子不长。'.repeat(200)}</p></body></html>`;
   const prompts = [];
   const h = await bridgeHarness({
@@ -182,10 +256,164 @@ test('单页来源读完即完结；超长正文按 digestChars 截断后再摘�
     });
     assert.equal(result.ok, true, JSON.stringify(result));
     assert.ok(prompts.length === 1, '只应消化一次材料');
-    assert.ok(prompts[0].length < 2500, `喂给模型的材料应按预算截断，实际 ${prompts[0].length}`);
+        assert.ok(prompts[0].length < 2500, `喂给模型的材料应按预算截断，实际 ${prompts[0].length}`);
+    assert.ok(prompts[0].includes('第一段内容写得比较慢'), '预算内仍要留下一块材料');
+    assert.equal(prompts[0].includes('第二段继续往下讲'), false, '超预算的部分这一轮不该喂给模型');
     const progress = JSON.parse(fs.readFileSync(path.join(h.temp, 'state', 'leisure-progress.json'), 'utf8'));
-    assert.equal(Object.values(progress)[0].done, true, '没有章节目录的单页来源读完一次即完结');
+    const row = Object.values(progress)[0];
+    assert.equal(row.done, undefined, '正文没读完的单页来源不得标 done');
+    assert.ok(row.charOffset > 0 && row.charOffset <= 1200, `预算下限仍保留一块材料，偏移应等于这块的字符数，实际 ${row.charOffset}`);
     assert.equal(h.outerWorldStatus().limits.digestChars, 800);
+  } finally {
+    await h.close();
+  }
+});
+
+// ── 单页文本按字符偏移连续阅读（旧语义读一轮就 done，会让整条见闻线永久空转） ──
+const HEAD = '开头暗号';
+const MARK = '中段标记';
+// 8003 字符；MARK 从 6498 开始，落在默认一轮预算（6000）之外、第二轮之内。
+const LONG_TEXT = `${HEAD}${'甲'.repeat(6494)}${MARK}。${'乙'.repeat(1500)}`;
+const CHAPTER_TEXT = `${'这一章她读得很慢，句子一段接一段。'.repeat(12)}`;
+
+function progressRows(h) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(h.temp, 'state', 'leisure-progress.json'), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function writeProgressRows(h, rows) {
+  fs.mkdirSync(path.join(h.temp, 'state'), { recursive: true });
+  fs.writeFileSync(path.join(h.temp, 'state', 'leisure-progress.json'), JSON.stringify(rows), 'utf8');
+}
+
+/** 把某条进度的 lastReadAt 拨回昨天：模拟下一次调度，而不是当天重复读。 */
+function rewindSource(h, id) {
+  const rows = progressRows(h);
+  rows[id] = { ...rows[id], lastReadAt: 0 };
+  writeProgressRows(h, rows);
+}
+
+function outerWorldHarness(configLeisure) {
+  return bridgeHarness({
+    config: {
+      features: { outerWorld: true },
+      simulation: {
+        outerWorld: { leisure: { enabled: true, sources: [], maxItemsPerDay: 20, tokenBudget: 0, ...configLeisure }, digest: { pushToOwner: false } }
+      }
+    }
+  });
+}
+
+test('单页长篇连续阅读：续读出第二张卡片、读完才 done、旧 done 行会迁移', async (t) => {
+  const prompts = [];
+  const generate = async (prompt) => {
+    prompts.push(prompt);
+    return JSON.stringify({ summary: `梗概${prompts.length}。`, quote: '材料里没有的句子。' });
+  };
+  const fetchText = async () => LONG_TEXT;
+  const h = await outerWorldHarness({});
+  try {
+    const BIG = { id: 'big-book', title: '连载长文', url: 'https://example.com/big' };
+
+    await t.test('第一轮读满预算：只记偏移、不标 done', async () => {
+      h.cfg.simulation.outerWorld.leisure.sources = [BIG];
+      const r = await h.runOuterWorld('ow-1', { fetchText, generate });
+      assert.equal(r.ok, true, JSON.stringify(r));
+      assert.equal(r.note.title, '连载长文');
+      assert.ok(prompts[0].includes(HEAD), '第一轮材料应含开头');
+      assert.equal(prompts[0].includes(MARK), false, '第一轮预算（6000）不应覆盖到中后段标记');
+      assert.match(r.note.dedupeKey, /^[0-9a-f]{16}:p0$/, '去重 key 必须带分段序号');
+      const row = progressRows(h)['big-book'];
+      assert.equal(row.charOffset, 6000, 'charOffset 应记录本轮实际消化的字符数');
+      assert.equal(row.done, undefined, '没读完的单页长篇不得标 done');
+    });
+
+    await t.test('第二轮从偏移续读：产出第二张卡片，读完才 done', async () => {
+      rewindSource(h, 'big-book');
+      const before = prompts.length;
+      const r = await h.runOuterWorld('ow-2', { fetchText, generate });
+      assert.equal(r.ok, true, JSON.stringify(r));
+      const prompt2 = prompts[before];
+      assert.ok(prompt2.includes(MARK), '第二轮材料应从偏移之后开始，包含中段标记');
+      assert.equal(prompt2.includes(HEAD), false, '第二轮不应重读开头');
+      assert.equal(r.note.title, '连载长文', '卡片标题措辞不变，不带分段序号字样');
+      assert.equal(r.note.chapterIndex, 1, 'note.chapterIndex 要体现推进到第几段');
+      assert.match(r.note.dedupeKey, /^[0-9a-f]{16}:p1$/);
+      const row = progressRows(h)['big-book'];
+      assert.equal(row.charOffset, LONG_TEXT.length, '偏移应恰好停在裁剪后正文末尾');
+      assert.equal(row.done, true, '文本读消化完才应 done');
+      const notes = fs.readFileSync(path.join(h.temp, 'state', 'outer-world-notes.jsonl'), 'utf8')
+        .trim().split('\n').map((line) => JSON.parse(line)).filter((n) => n.sourceId === 'big-book');
+      assert.equal(notes.length, 2, '同一单页来源连续两轮应产出两张卡片');
+      assert.notEqual(notes[0].dedupeKey, notes[1].dedupeKey);
+      assert.notEqual(notes[0].summary, notes[1].summary);
+    });
+
+    await t.test('新语义的 done 行（带 charOffset）不再被迁移', async () => {
+      rewindSource(h, 'big-book');
+      const r = await h.runOuterWorld('ow-3', { fetchText, generate });
+      assert.equal(r.skipped, true);
+      assert.equal(r.reason, 'no-source');
+      const row = progressRows(h)['big-book'];
+      assert.equal(row.charOffset, LONG_TEXT.length, '有 charOffset 一律按新语义走，不得清 done 重读');
+      assert.equal(row.done, true);
+    });
+
+    await t.test('旧 done:true 且无 charOffset 的遗留行：迁移后从一轮消化量续读，而不是永久 no-source', async () => {
+      // 旧语义遗留：单页源被整本标 done、chapterIndex=1、没有 charOffset 字段。
+      const rows = progressRows(h);
+      rows['legacy-book'] = { chapterIndex: 1, lastReadAt: 0, done: true };
+      writeProgressRows(h, rows);
+      h.cfg.simulation.outerWorld.leisure.sources = [{ id: 'legacy-book', title: '旧日遗留书', url: 'https://example.com/legacy' }];
+      const before = prompts.length;
+      const r = await h.runOuterWorld('legacy-migrate', { fetchText, generate });
+      assert.equal(r.ok, true, JSON.stringify(r));
+      assert.notEqual(r.skipped, true, '迁移后首轮就应正常产出卡片，而不是空转');
+      const prompt = prompts[before];
+      assert.ok(prompt.includes(MARK) && !prompt.includes(HEAD), '迁移后从默认一轮消化量（6000）处续读，不重读开头');
+      assert.match(r.note.dedupeKey, /^[0-9a-f]{16}:p1$/, '分段序号沿用旧行的推进值');
+      const row = progressRows(h)['legacy-book'];
+      assert.equal(row.charOffset, LONG_TEXT.length);
+      assert.equal(row.done, true, '剩余部分读消化完才重新 done');
+    });
+  } finally {
+    await h.close();
+  }
+});
+
+test('章节来源回归：逐章推进、去重 key 无分段后缀、不写 charOffset', async () => {
+  const prompts = [];
+  const generate = async (prompt) => {
+    prompts.push(prompt);
+    return JSON.stringify({ summary: `梗概${prompts.length}。`, quote: '这一章她读得很慢' });
+  };
+  const h = await outerWorldHarness({});
+  try {
+    h.cfg.simulation.outerWorld.leisure.sources = [{
+      id: 'ch-book',
+      chapters: [{ title: '第一章', url: 'https://example.com/c1' }, { title: '第二章', url: 'https://example.com/c2' }]
+    }];
+    const fetchText = async () => CHAPTER_TEXT;
+    const r1 = await h.runOuterWorld('ch-1', { fetchText, generate });
+    assert.equal(r1.ok, true, JSON.stringify(r1));
+    assert.equal(r1.note.title, '第一章');
+    assert.match(r1.note.dedupeKey, /^[0-9a-f]{16}$/, '章节来源的 key 保持原格式');
+    let row = progressRows(h)['ch-book'];
+    assert.equal(row.chapterIndex, 1);
+    assert.equal(row.charOffset, undefined, '章节来源不写 charOffset');
+    assert.equal(row.done, undefined);
+
+    rewindSource(h, 'ch-book');
+    const r2 = await h.runOuterWorld('ch-2', { fetchText, generate });
+    assert.equal(r2.ok, true, JSON.stringify(r2));
+    assert.equal(r2.note.title, '第二章');
+    row = progressRows(h)['ch-book'];
+    assert.equal(row.chapterIndex, 2);
+    assert.equal(row.done, true, '章节目录读完才 done');
+    assert.equal(row.charOffset, undefined);
   } finally {
     await h.close();
   }

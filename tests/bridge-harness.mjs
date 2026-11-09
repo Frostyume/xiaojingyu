@@ -203,6 +203,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     getMode() { return currentMode; },
     signatureState,
     runOuterWorld, outerWorldStatus, stopOuterWorld, syncOuterWorldJob,
+    getJobQueue: () => jobQueue,
     handleSignatureJob,
     handleSignatureOwnerCommand,
     handleDailyReportJob,

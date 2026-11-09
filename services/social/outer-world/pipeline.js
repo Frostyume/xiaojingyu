@@ -65,9 +65,14 @@ export function pickBodyText(text) {
   return body.trim();
 }
 
+/** 每轮消化的字符预算：单页连续阅读与旧数据迁移共用同一个量。 */
+export function digestBudget(digestChars) {
+  return Math.max(800, Math.min(20000, Number(digestChars) || 6000));
+}
+
 /** 整本一次塞给模型会爆上下文：按字符预算从开头取若干块，超预算的第一块之外全部丢掉。 */
 export function limitDigestChunks(chunks = [], digestChars = 6000) {
-  const budget = Math.max(800, Math.min(20000, Number(digestChars) || 6000));
+  const budget = digestBudget(digestChars);
   const parts = (Array.isArray(chunks) ? chunks : []).map((chunk) => String(chunk ?? '')).filter((chunk) => chunk.trim());
   const picked = [];
   let chars = 0;
@@ -85,6 +90,59 @@ export function limitDigestChunks(chunks = [], digestChars = 6000) {
 export function dedupeKey({ title = '', url = '', text = '' } = {}) {
   const material = `${String(title)}\n${String(url)}\n${String(text).slice(0, 200)}`;
   return createHash('sha1').update(material).digest('hex').slice(0, 16);
+}
+
+/**
+ * 单页长篇（非视频、没有章节目录）按裁剪后正文的字符偏移连续分段阅读。
+ * 章节来源逐章推进、字幕来源一次读完，都不进这个分支。
+ */
+export function isSegmentedSource(source) {
+  if (!source || typeof source !== 'object') return false;
+  if (source.type === 'video') return false;
+  return !(Array.isArray(source.chapters) && source.chapters.length > 0);
+}
+
+/** 同一单页来源的各分段 title/url 相同，分段来源的 key 必须带分段序号，否则第二段会被去重分支吞掉。 */
+export function segmentDedupeKey({ title = '', url = '', chapterIndex = 0, segmented = false } = {}) {
+  const base = dedupeKey({ title, url });
+  return segmented ? `${base}:p${Math.max(0, Math.floor(Number(chapterIndex) || 0))}` : base;
+}
+
+/** 分段来源只认 charOffset；非分段来源恒从 0 开始。 */
+export function readCharOffset(progress, segmented) {
+  if (!segmented) return 0;
+  return Math.max(0, Math.floor(Number(progress?.charOffset) || 0));
+}
+
+/**
+ * 读完判定：字幕/视频与旧数据由 nextProgress.done 决定；
+ * 分段来源只有偏移走到裁剪后正文末尾才算完结；章节来源按章数收尾。
+ */
+export function isSourceFinished({ segmented, hasChapters, nextIndex = 0, chapterCount = 0, nextOffset = 0, bodyLength = 0, doneBySource = false }) {
+  if (doneBySource === true) return true;
+  if (segmented) return nextOffset >= bodyLength;
+  if (hasChapters) return nextIndex >= chapterCount;
+  return true;
+}
+
+/**
+ * 旧数据迁移：旧语义把单页来源读一轮就写 done:true 且不带 charOffset，
+ * 于是下一轮被 done 过滤成空、见闻线永久空转。
+ * 有 charOffset 一律按新语义走；缺字段才视为遗留——清掉 done，从一轮消化量处续读，不重读开头。
+ */
+export function migrateLegacySegmentedProgress({ sources = [], store = null, digestChars = 6000 } = {}) {
+  const budget = digestBudget(digestChars);
+  const migrated = [];
+  for (const source of Array.isArray(sources) ? sources : []) {
+    if (!source || !isSegmentedSource(source)) continue;
+    const row = readProgress(store, source.id);
+    if (!row || row.done !== true || row.charOffset !== undefined) continue;
+    try {
+      store?.progress?.set?.(source.id, { done: false, charOffset: budget });
+      migrated.push(source.id);
+    } catch { /* 存储不可用时保持原样，这一轮按旧行为跳过 */ }
+  }
+  return migrated;
 }
 
 const BEIJING_OFFSET_MS = 8 * 60 * 60 * 1000;
