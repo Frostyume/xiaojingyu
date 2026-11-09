@@ -8,7 +8,7 @@
 她像群友一样在场：看气氛接话，记得你说过的事，需要的时候真的会动手。</p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.3.1-5B8DEF?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-1.3.2-5B8DEF?style=flat-square">
   <img alt="node" src="https://img.shields.io/badge/Node.js-%E2%89%A5%2022.13-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat-square&logo=windows&logoColor=white">
   <img alt="dsh" src="https://img.shields.io/badge/DSH-0.2.0--rc.2-1B1F3B?style=flat-square">
@@ -26,7 +26,7 @@
 </p>
 
 > [!NOTE]
-> 当前版本 **v1.3.1**，逐项适配 **DSH 0.2.0-rc.2**（`npm run verify:adaptation`）。本版把收藏表情的上传重试与补收队列补齐，并加固出门见闻的访问策略、附带无代理启动脚本。
+> 当前版本 **v1.3.2**，逐项适配 **DSH 0.2.0-rc.2**（`npm run verify:adaptation`）。本版完善失败重试与后台补收，超过上传上限的过大附件会自动压缩，并继续加固出门见闻的访问安全策略。
 > 首个稳定版 `v1.0.0` 于 2026-11-03 发布；上游 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)
 > 的 `v0.1.x` / `v0.2.x` 标签与本仓库无关。
 

@@ -1218,6 +1218,10 @@ function loadConfig() {
       maxPerMinute: 10,
       maxPerHour: 60,
       maxRemarkChars: 20,
+      maxBytes: 3932160,
+      compress: true,
+      pythonPath: '',
+      shrinkScriptPath: '',
       ...((cfg.simulation?.sticker?.collect) ?? {})
     },
     ...(cfg.simulation?.sticker ?? {}),
@@ -1226,6 +1230,10 @@ function loadConfig() {
       maxPerMinute: 10,
       maxPerHour: 60,
       maxRemarkChars: 20,
+      maxBytes: 3932160,
+      compress: true,
+      pythonPath: '',
+      shrinkScriptPath: '',
       ...((cfg.simulation?.sticker?.collect) ?? {})
     }
   };
@@ -5449,6 +5457,40 @@ async function main() {
 
   // 收藏聊天里的一张表情（add_custom_face），并按 AI 看到的含义写简短备注（modify_custom_face）。
   // 收藏失败时的补收队列：网络抖动导致 add_custom_face 持续失败时，先落盘稍后自动重试。
+  // 超过 SnowLuma 上传接口上限（实测 3.8MB 可、4.0MB 不可）时，先用 Pillow 本地压缩；
+  // 手动在 QQ 里能收更大的图，但接口这条路不行，所以只能缩。
+  function fitStickerBuffer(buffer) {
+    const collect = cfg.simulation?.sticker?.collect ?? {};
+    const maxBytes = Math.max(65536, Number(collect.maxBytes) || 3932160);
+    if (buffer.length <= maxBytes) return { buffer, compressed: false, maxBytes };
+    if (collect.compress === false) return { buffer, tooLarge: true, maxBytes, reason: '压缩已关闭' };
+    const python = String(collect.pythonPath || '').trim() || 'python';
+    const script = String(collect.shrinkScriptPath || '').trim() || path.join(ROOT, 'tools', 'shrink-gif.py');
+    const stamp = Date.now();
+    const tmpIn = path.join(STATE_DIR, `tmp-sticker-${stamp}-in.gif`);
+    const tmpOut = path.join(STATE_DIR, `tmp-sticker-${stamp}-out.gif`);
+    try {
+      fs.writeFileSync(tmpIn, buffer);
+      const run = spawnSync(python, [script, tmpIn, tmpOut, String(maxBytes)], {
+        timeout: 60000,
+        windowsHide: true,
+        encoding: 'utf8'
+      });
+      if (run.status === 0 && fs.existsSync(tmpOut)) {
+        const out = fs.readFileSync(tmpOut);
+        if (out.length > 0 && out.length <= maxBytes) {
+          return { buffer: out, compressed: true, originalBytes: buffer.length, maxBytes };
+        }
+      }
+      return { buffer, tooLarge: true, maxBytes, reason: String(run.stderr || run.error?.message || '压缩失败').slice(0, 200) };
+    } catch (error) {
+      return { buffer, tooLarge: true, maxBytes, reason: String(error?.message ?? error).slice(0, 200) };
+    } finally {
+      try { fs.unlinkSync(tmpIn); } catch {}
+      try { fs.unlinkSync(tmpOut); } catch {}
+    }
+  }
+
   const STICKER_TRANSIENT_RE = /fetch failed|timeout|timed out|ENOTFOUND|EAI_AGAIN|ECONNRESET|ETIMEDOUT|socket hang up|HTTP 5\d\d/i;
   const PENDING_STICKERS_FILE = path.join(STATE_DIR, 'pending-stickers.json');
   const PENDING_STICKER_MAX = 5;
@@ -5480,6 +5522,53 @@ async function main() {
     } catch {}
   }
 
+  // 补收队列处理：逐条压缩/上传；压缩后仍超限就放弃并提示重发。
+  async function processPendingStickers() {
+    const list = loadPendingStickers();
+    if (!list.length) return { status: 'idle' };
+    const keep = [];
+    for (const item of list) {
+      const attempts = Math.max(0, Number(item.attempts) || 0);
+      const rawBase64 = String(item.file || '').replace(/^base64:\/\//, '');
+      const fitted = fitStickerBuffer(Buffer.from(rawBase64, 'base64'));
+      if (fitted.tooLarge) {
+        log(`[sticker] 补收放弃 ${item.key}: 压缩后仍超限（${fitted.reason || ''}）`);
+        try { await sendToQQ(item.key, '刚才那个表情太大，自动压缩也没成功，换个小的吧'); } catch {}
+        continue;
+      }
+      const uploadFile = fitted.compressed ? `base64://${fitted.buffer.toString('base64')}` : item.file;
+      try {
+        const res = await bot.request('add_custom_face', { file: uploadFile });
+        if (res && res.status === 'ok' && res.retcode === 0) {
+          const emojiId = String(res.data?.emoji_id || '');
+          if (item.remark && emojiId) {
+            try { await bot.request('modify_custom_face', { emoji_id: emojiId, desc: item.remark }); } catch {}
+          }
+          try { await syncStickerLibrary(true); } catch {}
+          try { await sendToQQ(item.key, '刚才那个表情收好了'); } catch {}
+          log(`[sticker] 补收成功 ${item.key}: ${emojiId}`);
+          continue;
+        }
+        const wording = String(res?.wording || res?.retcode || 'unknown');
+        if (STICKER_TRANSIENT_RE.test(wording) && attempts + 1 < PENDING_STICKER_MAX_ATTEMPTS) {
+          keep.push({ ...item, attempts: attempts + 1, lastProblem: wording });
+          continue;
+        }
+        log(`[sticker] 补收放弃 ${item.key}: ${wording}`);
+        try { await sendToQQ(item.key, '刚才那个表情还是没存上，你方便时再发一次吧'); } catch {}
+      } catch (error) {
+        const message = String(error?.message ?? error);
+        if (STICKER_TRANSIENT_RE.test(message) && attempts + 1 < PENDING_STICKER_MAX_ATTEMPTS) {
+          keep.push({ ...item, attempts: attempts + 1, lastProblem: message });
+        } else {
+          log(`[sticker] 补收放弃 ${item.key}: ${message}`);
+        }
+      }
+    }
+    savePendingStickers(keep);
+    return keep.length ? { retryAfterMs: PENDING_STICKER_RETRY_MS } : { status: 'done' };
+  }
+
   async function collectSticker(key, messageRef, remark) {
     const assertSendAllowed = captureSendGuard(key);
     const st = getSimulationState(key);
@@ -5490,16 +5579,40 @@ async function main() {
     if (!mediaList.length) throw new Error('这条消息没有可收藏的图片/表情');
     const media = mediaList[0];
     let source = null;
-    if (media?.kind === 'image' || media?.kind === 'sticker') {
-      // 图片段和市场/收藏表情段都走同一条安全取字节链路；mface 没有 get_image 缓存，
-      // fetchOneBotImage 会优先走 CDN 或用 emoji_id 推导地址。
-      const img = await fetchOneBotImage(media);
-      if (img?.buffer) source = { ...img };
-    } else if (media?.kind === 'face') {
-      const face = await fetchFaceMedia(media);
-      if (face?.buffer) source = { buffer: face.buffer, mimeType: face.mimeType || 'image/png' };
+    // 取图本身也可能遇到瞬时抖动（QQ 媒体 CDN / 网关超时）；与上传一样给 3 次机会。
+    const fetchDelays = [1500, 5000];
+    for (let attempt = 1; attempt <= 3 && !source?.buffer; attempt += 1) {
+      if (attempt > 1) {
+        appendActivity(`${key} 取表情图第 ${attempt}/3 次尝试`);
+        await sleep(fetchDelays[attempt - 2] ?? 5000);
+      }
+      try {
+        if (media?.kind === 'image' || media?.kind === 'sticker') {
+          // 图片段和市场/收藏表情段都走同一条安全取字节链路；mface 没有 get_image 缓存，
+          // fetchOneBotImage 会优先走 CDN 或用 emoji_id 推导地址。
+          const img = await fetchOneBotImage(media);
+          if (img?.buffer) source = { ...img };
+        } else if (media?.kind === 'face') {
+          const face = await fetchFaceMedia(media);
+          if (face?.buffer) source = { buffer: face.buffer, mimeType: face.mimeType || 'image/png' };
+        }
+      } catch (error) {
+        log(`[sticker] 取表情图第 ${attempt} 次失败：${error?.message ?? error}`);
+      }
     }
-    if (!source?.buffer) throw new Error('无法获取该表情的图片源');
+    if (!source?.buffer) throw new Error('取图失败（网络不稳），过一会儿再让我收藏一次吧');
+    // 超过上传接口上限就先压缩；压不下去才报错。
+    const fitted = fitStickerBuffer(source.buffer);
+    if (fitted.tooLarge) {
+      throw new Error(`表情太大了（${(source.buffer.length / 1048576).toFixed(1)}MB），上传接口上限约 ${(fitted.maxBytes / 1048576).toFixed(1)}MB，自动压缩没成功（${String(fitted.reason || '未知原因').slice(0, 60)}），换个小一点的吧`);
+    }
+    if (fitted.compressed) {
+      const before = (fitted.originalBytes / 1048576).toFixed(1);
+      const after = (fitted.buffer.length / 1048576).toFixed(1);
+      source.buffer = fitted.buffer;
+      appendActivity(`${key} 表情超过接口上限，已自动压缩 ${before}MB → ${after}MB`);
+      log(`[sticker] 自动压缩表情 ${before}MB → ${after}MB`);
+    }
     const visionBuffer = firstFrameForVision(source.buffer, {
       mimeType: source.mimeType,
       fileName: media?.file || media?.url || ''
@@ -19762,43 +19875,7 @@ async function main() {
       return { status: 'ok' };
     });
     // 收藏补收：每 5 分钟重试一次，最多 6 次；成功后同步本地库并回一句。
-    jobQueue.register('sticker.collect', async () => {
-      const list = loadPendingStickers();
-      if (!list.length) return { status: 'idle' };
-      const keep = [];
-      for (const item of list) {
-        const attempts = Math.max(0, Number(item.attempts) || 0);
-        try {
-          const res = await bot.request('add_custom_face', { file: item.file });
-          if (res && res.status === 'ok' && res.retcode === 0) {
-            const emojiId = String(res.data?.emoji_id || '');
-            if (item.remark && emojiId) {
-              try { await bot.request('modify_custom_face', { emoji_id: emojiId, desc: item.remark }); } catch {}
-            }
-            try { await syncStickerLibrary(true); } catch {}
-            try { await sendToQQ(item.key, '刚才那个表情收好了'); } catch {}
-            log(`[sticker] 补收成功 ${item.key}: ${emojiId}`);
-            continue;
-          }
-          const wording = String(res?.wording || res?.retcode || 'unknown');
-          if (STICKER_TRANSIENT_RE.test(wording) && attempts + 1 < PENDING_STICKER_MAX_ATTEMPTS) {
-            keep.push({ ...item, attempts: attempts + 1, lastProblem: wording });
-            continue;
-          }
-          log(`[sticker] 补收放弃 ${item.key}: ${wording}`);
-          try { await sendToQQ(item.key, '刚才那个表情还是没存上，你方便时再发一次吧'); } catch {}
-        } catch (error) {
-          const message = String(error?.message ?? error);
-          if (STICKER_TRANSIENT_RE.test(message) && attempts + 1 < PENDING_STICKER_MAX_ATTEMPTS) {
-            keep.push({ ...item, attempts: attempts + 1, lastProblem: message });
-          } else {
-            log(`[sticker] 补收放弃 ${item.key}: ${message}`);
-          }
-        }
-      }
-      savePendingStickers(keep);
-      return keep.length ? { retryAfterMs: PENDING_STICKER_RETRY_MS } : { status: 'done' };
-    });
+    jobQueue.register('sticker.collect', processPendingStickers);
     if (loadPendingStickers().length) scheduleStickerCollectJob(60 * 1000);
   }
   if (featureHost) await featureHost.start();

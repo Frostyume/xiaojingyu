@@ -245,7 +245,11 @@
         "enabled": true,
         "maxPerMinute": 10,
         "maxPerHour": 60,
-        "maxRemarkChars": 20
+        "maxRemarkChars": 20,
+        "maxBytes": 3932160,
+        "compress": true,
+        "pythonPath": "",
+        "shrinkScriptPath": ""
       }
     },
     "voice": {

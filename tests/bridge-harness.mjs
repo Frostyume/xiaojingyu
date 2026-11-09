@@ -6,7 +6,7 @@ import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import vm from 'node:vm';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as markdown from '../services/media/md-to-plain.js';
 import * as sensitive from '../runtime/kernel/sensitive.js';
@@ -208,6 +208,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     handleDailyReportJob,
     getStickerEntries: () => stickerEntries,
     collectSticker,
+    processPendingStickers,
     getImageEntries: () => imageEntries,
     buildSignaturePreview,
     setSelfIdentity(display, id) {
@@ -245,6 +246,8 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     // 锁文件探测用（bridge.js 顶层的 consolePortInUse）；
     // 固定桩掉：测试不应该真去 netstat 宿主机。
     execFileSync: () => '',
+    // GIF 压缩会真实调用 python；测试里注入真实 spawnSync，缺 Pillow 的环境会自行跳过。
+    spawnSync,
     // process 桩要带 env：voice-core / bridge 会读 process.env.FFMPEG_PATH、FFPROBE_PATH 等。
     // 之前只给 pid/platform/kill/exit，导致 `process.env.FFMPEG_PATH` 直接抛 TypeError。
     // uptime 供 /api/live/snapshot 组装展示字段；夹具给一个固定值，断言不依赖真实时钟。

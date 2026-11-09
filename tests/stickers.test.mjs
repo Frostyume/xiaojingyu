@@ -16,6 +16,7 @@ import {
   applyStickerNote,
   markStickerUsed
 } from '../services/media/sticker-lib.js';
+import { spawnSync } from 'node:child_process';
 import { bridgeHarness } from './bridge-harness.mjs';
 import { isQVersionWhaleSticker } from '../services/media/vision.js';
 
@@ -235,6 +236,116 @@ console.log('## 收藏上传重试与补收队列');
     ok(saved.length === 1 && saved[0].key === 'private:123' && String(saved[0].file).startsWith('base64://')
       && saved[0].attempts === 1, 'pending-stickers.json 落盘 1 条');
   } finally { await h.close(); }
+}
+
+console.log('## 取图重试与过大附件压缩');
+{
+  const pillowed = (() => {
+    try { return spawnSync('python', ['-c', 'import PIL'], { timeout: 10000, windowsHide: true }).status === 0; } catch { return false; }
+  })();
+  const makeBigGif = () => {
+    const out = path.join(os.tmpdir(), `sticker-fixture-${process.pid}.gif`);
+    const script = [
+      'import io, sys',
+      'from PIL import Image',
+      'frames = [Image.effect_noise((400, 400), 128).convert("RGB").convert("P", palette=Image.ADAPTIVE) for _ in range(18)]',
+      'out = io.BytesIO()',
+      'frames[0].save(out, "GIF", save_all=True, append_images=frames[1:], duration=60, loop=0)',
+      'open(sys.argv[1], "wb").write(out.getvalue())'
+    ].join('\n');
+    const run = spawnSync('python', ['-c', script, out], { timeout: 60000, windowsHide: true });
+    if (run.status !== 0) return null;
+    try { return fs.readFileSync(out); } finally { try { fs.unlinkSync(out); } catch {} }
+  };
+  const gifHeader = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+
+  const runCase = async ({ image, collect, globals = {}, imageFails = 0 }) => {
+    const h = await bridgeHarness({
+      config: {
+        allow: { private: ['123'], groups: ['456'] },
+        consoleAuth: { enabled: false },
+        simulation: { sticker: { collect: { retryDelaysMs: [0, 0], ...collect } } }
+      },
+      globals: { isQVersionWhaleSticker: async () => ({ ok: true, reason: '' }), ...globals }
+    });
+    let imageCalls = 0;
+    const uploads = [];
+    h.setMode('simulation');
+    h.setSnowlumaConnected(true);
+    const st = h.getSimulationState('private:123');
+    st.recentMessages.push({
+      messageId: '950', sender: '群友', text: '[图片]', isSelf: false,
+      media: [{ kind: 'image', file: 'fixture.image' }], time: Date.now()
+    });
+    const realImage = h.bot.getImage.bind(h.bot);
+    h.bot.getImage = async (args) => {
+      imageCalls += 1;
+      if (imageCalls <= imageFails) throw new Error('fixture image fetch failed');
+      return image ? { base64: image.toString('base64') } : realImage(args);
+    };
+    h.bot.request = async (action, params) => {
+      if (action === 'add_custom_face') { uploads.push(String(params.file)); return { status: 'ok', retcode: 0, data: { emoji_id: 'fixture-emoji' } }; }
+      if (action === 'fetch_custom_face_detail') return { status: 'ok', retcode: 0, data: [] };
+      return { status: 'ok', retcode: 0, data: [] };
+    };
+    try {
+      const res = await h.collectSticker('private:123', '950', '笑死');
+      return { res, imageCalls, uploads };
+    } catch (error) {
+      return { message: String(error?.message ?? error), imageCalls, uploads };
+    } finally { await h.close(); }
+  };
+
+  const r1 = await runCase({ imageFails: 2 });
+  ok(!r1.message && r1.res.emojiId === 'fixture-emoji', '取图失败两次后第三次成功');
+  ok(r1.imageCalls === 3, '取图最多尝试 3 次');
+
+  const big = Buffer.concat([gifHeader, Buffer.alloc(300 * 1024, 0)]);
+  const r2 = await runCase({ image: big, collect: { maxBytes: 100 * 1024, compress: false } });
+  ok(/太大了/.test(r2.message), '超限且关闭压缩时给出尺寸提示');
+  ok(r2.uploads.length === 0, '超限被拒时不发起上传');
+
+  if (!pillowed) {
+    console.log('  ⏭️  跳过自动压缩用例（本机没有 Python/Pillow）');
+  } else {
+    const gif = makeBigGif();
+    if (!gif) {
+      console.log('  ⏭️  跳过自动压缩用例（生成大 GIF 失败）');
+    } else {
+      const maxBytes = Math.max(65536, Math.floor(gif.length / 2));
+      const r3 = await runCase({ image: gif, collect: { maxBytes, shrinkScriptPath: path.join(ROOT, 'tools', 'shrink-gif.py') } });
+      ok(!r3.message && r3.res.emojiId === 'fixture-emoji', '超过上限时自动压缩后收藏成功');
+      const uploaded = Buffer.from(String(r3.uploads[0] || '').replace(/^base64:\/\//, ''), 'base64');
+      ok(r3.uploads.length === 1 && uploaded.length <= maxBytes, '压缩后只上传一次且不超限');
+    }
+  }
+  if (pillowed) {
+    const gif = makeBigGif();
+    if (gif) {
+      const maxBytes = Math.max(65536, Math.floor(gif.length / 2));
+      const original = gif.toString('base64');
+      const h = await bridgeHarness({
+        config: {
+          allow: { private: ['123'], groups: ['456'] },
+          consoleAuth: { enabled: false },
+          simulation: { sticker: { collect: { maxBytes, shrinkScriptPath: path.join(ROOT, 'tools', 'shrink-gif.py') } } }
+        },
+        files: { 'state/pending-stickers.json': [{ id: 'pending-1', key: 'private:123', remark: '', file: `base64://${original}`, at: Date.now(), attempts: 1, lastProblem: 'timeout' }] }
+      });
+      try {
+        h.setMode('simulation');
+        h.setSnowlumaConnected(true);
+        let uploadedFile = '';
+        h.bot.request = async (action, params) => {
+          if (action === 'add_custom_face') { uploadedFile = String(params.file); return { status: 'ok', retcode: 0, data: { emoji_id: 'pending-emoji' } }; }
+          return { status: 'ok', retcode: 0, data: [] };
+        };
+        await h.processPendingStickers();
+        const bytes = Buffer.from(uploadedFile.replace(/^base64:\/\//, ''), 'base64');
+        ok(uploadedFile && bytes.length <= maxBytes && bytes.length < gif.length, '补收队列处理大文件时先压缩再上传');
+      } finally { await h.close(); }
+    }
+  }
 }
 
 console.log('## 模型工具：按引用 messageId 删除');
