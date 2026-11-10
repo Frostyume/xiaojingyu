@@ -6857,7 +6857,7 @@
       "group": "语音",
       "type": "number",
       "restart": "bridge",
-      "advanced": false
+      "advanced": true
     },
     {
       "key": "simulation.speech.asr.enabled",

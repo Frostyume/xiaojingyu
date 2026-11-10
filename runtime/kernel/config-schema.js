@@ -190,7 +190,7 @@ const FIELD_META = {
   'simulation.dailyReport.maxItems': { label: '摘录条数', group: '群日报', restart: 'none', min: 1, max: 20 },
   'simulation.speech.asr.enabled': { label: '语音转写（ASR）', group: '语音', restart: 'bridge', description: '默认关闭；开启后收到的语音会附加 [语音转写]' },
   'simulation.speech.asr.timeoutMs': { label: '转写超时（ms）', group: '语音', restart: 'bridge', min: 1000, max: 120000, advanced: true },
-  'simulation.speech.asr.cacheTtlMs': { label: '转写缓存时长（ms）', group: '语音', restart: 'bridge' },
+  'simulation.speech.asr.cacheTtlMs': { label: '转写缓存时长（ms）', group: '语音', restart: 'bridge', advanced: true },
   'simulation.budget.enabled': { label: 'token 预算', group: '预算', restart: 'none', description: '超预算只压制非显式唤醒；@/引用/私聊/提问/关键词仍会回' },
   'simulation.budget.dailyTokensPerKey': { label: '每会话每日 token', group: '预算', restart: 'none', min: 0, max: 100000000 },
   'simulation.budget.dailyTokensGlobal': { label: '全局每日 token', group: '预算', restart: 'none', min: 0, max: 1000000000 },
