@@ -3128,7 +3128,7 @@
       "label": "SnowLuma 安装目录",
       "group": "SnowLuma / QQ",
       "type": "string",
-      "restart": "bridge",
+      "restart": "none",
       "advanced": true
     },
     {
@@ -5554,7 +5554,7 @@
       "label": "API Key 环境变量名",
       "group": "联网搜索",
       "type": "string",
-      "restart": "bridge",
+      "restart": "none",
       "advanced": true
     },
     {
@@ -5562,7 +5562,7 @@
       "label": "搜索 API 地址",
       "group": "联网搜索",
       "type": "string",
-      "restart": "bridge",
+      "restart": "none",
       "advanced": true
     },
     {
@@ -5598,7 +5598,7 @@
       "label": "搜索模型",
       "group": "联网搜索",
       "type": "string",
-      "restart": "bridge",
+      "restart": "none",
       "advanced": false
     },
     {
@@ -5606,7 +5606,7 @@
       "label": "搜索 provider",
       "group": "联网搜索",
       "type": "string",
-      "restart": "bridge",
+      "restart": "none",
       "advanced": false,
       "enum": [
         "auto",
@@ -6072,7 +6072,7 @@
       "label": "备份保留天数",
       "group": "存储与可靠性",
       "type": "number",
-      "restart": "none",
+      "restart": "bridge",
       "advanced": true,
       "min": 1,
       "max": 90
@@ -6178,7 +6178,7 @@
       "label": "数据保留天数",
       "group": "存储与可靠性",
       "type": "number",
-      "restart": "none",
+      "restart": "bridge",
       "advanced": true,
       "min": 1,
       "max": 365
@@ -6864,7 +6864,7 @@
       "label": "语音转写（ASR）",
       "group": "语音",
       "type": "boolean",
-      "restart": "none",
+      "restart": "bridge",
       "advanced": false
     },
     {
