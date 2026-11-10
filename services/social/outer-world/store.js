@@ -51,7 +51,7 @@ function normalizeState(raw) {
 }
 
 function emptyQuota(day) {
-  return { day, items: 0, tokens: 0, browse: 0, updatedAt: 0 };
+  return { day, items: 0, tokens: 0, chars: 0, browse: 0, updatedAt: 0 };
 }
 
 function parseLines(text) {
@@ -156,6 +156,7 @@ export function createOuterWorldStore({ dir, now = () => Date.now() } = {}) {
         day: key,
         items: toInt(row.items),
         tokens: toInt(row.tokens),
+        chars: toInt(row.chars),
         browse: toInt(row.browse),
         updatedAt: Number(row.updatedAt) || 0
       };
@@ -169,6 +170,7 @@ export function createOuterWorldStore({ dir, now = () => Date.now() } = {}) {
         day: key,
         items: toInt(prev.items) + toInt(patch.items),
         tokens: toInt(prev.tokens) + toInt(patch.tokens),
+        chars: toInt(prev.chars) + toInt(patch.chars),
         browse: toInt(prev.browse) + toInt(patch.browse),
         updatedAt: at()
       };

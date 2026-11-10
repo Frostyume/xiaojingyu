@@ -64,6 +64,7 @@ import * as esportsFeed from '../services/social/esports-feed.js';
 import * as broadcastLimits from '../services/social/broadcast-limits.js';
 import * as outerWorldStoreModule from '../services/social/outer-world/store.js';
 import * as outerWorldPipeline from '../services/social/outer-world/pipeline.js';
+import * as outerWorldReadingProgress from '../services/social/outer-world/reading-progress.js';
 import * as outerWorldNovel from '../services/social/outer-world/sources/novel.js';
 import * as outerWorldPolicy from '../services/social/outer-world/policy.js';
 import * as outerWorldRatelimit from '../services/social/outer-world/ratelimit.js';
@@ -194,6 +195,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     initialPrompts, initialPromptMaxChars,
     extractMediaFromSegments, segmentsToText, fetchOneBotImage, fetchMediaData, resolveMediaList,
     emojiCdnCandidates, getImageDimensions, acceptImageBuffer, MAX_MEDIA_BYTES, bot,
+    planStickerCompress, summarizeStickerFetchFailures, stickerFetchReason, stickerFetchUrlForLog,
     isConversationBusy, simulationTurnStartAt, turnLeaseNoted, TURN_BUSY_LEASE_MS,
     settingFromDshNamespace, selfIdentityText, buildWakeReminderPrompt,
     evaluateWakeTrigger, wakeScoreDecision, buildContextDigest, maybeRotateSessionForContext,
@@ -278,6 +280,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     ...broadcastLimits,
     ...outerWorldStoreModule,
     ...outerWorldPipeline,
+    ...outerWorldReadingProgress,
     ...outerWorldNovel,
     ...outerWorldPolicy,
     ...outerWorldRatelimit,

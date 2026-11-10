@@ -125,10 +125,20 @@ test('假源跑通：写卡片/进度/配额/审计，提示词只带标题与�
     assert.equal(progressRows[0].chapterIndex, 1, '读完一章后进度应推进');
     assert.equal(progressRows[0].done, true, '整本在一轮预算内读完，才允许标完结');
     assert.ok(Number(progressRows[0].charOffset) > 0, '单页来源应记录读到的字符偏移');
+    assert.equal(progressRows[0].title, '测试读物', '进度带书名');
+    assert.ok(Number(progressRows[0].totalChars) > 0, '单页来源带裁剪后总字数');
+    assert.equal(progressRows[0].chaptersTotal, 0);
 
     const status = h.outerWorldStatus();
     assert.equal(status.enabled, true);
     assert.equal(status.quota.items, 1);
+    assert.ok(status.quota.chars > 0, '配额记录今日阅读字数');
+    assert.equal(status.reading.length, 1, '状态快照带「她在读」');
+    assert.equal(status.reading[0].title, '测试读物');
+    assert.equal(status.reading[0].percent, 100, '已读完的书 100%');
+    assert.equal(status.readingToday.items, 1);
+    assert.equal(status.readingToday.chars, status.quota.chars);
+    assert.equal(status.readingToday.charsKnown, true);
     assert.equal(status.noteCount, 1);
     const audit = fs.readFileSync(path.join(h.temp, 'state', 'outer-world-audit.jsonl'), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     assert.equal(audit.at(-1).kind, 'read');
@@ -405,6 +415,8 @@ test('章节来源回归：逐章推进、去重 key 无分段后缀、不写 ch
     assert.equal(row.chapterIndex, 1);
     assert.equal(row.charOffset, undefined, '章节来源不写 charOffset');
     assert.equal(row.done, undefined);
+    assert.equal(row.chaptersTotal, 2, '章节来源记录总章数');
+    assert.ok(row.title, '进度带来源标题');
 
     rewindSource(h, 'ch-book');
     const r2 = await h.runOuterWorld('ch-2', { fetchText, generate });
@@ -449,11 +461,14 @@ test('模块层：关闭态零文件、去重、分块、VTT、访问策略、�
   try {
     const store = createOuterWorldStore({ dir });
     assert.equal(store.quota.get(shanghaiDayKey()).items, 0);
+    assert.equal(store.quota.get(shanghaiDayKey()).chars, 0);
     assert.deepEqual(store.notes.list(), []);
     assert.equal(store.circuit.isOpen(), false);
     store.progress.get('nope');
     store.audit.read();
     assert.deepEqual(fs.readdirSync(dir), [], '只读操作不得创建任何文件');
+    assert.equal(store.quota.inc(shanghaiDayKey(), { chars: 600 }).chars, 600, '今日阅读字数累计');
+    assert.equal(store.quota.inc(shanghaiDayKey(), { chars: -1 }).chars, 600, '负数按 0 兜底');
 
     const key = dedupeKey({ title: '书', url: 'https://example.com/a', text: '开头' });
     assert.equal(key, dedupeKey({ title: '书', url: 'https://example.com/a', text: '开头' }));

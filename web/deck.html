@@ -7512,6 +7512,23 @@ function renderOuterWorld(status, notes) {
       row.textContent = line;
       box.appendChild(row);
     }
+    const reading = Array.isArray(status.reading) ? status.reading : [];
+    for (const item of reading) {
+      const chaptersTotal = Number(item.chaptersTotal) || 0;
+      const chap = item.kind === 'video' ? '最近看的视频'
+        : chaptersTotal > 0 ? `第 ${Math.min(chaptersTotal, (Number(item.chapterIndex) || 0) + 1)} / ${chaptersTotal} 章`
+          : `已读 ${Number(item.charOffset) || 0} 字`;
+      const pct = item.percent != null ? `${item.percent}%` : '进度待下次阅读后补齐';
+      const row = document.createElement('div');
+      row.textContent = `她在读《${item.title || '未命名'}》 · ${chap} · ${pct}${item.done ? ' · 已读完' : ''}`;
+      box.appendChild(row);
+    }
+    if (reading.length) {
+      const today = status.readingToday || {};
+      const row = document.createElement('div');
+      row.textContent = `今日 ${Number(today.items) || 0} 条见闻` + (Number(today.chars) > 0 ? ` · 读了 ${Number(today.chars)} 字` : '');
+      box.appendChild(row);
+    }
   }
   const list = document.getElementById('owNotes');
   if (!list) return;
@@ -8936,7 +8953,11 @@ async function sendVoiceFromConsole() {
 }
 
 // ── 群聊剧场模式（simulation）配置 ─────────────────────────────────────────
+// 用户改过但还没保存时，切回本页的重读不能把草稿冲掉（与控制台的草稿保护一致）。
+let simConfigDirty = false;
+
 async function loadSimConfig() {
+  if (simConfigDirty) return;
   try {
     const r = await api('/api/simulation/config');
     const c = r.config || {};
@@ -9119,8 +9140,11 @@ async function saveSimConfig() {
   const msg = document.getElementById('simConfigMsg');
   msg.textContent = r.ok ? '✅ 已保存' : ('❌ ' + (r.error || '失败'));
   msg.className = r.ok ? 'meta ok' : 'meta err';
-  if (r.ok) loadSimConfig();
+  if (r.ok) { simConfigDirty = false; loadSimConfig(); }
 }
+
+document.getElementById('section-simulation')?.addEventListener('input', () => { simConfigDirty = true; });
+document.getElementById('section-simulation')?.addEventListener('change', () => { simConfigDirty = true; });
 
 async function viewSimState() {
   const key = document.getElementById('simStateKey').value.trim();
