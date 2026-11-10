@@ -8,7 +8,7 @@
 她像群友一样在场：看气氛接话，记得你说过的事，需要的时候真的会动手。</p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.3.3-5B8DEF?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-1.3.4-5B8DEF?style=flat-square">
   <img alt="node" src="https://img.shields.io/badge/Node.js-%E2%89%A5%2022.13-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat-square&logo=windows&logoColor=white">
   <img alt="dsh" src="https://img.shields.io/badge/DSH-0.2.0--rc.2-1B1F3B?style=flat-square">
@@ -26,7 +26,7 @@
 </p>
 
 > [!NOTE]
-> 当前版本 **v1.3.3**，逐项适配 **DSH 0.2.0-rc.2**（`npm run verify:adaptation`）。本版读长文时跳过前言只取正文并支持摘要材料上限，后台补收跟随表情体系开关，实时状态页区分「已关闭」与「今天没内容」，关系展示改为节点加连线的图谱。
+> 当前版本 **v1.3.4**，逐项适配 **DSH 0.2.0-rc.2**（`npm run verify:adaptation`）。本版修正控制台里 6 条被标成「需要重启」、实际立即生效的配置，给另 8 条只在启动时读取一次的配置明确标注「需要重启」，并补齐 5 个原先在面板里找不到的配置项。
 > 首个稳定版 `v1.0.0` 于 2026-11-03 发布；上游 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)
 > 的 `v0.1.x` / `v0.2.x` 标签与本仓库无关。
 
