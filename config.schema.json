@@ -6114,7 +6114,7 @@
       "label": "入站重放窗口（ms）",
       "group": "存储与可靠性",
       "type": "number",
-      "restart": "none",
+      "restart": "bridge",
       "advanced": true,
       "min": 1000,
       "max": 3600000
@@ -6148,7 +6148,7 @@
       "label": "出站重试次数",
       "group": "存储与可靠性",
       "type": "number",
-      "restart": "none",
+      "restart": "bridge",
       "advanced": true,
       "min": 1,
       "max": 20
@@ -6158,7 +6158,7 @@
       "label": "出站重试基数（ms）",
       "group": "存储与可靠性",
       "type": "number",
-      "restart": "none",
+      "restart": "bridge",
       "advanced": true,
       "min": 500,
       "max": 300000
@@ -6168,7 +6168,7 @@
       "label": "出站重试上限（ms）",
       "group": "存储与可靠性",
       "type": "number",
-      "restart": "none",
+      "restart": "bridge",
       "advanced": true,
       "min": 1000,
       "max": 3600000
@@ -6872,7 +6872,7 @@
       "label": "转写超时（ms）",
       "group": "语音",
       "type": "number",
-      "restart": "none",
+      "restart": "bridge",
       "advanced": true,
       "min": 1000,
       "max": 120000
