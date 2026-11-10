@@ -294,6 +294,38 @@ export function titleSimilarity(a, b) {
   return hit / Math.min(A.size, B.size);
 }
 
+const discoveryWords = new Intl.Segmenter('zh', {granularity:'word'});
+const broadWords = new Set('最新 有趣 热门 分享 讨论 内容 话题 研究 相关 方式 日常 生活 视频 新闻 今天 最近 知识 技术 事情 作品 推荐 网络 世界 喜欢 兴趣 探索 文化 故事 知道 了解 关于 各种 那些 这些 什么 如何 为什么 the and with about news video'.split(' '));
+function topicWords(topic) {
+  return [...new Set(Array.from(discoveryWords.segment(topic.toLowerCase()), part=>part.segment)
+    .filter(word=>word.length>=2 && !broadWords.has(word) && !/^\d+$/.test(word)))];
+}
+
+function discoveryMatch(item, topic) {
+  if (typeof topic!=='string' || !/^[\p{L}\p{N}· -]{2,30}$/u.test(topic)) return null;
+  const words=topicWords(topic);
+  // ICU splits some exact names (e.g. 电鳗) into single characters. Preserve
+  // literal compact names without treating broad segmented labels as a topic.
+  const literalName = !words.length && /^[\p{Script=Han}]{2,4}$/u.test(topic) &&
+    [...discoveryWords.segment(topic)].every(part=>part.segment.length===1);
+  if (!words.length && !literalName) return null;
+  const title=String(item?.title || '').trim().slice(0,200);
+  const summary=String(item?.summary || '').trim().slice(0,300);
+  if (!title || /^https?:\/\//i.test(title)) return null;
+  // Exact segments avoid guessing from one character, pinyin, or an unrelated substring.
+  const passages=[title,...summary.split(/[。！？!?；;]/u)].map(s=>s.toLowerCase());
+  const fromQuery=Array.isArray(item.searchTopics) && item.searchTopics.includes(topic);
+  for (const passage of passages) {
+    if (literalName && passage.includes(topic)) return {topic,anchors:[topic],fromQuery};
+    const tokens=new Set(Array.from(discoveryWords.segment(passage), p=>p.segment));
+    const anchors=words.filter(word=>tokens.has(word));
+    if (anchors.length && (passage.includes(topic.toLowerCase()) || anchors.length>=2 || fromQuery)) {
+      return {topic,anchors,fromQuery};
+    }
+  }
+  return null;
+}
+
 function tasteScore(item) {
   const text = `${item?.title ?? ''} ${item?.summary ?? ''}`;
   let score = 0;
@@ -336,15 +368,33 @@ export function rankCandidates({ items = [], persona = null, seen = [], max = 12
     if (entry?.title) seenTitles.push(entry.title);
   }
 
+  const targeted = new Map();
+  for (const row of items) {
+    if (row?.source !== 'web' || !Array.isArray(row.searchTopics)) continue;
+    const key = candidateUrlKey(row);
+    if (!key) continue;
+    const topics = targeted.get(key) || new Set();
+    for (const topic of row.searchTopics) if (typeof topic === 'string' && topic.length <= 30) topics.add(topic);
+    targeted.set(key, topics);
+  }
   const accepted = [];
+  const acceptedUrls = new Set();
   const acceptedTitles = [];
-  for (const item of items) {
+  const byProvenance = items.map(item => {
+    const searchTopics = [...(targeted.get(candidateUrlKey(item)) || [])].slice(0,8);
+    const rankedItem = { ...item, searchTopics };
+    return { rankedItem, pertinent: searchTopics.some(topic=>discoveryMatch(rankedItem,topic)) };
+  }).sort((a,b)=>Number(b.pertinent)-Number(a.pertinent));
+  for (const {rankedItem:item} of byProvenance) {
     const urlKey = candidateUrlKey(item);
-    if (!urlKey || seenUrls.has(urlKey)) continue;
+    if (!urlKey || seenUrls.has(urlKey) || acceptedUrls.has(urlKey)) continue;
     const title = String(item?.title ?? '').trim();
     if (!title) continue;
     if (seenTitles.some((t) => titleSimilarity(t, title) >= 0.82)) continue;
+    // An exact URL can inherit its query provenance. Distinct URLs with nearly
+    // identical titles never inherit one another's evidence.
     if (acceptedTitles.some((t) => titleSimilarity(t, title) >= 0.9)) continue;
+    acceptedUrls.add(urlKey);
     acceptedTitles.push(title);
     const ageMs = item?.publishedAt ? Math.max(0, now - Number(item.publishedAt)) : Infinity;
     let score = 0.15;
@@ -364,7 +414,10 @@ export function rankCandidates({ items = [], persona = null, seen = [], max = 12
   }
 
   accepted.sort((a, b) => b.score - a.score);
-  return accepted.slice(0, Math.max(1, max));
+  const top = accepted.slice(0, Math.max(1, max));
+  const targetedItem = accepted.find(row=>row.searchTopics.some(topic=>discoveryMatch(row,topic)));
+  if (targetedItem && !top.includes(targetedItem)) top[top.length-1]=targetedItem;
+  return top;
 }
 
 import { beijingParts } from '../../runtime/kernel/time-awareness.js';

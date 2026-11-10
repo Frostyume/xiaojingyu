@@ -1423,15 +1423,16 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     const wc = il.curiosity.webSearch || {};
     if (wc.enabled === false) return { items: [], errors: [] };
     const topics = (loadPersona().interests || [])
+      .filter((item) => item?.weight > 0)
       .map((item) => String(item?.topic || '').trim())
       .filter(Boolean)
       .slice(0, Math.max(1, Number(wc.maxQueries) || 1));
     const queries = topics.length
-      ? topics.map((topic) => `${topic} 有趣 视频 最新 bilibili`)
-      : ['今天 网络 热门 有趣 视频'];
+      ? topics.map((topic) => ({topic, query:`${topic} 有趣 视频 最新 bilibili`}))
+      : [{topic:'',query:'今天 网络 热门 有趣 视频'}];
     const items = [];
     const errors = [];
-    for (const query of queries) {
+    for (const {topic,query} of queries) {
       try {
         const result = await webSearch(query, {
           root: path.resolve(stateDir, '..'),
@@ -1443,6 +1444,7 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
           items.push({
             source: 'web',
             sourceLabel: '搜索',
+            searchTopics: topic ? [topic] : [],
             id: url,
             title: String(hit.title || url).slice(0, 120),
             url,

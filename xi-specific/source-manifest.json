@@ -1096,13 +1096,13 @@
     },
     {
       "path": "migration/xi-a3/upstream/services/persona/curiosity.js",
-      "bytes": 14294,
-      "sha256": "bee79df129d26cd67ff68784c5fc366a71ddd80ceeb63e6673e71c1776bd3523"
+      "bytes": 17520,
+      "sha256": "b4a8f756bb8a0c3321cb3823e5650100dbb3cf8616c1275e0631d591bd0b4f6b"
     },
     {
       "path": "migration/xi-a3/upstream/services/persona/inner-life.js",
-      "bytes": 217326,
-      "sha256": "4aae49f6ff9b84180eecd6ec9b8f985931239ecb165bd3ed2163a05e9baf6e45"
+      "bytes": 217458,
+      "sha256": "b877b5070ff11d47207c9917c145c58a8a10cfb0d25a04416d0d545efa953b5d"
     },
     {
       "path": "migration/xi-a3/upstream/services/persona/persona-state.js",
