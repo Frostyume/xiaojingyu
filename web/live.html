@@ -187,6 +187,19 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
 .st{border:1px solid var(--line);background:#081020;padding:8px}
 .st span{display:block;font-size:9px;color:var(--muted);letter-spacing:.06em}.st b{display:block;font-size:17px;margin-top:3px}
 .st b small{font-size:9px;color:var(--muted);margin-left:3px}
+/* 她在读 */
+.reading-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.reading-item{border:1px solid var(--line);background:#081020;padding:10px;min-width:0}
+.reading-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.reading-title{font-size:13px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reading-kind{flex:none;font-size:9px;color:var(--muted);border:1px solid var(--line);padding:2px 5px;letter-spacing:.08em}
+.reading-meta{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:10px;margin:6px 0 8px;flex-wrap:wrap}
+.reading-bar{height:8px;border:1px solid var(--line);background:#050a13;overflow:hidden}
+.reading-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width .4s}
+.reading-bar i.done{background:linear-gradient(90deg,var(--green),var(--cyan))}
+.reading-pct{font-size:9px;color:var(--muted);margin-top:4px;text-align:right}
+.reading-pct.done{color:var(--green)}
+.reading-note{font-size:10px;color:var(--amber)}
 /* login */
 .login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(4,8,15,.94)}
 .login.hidden{display:none}
@@ -267,6 +280,12 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
     <div class="timeline" id="timeline"></div>
     <div class="counts" id="innerCounts"></div>
     <div class="note" id="innerNote">--</div>
+  </section>
+
+  <section class="card span-12" id="readingCard" hidden>
+    <h2>她在读 <span class="tag" id="readingTag">READING</span></h2>
+    <div class="reading-list" id="readingList"></div>
+    <div class="muted small" style="margin-top:8px" id="readingToday">--</div>
   </section>
 
   <section class="card span-12">
@@ -746,6 +765,65 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
     else if (inner.lastQzone) bits.push('最近说说（' + ago(inner.lastQzone.at) + '）：' + (inner.lastQzone.text || '').slice(0, 46));
     else bits.push('还没有说说记录');
     note.textContent = bits.join(' · ');
+
+    const readingItems = (Array.isArray(data.reading) ? data.reading : []).filter((item) => item && typeof item === 'object');
+    const readingTodayData = data.readingToday && typeof data.readingToday === 'object' ? data.readingToday : {};
+    const readingCard = $('readingCard');
+    if (readingCard) {
+      const list = $('readingList');
+      clear(list);
+      readingCard.hidden = readingItems.length === 0;
+      if (readingItems.length) {
+        const tag = $('readingTag');
+        if (tag) tag.textContent = readingItems.length + ' 项';
+        for (const item of readingItems) {
+          const card = el('div', 'reading-item');
+          const head = el('div', 'reading-head');
+          head.appendChild(el('div', 'reading-title', item.title || '未命名'));
+          head.appendChild(el('span', 'reading-kind', item.kind === 'video' ? '视频' : '书'));
+          card.appendChild(head);
+
+          const chaptersTotal = Math.max(0, Number(item.chaptersTotal) || 0);
+          const chapterIndex = Math.max(0, Number(item.chapterIndex) || 0);
+          const meta = el('div', 'reading-meta');
+          if (item.kind === 'video') {
+            meta.appendChild(el('span', null, '最近看的视频'));
+          } else if (chaptersTotal > 0) {
+            const current = Math.min(chaptersTotal, chapterIndex + 1);
+            meta.appendChild(el('span', null, `第 ${current} / ${chaptersTotal} 章`));
+          } else if (Number(item.totalChars) > 0) {
+            meta.appendChild(el('span', null, `${fmtInt(item.charOffset)} / ${fmtInt(item.totalChars)} 字`));
+          } else {
+            meta.appendChild(el('span', null, `已读 ${fmtInt(item.charOffset)} 字`));
+          }
+          meta.appendChild(el('span', null, '最后阅读 ' + ago(item.lastReadAt)));
+          card.appendChild(meta);
+
+          if (item.percent != null) {
+            const bar = el('div', 'reading-bar');
+            const fill = el('i');
+            fill.style.width = Math.max(0, Math.min(100, Number(item.percent) || 0)) + '%';
+            if (item.done) fill.classList.add('done');
+            bar.appendChild(fill);
+            card.appendChild(bar);
+            const pct = el('div', 'reading-pct' + (item.done ? ' done' : ''),
+              item.done ? (item.kind === 'video' ? '已完成' : '已读完') : `${item.percent}%`);
+            card.appendChild(pct);
+          } else {
+            card.appendChild(el('div', 'reading-note', item.note || '进度待下次阅读后补齐'));
+          }
+          list.appendChild(card);
+        }
+        const rcItems = Math.max(0, Number(readingTodayData.items) || 0);
+        const rcChars = Math.max(0, Number(readingTodayData.chars) || 0);
+        const rcBits = [];
+        if (rcItems > 0) rcBits.push(`今日 ${rcItems} 条见闻`);
+        if (rcChars > 0) rcBits.push(`读了 ${fmtInt(rcChars)} 字`);
+        if (!rcBits.length) rcBits.push('今天还没出门');
+        else if (rcItems > 0 && rcChars <= 0) rcBits.push('字数待下次阅读后补齐');
+        $('readingToday').textContent = rcBits.join(' · ');
+      }
+    }
 
     const signals = $('signals'); clear(signals);
     const c = data.content || {};

@@ -28,6 +28,7 @@ export const FEATURE_BOARDS = Object.freeze([
     description: '总闸统一管理所有主动分享；下面的模块各自有开关，只开你想要的。'
   },
   { id: 'social', label: '聊天与社交', description: '说说、评论回复、签名和语音：她对外说话的方式。' },
+  { id: 'outerWorld', label: '出门见闻', description: '自主阅读与见闻：按排程读小说或取视频字幕，整理成见闻卡片，并记住读到哪。' },
   { id: 'ops', label: '群运营', description: '面向整个群的固定推送，比如每日群日报。' },
   { id: 'owner', label: '主人能力', description: '你在主人私聊里创建的功能中心任务。' }
 ]);
@@ -328,7 +329,7 @@ const CARD_LIST = [
   },
   {
     id: 'outerWorld',
-    board: 'social',
+    board: 'outerWorld',
     label: '出门见闻',
     keywords: '出门 见闻 读书 看书 视频 字幕 outerWorld',
     description: '她自己找书或视频字幕看，把有意思的见闻带回来；默认关闭。',

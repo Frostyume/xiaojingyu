@@ -139,7 +139,7 @@ const FIELD_META = {
   'simulation.sticker.enabled': { label: '表情包体系', group: '表情与图片', restart: 'none' },
   'simulation.sticker.collect.enabled': { label: '允许收藏表情', group: '表情与图片', restart: 'none' },
   'simulation.sticker.collect.maxBytes': { label: '单个表情上限（字节）', group: '表情与图片', restart: 'none', min: 65536, max: 4194304, advanced: true },
-  'simulation.sticker.collect.compress': { label: '超过上限自动压缩 GIF', group: '表情与图片', restart: 'none', description: '需要本机 Python + Pillow；关闭后超限直接拒绝' },
+  'simulation.sticker.collect.compress': { label: '超过上限自动压缩 GIF', group: '表情与图片', restart: 'none', description: '默认关闭（优先原图，压缩会改变字节/MD5）；打开后超过上限用本机 Python + Pillow 压缩' },
   'simulation.sticker.collect.pythonPath': { label: 'Python 可执行文件', group: '表情与图片', restart: 'none', advanced: true, description: '留空则用 PATH 里的 python' },
   'simulation.sticker.collect.shrinkScriptPath': { label: '压缩脚本路径', group: '表情与图片', restart: 'none', advanced: true, description: '留空则用仓库 tools/shrink-gif.py' },
   'simulation.imageLibrary.enabled': { label: '通用图片库', group: '表情与图片', restart: 'none' },

@@ -89,11 +89,11 @@ try {
     handleOwnerCommand: async () => false
   });
 
-  // ── 1. 端点快照：5 板块 / 20 卡片 / 群聊剧场与分享引擎总闸 ─────────────
+  // ── 1. 端点快照：6 板块 / 20 卡片 / 群聊剧场与分享引擎总闸 ─────────────
   const snap = await call('/api/features/control');
   assert.equal(snap.status, 200, 'GET /api/features/control 应成功');
   assert.equal(snap.json.ok, true);
-  assert.deepEqual(snap.json.boards.map((b) => b.id), ['chat', 'shareEngine', 'social', 'ops', 'owner']);
+  assert.deepEqual(snap.json.boards.map((b) => b.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner']);
   assert.equal(snap.json.boards.find((b) => b.id === 'chat').master, 'groupChat');
   assert.equal(snap.json.boards.find((b) => b.id === 'shareEngine').master, 'shareModule');
   assert.deepEqual(snap.json.modules.map((m) => m.id).sort(), FEATURE_CARDS.map((c) => c.id).sort());
@@ -112,7 +112,7 @@ try {
     assert.equal(module.board, 'shareEngine', `${id} 应归入分享引擎板块`);
     assert.ok(module.dependencies.some((d) => d.key === 'features.shareModule' && d.ok), `${id} 应声明分享引擎总闸依赖`);
   }
-  console.log('OK 快照：5 板块 / 20 模块 / 群聊剧场与分享引擎总闸');
+  console.log('OK 快照：6 板块 / 20 模块 / 群聊剧场与分享引擎总闸');
 
   // ── 2. 关闭空间说说：配置落盘 + HTTP 入口拒绝 ──────────────────────────
   const offQzone = await call('/api/features/control', { method: 'POST', body: { id: 'qzone', enabled: false } });

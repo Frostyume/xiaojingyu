@@ -1682,8 +1682,8 @@
                 "compress": {
                   "title": "超过上限自动压缩 GIF",
                   "type": "boolean",
-                  "default": true,
-                  "description": "需要本机 Python + Pillow；关闭后超限直接拒绝"
+                  "default": false,
+                  "description": "默认关闭（优先原图，压缩会改变字节/MD5）；打开后超过上限用本机 Python + Pillow 压缩"
                 },
                 "enabled": {
                   "title": "允许收藏表情",

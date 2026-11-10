@@ -238,6 +238,89 @@ console.log('## 收藏上传重试与补收队列');
   } finally { await h.close(); }
 }
 
+console.log('## 取图失败摘要与压缩策略（纯函数）');
+{
+  const h = await bridgeHarness({
+    config: { allow: { private: ['123'], groups: ['456'] }, consoleAuth: { enabled: false } }
+  });
+  try {
+    const summary = h.summarizeStickerFetchFailures([
+      { source: 'cdn', url: 'https://gxh.vip.qq.com/club/item/parcel/item/aa/aa/raw300.gif?token=SECRET', message: '图片抓取失败：HTTP 404' },
+      { source: 'get_image', message: '请求超时：gateway.invalid' },
+      { source: 'url', message: '抓取内容不是有效图片（PNG/JPEG/GIF/WebP）' },
+      { source: 'cdn', message: '图片抓取失败：HTTP 404' }
+    ]);
+    ok(summary === '取图失败：CDN 404；get_image 超时；URL 不是图片', `摘要合并多来源且去重（${summary}）`);
+    ok(!/SECRET|token=|https?:\/\//i.test(summary), '摘要不泄露带签名 URL/token');
+    const sanitized = h.stickerFetchUrlForLog('https://gxh.vip.qq.com/a/b.gif?token=SECRET&x=1');
+    ok(sanitized === 'https://gxh.vip.qq.com/a/b.gif', '日志 URL 只保留 host+path');
+
+    ok(h.planStickerCompress({ bytes: 1024, maxBytes: 65536 }).action === 'upload', '≤上限：原样上传');
+    const reject = h.planStickerCompress({ bytes: 131072, maxBytes: 65536 });
+    ok(reject.action === 'reject' && /自动压缩已关闭/.test(reject.reason), '>上限且默认：拒绝不压缩');
+    ok(h.planStickerCompress({ bytes: 131072, maxBytes: 65536, compress: true }).action === 'compress', '显式 compress:true 才走压缩');
+    ok(h.planStickerCompress({ bytes: 100, maxBytes: 0 }).action === 'upload', '非法 maxBytes 回退默认上限');
+  } finally { await h.close(); }
+}
+
+console.log('## 取图诊断：多来源汇成一句话');
+{
+  const h = await bridgeHarness({
+    config: { allow: { private: ['123'], groups: ['456'] }, consoleAuth: { enabled: false } },
+    globals: { safeFetchBuffer: async () => { throw new Error('请求超时：cdn.invalid'); } }
+  });
+  try {
+    h.bot.getImage = async () => { throw new Error('请求超时：gateway.invalid'); };
+    h.bot.request = async () => ({ status: 'ok', retcode: 0, data: [] });
+    const failures = [];
+    const img = await h.fetchOneBotImage({
+      kind: 'sticker',
+      file: 'fixture-safe.gif',
+      url: 'https://cdn.invalid/p/x.gif?token=SECRET',
+      emojiId: 'a'.repeat(32)
+    }, { failures });
+    ok(img === null, '所有来源失败时返回 null');
+    const summary = h.summarizeStickerFetchFailures(failures);
+    ok(/CDN/.test(summary) && /get_image/.test(summary) && /收藏库/.test(summary), `摘要覆盖多个来源（${summary}）`);
+    ok(!/SECRET/.test(summary) && !/SECRET/.test(JSON.stringify(failures)), '失败明细与摘要都不含 token');
+  } finally { await h.close(); }
+}
+
+console.log('## 取图兜底：fetch_custom_face_detail 按 emoji_id 反查');
+{
+  const gif = Buffer.concat([
+    Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'),
+    Buffer.alloc(200, 0)
+  ]);
+  const h = await bridgeHarness({
+    config: { allow: { private: ['123'], groups: ['456'] }, consoleAuth: { enabled: false } },
+    globals: {
+      safeFetchBuffer: async (url) => {
+        if (String(url).includes('public.invalid/library')) return { statusCode: 200, buffer: gif };
+        throw new Error('请求超时：fixture');
+      }
+    }
+  });
+  try {
+    h.bot.getImage = async () => { throw new Error('image not found in cache'); };
+    const calls = [];
+    h.bot.request = async (method, params) => {
+      calls.push({ method, params });
+      if (method === 'fetch_custom_face_detail') return { status: 'ok', retcode: 0, data: [{ emoji_id: 'b'.repeat(32), url: 'https://public.invalid/library/b.gif' }] };
+      return { status: 'ok', retcode: 0 };
+    };
+    const img = await h.fetchOneBotImage({
+      kind: 'sticker',
+      file: 'b.gif',
+      url: '',
+      emojiId: 'b'.repeat(32)
+    });
+    ok(img?.buffer?.equals(gif), 'get_image 失败后用收藏库地址取到原图');
+    ok(calls.some((item) => item.method === 'fetch_custom_face_detail'), '调用了 fetch_custom_face_detail');
+    ok(JSON.stringify(img?.buffer) === JSON.stringify(gif), '兜底取回的字节原样返回（不转码）');
+  } finally { await h.close(); }
+}
+
 console.log('## 取图重试与过大附件压缩');
 {
   const pillowed = (() => {
@@ -305,6 +388,15 @@ console.log('## 取图重试与过大附件压缩');
   ok(/太大了/.test(r2.message), '超限且关闭压缩时给出尺寸提示');
   ok(r2.uploads.length === 0, '超限被拒时不发起上传');
 
+  const rDefault = await runCase({ image: big, collect: { maxBytes: 100 * 1024 } });
+  ok(/太大且自动压缩已关闭/.test(rDefault.message), '默认配置：超限直接拒绝，不压缩');
+  ok(/simulation\.sticker\.collect\.compress/.test(rDefault.message), '拒绝时提示可以打开自动压缩');
+  ok(rDefault.uploads.length === 0, '默认拒绝时也不发起上传');
+
+  const rSmall = await runCase({ image: gifHeader });
+  const uploadedSmall = Buffer.from(String(rSmall.uploads[0] || '').replace(/^base64:\/\//, ''), 'base64');
+  ok(rSmall.uploads.length === 1 && uploadedSmall.equals(gifHeader), '未超上限且默认配置时字节完全不变（不压缩）');
+
   if (!pillowed) {
     console.log('  ⏭️  跳过自动压缩用例（本机没有 Python/Pillow）');
   } else {
@@ -313,7 +405,7 @@ console.log('## 取图重试与过大附件压缩');
       console.log('  ⏭️  跳过自动压缩用例（生成大 GIF 失败）');
     } else {
       const maxBytes = Math.max(65536, Math.floor(gif.length / 2));
-      const r3 = await runCase({ image: gif, collect: { maxBytes, shrinkScriptPath: path.join(ROOT, 'tools', 'shrink-gif.py') } });
+      const r3 = await runCase({ image: gif, collect: { maxBytes, compress: true, shrinkScriptPath: path.join(ROOT, 'tools', 'shrink-gif.py') } });
       ok(!r3.message && r3.res.emojiId === 'fixture-emoji', '超过上限时自动压缩后收藏成功');
       const uploaded = Buffer.from(String(r3.uploads[0] || '').replace(/^base64:\/\//, ''), 'base64');
       ok(r3.uploads.length === 1 && uploaded.length <= maxBytes, '压缩后只上传一次且不超限');
@@ -328,7 +420,7 @@ console.log('## 取图重试与过大附件压缩');
         config: {
           allow: { private: ['123'], groups: ['456'] },
           consoleAuth: { enabled: false },
-          simulation: { sticker: { collect: { maxBytes, shrinkScriptPath: path.join(ROOT, 'tools', 'shrink-gif.py') } } }
+          simulation: { sticker: { collect: { maxBytes, compress: true, shrinkScriptPath: path.join(ROOT, 'tools', 'shrink-gif.py') } } }
         },
         files: { 'state/pending-stickers.json': [{ id: 'pending-1', key: 'private:123', remark: '', file: `base64://${original}`, at: Date.now(), attempts: 1, lastProblem: 'timeout' }] }
       });

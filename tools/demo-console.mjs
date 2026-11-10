@@ -547,7 +547,43 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
             limits: ['离线示例：这是只读功能清单。'],
           });
           case '/api/features/control': return json(featureControlFixture(state));
+          // 开源版没有生活管家后台，但控制台仍保留旧面板入口；离线夹具给一份空快照，
+          // 避免打开页面时出现 404 控制台错误（真实桥接没有这个路由）。
+          case '/api/features/life-panel': return json({
+            ok: true,
+            paper: { topics: [], keywords: [], enabled: false },
+            github: { repos: [], metrics: {}, enabled: false },
+            digest: { enabled: false, sections: {} },
+            githubToken: { configured: false },
+            reminder: {},
+            calendarMorning: {},
+            rssDigest: { feeds: [] },
+            weeklyReview: {},
+            status: {}
+          });
           case '/api/content': return json(contentFixture(state));
+          case '/api/outer-world/status': return json({
+            ok: true,
+            enabled: false,
+            day: '2026-09-20',
+            quota: { day: '2026-09-20', items: 2, tokens: 1800, chars: 12000, browse: 0, updatedAt: Date.parse(timestamp) },
+            reading: [
+              { id: 'demo-book', title: '离线演示读物', kind: 'book', chapterIndex: 12, chaptersTotal: 49, charOffset: 0, totalChars: null, percent: 24, lastReadAt: Date.parse(timestamp) - 3600000, done: false },
+              { id: 'demo-video', title: '离线演示字幕', kind: 'video', chapterIndex: 1, chaptersTotal: 0, charOffset: 0, totalChars: null, percent: 100, lastReadAt: Date.parse(timestamp) - 7200000, done: true }
+            ],
+            readingToday: { day: '2026-09-20', items: 2, chars: 12000, tokens: 1800, charsKnown: true },
+            circuit: { fails: 0 },
+            subtitle: { ok: false },
+            limits: { maxItemsPerDay: 2, noteChars: 600, digestChars: 6000, tokenBudget: 60000 },
+            noteCount: 2
+          });
+          case '/api/outer-world/notes': return json({
+            ok: true,
+            notes: [
+              { id: 'demo-note-1', title: '离线演示读物', summary: '她读到主角在海边停下脚步，觉得慢慢读也挺好。', at: Date.parse(timestamp) - 3600000 },
+              { id: 'demo-note-2', title: '离线演示字幕', summary: '一段关于城市夜色的纪录片字幕。', at: Date.parse(timestamp) - 7200000 }
+            ]
+          });
           case '/api/inner-life/candidates': return json({ ok: true, fetchedAt: Date.parse(timestamp), candidates: [] });
           case '/api/presets': return json({ presets: [{ id: 'qq-chat-legacy', trust: 'user' }, { id: 'qq-chat', trust: 'user' }] });
           case '/api/roles': return json({

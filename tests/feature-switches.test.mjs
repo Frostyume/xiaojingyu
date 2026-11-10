@@ -211,7 +211,7 @@ const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers'
 assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS].sort());
 assert.equal(FEATURE_CARDS.length, 21);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
-assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'ops', 'owner']);
+assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner']);
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'chat').master, 'groupChat');
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'shareEngine').master, 'shareModule');
 for (const board of FEATURE_BOARDS) {
@@ -242,6 +242,8 @@ assert.equal(cardSwitchKey('chatProactive'), 'simulation.proactive.enabled');
 assert.equal(cardSwitchKey('chatStickers'), 'simulation.sticker.enabled');
 assert.equal(cardSwitchKey('chatNightQuiet'), 'simulation.nightQuiet.enabled');
 assert.equal(cardFor('chatActivity').board, 'chat');
+assert.equal(cardFor('outerWorld').board, 'outerWorld', '出门见闻独立成板块');
+assert.equal(FEATURE_BOARDS.find((board) => board.id === 'outerWorld').master, undefined, '出门见闻板块没有独立总闸');
 assert.equal(cardFor('chatActivity').advanced[0].default, false);
 assert.equal(cardEnabled('chatActivity', {}), false, '默认潜水');
 assert.equal(cardEnabled('chatActivity', { simulation: { wake: { defaultMode: 'active' } } }), true);

@@ -247,7 +247,7 @@
         "maxPerHour": 60,
         "maxRemarkChars": 20,
         "maxBytes": 3932160,
-        "compress": true,
+        "compress": false,
         "pythonPath": "",
         "shrinkScriptPath": ""
       }

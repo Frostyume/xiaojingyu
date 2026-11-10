@@ -66,6 +66,7 @@ import {
   chunkText, digestBudget, digestChunks, isSegmentedSource, isSourceFinished, limitDigestChunks,
   migrateLegacySegmentedProgress, pickBodyText, pickNextSource, readCharOffset, segmentDedupeKey
 } from '../services/social/outer-world/pipeline.js';
+import { buildReadingSnapshot, readingToday } from '../services/social/outer-world/reading-progress.js';
 import { normalizeNovelSource, readChapter } from '../services/social/outer-world/sources/novel.js';
 import { evaluateUrl, redactUrlForAudit } from '../services/social/outer-world/policy.js';
 import { createRateLimiter } from '../services/social/outer-world/ratelimit.js';
@@ -1222,7 +1223,7 @@ function loadConfig() {
       maxPerHour: 60,
       maxRemarkChars: 20,
       maxBytes: 3932160,
-      compress: true,
+      compress: false,
       pythonPath: '',
       shrinkScriptPath: '',
       ...((cfg.simulation?.sticker?.collect) ?? {})
@@ -1234,7 +1235,7 @@ function loadConfig() {
       maxPerHour: 60,
       maxRemarkChars: 20,
       maxBytes: 3932160,
-      compress: true,
+      compress: false,
       pythonPath: '',
       shrinkScriptPath: '',
       ...((cfg.simulation?.sticker?.collect) ?? {})
@@ -3556,7 +3557,12 @@ async function main() {
     const noteKey = segmentDedupeKey({ title: target.title, url: target.url, chapterIndex: target.chapterIndex, segmented });
     if (outerWorldStore.notes.dedupeHas(noteKey)) {
       // 命中去重时分段来源只推进偏移，不能像旧语义那样直接判完结。
-      const patch = { chapterIndex: target.chapterIndex + 1, lastReadAt: Date.now() };
+      const patch = {
+        chapterIndex: target.chapterIndex + 1,
+        lastReadAt: Date.now(),
+        title: String(source.title || target.title || ''),
+        chaptersTotal: Array.isArray(source.chapters) ? source.chapters.length : 0
+      };
       if (segmented) patch.charOffset = charOffset + digestChars;
       else if (source.type === 'video') patch.done = true;
       outerWorldStore.progress.set(source.id, patch);
@@ -3585,7 +3591,15 @@ async function main() {
       const bodyText = pickBodyText(chapter.text);
       if (segmented && charOffset >= bodyText.length) {
         // 偏移已越过正文末尾（如旧数据迁移的书整本不足一轮消化量）：补记完结，不再产出卡片。
-        outerWorldStore.progress.set(source.id, { chapterIndex: target.chapterIndex, charOffset, lastReadAt: Date.now(), done: true });
+        outerWorldStore.progress.set(source.id, {
+          chapterIndex: target.chapterIndex,
+          charOffset,
+          lastReadAt: Date.now(),
+          done: true,
+          title: String(source.title || target.title || ''),
+          totalChars: bodyText.length,
+          chaptersTotal: 0
+        });
         return skip('finished');
       }
       // 裁剪完成后再取偏移，保证 charOffset 始终相对同一份裁剪后正文。
@@ -3622,11 +3636,13 @@ async function main() {
       });
       outerWorldStore.progress.set(source.id, {
         chapterIndex: nextIndex,
+        title: String(source.title || target.title || ''),
+        chaptersTotal: hasChapters ? source.chapters.length : 0,
         lastReadAt: Date.now(),
-        ...(segmented ? { charOffset: nextOffset } : {}),
+        ...(segmented ? { charOffset: nextOffset, totalChars: bodyText.length } : {}),
         ...(finished ? { done: true } : {})
       });
-      outerWorldStore.quota.inc(day, { items: 1, tokens });
+      outerWorldStore.quota.inc(day, { items: 1, tokens, chars: material.chars });
       outerWorldStore.audit.append({ kind: 'read', sourceId: source.id, host: note.sourceHost, chapterIndex: note.chapterIndex, tokens, trigger: reason, noteId: appended.id });
       outerWorldStore.circuit.ok();
       if (outerWorldConfig().digest?.pushToOwner === true && ownerChatKey()) {
@@ -3684,13 +3700,28 @@ async function main() {
     return { cleared: pending + dead, circuit: outerWorldStore.circuit.get() };
   }
 
+  /** 实时页/控制台共用的「她在读」快照：只读进度文件，旧数据不补写。 */
+  function outerWorldReading() {
+    try {
+      const sources = outerWorldSources(outerWorldConfig().leisure?.sources);
+      const progress = {};
+      for (const source of sources) progress[source.id] = outerWorldStore.progress.get(source.id);
+      return buildReadingSnapshot({ sources, progress });
+    } catch {
+      return [];
+    }
+  }
+
   function outerWorldStatus() {
     const leisure = outerWorldConfig().leisure ?? {};
+    const quota = outerWorldStore.quota.get(shanghaiDayKey());
     const subtitle = probeSubtitleTool({ ytDlpPath: String(leisure.ytDlpPath || '').trim() });
     return {
       enabled: outerWorldEnabled(),
       day: shanghaiDayKey(),
-      quota: outerWorldStore.quota.get(shanghaiDayKey()),
+      quota,
+      reading: outerWorldReading(),
+      readingToday: readingToday(quota),
       circuit: outerWorldStore.circuit.get(),
       subtitle,
       limits: {
@@ -4453,6 +4484,13 @@ async function main() {
       });
     }
     sessions.sort((a, b) => (b.lastIncomingAt || 0) - (a.lastIncomingAt || 0));
+    // 她在读：书/字幕进度；旧进度缺 totalChars 时只给 null percent，不回写。
+    let featureReading = [];
+    let featureReadingToday = readingToday({});
+    try {
+      featureReading = outerWorldReading();
+      featureReadingToday = readingToday(outerWorldStore.quota.get(shanghaiDayKey()));
+    } catch {}
     const unreadTotal = sessions.reduce((n, s) => n + s.unread, 0);
     const pendingWakes = sessions.reduce((n, s) => n + s.pendingWakes, 0);
     const lat = liveReplyLatencies.slice().sort((a, b) => a - b);
@@ -4519,6 +4557,8 @@ async function main() {
         } : null
       } : null,
       sessions,
+      reading: featureReading,
+      readingToday: featureReadingToday,
       relationships: buildRelationshipSnapshot(),
       content: buildContentSnapshot(),
       flow: {
@@ -5500,13 +5540,22 @@ async function main() {
 
   // 收藏聊天里的一张表情（add_custom_face），并按 AI 看到的含义写简短备注（modify_custom_face）。
   // 收藏失败时的补收队列：网络抖动导致 add_custom_face 持续失败时，先落盘稍后自动重试。
-  // 超过 SnowLuma 上传接口上限（实测 3.8MB 可、4.0MB 不可）时，先用 Pillow 本地压缩；
-  // 手动在 QQ 里能收更大的图，但接口这条路不行，所以只能缩。
+  // 超过 SnowLuma 上传接口上限（实测 3.8MB 可、4.0MB 不可）时默认直接拒绝，不降质；
+  // 只有显式 collect.compress=true 才用 Pillow 本地压缩（压缩后 MD5 会变，等于另一张图）。
+  function planStickerCompress({ bytes, maxBytes, compress } = {}) {
+    const limit = Math.max(65536, Number(maxBytes) || 3932160);
+    const size = Math.max(0, Number(bytes) || 0);
+    if (size <= limit) return { action: 'upload', maxBytes: limit };
+    if (compress !== true) return { action: 'reject', maxBytes: limit, reason: '太大且自动压缩已关闭' };
+    return { action: 'compress', maxBytes: limit };
+  }
+
   function fitStickerBuffer(buffer) {
     const collect = cfg.simulation?.sticker?.collect ?? {};
-    const maxBytes = Math.max(65536, Number(collect.maxBytes) || 3932160);
-    if (buffer.length <= maxBytes) return { buffer, compressed: false, maxBytes };
-    if (collect.compress === false) return { buffer, tooLarge: true, maxBytes, reason: '压缩已关闭' };
+    const plan = planStickerCompress({ bytes: buffer.length, maxBytes: collect.maxBytes, compress: collect.compress });
+    const maxBytes = plan.maxBytes;
+    if (plan.action === 'upload') return { buffer, compressed: false, maxBytes };
+    if (plan.action === 'reject') return { buffer, tooLarge: true, maxBytes, reason: plan.reason, compressDisabled: true };
     const python = String(collect.pythonPath || '').trim() || 'python';
     const script = String(collect.shrinkScriptPath || '').trim() || path.join(ROOT, 'tools', 'shrink-gif.py');
     const stamp = Date.now();
@@ -5532,6 +5581,58 @@ async function main() {
       try { fs.unlinkSync(tmpIn); } catch {}
       try { fs.unlinkSync(tmpOut); } catch {}
     }
+  }
+
+  const STICKER_FETCH_SOURCE_LABELS = { url: 'URL', cdn: 'CDN', get_image: 'get_image', library: '收藏库' };
+
+  // 日志里只保留 host + path（签名/token 通常挂在 query），并截断长度。
+  function stickerFetchUrlForLog(raw, maxLen = 80) {
+    const text = String(raw ?? '').trim();
+    if (!text) return '';
+    let out = text;
+    try {
+      const parsed = new URL(text);
+      out = `${parsed.protocol}//${parsed.host}${parsed.pathname}`;
+    } catch {
+      out = text.split(/[?#]/, 1)[0];
+    }
+    return out.length > maxLen ? `${out.slice(0, maxLen)}…` : out;
+  }
+
+  function sanitizeStickerFetchText(text, maxLen = 160) {
+    return String(text ?? '')
+      .replace(/https?:\/\/[^\s)】]+/gi, (url) => stickerFetchUrlForLog(url))
+      .slice(0, maxLen);
+  }
+
+  // 把底层报错归成模型/日志都能一眼看懂的短原因。
+  function stickerFetchReason(message) {
+    const raw = String(message ?? '').trim();
+    if (!raw) return '未知错误';
+    const status = /HTTP\s+(\d{3})/i.exec(raw);
+    if (status) return status[1];
+    if (/超时|timeout|timed out/i.test(raw)) return '超时';
+    if (/不是有效图片|不是图片|不是图片数据|图片数据/i.test(raw)) return '不是图片';
+    if (/ENOTFOUND|EAI_AGAIN|域名解析失败|getaddrinfo/i.test(raw)) return '域名解析失败';
+    if (/超过大小限制|too large|超过.*上限/i.test(raw)) return '超过大小上限';
+    if (/禁止访问|内网|本机地址/i.test(raw)) return '地址被阻止';
+    return sanitizeStickerFetchText(raw, 30) || '未知错误';
+  }
+
+  // 多次重试会把同一来源的同一错误重复塞进来；按「来源 + 原因」去重后拼一句话。
+  function summarizeStickerFetchFailures(failures) {
+    const seen = new Set();
+    const parts = [];
+    for (const item of Array.isArray(failures) ? failures : []) {
+      const source = STICKER_FETCH_SOURCE_LABELS[item?.source] || '取图';
+      const reason = stickerFetchReason(item?.message);
+      const key = `${source}|${reason}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      parts.push(`${source} ${reason}`);
+      if (parts.length >= 4) break;
+    }
+    return parts.length ? `取图失败：${parts.join('；')}` : '取图失败';
   }
 
   const STICKER_TRANSIENT_RE = /fetch failed|timeout|timed out|ENOTFOUND|EAI_AGAIN|ECONNRESET|ETIMEDOUT|socket hang up|HTTP 5\d\d/i;
@@ -5577,8 +5678,8 @@ async function main() {
       const rawBase64 = String(item.file || '').replace(/^base64:\/\//, '');
       const fitted = fitStickerBuffer(Buffer.from(rawBase64, 'base64'));
       if (fitted.tooLarge) {
-        log(`[sticker] 补收放弃 ${item.key}: 压缩后仍超限（${fitted.reason || ''}）`);
-        try { await sendToQQ(item.key, '刚才那个表情太大，自动压缩也没成功，换个小的吧'); } catch {}
+        log(`[sticker] 补收放弃 ${item.key}: 超过上限（${fitted.reason || ''}）`);
+        try { await sendToQQ(item.key, fitted.compressDisabled ? '刚才那个表情太大，自动压缩已关闭，换个小的吧' : '刚才那个表情太大，自动压缩也没成功，换个小的吧'); } catch {}
         continue;
       }
       const uploadFile = fitted.compressed ? `base64://${fitted.buffer.toString('base64')}` : item.file;
@@ -5625,6 +5726,8 @@ async function main() {
     const media = mediaList[0];
     let source = null;
     // 取图本身也可能遇到瞬时抖动（QQ 媒体 CDN / 网关超时）；与上传一样给 3 次机会。
+    // 失败来源逐条留证，最后给模型一个能据此换路的根因摘要，而不是笼统的「网络不稳」。
+    const fetchFailures = [];
     const fetchDelays = [1500, 5000];
     for (let attempt = 1; attempt <= 3 && !source?.buffer; attempt += 1) {
       if (attempt > 1) {
@@ -5635,7 +5738,7 @@ async function main() {
         if (media?.kind === 'image' || media?.kind === 'sticker') {
           // 图片段和市场/收藏表情段都走同一条安全取字节链路；mface 没有 get_image 缓存，
           // fetchOneBotImage 会优先走 CDN 或用 emoji_id 推导地址。
-          const img = await fetchOneBotImage(media);
+          const img = await fetchOneBotImage(media, { failures: fetchFailures });
           if (img?.buffer) source = { ...img };
         } else if (media?.kind === 'face') {
           const face = await fetchFaceMedia(media);
@@ -5645,11 +5748,19 @@ async function main() {
         log(`[sticker] 取表情图第 ${attempt} 次失败：${error?.message ?? error}`);
       }
     }
-    if (!source?.buffer) throw new Error('取图失败（网络不稳），过一会儿再让我收藏一次吧');
-    // 超过上传接口上限就先压缩；压不下去才报错。
+    if (!source?.buffer) {
+      const reason = summarizeStickerFetchFailures(fetchFailures);
+      throw new Error(`这张拿不到原图（${reason}），让对方直接发图或用 getImages 取回后再收藏；过一会儿再让我试一次也可以`);
+    }
+    // 超过上传接口上限时默认不压缩（优先原图），显式开启 compress 才降质缩小。
     const fitted = fitStickerBuffer(source.buffer);
     if (fitted.tooLarge) {
-      throw new Error(`表情太大了（${(source.buffer.length / 1048576).toFixed(1)}MB），上传接口上限约 ${(fitted.maxBytes / 1048576).toFixed(1)}MB，自动压缩没成功（${String(fitted.reason || '未知原因').slice(0, 60)}），换个小一点的吧`);
+      const sizeMb = (source.buffer.length / 1048576).toFixed(1);
+      const limitMb = (fitted.maxBytes / 1048576).toFixed(1);
+      if (fitted.compressDisabled) {
+        throw new Error(`表情太大了（${sizeMb}MB），上传接口上限约 ${limitMb}MB；太大且自动压缩已关闭（可在 simulation.sticker.collect.compress 打开），换个小一点的吧`);
+      }
+      throw new Error(`表情太大了（${sizeMb}MB），上传接口上限约 ${limitMb}MB，自动压缩没成功（${String(fitted.reason || '未知原因').slice(0, 60)}），换个小一点的吧`);
     }
     if (fitted.compressed) {
       const before = (fitted.originalBytes / 1048576).toFixed(1);
@@ -13927,31 +14038,36 @@ async function main() {
     return { buffer: buf, mimeType: mimeFromBuffer(buf) };
   }
 
-  async function fetchOneBotImage(media) {
+  async function fetchOneBotImage(media, { failures: failureSink } = {}) {
     // 表情包（市场/收藏表情）优先走 CDN：get_image 对市场表情必然失败
     // （SnowLuma 缓存里没有该文件），先试 URL 能省一次失败往返，也更可靠。
     const emojiId = String(media.emojiId || emojiIdFromFileName(media.file) || '');
     const isSticker = media.kind === 'sticker' || !!emojiId || String(media.subType || '') === '1';
     const label = isSticker ? '表情' : '图片';
-    const failures = [];
-    const urls = [];
-    const pushUrl = (raw) => {
-      const s = String(raw ?? '').trim();
-      if (!/^https?:\/\//i.test(s) || urls.includes(s)) return;
-      urls.push(s);
+    // 调用方可以传入数组，拿到每个来源的失败原因；不传则只在本函数日志里留证。
+    const failures = Array.isArray(failureSink) ? failureSink : [];
+    const recordFailure = (source, message, url) => {
+      failures.push({ source, message: String(message ?? ''), ...(url ? { url: stickerFetchUrlForLog(url) } : {}) });
     };
-    pushUrl(media.url);
-    for (const candidate of emojiCdnCandidates(emojiId)) pushUrl(candidate);
+    const targets = [];
+    const pushUrl = (raw, source) => {
+      const s = String(raw ?? '').trim();
+      if (!/^https?:\/\//i.test(s) || targets.some((item) => item.url === s)) return;
+      targets.push({ url: s, source });
+    };
+    pushUrl(media.url, 'url');
+    for (const candidate of emojiCdnCandidates(emojiId)) pushUrl(candidate, 'cdn');
+    const rejectReason = (buf) => (buf && looksLikeImageBuffer(buf) ? '像素超限' : '不是有效图片');
 
     const tryUrls = async () => {
-      for (const url of urls) {
+      for (const target of targets) {
         try {
-          const fetched = await safeFetchBuffer(url, MAX_MEDIA_BYTES);
+          const fetched = await safeFetchBuffer(target.url, MAX_MEDIA_BYTES);
           const accepted = acceptImageBuffer(fetched.buffer, `${label} URL `);
-          if (accepted) return { ...accepted, mimeType: accepted.mimeType || mimeFromUrl(url) };
-          failures.push(`${url} 不是有效图片`);
+          if (accepted) return { ...accepted, mimeType: accepted.mimeType || mimeFromUrl(target.url) };
+          recordFailure(target.source, rejectReason(fetched.buffer), target.url);
         } catch (error) {
-          failures.push(`${url}: ${error?.message ?? error}`);
+          recordFailure(target.source, error?.message ?? error, target.url);
         }
       }
       return null;
@@ -13959,50 +14075,102 @@ async function main() {
     // 只有 file 是安全缓存文件名时才允许交给网关（防任意路径/内网 URL 注入）。
     const tryGetImage = async () => {
       if (!(media.kind === 'image' || media.kind === 'sticker')) return null;
-      if (!media.file || !isProbablySafeImageFileRef(media.file)) return null;
+      if (!media.file) return null;
+      if (!isProbablySafeImageFileRef(media.file)) {
+        recordFailure('get_image', 'file 引用不安全，已跳过');
+        return null;
+      }
+      let sawPayload = false;
       try {
         const info = await bot.getImage({ file: String(media.file) });
         const obj = info && typeof info === 'object' ? info : {};
         const base64 = base64FromMaybe(obj.data) || base64FromMaybe(obj.base64) || base64FromMaybe(obj.file);
         if (base64) {
+          sawPayload = true;
           // 粗略估计 base64 解码后大小，超限直接拒绝，避免超大字符串撑爆内存
           if (base64.length * 3 / 4 <= MAX_MEDIA_BYTES) {
             const accepted = acceptImageBuffer(Buffer.from(base64, 'base64'), 'get_image 返回的图片');
             if (accepted) return accepted;
+            recordFailure('get_image', '返回的 base64 不是有效图片');
           } else {
+            recordFailure('get_image', '返回的 base64 超过大小上限');
             log(`get_image 返回的图片 base64 超限，已跳过（${Math.round(base64.length * 3 / 4 / 1024)}KB）`);
           }
         }
         if (obj.url) {
+          sawPayload = true;
           try {
             const fetched = await safeFetchBuffer(String(obj.url), MAX_MEDIA_BYTES);
             const accepted = acceptImageBuffer(fetched.buffer, 'get_image URL 图片');
             if (accepted) return { ...accepted, mimeType: accepted.mimeType || mimeFromUrl(obj.url) };
+            recordFailure('get_image', rejectReason(fetched.buffer), obj.url);
           } catch (error) {
-            failures.push(`get_image url: ${error?.message ?? error}`);
+            recordFailure('get_image', error?.message ?? error, obj.url);
           }
         }
         if (typeof obj.file === 'string' && !obj.file.startsWith('base64://') && fs.existsSync(obj.file) && isSafeLocalMediaPath(obj.file)) {
+          sawPayload = true;
           const stat = fs.statSync(obj.file);
           if (stat.size > MAX_MEDIA_BYTES) {
+            recordFailure('get_image', '本地图片超过大小上限', obj.file);
             log(`本地图片文件超限，已跳过（${Math.round(stat.size / 1024)}KB）`);
           } else {
             const accepted = acceptImageBuffer(fs.readFileSync(obj.file), '本地图片');
             if (accepted) return accepted;
+            recordFailure('get_image', '本地图片不是有效图片', obj.file);
           }
         }
+        if (!sawPayload) recordFailure('get_image', '没有返回图片数据');
       } catch (error) {
-        failures.push(`get_image: ${error?.message ?? error}`);
+        recordFailure('get_image', error?.message ?? error);
+      }
+      return null;
+    };
+    // 兜底：收藏库接口按 emoji_id 反查地址。市场表情不在库里时正常不命中，不影响原顺序。
+    const tryCustomFaceDetail = async () => {
+      if (media?.kind !== 'sticker' || !emojiId) return null;
+      let res;
+      try {
+        res = await bot.request('fetch_custom_face_detail', { count: 50 });
+      } catch (error) {
+        recordFailure('library', error?.message ?? error);
+        return null;
+      }
+      if (!res || res.status !== 'ok' || res.retcode !== 0) {
+        recordFailure('library', `接口返回 ${res?.wording || res?.retcode || 'unknown'}`);
+        return null;
+      }
+      const items = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.list) ? res.data.list : []);
+      const match = items.find((item) => {
+        const id = String(item?.emoji_id ?? item?.emojiId ?? item?.resId ?? item?.id ?? '');
+        return id && id.toLowerCase() === emojiId.toLowerCase();
+      });
+      if (!match || !match.url) {
+        recordFailure('library', '没找到这个表情');
+        return null;
+      }
+      try {
+        const fetched = await safeFetchBuffer(String(match.url), MAX_MEDIA_BYTES);
+        const accepted = acceptImageBuffer(fetched.buffer, `${label} 收藏库 `);
+        if (accepted) return { ...accepted, mimeType: accepted.mimeType || mimeFromUrl(match.url) };
+        recordFailure('library', rejectReason(fetched.buffer), match.url);
+      } catch (error) {
+        recordFailure('library', error?.message ?? error, match.url);
       }
       return null;
     };
 
     const result = isSticker
-      ? (await tryUrls()) ?? (await tryGetImage())
+      ? (await tryUrls()) ?? (await tryGetImage()) ?? (await tryCustomFaceDetail())
       : (await tryGetImage()) ?? (await tryUrls());
     if (result) return result;
     if (failures.length) {
-      log(`[media] ${label}获取失败（${failures.length} 次尝试）：${failures.slice(0, 3).join(' | ')}`);
+      const detail = failures.slice(0, 4).map((item) => {
+        const source = STICKER_FETCH_SOURCE_LABELS[item.source] || item.source;
+        const where = item.url ? ` ${stickerFetchUrlForLog(item.url)}` : '';
+        return `${source}${where}: ${sanitizeStickerFetchText(item.message, 120)}`;
+      }).join(' | ');
+      log(`[media] ${label}获取失败（${failures.length} 次尝试）：${detail}`);
     }
     return null;
   }
