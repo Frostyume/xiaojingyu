@@ -469,9 +469,10 @@ This project started from the MIT-licensed [Derpyu520/qq-bridge](https://github.
 (baseline `v0.2.0-r4`). The upstream name, copyright lines and MIT license are preserved; see
 [UPSTREAM.md](UPSTREAM.md) for the fork point and sync rules.
 
-Both this repository and upstream are released under MIT. Thanks to Derpyu520/qq-bridge,
-[SnowLuma](https://github.com/SnowLuma/SnowLuma) and DeepSeek Harness; third-party components and
-licenses are listed in [NOTICE](NOTICE).
+Both this repository and upstream are released under MIT. Thanks to
+[Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge),
+[SnowLuma](https://github.com/SnowLuma/SnowLuma) and [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness);
+third-party components and licenses are listed in [NOTICE](NOTICE).
 
 SnowLuma is an independent third-party project and is not affiliated with Tencent/QQ. This project is
 for learning and technical research only; please read SnowLuma's EULA and the QQ User Agreement before

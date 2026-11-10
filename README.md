@@ -393,8 +393,8 @@ coding agent**，并盯完「实现 → 测试 → 你确认 → 合并 → 失�
 起点是 MIT 许可的 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)（基线 `v0.2.0-r4`）。
 上游的名称、版权行与 MIT 许可完整保留；具体分叉点与跟进规则见 [UPSTREAM.md](UPSTREAM.md)。
 
-本仓库与上游均以 MIT 发布，感谢 Derpyu520/qq-bridge、
-[SnowLuma](https://github.com/SnowLuma/SnowLuma) 和 DeepSeek Harness；
+本仓库与上游均以 MIT 发布，感谢 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)、
+[SnowLuma](https://github.com/SnowLuma/SnowLuma) 和 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)；
 第三方组件与许可说明见 [NOTICE](NOTICE)。
 
 SnowLuma 是独立第三方项目，与腾讯 / QQ 无隶属关系；本项目仅供学习与技术研究，
