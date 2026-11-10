@@ -67,7 +67,7 @@ export function writeProfile({ paths, main, provider, modelActive, httpActive, m
   rows.push({id:'owned-mailbox-mcp',name:'@deepseek-ai/dsh-mcp-client',config:{transport:'stdio',serverName:'xi-sister',command:process.execPath,
     args:[path.join(HERE,'mcp-entry.mjs'),'--root',paths.root,'--entry','mailbox'],env:{...noProviderKey,XI_OWNED_QQ_HTTP_TOKEN:''},cwd:paths.project,failOnStartupError:true,toolCallTimeoutMs:30000,reconnect:{enabled:false}}});
   rows.push({ id: 'owned-qq-preset', name: '@deepseek-ai/dsh-agent-preset', config: { id: 'qq-chat', order: 0, plugins: [
-    { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { prefix: personaPrefix, complete: true, includeRuntimeContext: false } },
+    { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { prefix: personaPrefix + "\n聊 B 站评论时按对方这次问的来。比如叫你挑两人的一句来回，像群友那样说「甲说‘……’，乙回他‘……’，这俩是在接梗呀」，到这里就够了。追问刚才是谁，再用名字指回那一对，原话可以省。问本页条数，用工具的 sample 顺口算一次；问到平台数或画面声音，各答一次就收，别用标题、列表把同一个意思再讲一遍。若问完整接龙、不同观点或要求清单，就把相关楼层按实际关系展开。", complete: true, includeRuntimeContext: false } },
     { id: 'qq-guard', name: new URL('./preset-guard.mjs', import.meta.url).href, config: { memory: Boolean(memoryPaths), assets: Boolean(assetsPaths), workshop: Boolean(assetsPaths?.workshop), web: Boolean(webPaths), life: Boolean(lifePaths), mailbox:true } }
   ] } });
   rows.push({ id: 'owned-runtime-control', name: new URL('./runtime.mjs', import.meta.url).href, config: { modelEnabled: modelActive, provider: provider.route, model: provider.model, project: paths.project, maxOutput: provider.maxTokens, verifyInactiveQQ, accountingEnabled } });

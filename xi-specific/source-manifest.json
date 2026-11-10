@@ -536,8 +536,8 @@
     },
     {
       "path": "migration/xi-a3/dsh/owned/profile.mjs",
-      "bytes": 8516,
-      "sha256": "f8acb99b7c237520c70360fba4ad9885f38e401bfcf84fa44be0f2f20390d557"
+      "bytes": 9047,
+      "sha256": "07f6ff4ad2724450cd3cbab127b2872e9c8dd86a11be07780f3f55245d6e85cd"
     },
     {
       "path": "migration/xi-a3/dsh/owned/runtime.mjs",
