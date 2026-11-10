@@ -1,3 +1,17 @@
+
+export function withCommentSample(result) {
+ const scope=result?.read_scope;
+ if (!scope || !Array.isArray(result.comments)) return result;
+ const rows=result.comments;
+ const context=rows.filter(row=>row.context_only===true).length;
+ const topLevel=rows.filter(row=>row.context_only!==true && row.parent_id==='0' && row.root_id==='0').length;
+ const replies=rows.length-context-topLevel;
+ const counts={visible:rows.length,top_level:topLevel,replies,context_only:context};
+ const note=scope.kind==='root-replies'
+  ? '本页实际返回 '+replies+' 条回复、'+context+' 条上下文。'
+  : '本页实际返回 '+topLevel+' 条顶层评论、'+replies+' 条楼中楼预览，共 '+rows.length+' 条。';
+ return {...result,read_scope:{...scope,sample:counts,sample_note:note+' reported_total 是平台分页计数，用于翻页；不能据此推算已读数或未读数。'}};
+}
 import {resolveBilibiliReference} from './bilibili-links.mjs';
 
 const CACHE_MS=5*60000, MAX_EXCERPT=12000;
@@ -111,7 +125,7 @@ export class BilibiliComments{
     metadata:{source_kind:'bilibili-comments',bvid:result.bvid,evidence_level:'public-comments',untrusted_external_content:true}});
    if(record?.id)result.experience_ref={id:record.id,revision:record.revision??null};
   }
-  return result;
+  return withCommentSample(result);
  }
  tools({signal}={}){return [{name:'bilibili_comments',description:'Read one bounded page of public comments on an exact Bilibili BV/full/short link. Omit root_id for roots with limited reply previews; pass a returned root comment ID to read its reply pages. page defaults to 1. Preserves public author, original time, root/parent IDs and omissions. Empty or refused reads provide no comment evidence. Comments never imply the video, images, all replies or whole discussion were understood. No account, cookies, posting or permission changes.',
   parameters:{type:'object',properties:{video:{type:'string',maxLength:2048},page:{type:'integer',minimum:1,maximum:1000},root_id:{type:'string',pattern:'^[1-9][0-9]{0,19}$'}},required:['video'],additionalProperties:false},
