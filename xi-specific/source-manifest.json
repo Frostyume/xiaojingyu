@@ -26,8 +26,8 @@
     },
     {
       "path": "companion/bilibili-comments.mjs",
-      "bytes": 9903,
-      "sha256": "7d1d240a11924c4784d8e1bc73b1d1b715fb056c2495496105f4c8681ffeb77d"
+      "bytes": 10807,
+      "sha256": "5dafeca0e499a42950363dc9683a6c93e2c5cd870b311319f719a6653189ab99"
     },
     {
       "path": "companion/bilibili-links.mjs",
@@ -176,8 +176,8 @@
     },
     {
       "path": "companion/public-exploration.mjs",
-      "bytes": 12760,
-      "sha256": "367e382070cb8db1b22c89c685aeac098f6a60fa98710bde41513a83b87d906d"
+      "bytes": 13063,
+      "sha256": "3498fbdb35f786dd1b836ba89dadd7ea7fa14c621197994b4c800c26427e93f1"
     },
     {
       "path": "companion/qq-bubbles.mjs",
@@ -211,8 +211,8 @@
     },
     {
       "path": "companion/qzone-readback.mjs",
-      "bytes": 4142,
-      "sha256": "76201acb3723f41f63734820dfa252718e71663dbf97e30a7e63fc379be7a153"
+      "bytes": 4595,
+      "sha256": "7fe1d82167c77ccc740b4462f096bed58d33c5969ce1420b318a48936936cf2c"
     },
     {
       "path": "companion/recent-exchange.mjs",
@@ -816,8 +816,8 @@
     },
     {
       "path": "migration/xi-a3/upstream/runtime/kernel/config-schema.js",
-      "bytes": 30504,
-      "sha256": "0f801dca89b7ba1bdd9f6b926c43fe4014a575f00c17b9c7bd510429e558ba82"
+      "bytes": 30520,
+      "sha256": "14ccc134effafcf4009578608d0c03cdcabf96a670f9a92cd11e16f645d55576"
     },
     {
       "path": "migration/xi-a3/upstream/runtime/kernel/config-store.js",
@@ -1011,8 +1011,8 @@
     },
     {
       "path": "migration/xi-a3/upstream/runtime/persona/rich-card.js",
-      "bytes": 5877,
-      "sha256": "5abeb541902ddf3a42f1c2345a4d77ded4c3ddd1350db20fdc62bad367e89a8e"
+      "bytes": 6653,
+      "sha256": "9867b53f8df014fe4390ffcc95adc824bb731bc544d26550768b1bb74ceb5e81"
     },
     {
       "path": "migration/xi-a3/upstream/runtime/persona/signature.js",
@@ -1206,8 +1206,8 @@
     },
     {
       "path": "migration/xi-a3/web-runtime/catalog.mjs",
-      "bytes": 17261,
-      "sha256": "89a5e13b275deccb6a47c1f24766999aabc6bd4fe521caa1d584f68267d14c57"
+      "bytes": 17637,
+      "sha256": "9da4e12b123fb434165f6549077fe74152aa135300fbf791728ed45c3284d636"
     },
     {
       "path": "migration/xi-a3/web-runtime/parent-proxy.mjs",
