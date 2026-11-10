@@ -1060,15 +1060,15 @@
                         "DeepSeek"
                       ]
                     },
-                    "pollMs": {
-                      "title": "Poll Ms",
-                      "type": "number",
-                      "default": 300000
-                    },
                     "requireApproval": {
                       "title": "Require Approval",
                       "type": "boolean",
                       "default": true
+                    },
+                    "pollMs": {
+                      "title": "空间评论检查间隔（ms）",
+                      "type": "number",
+                      "default": 300000
                     }
                   }
                 },
@@ -1138,26 +1138,6 @@
               "title": "内心生活",
               "type": "boolean",
               "default": true
-            }
-          }
-        },
-        "media": {
-          "type": "object",
-          "properties": {
-            "maxBytes": {
-              "title": "Max Bytes",
-              "type": "number",
-              "default": 8388608
-            },
-            "maxCount": {
-              "title": "Max Count",
-              "type": "number",
-              "default": 5
-            },
-            "maxPixels": {
-              "title": "Max Pixels",
-              "type": "number",
-              "default": 64000000
             }
           }
         },
@@ -1651,15 +1631,15 @@
             "asr": {
               "type": "object",
               "properties": {
-                "cacheTtlMs": {
-                  "title": "Cache Ttl Ms",
-                  "type": "number",
-                  "default": 3600000
-                },
                 "provider": {
                   "title": "Provider",
                   "type": "string",
                   "default": "snowluma"
+                },
+                "cacheTtlMs": {
+                  "title": "转写缓存时长（ms）",
+                  "type": "number",
+                  "default": 3600000
                 },
                 "enabled": {
                   "title": "语音转写（ASR）",
@@ -2233,6 +2213,26 @@
               "default": 8,
               "minimum": 1,
               "maximum": 20
+            }
+          }
+        },
+        "media": {
+          "type": "object",
+          "properties": {
+            "maxBytes": {
+              "title": "单条图片总字节上限",
+              "type": "number",
+              "default": 8388608
+            },
+            "maxCount": {
+              "title": "单条图片张数上限",
+              "type": "number",
+              "default": 5
+            },
+            "maxPixels": {
+              "title": "单张图解码像素上限",
+              "type": "number",
+              "default": 64000000
             }
           }
         },
@@ -4348,14 +4348,6 @@
       "advanced": false
     },
     {
-      "key": "simulation.innerLife.qzone.commentReply.pollMs",
-      "label": "Poll Ms",
-      "group": "群聊剧场",
-      "type": "number",
-      "restart": "none",
-      "advanced": false
-    },
-    {
       "key": "simulation.innerLife.qzone.commentReply.requireApproval",
       "label": "Require Approval",
       "group": "群聊剧场",
@@ -4430,30 +4422,6 @@
     {
       "key": "simulation.innerLife.reflection.minIntervalMs",
       "label": "Min Interval Ms",
-      "group": "群聊剧场",
-      "type": "number",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "simulation.media.maxBytes",
-      "label": "Max Bytes",
-      "group": "群聊剧场",
-      "type": "number",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "simulation.media.maxCount",
-      "label": "Max Count",
-      "group": "群聊剧场",
-      "type": "number",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "simulation.media.maxPixels",
-      "label": "Max Pixels",
       "group": "群聊剧场",
       "type": "number",
       "restart": "none",
@@ -4846,14 +4814,6 @@
       "label": "Require Approval",
       "group": "群聊剧场",
       "type": "boolean",
-      "restart": "none",
-      "advanced": false
-    },
-    {
-      "key": "simulation.speech.asr.cacheTtlMs",
-      "label": "Cache Ttl Ms",
-      "group": "群聊剧场",
-      "type": "number",
       "restart": "none",
       "advanced": false
     },
@@ -6514,6 +6474,14 @@
       "advanced": false
     },
     {
+      "key": "simulation.innerLife.qzone.commentReply.pollMs",
+      "label": "空间评论检查间隔（ms）",
+      "group": "内心生活",
+      "type": "number",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
       "key": "simulation.innerLife.qzone.enabled",
       "label": "QQ 空间",
       "group": "内心生活",
@@ -6810,6 +6778,30 @@
       "advanced": false
     },
     {
+      "key": "simulation.media.maxBytes",
+      "label": "单条图片总字节上限",
+      "group": "表情与图片",
+      "type": "number",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "simulation.media.maxCount",
+      "label": "单条图片张数上限",
+      "group": "表情与图片",
+      "type": "number",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "simulation.media.maxPixels",
+      "label": "单张图解码像素上限",
+      "group": "表情与图片",
+      "type": "number",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
       "key": "simulation.sticker.collect.compress",
       "label": "超过上限自动压缩 GIF",
       "group": "表情与图片",
@@ -6857,6 +6849,14 @@
       "group": "表情与图片",
       "type": "boolean",
       "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.speech.asr.cacheTtlMs",
+      "label": "转写缓存时长（ms）",
+      "group": "语音",
+      "type": "number",
+      "restart": "bridge",
       "advanced": false
     },
     {
