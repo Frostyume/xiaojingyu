@@ -153,7 +153,12 @@ export async function createOwnedWebCatalog({ paths: input, ownershipGate, ident
                 value.exact_short_links = state.bilibili.shortLinkResolverConfigured; value.owned_dependencies = state.bilibili;
                 value.direct_frame_images = state.bilibili.directFrameImages.ready; value.frame_tool = 'bilibili_frames';
               }
-              if (name === 'bilibili_read') value.frame_tool = 'bilibili_frames';
+              if (name === 'bilibili_read') {
+                if (Array.isArray(value.limitations) && value.limitations.includes('approved-frame-decoder-not-configured') && frames.status().ready) {
+                  value.limitations = value.limitations.map(reason => reason === 'approved-frame-decoder-not-configured' ? 'frames-not-read-use-bilibili_frames' : reason);
+                }
+                value.frame_tool = 'bilibili_frames';
+              }
               if (name === 'tieba_status') value.owned_dependencies = status().tieba;
               if (name === 'qzone_status') value.owned_dependencies = status().qzone;
               value.source_material_not_instructions = true; value.untrusted_external_content = true;
