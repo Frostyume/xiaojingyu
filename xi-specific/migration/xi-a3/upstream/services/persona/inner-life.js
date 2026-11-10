@@ -358,6 +358,12 @@ export function createInnerLife(deps) {
         groupShare: Number(counts.groupShare) || 0,
         qzone: Number(counts.qzone) || 0
       },
+      quotaWait: Object.fromEntries(['curiosity', 'qzone'].flatMap(name => {
+        const wait = raw.quotaWait?.[name];
+        return wait && wait.day === day && wait.at === next[name] && Number.isFinite(wait.limit) && wait.limit > 0
+          ? [[name, { day: wait.day, at: wait.at, limit: wait.limit }]] : [];
+      })),
+      reflectionMaxMs: Number.isFinite(raw.reflectionMaxMs) ? raw.reflectionMaxMs : null,
       next: {
         reflection: Number(next.reflection) || 0,
         curiosity: Number(next.curiosity) || 0,
@@ -400,9 +406,13 @@ export function createInnerLife(deps) {
     return quietEndAt(il.quiet, from) + rand(5 * 60 * 1000, 40 * 60 * 1000);
   }
 
-  function nextReflectionAt(il, from = Date.now()) {
+  function reflectionInterval(il) {
     const min = Math.max(30 * 60 * 1000, Number(il.reflection.minIntervalMs) || DEFAULTS.reflection.minIntervalMs);
-    const max = Math.max(min, Number(il.reflection.maxIntervalMs) || DEFAULTS.reflection.maxIntervalMs);
+    return { min, max: Math.max(min, Number(il.reflection.maxIntervalMs) || DEFAULTS.reflection.maxIntervalMs) };
+  }
+
+  function nextReflectionAt(il, from = Date.now()) {
+    const { min, max } = reflectionInterval(il);
     return from + rand(min, max);
   }
 
@@ -1350,10 +1360,10 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
 
   async function postQzoneNow(text, { manual = false, imageRef = '', notify = true } = {}) {
     const il = ilCfg();
-    const state = loadInner();
-    if (state.qzone.paused) return { status: 'paused' };
+    if (loadInner().qzone.paused) return { status: 'paused' };
     const { images, name: imageName } = await buildQzoneImages(imageRef);
     if (il.dryRun) {
+      const state = loadInner();
       state.history.qzonePosts.unshift({ at: Date.now(), text, image: imageName, status: 'dryRun' });
       state.history.qzonePosts = state.history.qzonePosts.slice(0, 60);
       saveInner(state);
@@ -1361,6 +1371,7 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
       return { status: 'dryRun' };
     }
     const recordPosted = (tid) => {
+      const state = loadInner();
       const now = Date.now();
       state.counts.qzone += 1;
       state.lastQzoneAt = now;
@@ -3614,7 +3625,9 @@ ${formatTipCaption(item)}`;
 
   function advanceNext(state, name, il, result = {}) {
     const now = Date.now();
+    if (name === 'curiosity' || name === 'qzone') delete state.quotaWait[name];
     if (name === 'reflection') {
+      state.reflectionMaxMs = reflectionInterval(il).max;
       if (result?.status === 'error') state.next.reflection = now + rand(30 * 60 * 1000, 2 * 3600 * 1000);
       else if (result?.status === 'skip' || result?.status === 'invalid') state.next.reflection = now + rand(60 * 60 * 1000, 3 * 3600 * 1000);
       else state.next.reflection = nextReflectionAt(il, now);
@@ -3624,6 +3637,7 @@ ${formatTipCaption(item)}`;
         state.next.curiosity = now + Math.min(2 * 3600 * 1000, Math.max(10 * 60 * 1000, Number(state.pendingShare.expiresAt || now) - now));
       } else if (state.counts.curiosity >= (Number(il.curiosity.maxPerDay) || DEFAULTS.curiosity.maxPerDay)) {
         state.next.curiosity = nextTomorrowMorning(il);
+        state.quotaWait.curiosity = { day: state.day, at: state.next.curiosity, limit: Number(il.curiosity.maxPerDay) || DEFAULTS.curiosity.maxPerDay };
       } else if (isQuiet(il)) {
         state.next.curiosity = nextQuietEnd(il, now);
       } else if (result?.status === 'not-sent') {
@@ -3640,6 +3654,7 @@ ${formatTipCaption(item)}`;
         state.next.qzone = now + Math.min(2 * 3600 * 1000, Math.max(5 * 60 * 1000, Number(state.pendingDraft.expiresAt || now) - now));
       } else if (state.counts.qzone >= (Number(il.qzone.maxPerDay) || DEFAULTS.qzone.maxPerDay)) {
         state.next.qzone = nextTomorrowMorning(il);
+        state.quotaWait.qzone = { day: state.day, at: state.next.qzone, limit: Number(il.qzone.maxPerDay) || DEFAULTS.qzone.maxPerDay };
       } else if (result?.status === 'error' || result?.status === 'invalid') {
         // 模型回合失败/产出无效不该等满 5 小时；尽快重试一次，避免“看起来彻底不发”。
         state.next.qzone = now + rand(30 * 60 * 1000, 90 * 60 * 1000);
@@ -3853,24 +3868,27 @@ ${formatTipCaption(item)}`;
       }
       log('[inner] 人格状态已迁移到 v2（mood v3）');
     }
-    // 配置把反思间隔改短后，旧的“明天凌晨”时间点不能继续压着；超出新上限就立即重排。
-    const reflectionMax = now + Math.max(60 * 60 * 1000, Number(il.reflection.maxIntervalMs) || DEFAULTS.reflection.maxIntervalMs);
-    if (!state.next.reflection || state.next.reflection > reflectionMax) state.next.reflection = nextReflectionAt(il, now);
+    const reflectionMax = reflectionInterval(il).max;
+    const shortened = state.reflectionMaxMs !== null && reflectionMax < state.reflectionMaxMs;
+    if (!state.next.reflection || (shortened && state.next.reflection > now + reflectionMax))
+      state.next.reflection = nextReflectionAt(il, now);
+    state.reflectionMaxMs = reflectionMax;
     if (!state.next.curiosity) state.next.curiosity = now + rand(5 * 60 * 1000, 15 * 60 * 1000);
     if (!state.next.qzone) state.next.qzone = now + rand(30 * 60 * 1000, 90 * 60 * 1000);
     state.next.aiTips = 0;
     // 通用分享模块：迁移 ai-tips 状态并确保每个模块有下一次时间。
     shareScheduleEntries();
-    // 上限调大后，旧状态里“明天再说”的时间点不该继续压着今天的机会。
-    const curiosityMax = Number(il.curiosity.maxPerDay) || DEFAULTS.curiosity.maxPerDay;
-    if (!state.pendingShare && state.counts.curiosity < curiosityMax && state.next.curiosity > now + 3 * 3600 * 1000) {
-      state.next.curiosity = now + rand(5 * 60 * 1000, 15 * 60 * 1000);
-      log('[inner] 好奇分享上限已放宽，提前下一次尝试');
-    }
-    const qzoneMax = Number(il.qzone.maxPerDay) || DEFAULTS.qzone.maxPerDay;
-    if (state.counts.qzone < qzoneMax && state.next.qzone > now + 3 * 3600 * 1000) {
-      state.next.qzone = now + rand(20 * 60 * 1000, 60 * 60 * 1000);
-      log('[inner] 空间说说上限已放宽，提前下一次尝试');
+    // Only a same-day wait actually scheduled by a daily cap can be shortened.
+    // Legacy states have no cause attached; keep their future dates intact.
+    for (const name of ['curiosity', 'qzone']) {
+      const wait = state.quotaWait[name];
+      const limit = Number(il[name].maxPerDay) || DEFAULTS[name].maxPerDay;
+      const pending = name === 'curiosity' ? state.pendingShare : state.pendingDraft || state.qzone.paused;
+      if (!wait || !il[name].enabled || pending || limit <= wait.limit || state.counts[name] >= limit) continue;
+      const retry = isQuiet(il) ? nextQuietEnd(il, now) : now + (name === 'curiosity'
+        ? rand(5 * 60 * 1000, 15 * 60 * 1000) : rand(20 * 60 * 1000, 60 * 60 * 1000));
+      state.next[name] = Math.min(state.next[name], retry);
+      delete state.quotaWait[name];
     }
     for (const name of ['reflection', 'curiosity', 'qzone']) {
       if (state.next[name] && state.next[name] < now) state.next[name] = now + rand(2 * 60 * 1000, 10 * 60 * 1000);
@@ -4005,24 +4023,27 @@ ${formatTipCaption(item)}`;
         return true;
       }
       const result = await postQzoneNow(pendingDraft.text, { imageRef: pendingDraft.imageRef || '' });
-      if (result.status === 'posted') {
-        // 必须重新读：postQzoneNow 已经写了 counts/history/lastQzoneAt，
-        // 用函数开头那份旧 state 覆盖会把这次发布记录冲掉（实测踩过）。
+      if (result.status === 'posted' || result.status === 'dryRun') {
         const latest = loadInner();
-        latest.pendingDraft = null;
-        latest.qzone.approvedCount += 1;
-        latest.next.qzone = Date.now() + (Number(il.qzone.minGapMs) || DEFAULTS.qzone.minGapMs) + rand(30 * 60 * 1000, 3 * 3600 * 1000);
-        if (il.qzone.requireApproval !== false) {
-          await sendOwner(`这条已经发了（${qzoneVisibilityLabel(il.qzone.visibility)}）。之后每条说说还是会先发你审核，回「发」才发布。`);
-        } else if (latest.qzone.approvedCount >= (Number(il.qzone.approvalFirst) || DEFAULTS.qzone.approvalFirst)) {
-          latest.qzone.auto = true;
-          await sendOwner(`这条已经发了（${qzoneVisibilityLabel(il.qzone.visibility)}）。审批满 ${latest.qzone.approvedCount} 条，之后我会自己发，不再逐条问你；发「关说说」可以随时暂停。`);
+        const current = latest.pendingDraft;
+        if (current && current.createdAt === pendingDraft.createdAt &&
+            current.messageId === pendingDraft.messageId && current.text === pendingDraft.text &&
+            current.imageRef === pendingDraft.imageRef) {
+          latest.pendingDraft = null;
+        }
+        let notice = '';
+        if (result.status === 'posted') {
+          latest.qzone.approvedCount += 1;
+          latest.next.qzone = Date.now() + (Number(il.qzone.minGapMs) || DEFAULTS.qzone.minGapMs) + rand(30 * 60 * 1000, 3 * 3600 * 1000);
+          if (il.qzone.requireApproval !== false) {
+            notice = `这条已经发了（${qzoneVisibilityLabel(il.qzone.visibility)}）。之后每条说说还是会先发你审核，回「发」才发布。`;
+          } else if (latest.qzone.approvedCount >= (Number(il.qzone.approvalFirst) || DEFAULTS.qzone.approvalFirst)) {
+            latest.qzone.auto = true;
+            notice = `这条已经发了（${qzoneVisibilityLabel(il.qzone.visibility)}）。审批满 ${latest.qzone.approvedCount} 条，之后我会自己发，不再逐条问你；发「关说说」可以随时暂停。`;
+          }
         }
         saveInner(latest);
-      } else if (result.status === 'dryRun') {
-        const latest = loadInner();
-        latest.pendingDraft = null;
-        saveInner(latest);
+        if (notice) await sendOwner(notice);
       } else if (result.status === 'paused') {
         await sendOwner('空间说说现在是暂停状态，回「开说说」后再发。');
       }
