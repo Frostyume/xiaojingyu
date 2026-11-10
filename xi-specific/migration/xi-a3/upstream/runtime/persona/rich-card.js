@@ -156,5 +156,19 @@ export function formatRichSegment(segment, { maxChars = 260 } = {}) {
   if (card.url) bits.push(card.url);
   const body = bits.join(' · ');
   const out = `[${label}] ${body}`;
+  if (out.length > maxChars && card.url) {
+    // Keep share targets usable when the title/summary consumes the text budget.
+    const prefix = `[${label}] `;
+    const words = bits.slice(0, -1).join(' · ');
+    const room = maxChars - prefix.length - card.url.length;
+    if (room >= 0) {
+      const snippet = room >= 5 && words ? words.slice(0, room - 4) + '… · ' : '';
+      return prefix + snippet + card.url;
+    }
+    if (card.url.length <= maxChars) return card.url;
+    // Avoid presenting a truncated URL as the source of another resource.
+    const unavailable = words ? prefix + words + '（链接过长）' : prefix + '（链接过长）';
+    return unavailable.length <= maxChars ? unavailable : unavailable.slice(0, Math.max(0, maxChars - 1)) + '…';
+  }
   return out.length > maxChars ? `${out.slice(0, Math.max(0, maxChars - 1))}…` : out;
 }

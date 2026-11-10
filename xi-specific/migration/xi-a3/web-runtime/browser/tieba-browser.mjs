@@ -598,7 +598,10 @@ function threadPageMeta(request, status, extracted) {
     page: request.page,
     page_first_floor: firstFloor,
     page_last_floor: lastFloor,
-    page_clamped: Number.isInteger(request.page) && request.page > 1 && firstFloor === 1,
+    // A real page N must have at least one floor numbered N or higher.
+    // A clamped final page can contain only late floors, with no floor 1.
+    page_clamped: Number.isInteger(request.page) && request.page > 1 &&
+      (firstFloor === 1 || (lastFloor !== null && lastFloor < request.page)),
   };
 }
 
