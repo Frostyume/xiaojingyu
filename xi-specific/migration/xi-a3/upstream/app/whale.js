@@ -4403,8 +4403,8 @@ export async function main(options = {}) {
    * 想让 AI 确认「语音真的发出去了」，唯一可靠的证据是 get_msg 回读到的 record 段。
    * 返回 { confirmed, file, duration } 或 null（读不回来不影响"已发送"这个事实）。
    */
-  async function verifyVoiceMessageSent(messageId) {
-    if (!messageId) return null;
+  async function verifyVoiceMessageSent(messageId, key) {
+    if (!messageId || !/^-?\d+$/.test(String(messageId)) || !Number.isSafeInteger(Number(messageId))) return null;
     try {
       const httpUrl = String(cfg.snowluma?.httpUrl || 'http://127.0.0.1:3000').replace(/\/+$/, '');
       const res = await fetch(`${httpUrl}/get_msg`, {
@@ -4418,6 +4418,21 @@ export async function main(options = {}) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || body.status !== 'ok' || body.retcode !== 0) return null;
+      // The same authenticated gateway supplied this outgoing message ID. Other fields
+      // can be omitted by OneBot implementations; supplied contradictions invalidate it.
+      const data = body.data;
+      if (String(data?.message_id) !== String(messageId)) return null;
+      const [kind, target] = key.split(':');
+      if (data.message_type != null && data.message_type !== kind) return null;
+      if (selfUserId != null && data.sender?.user_id != null && String(data.sender.user_id) !== String(selfUserId)) return null;
+      if (kind === 'group') {
+        if (data.group_id != null && String(data.group_id) !== target) return null;
+        if (selfUserId != null && data.user_id != null && String(data.user_id) !== String(selfUserId)) return null;
+      } else {
+        if (data.group_id != null || (data.target_id != null && String(data.target_id) !== target)) return null;
+        // For outgoing direct messages user_id can identify the peer or the sender.
+        if (data.user_id != null && selfUserId != null && ![target, String(selfUserId)].includes(String(data.user_id))) return null;
+      }
       const segments = Array.isArray(body.data?.message) ? body.data.message : [];
       const record = segments.find((s) => s?.type === 'record');
       if (!record) return null;
@@ -4472,7 +4487,7 @@ export async function main(options = {}) {
     }
     // 默认做「回读到 record 段」的落地校验；转写按需（自己发的语音通常没有转写）。
     const wantVerify = verify === true || (verify !== false && vc.autoReadback);
-    const verification = wantVerify ? await verifyVoiceMessageSent(sent.messageId) : null;
+    const verification = wantVerify ? await verifyVoiceMessageSent(sent.messageId, key) : null;
     return { ...sent, key, file: resolved.path, via: resolved.via, verification, readback: readbackText };
   }
 
@@ -10113,7 +10128,7 @@ export async function main(options = {}) {
             log(`[voice] (操作者) ${key} 已发送语音 ${path.basename(resolved.path)} (${sent.detail}${sent.audioMode === 'original' ? '' : '，' + sent.audioProcessing}, messageId=${sent.messageId ?? '?'})`);
             appendActivity(`${key} [voice] (操作者) 发送语音 ${path.basename(resolved.path)} (${sent.detail})`);
             // CLI 默认要落地校验（--verify 之外也能给出可信证据）；readback 仅在做"收到的语音"实验时用。
-            const verification = body.verify === false ? null : await verifyVoiceMessageSent(sent.messageId);
+            const verification = body.verify === false ? null : await verifyVoiceMessageSent(sent.messageId, key);
             let readbackText = null;
             if (body.readback === true && sent.messageId) {
               try {

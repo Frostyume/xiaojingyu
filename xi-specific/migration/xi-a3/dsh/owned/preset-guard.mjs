@@ -11,8 +11,16 @@ const LIFE=LIFE_TOOL_NAMES.map(name=>'mcp__xi-life__'+name);
 const MAILBOX=MAILBOX_TOOL_NAMES.map(name=>'mcp__xi-sister__'+name);
 export async function apply(ctx, config) {
   const deadline = Date.now() + 20000;
-  while (!ctx.tools.get('mcp__snowluma__qq_status') || config.memory && ![...MEMORY].every(name => ctx.tools.get(name)) || config.assets && !ASSET_DSH_NAMES.every(name=>ctx.tools.get(name)) || config.workshop && !WORKSHOP_DSH_NAMES.every(name=>ctx.tools.get(name)) || config.web && !WEB.every(name=>ctx.tools.get(name)) || config.life && !LIFE.every(name=>ctx.tools.get(name)) || config.mailbox && !MAILBOX.every(name=>ctx.tools.get(name))) {
-    if (Date.now() >= deadline) throw new Error('OWNED_QQ_MCP_NOT_READY');
+  const groups = [
+    ['QQ', true, ['mcp__snowluma__qq_status']],
+    ['MEMORY', config.memory, MEMORY], ['ASSETS', config.assets, ASSET_DSH_NAMES],
+    ['WORKSHOP', config.workshop, WORKSHOP_DSH_NAMES], ['WEB', config.web, WEB],
+    ['LIFE', config.life, LIFE], ['MAILBOX', config.mailbox, MAILBOX]
+  ];
+  for (;;) {
+    const missing = groups.filter(([, enabled, names]) => enabled && !Array.from(names).every(name => ctx.tools.get(name)));
+    if (!missing.length) break;
+    if (Date.now() >= deadline) throw new Error('OWNED_DSH_MCP_NOT_READY_' + missing.map(([group]) => group).join('_'));
     await new Promise(resolve => setTimeout(resolve, 50));
   }
   // Explicit owned capability extension: these 15 named platform operations

@@ -138,7 +138,7 @@ export async function launchOwned({manifestPath, recoverAbandoned = false, onAct
     startupCleanup = typeof error.retryOwnedCleanup === 'function' ? error.retryOwnedCleanup : startupCleanup;
     const cleanup = lease ? await lease.close() : closed();
     throw Object.assign(new Error('Owned launch failed; inspect local receipt before retry', {cause: error}),
-      {cleanup, stage, reasonCode: error.code ?? (/^(?:OWNED_|XI_)[A-Z0-9_]+$/.test(error.message ?? '') ? error.message : error.name), retryCleanup:()=>lease ? lease.close() : Promise.resolve(closed())});
+      {cleanup, stage, reasonCode: error.code ?? (error.message ?? '').match(/^qq-guard \(file:\/\/[^\r\n()]{1,2048}\/preset-guard\.mjs\): (OWNED_DSH_MCP_NOT_READY(?:_(?:QQ|MEMORY|ASSETS|WORKSHOP|WEB|LIFE|MAILBOX)){1,7})$/)?.[1] ?? (/^(?:OWNED_|XI_)[A-Z0-9_]+$/.test(error.message ?? '') ? error.message : error.name), retryCleanup:()=>lease ? lease.close() : Promise.resolve(closed())});
   }
 }
 

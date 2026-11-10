@@ -461,8 +461,8 @@
     },
     {
       "path": "migration/xi-a3/deployment/launch-owned.mjs",
-      "bytes": 13855,
-      "sha256": "f9ff8cb493d45c43c2e787241c0aba8be4aa9fc2274d7c061f2ba80aacf11a21"
+      "bytes": 14038,
+      "sha256": "4e4e3271583b97fc2d2bd94613ab73b7306d0a98d94d4264f7bcbe4d8d3285c5"
     },
     {
       "path": "migration/xi-a3/deployment/peer-admission.mjs",
@@ -531,8 +531,8 @@
     },
     {
       "path": "migration/xi-a3/dsh/owned/preset-guard.mjs",
-      "bytes": 2566,
-      "sha256": "cc3ed02b7f2badd0dc203c056ebfa659c265c3e46b86f9ff97635905c5d32401"
+      "bytes": 2645,
+      "sha256": "12b41f54f30763729bb3e035c2ccd5f7785b9e0a8ca3c4f59fdb5afc9e1fc1dc"
     },
     {
       "path": "migration/xi-a3/dsh/owned/profile.mjs",
@@ -661,8 +661,8 @@
     },
     {
       "path": "migration/xi-a3/upstream/app/whale.js",
-      "bytes": 1059202,
-      "sha256": "fbbe449c844f5bfe201ad7b9948edd040a7b1ea6d7a1842236eb1f88c7e676ea"
+      "bytes": 1060416,
+      "sha256": "ca193a03adba23cfe77203f4040577512dd98f99b4326e039c2b78d6740e4aea"
     },
     {
       "path": "migration/xi-a3/upstream/channels/dsh/client.js",
