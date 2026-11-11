@@ -6104,7 +6104,6 @@ async function refreshDshModel() {
     document.getElementById('dshEffortSideEffect').textContent = r.globalSideEffect
       ? '注意：切换会同时写入 DSH 的全局默认（~/.dsh/settings.yaml 的 agent-default-model），也就是 Web GUI 里新建会话的默认强度也会跟着变。'
       : '';
-    document.getElementById('dshEffortMsg').textContent = '';
   } catch (error) {
     document.getElementById('dshEffortMsg').textContent = '读取失败：' + (error?.message ?? error);
   }
@@ -8960,6 +8959,8 @@ async function loadSimConfig() {
   if (simConfigDirty) return;
   try {
     const r = await api('/api/simulation/config');
+    // 请求飞行期间用户可能已经开始编辑，回写前必须再确认草稿没变脏。
+    if (simConfigDirty) return;
     const c = r.config || {};
     document.getElementById('simEnabled').checked = c.enabled !== false;
     document.getElementById('simAgentPreset').value = c.agentPreset || '';
