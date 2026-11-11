@@ -15,7 +15,7 @@
    cd xiaojingyu
    ```
 
-   > 默认分支 `main` 跟随最新提交；稳定版见 [Releases](https://github.com/Frostyume/xiaojingyu/releases)（当前 v1.4.0）；clone 下来直接用即可。
+   > 默认分支 `main` 跟随最新提交；稳定版见 [Releases](https://github.com/Frostyume/xiaojingyu/releases)（当前 v1.4.1）；clone 下来直接用即可。
 
 2. **安装依赖**：
 
