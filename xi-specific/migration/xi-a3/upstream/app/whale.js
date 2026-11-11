@@ -1,4 +1,7 @@
 import { selectPersonaLayers } from '../runtime/persona/xi-identity.mjs';
+import { openXiReader } from '../../../xi-a1/xi-reader.mjs';
+import { buildSharedExperienceSection } from '../../../memory-continuity/implementation.mjs';
+import { ExperienceMemory } from '../../../../companion/experience-memory.mjs';
 // QQ ↔ DeepSeek Harness 桥接主程序。
 //
 // 链路：
@@ -1890,6 +1893,18 @@ export async function main(options = {}) {
   const ownedShutdownEvents = [];
   const ownedClosedSteps = new Set();
   const experienceWriter = options.experienceWriter ?? null;
+
+  // A shared reader belongs to one verified QQ identity and is closed with the runtime.
+  let sharedExperienceReader = null;
+  let sharedReaderBotId = '';
+  let sharedReaderRetryAt = 0;
+  function closeSharedExperienceReader() {
+    try { sharedExperienceReader?.close(); } finally {
+      sharedExperienceReader = null;
+      sharedReaderBotId = '';
+      sharedReaderRetryAt = 0;
+    }
+  }
   let wakeSendContexts = null;
   let labMuxPromise = null;
   let labMuxError = null;
@@ -1917,6 +1932,7 @@ export async function main(options = {}) {
     activeLabRun = scope;
     scope.defer('module-state', () => {
       reliabilityDb = null; sessionMapStore = null; memoryStore = null;
+      closeSharedExperienceReader();
       relationshipStore = null; budgetStore = null; featureHost = null;
       jsonLogSink = null; liveLogSink = null;
       stateWritable = true; activeLabRun = null; activeOwnedHttpOrigin = null;
@@ -1942,6 +1958,33 @@ export async function main(options = {}) {
   }
   if (OWNED_MODE && (!labDsh || !options.owned)) throw new Error('Explicit owned DSH adapter/options required');
   const cfg = loadConfig();
+  function ensureSharedExperienceReader() {
+    const config = cfg.simulation?.sharedExperience;
+    const botId = String(selfUserId || '').trim();
+    if (botId !== sharedReaderBotId) closeSharedExperienceReader();
+    if (config?.enabled !== true || !/^\d{5,15}$/.test(botId)) return null;
+    if (sharedExperienceReader) return sharedExperienceReader;
+    if (Date.now() < sharedReaderRetryAt) return null;
+
+    sharedReaderBotId = botId;
+    try {
+      if (typeof config.path !== 'string' || !config.path.trim() ||
+          typeof config.approvedRoot !== 'string' || !config.approvedRoot.trim()) {
+        throw new Error('Expected sharedExperience.path and approvedRoot');
+      }
+      sharedExperienceReader = openXiReader({
+        path: resolveRepoPath(config.path),
+        approvedRoot: resolveRepoPath(config.approvedRoot),
+        MemoryClass: ExperienceMemory,
+        identities: { botId, guardianIds: cfg.ownerQQ ? [String(cfg.ownerQQ)] : [] }
+      });
+      return sharedExperienceReader;
+    } catch (error) {
+      sharedReaderRetryAt = Date.now() + 60000;
+      log(`[sharedExperience] 只读经历库暂不可用：${error?.code || error?.name || 'error'}`);
+      return null;
+    }
+  }
   if (OWNED_MODE) {
     cfg.snowluma.accessToken = options.owned.credentials?.qqHttpToken ?? '';
     cfg.snowluma.wsAccessToken = options.owned.credentials?.qqWsToken ?? '';
@@ -16168,6 +16211,33 @@ export async function main(options = {}) {
     const tokenLine = `【会话令牌】${st.agentToken}（调用仿真状态工具时请在参数中带上此令牌）\n\n`;
     const memoryText = formatMemory(st);
     const memoryLine = memoryText ? `${memoryText}\n\n` : '';
+    // XI-SELFDEV-SHARED-RECALL: 跨会话往事召回（显式 opt-in；关闭时本段完全跳过，
+    // 其余 prompt 逐字不变）。reader 失效（被 stop 关闭/身份变化）时关闭并等待
+    // 下一轮按当前身份重建；召回异常只跳过本轮，不影响其余 prompt。
+    let sharedExperienceText = '';
+    if (opts.preview !== true && cfg.simulation?.sharedExperience?.enabled === true) {
+      try {
+        const reader = ensureSharedExperienceReader();
+        if (reader) {
+          const section = buildSharedExperienceSection({
+            reader,
+            key,
+            st,
+            ownerId: cfg.ownerQQ ? String(cfg.ownerQQ) : null,
+            botIds: String(selfUserId || '').trim() ? [String(selfUserId).trim()] : [],
+            log
+          });
+          sharedExperienceText = section.text;
+          if (section.failure) {
+            closeSharedExperienceReader();
+            log(`[sharedExperience] reader 已失效，先关闭；下次唤醒按当前身份重建：${section.failure.kind}`);
+          }
+        }
+      } catch (error) {
+        log(`[sharedExperience] 本轮跳过：${error?.message ?? error}`);
+      }
+    }
+    const sharedExperienceLine = sharedExperienceText ? `${sharedExperienceText}\n\n` : '';
     // 会话旋转前生成的本地衔接摘要：只注入一次。
     const digestText = String(st.pendingDigest || '').trim();
     const digestLine = digestText ? `${digestText}\n\n` : '';
@@ -16354,6 +16424,7 @@ export async function main(options = {}) {
       { id: 'memoryWrite', text: memoryWriteLine, priority: 80, trim: true },
       { id: 'digest', text: digestLine, priority: 99, trim: true },
       { id: 'longTerm', text: longTermLine, priority: 75, trim: true },
+      { id: 'sharedExperience', text: sharedExperienceLine, priority: 74, trim: true },
       { id: 'relationships', text: relationshipLine, priority: 70, trim: true },
       { id: 'esports', text: esportsLine, priority: 15, trim: true },
       { id: 'schedule', text: `${scheduleLine}${scheduleAnswerLine}`, priority: 90, trim: true },
@@ -18752,7 +18823,7 @@ export async function main(options = {}) {
           cfg.snowluma.httpUrl = endpoint.origin; activeOwnedHttpOrigin = endpoint.origin;
         }
         await ownedQQ.activate(() => options.owned.transportFactory({ url: cfg.snowluma.wsUrl, accessToken: options.owned.credentials?.qqWsToken ?? '' }));
-        try { await verifyOwnedQQIdentity(ownedQQ, options.owned.botId); }
+        try { selfUserId = (await verifyOwnedQQIdentity(ownedQQ, options.owned.botId)).botId; }
         catch (error) { ownedIngressOpen = false; ownedQQ.pauseAdmission(); await ownedQQ.close(); throw error; }
         ownedActivated = true; ownedIngressOpen = true; dshReady = true;
         await refreshPresetList(); currentMode = options.owned.conversationMode ?? 'simulation';

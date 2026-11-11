@@ -11,8 +11,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 4824,
-      "sha256": "c3811acc10b26a76787c2ba466d9d1da986c2946dbb31d0b60e79ee40b43fec2"
+      "bytes": 5220,
+      "sha256": "226cddde579d1096f2715ca300d5fd13bc92dc8d3eb9e81351fc86015d13b4e2"
     },
     {
       "path": "companion/archive.py",
@@ -328,6 +328,11 @@
       "path": "install-dependencies.ps1",
       "bytes": 2243,
       "sha256": "c571d3cb05c1278639f90518b0552a472451ddb16679fa1ddc6c7b502544c07c"
+    },
+    {
+      "path": "migration/memory-continuity/implementation.mjs",
+      "bytes": 31382,
+      "sha256": "a88384e1912643db46e03f30351e846778ab02dd59b5636e0421ccdd65d30203"
     },
     {
       "path": "migration/xi-a1/legacy/experience-attribution.mjs",
@@ -706,8 +711,8 @@
     },
     {
       "path": "migration/xi-a3/upstream/app/whale.js",
-      "bytes": 1060416,
-      "sha256": "ca193a03adba23cfe77203f4040577512dd98f99b4326e039c2b78d6740e4aea"
+      "bytes": 1063692,
+      "sha256": "2b3b0552f702a566cd633de01008e4132458b722d3beba063f4c3e647559babe"
     },
     {
       "path": "migration/xi-a3/upstream/channels/dsh/client.js",
