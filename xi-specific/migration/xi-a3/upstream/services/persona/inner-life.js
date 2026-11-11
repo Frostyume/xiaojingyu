@@ -275,6 +275,7 @@ export function createInnerLife(deps) {
     const raw = readJson(files.curiosity, {}) || {};
     return {
       cookies: Array.isArray(raw.cookies) ? raw.cookies.filter(Boolean) : [],
+      lastSearchTopic: typeof raw.lastSearchTopic === 'string' ? raw.lastSearchTopic : '',
       cookiesAt: Number(raw.cookiesAt) || 0,
       candidates: Array.isArray(raw.candidates) ? raw.candidates : [],
       fetchedAt: Number(raw.fetchedAt) || 0,
@@ -1430,13 +1431,15 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     return { status: 'posted', tid: result.tid || '', raw: result.raw };
   }
 
-  async function searchCuriosityCandidates(il) {
+  async function searchCuriosityCandidates(il, lastSearchTopic) {
     const wc = il.curiosity.webSearch || {};
     if (wc.enabled === false) return { items: [], errors: [] };
-    const topics = (loadPersona().interests || [])
+    const available = [...new Set((loadPersona().interests || [])
       .filter((item) => item?.weight > 0)
       .map((item) => String(item?.topic || '').trim())
-      .filter(Boolean)
+      .filter(Boolean))];
+    const start = available.indexOf(lastSearchTopic) + 1;
+    const topics = available.slice(start).concat(available.slice(0, start))
       .slice(0, Math.max(1, Number(wc.maxQueries) || 1));
     const queries = topics.length
       ? topics.map((topic) => ({topic, query:`${topic} 有趣 视频 最新 bilibili`}))
@@ -1469,7 +1472,7 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
         errors.push(`搜索「${query}」：${error?.message ?? error}`);
       }
     }
-    return { items, errors };
+    return { items, errors, lastSearchTopic: topics.at(-1) || '' };
   }
 
   function esportsCandidates(limit = 4) {
@@ -1516,11 +1519,22 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     return items.slice(0, Math.max(1, limit));
   }
 
+  let refreshInFlight = null;
   async function refreshCandidates(il, { force = false } = {}) {
     const cs = loadCuriosity();
     if (!force && cs.candidates.length > 0 && Date.now() - cs.fetchedAt < (Number(il.curiosity.refreshMs) || DEFAULTS.curiosity.refreshMs)) {
       return cs;
     }
+    if (refreshInFlight) return refreshInFlight;
+    refreshInFlight = fetchFreshCandidates(il, cs);
+    try {
+      return await refreshInFlight;
+    } finally {
+      refreshInFlight = null;
+    }
+  }
+
+  async function fetchFreshCandidates(il, cs) {
     const res = await collectCandidates({
       sources: il.curiosity.sources,
       biliCookies: cs.cookies,
@@ -1530,7 +1544,8 @@ ${SHARE_VOICE_BLOCK}${timeBlock}${toneBlock}\n【候选见闻】\n${formatCandid
     // 两者合并后统一去重/排序；搜索失败不影响本地候选。
     let searched = { items: [], errors: [] };
     if (il.curiosity.webSearch?.enabled !== false) {
-      searched = await searchCuriosityCandidates(il);
+      searched = await searchCuriosityCandidates(il, cs.lastSearchTopic);
+      cs.lastSearchTopic = searched.lastSearchTopic;
       if (searched.items.length) log(`[inner] 搜索候选 ${searched.items.length} 条`);
     }
     // S16 资讯也进入主动分享候选：订阅播报只发到订阅群，且每天有上限；

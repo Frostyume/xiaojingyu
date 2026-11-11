@@ -1101,8 +1101,8 @@
     },
     {
       "path": "migration/xi-a3/upstream/services/persona/inner-life.js",
-      "bytes": 218549,
-      "sha256": "058d29cf4fce229e9db04ed099eaddeee495fec82494e8d2c4c28eed20d8b34c"
+      "bytes": 219202,
+      "sha256": "9b8032b55f9a65d0f560693c5de735624852ccc51acde1c4b088b030434ce986"
     },
     {
       "path": "migration/xi-a3/upstream/services/persona/persona-state.js",
