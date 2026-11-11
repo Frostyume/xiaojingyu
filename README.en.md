@@ -4,14 +4,11 @@
 
 <h1 align="center">Xiaojingyu</h1>
 
-<p align="center"><b>A companion AI that lives in your QQ.</b><br>
-She is present the way a friend is: she reads the room, picks her moment, remembers what you told her,
-and actually does things when you ask.</p>
+<p align="center"><b>A companion AI that lives in your QQ — more like a long-time group member than a chat window.</b></p>
 
-> **Lurks, doesn't hog the chat.** Hundreds of messages a day; she only looks up when called or when the topic is hers, and stays quiet otherwise.<br>
-> **Remembers you, and where she stands with each friend.** Cross-session memory of what you said; a relationship graph draws how close she is to everyone and what stage each bond is at.<br>
-> **Has a life of her own.** Reads novels, collects sights, reflects on a schedule; her mood drifts with real time instead of flipping from happy to heartbroken in one line.<br>
-> **You complain, she files the dev ticket.** Say "this is broken" in a DM and she turns it into a proposal with acceptance criteria, handed to your own coding agent; nothing merges until you approve.
+Hundreds of messages scroll past each day, and most of the time she just watches, looking up only when called or when the topic is one she can join. She remembers what you mentioned last week and where she stands with each friend, and all of it feeds a relationship graph laid out by how deep each bond runs.
+
+When the room is quiet she lives a life of her own: reading novels, collecting sights, reflecting on a schedule, her mood drifting with real time. Complain in a DM that something is broken and she turns it into a proposal with acceptance criteria, handed to your own coding agent — nothing merges until you approve.
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-1.4.1-5B8DEF?style=flat-square">
@@ -41,24 +38,18 @@ and actually does things when you ask.</p>
 
 ## Who she is
 
-Xiaojingyu lives in a QQ account. You can find her in group chats and in DMs.
+Xiaojingyu lives in a QQ account, in both group chats and DMs. She does not answer every message; most of the time she is just watching who is talking, what the mood is, and whether she has anything worth adding. When she does speak she remembers what you mentioned last week, and when you say "kind of falling apart today" she asks whether the project is still due Friday.
 
-She does not answer every message. Most of the time she is just watching: who is talking, what the
-mood is, whether she has anything worth adding. When she does speak, she remembers what you mentioned
-last week, and when you say "kind of falling apart today" she asks whether the project is still due
-Friday.
+There is no new app to install and no habit to change. Your friends keep chatting as usual; she is the member who occasionally surfaces and sounds like a person.
 
-There is no new app to install and no habit to change. Your friends keep chatting as usual; she is the
-member who occasionally surfaces and sounds like a person.
-
-| She has | She does not |
+| Capability | Boundary |
 | --- | --- |
 | A persona: two prompt layers, one for behaviour boundaries and one for character and tone, both editable in the console | Take over the account: she is an ordinary member with no admin powers |
 | Memory: topics, pending thoughts, member impressions, cross-session memory, all viewable and deletable | Flood the chat: wake rate, night silence and clingy follow-ups all have hard caps |
 | Pacing: she decides whether to look, wait, speak or keep diving | Reach your machine: no amount of prompting gives group members local tools |
 | A toolbox: read, speak, stickers, search, reminders, each switchable | Run its own cloud: local components stay on `127.0.0.1`; messages still go through DSH to the model you choose (see the data-egress list in [NOTICE](NOTICE)) |
 
-A few things she does not do:
+A few boundaries always hold:
 
 - QQ injection and SnowLuma deployment are SnowLuma's own business; she only talks to its OneBot
   endpoints;
@@ -68,19 +59,11 @@ A few things she does not do:
 
 ## Why she is not just a chat window
 
-Most AI chats are disposable: one message in, one reply out, and everything resets when you close the tab.
-Xiaojingyu lives inside QQ, closer to a member who has been in the group for a long time.
+Most AI chats are disposable — one message in, one reply out, and everything resets when you close the tab. Xiaojingyu lives inside QQ, closer to a member who has been in the group for a long time: a thread you started in a group today can continue in a DM tomorrow, with no recap. She does not pop up for every message either; rules first discard what is not worth waking her for, then she decides whether to look up, so what you see is "she happened to be there" and what you do not see is that most of the time she stays quiet.
 
-A thread you started in a group today can continue in a DM tomorrow, with no recap. She also does not
-pop up for every message: rules first discard what is not worth waking her for, then she decides whether
-to look up. What you see is "she happened to be there"; what you do not see is that most of the time she
-stays quiet.
+She keeps a schedule of her own, too — reflecting, browsing out of curiosity, settling down late at night and setting her own next wake-up. With the supervisor window open she stays online: crashes restart her, drops reconnect, and undelivered messages replay in order, all on your machine.
 
-She keeps a schedule of her own, too. She reflects, browses out of curiosity, settles down late at night
-and sets her own next wake-up. With the supervisor window open she stays online: crashes restart her,
-drops reconnect, and undelivered messages replay in order. All of it runs on your machine.
-
-| What you face | What is underneath |
+| What you see | Under the hood |
 | --- | --- |
 | One her, in one group | One isolated context per group and per DM, so nothing bleeds across |
 | A sentence in plain language | Deterministic rules first, semantic judgement second |
@@ -213,28 +196,13 @@ are in [personas/README.md](personas/README.md); the mechanics are in the
   <sub>Three everyday scenes (illustrative dialogue): picking her moment, remembering you, getting things done</sub>
 </p>
 
-**① In a group, she does not steal the floor.**
-Out of a few hundred messages a day she only looks up when she is called, asked, or when the topic
-lands somewhere she knows. Seven unread, one line back is enough; if she has nothing to add she keeps
-diving. She knows who jokes around in this group and who is busy this week, so her reply does not read
-like a weather report.
+In a group, she does not steal the floor. Out of a few hundred messages a day she only looks up when called, asked, or when the topic lands somewhere she knows; seven unread and one line back is enough, and if she has nothing to add she keeps diving. She knows who jokes around in this group and who is busy this week, so her reply does not read like a weather report.
 
-**② In a DM, she remembers you.**
-"Kind of falling apart today" needs no recap. She knows the project is due Friday and that you wanted
-two days by the sea afterwards. That is not re-asked every time; it is memory kept across sessions,
-and you can browse, edit or delete any of it in the console.
+In a DM, she remembers you. "Kind of falling apart today" needs no recap — she knows the project is due Friday and that you wanted two days by the sea afterwards. That is not re-asked every time; it is memory kept across sessions, and you can browse, edit or delete any of it in the console.
 
-**③ When asked, she actually does it.**
-Duty rosters, research, reminders, tidying up chat logs: she reads group history, checks members,
-searches when needed, then sends the result as a few short messages. Anything private or out of bounds
-gets a question first, not an action.
+When asked, she actually does it. Duty rosters, research, reminders, tidying up chat logs: she reads group history, checks members, searches when needed, then sends the result as a few short messages. Anything private or out of bounds gets a question first, not an action.
 
-**④ If something is off, just tell her in a DM.**
-"Voice clips cut off the last word, fix it." "Can you add a Monday-morning group digest?" She turns
-the request into a code proposal and queues it for the development side; your own coding agent
-implements and tests it, reports the diff back to you, and only merges after your explicit
-confirmation. Full flow and how to connect any agent:
-[Code proposals](#code-proposals-ask-her-to-fix-or-build-something-in-a-dm).
+If something is off, just tell her in a DM. "Voice clips cut off the last word, fix it." "Can you add a Monday-morning group digest?" She turns the request into a code proposal and queues it for development; your own coding agent implements and tests it, reports the diff back, and only merges after your explicit confirmation. Full flow and how to connect any agent: [Code proposals](#code-proposals-ask-her-to-fix-or-build-something-in-a-dm).
 
 More everyday jobs:
 
@@ -253,18 +221,11 @@ More everyday jobs:
 In `simulation` mode (the default), an incoming message does not immediately become a model call. It
 passes two very different gates.
 
-**The first gate is deterministic and costs no tokens.** The allowlist decides whether it may be seen at
-all; wake conditions decide whether it is worth waking her — @, name, keyword, question, poke,
-probability. Explicit commands such as `/reset` or a pending approval take a fast path and never reach
-the model. Most group chatter simply lands in the unread queue.
+The first gate is deterministic and costs no tokens. The allowlist decides whether it may be seen at all; wake conditions decide whether it is worth waking her — @, name, keyword, question, poke, probability. Explicit commands such as `/reset` or a pending approval take a fast path and never reach the model. Most group chatter simply lands in the unread queue.
 
-**The second gate is semantic.** Only a matching message wakes her, and even then she does not process
-messages one by one: messages within an 8-second window merge into a single wake, and a busy session
-carries at most one batch of 12 unread messages / 6,000 characters. She reads a snapshot, then decides
-to reply, wait, mark as read, or keep diving.
+The second gate is semantic. Only a matching message wakes her, and even then she does not process messages one by one: messages within an 8-second window merge into a single wake, and a busy session carries at most one batch of 12 unread messages / 6,000 characters. She reads a snapshot, then decides to reply, wait, mark as read, or keep diving.
 
-**Only then comes speech.** Her reply does not go straight out. It returns to the shared exit, passes the
-allowlist and audit again, is split, rate-limited and paced like a person, and only then appears in QQ.
+Only then comes speech. Her reply does not go straight out; it returns to the shared exit, passes the allowlist and audit again, is split, rate-limited and paced like a person, and only then appears in QQ.
 
 <p align="center">
   <img src="assets/diagrams/message-flow.en.png" width="100%" alt="The life of a message: trigger, think, act">
@@ -280,8 +241,7 @@ Her 35 tools, wake rules and send limits are listed in the
 
 ## A life of her own
 
-She is there when the room is quiet, too. She reflects, gets curious, finds something worth sharing,
-and settles down late at night.
+She is there when the room is quiet, too, living a life of her own: reflecting on recent chats, browsing out of curiosity, finding something worth sharing, and settling down late at night.
 
 - **Scheduled reflection**: looks back over recent chats and relationships, then updates mood, energy,
   interests and verbal tics;
@@ -327,9 +287,7 @@ You can steer all of it from a DM: `内心状态`, `跑一次分享`, `反思一
 
 ## Code proposals: ask her to fix or build something in a DM
 
-She does not write code herself. What she can do is turn a complaint into an actionable development
-task, hand it to **your own coding agent**, and follow the whole chain — implement → test → your
-confirmation → merge → rollback on failure.
+She does not write code herself, but she can turn a complaint into an actionable development task, hand it to **your own coding agent**, and follow the whole chain from implementation and testing through your confirmation and merge, with rollback on failure.
 
 ![Code proposal loop](assets/diagrams/proposal.en.png)
 <p align="center"><sub>Four steps: you state the need → she files a proposal → an agent implements in an isolated copy → you confirm the merge</sub></p>
@@ -378,10 +336,7 @@ The tool list, pacing boundaries, capability tables and secure defaults are in t
   <sub>Read-only live status page (offline demo data); no real account is shown</sub>
 </p>
 
-Put it on a second monitor to watch her mood, energy, bonds, interests, inner life and current
-activity, plus unread counts and activity for every session. Read-only, refreshed over SSE, its own
-token, listening on `127.0.0.1` by default. Panel-by-panel details are in
-[the console guide](docs/guides/CONSOLE.md).
+Put it on a second monitor to watch her mood, energy, bonds, interests, inner life and current activity, plus unread counts and activity for every session. The page is read-only, refreshed over SSE, guarded by its own token, and listens on `127.0.0.1` by default. Panel-by-panel details are in [the console guide](docs/guides/CONSOLE.md).
 
 ## Local console
 
@@ -397,11 +352,7 @@ token, listening on `127.0.0.1` by default. Panel-by-panel details are in
   <sub>Feature control · board gates and module switches (offline demo data)</sub>
 </p>
 
-It runs at `http://127.0.0.1:3100` and has 13 task pages: overview, features, sessions and approvals,
-persona and roles, Group Theatre, group insights, library, slang, usage and cost, access and security,
-debug and operations, reliability and config, and tool reference. Light / dark themes, responsive
-layout and draft protection, with no external fonts or analytics. Page-by-page details are in
-[the console guide](docs/guides/CONSOLE.md).
+It runs at `http://127.0.0.1:3100` and has 13 task pages: overview, features, sessions and approvals, persona and roles, Group Theatre, group insights, library, slang, usage and cost, access and security, debug and operations, reliability and config, and tool reference. It supports light and dark themes, a responsive layout and draft protection, with no external fonts or analytics. Page-by-page details are in [the console guide](docs/guides/CONSOLE.md).
 
 ## Architecture
 
