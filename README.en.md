@@ -11,7 +11,7 @@ Hundreds of messages scroll past each day, and most of the time she just watches
 When the room is quiet she lives a life of her own: reading novels, collecting sights, reflecting on a schedule, her mood drifting with real time. Complain in a DM that something is broken and she turns it into a proposal with acceptance criteria, handed to your own coding agent — nothing merges until you approve.
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.4.1-5B8DEF?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-1.5.0-5B8DEF?style=flat-square">
   <img alt="node" src="https://img.shields.io/badge/Node.js-%E2%89%A5%2022.13-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat-square&logo=windows&logoColor=white">
   <img alt="dsh" src="https://img.shields.io/badge/DSH-0.2.0--rc.2-1B1F3B?style=flat-square">
@@ -71,7 +71,7 @@ She keeps a schedule of her own, too — reflecting, browsing out of curiosity, 
 | She is always there | Process supervision, reconnects, queued replay |
 
 > [!NOTE]
-> Current version **v1.4.1**, verified item by item against **DSH 0.2.0-rc.2**. This release makes console saving and refreshing more reliable (drafts and save confirmations are no longer swallowed) and folds dead-switch detection, real-browser UI tests, and the image-compression path into automated verification.
+> Current version **v1.5.0**, verified item by item against **DSH 0.2.0-rc.2**. This release makes the signature reflect her real current state, tidies the live page (a small square relationship graph, secondary panels collapsed by default, reading shown with real progress and the latest excerpt), and makes group shares feel like a real person sharing (image/link first, then a few separate short comments, without leading indentation or a fixed opener).
 > (`npm run verify:adaptation`). The first stable release, `v1.0.0`, shipped on 2026-11-03;
 > the `v0.1.x` / `v0.2.x` tags belong to upstream
 > [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) and are unrelated to this project.

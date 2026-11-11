@@ -1,6 +1,6 @@
 {
   "name": "xiaojingyu",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "private": true,
   "license": "MIT",
   "description": "Bridge between SnowLuma (OneBot v11 / QQ) and DeepSeek Harness Web API: QQ messages become DSH agent prompts, agent replies go back to QQ. Targets the DSH Cookie-auth / slash-RPC / remote.mux protocol generation, so it deliberately names no DSH version here.",
