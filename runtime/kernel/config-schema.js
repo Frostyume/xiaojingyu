@@ -106,6 +106,7 @@ const FIELD_META = {
   'simulation.voice.loudness': { label: '智能音量', group: '语音', restart: 'none', enum: ['quiet', 'normal', 'loud'] },
   'simulation.voice.normalize': { label: '响度归一', group: '语音', restart: 'none', description: '开启后按目标 LUFS 统一语音响度（-16 为日常）' },
   'simulation.innerLife.groupShare.targets': { label: '主动分享目标群', group: '内容引擎', restart: 'none', description: '可多选；每次只挑一个群分享，按最近分享时间轮换' },
+  'simulation.shareModules.natural.enabled': { label: '自然分条分享', group: '内容引擎', restart: 'none', description: '开启后非科普分享改为图/链接在前 + 多条短点评；关闭回到旧的一大段' },
   'simulation.voice.ffmpegPath': { label: 'ffmpeg 路径', group: '语音', restart: 'none', advanced: true },
   'simulation.voice.autoReadback': { label: '语音后自动朗读', group: '语音', restart: 'none', advanced: true },
 

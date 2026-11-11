@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   paragraphizeShareText,
-  indentParagraphs,
+  normalizeParagraphs,
   formatShareCaption,
   formatShareLinksText,
   formatAiTipLinks,
@@ -24,28 +24,30 @@ test('标题后恰好一个空行，且全长不出现连续三换行', () => {
   assert.doesNotMatch(caption, /\n{3,}/);
 });
 
-test('多段正文每段段首两个全角空格，段间一个空行', () => {
+test('多段正文段首不缩进，段间一个空行', () => {
   const body = paragraphizeShareText(FIVE, 'knowledge');
   const paragraphs = body.split('\n\n');
   assert.equal(paragraphs.length, 2);
   const caption = formatShareCaption({ title: '标题', text: FIVE }, 'knowledge');
   const lines = contentLines(caption);
   assert.equal(lines[0], '标题');
-  for (const line of lines.slice(1)) assert.ok(line.startsWith(INDENT), line);
+  for (const line of lines.slice(1)) assert.ok(!line.startsWith(INDENT), line);
+  assert.ok(!caption.includes(INDENT), caption);
   assert.equal(caption.split('\n\n').length, 3); // 标题 / 2 段正文
 });
 
-test('三段正文（≥7 句）也逐段缩进', () => {
+test('三段正文（≥7 句）段首也不缩进', () => {
   const seven = '第一句。第二句。第三句。第四句。第五句。第六句。第七句。';
   const body = paragraphizeShareText(seven, 'finance');
   assert.equal(body.split('\n\n').length, 3);
   const caption = formatShareCaption({ title: '年化收益率', text: seven }, 'finance');
-  for (const line of contentLines(caption).slice(1)) assert.ok(line.startsWith(INDENT));
+  for (const line of contentLines(caption).slice(1)) assert.ok(!line.startsWith(INDENT), line);
+  assert.ok(!caption.includes(INDENT), caption);
 });
 
-test('单段正文同样缩进', () => {
+test('单段正文不缩进', () => {
   const caption = formatShareCaption({ title: '机器学习', text: THREE }, 'knowledge');
-  assert.equal(caption, `机器学习\n\n${INDENT}${THREE}`);
+  assert.equal(caption, `机器学习\n\n${THREE}`);
 });
 
 test('riskNote 与正文之间恰好一个空行', () => {
@@ -56,7 +58,7 @@ test('riskNote 与正文之间恰好一个空行', () => {
 
 test('空文本/空标题不产生多余空行', () => {
   assert.equal(formatShareCaption({ title: '只有标题', text: '' }, 'knowledge'), '只有标题');
-  assert.equal(formatShareCaption({ title: '', text: THREE }, 'knowledge'), `${INDENT}${THREE}`);
+  assert.equal(formatShareCaption({ title: '', text: THREE }, 'knowledge'), THREE);
   assert.equal(formatShareCaption({}, 'knowledge'), '');
 });
 
@@ -92,14 +94,17 @@ test('小知识延伸阅读同样排版', () => {
   assert.equal(text, ['延伸阅读：', '', '1. 协同过滤', 'https://example.com/cf', '', '配图来源：zhihu.com'].join('\n'));
 });
 
-test('重复格式化幂等，不叠加缩进', () => {
-  const once = indentParagraphs(paragraphizeShareText(FIVE, 'knowledge'));
-  assert.equal(indentParagraphs(once), once);
-  assert.equal((once.match(/\u3000\u3000\u3000/g) || []).length, 0);
+test('normalizeParagraphs 主动剥掉已有全角缩进（非空操作），且幂等', () => {
+  // 锚点/反空操作：喂进带缩进的旧文本，必须被剥成无缩进，证明函数真的在去缩进。
+  assert.equal(normalizeParagraphs(`${INDENT}第一段\n\n${INDENT}第二段`), '第一段\n\n第二段');
+  const once = normalizeParagraphs(paragraphizeShareText(FIVE, 'knowledge'));
+  assert.equal(normalizeParagraphs(once), once);
+  assert.ok(!once.includes(INDENT), once);
 });
 
-test('小知识正文统一走同一 formatter', () => {
+test('小知识正文统一走同一 formatter（不缩进）', () => {
   const caption = formatTipCaption({ title: '隐私授权', text: FIVE });
   assert.ok(caption.startsWith('隐私授权\n\n'));
-  for (const line of contentLines(caption).slice(1)) assert.ok(line.startsWith(INDENT));
+  for (const line of contentLines(caption).slice(1)) assert.ok(!line.startsWith(INDENT), line);
+  assert.ok(!caption.includes(INDENT), caption);
 });

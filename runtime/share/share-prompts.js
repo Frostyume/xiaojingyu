@@ -61,6 +61,9 @@ function candidateBlock(candidates) {
   return `【可以当素材的候选】（真实抓取，只在其中选，不要编造候选之外的事实）\n${lines.join('\n')}\n如果采用某条候选，正文最后必须单独一行原样写上它的链接（不要改写成短链或省略），否则这条分享会被判为无效。`;
 }
 
+// 非科普/金融模板共用的口吻约束：像本人随手分享，不强制固定开场词、不套模板腔。
+const CASUAL_SHARE_RULE = '- 语气像本人随手分享：自然开头，不要刻意用「诶/唔/呀/啦/呜」这类语气词起手，也不要套固定模板腔或「这说明/意味着/整体来看」的评论员句式。';
+
 export function buildShareTask({ module, facet, history = [], recentChat = '', duplicateHint = '', category = null, candidates = [], fixHint = '' } = {}) {
   const template = String(facet?.template || module?.template || 'custom');
   const content = { ...(module?.content || {}), ...(facet?.content || {}) };
@@ -111,6 +114,7 @@ export function buildShareTask({ module, facet, history = [], recentChat = '', d
       `- 标题要具体；正文说清“发生了什么、为什么重要/影响什么”。`,
       `- 必须给出时间（精确到日期/北京时间）和来源链接 sourceUrl（只写真实链接）。`,
       `- 读者：${audience}；语气：${tone}。`,
+      CASUAL_SHARE_RULE,
       '- 如果信息不足或无法确认，输出 {"skip":true}，不要硬写。',
       candidateBlock(candidates),
       fixBlock,
@@ -127,6 +131,7 @@ export function buildShareTask({ module, facet, history = [], recentChat = '', d
       categoryLabel,
       `- 正文 ${min}–${max} 字，1–4 句；先给具体的点，再补一句你自己的反应或感受。`,
       `- 读者：${audience}；语气：${tone}。`,
+      CASUAL_SHARE_RULE,
       '- 不编造亲历，不要标题党，不堆网络黑话。',
       candidateBlock(candidates),
       fixBlock,
@@ -140,6 +145,7 @@ export function buildShareTask({ module, facet, history = [], recentChat = '', d
       '你在群里推荐一篇值得读的文章，先说你为什么觉得它值得看，再给真实链接。',
       categoryLabel,
       `- 正文 30–${Number(content.maxChars) || 240} 字；不要复述全文，给一个具体理由。`,
+      CASUAL_SHARE_RULE,
       '- 只使用真实存在的链接；不确定就不要推。',
       fixBlock,
       context,
@@ -152,6 +158,7 @@ export function buildShareTask({ module, facet, history = [], recentChat = '', d
       '你在群里讲一个真实的历史/人物/里程碑故事，事实必须准确。',
       categoryLabel,
       `- 正文 80–${Number(content.maxChars) || 600} 字，讲清时间、人物、发生了什么、为什么重要。`,
+      CASUAL_SHARE_RULE,
       '- 必须给出来源链接 sourceUrl；拿不准的年份/细节不要写。',
       fixBlock,
       context,
@@ -164,6 +171,7 @@ export function buildShareTask({ module, facet, history = [], recentChat = '', d
       '你在群里分享一个实用小技巧/避坑经验，步骤要能照着做。',
       categoryLabel,
       `- 正文 60–${Number(content.maxChars) || 500} 字；可以分 2–4 步，但不要写成产品说明书。`,
+      CASUAL_SHARE_RULE,
       '- 说明适用条件和注意事项 caveat；不夸大效果。',
       fixBlock,
       context,
@@ -176,6 +184,7 @@ export function buildShareTask({ module, facet, history = [], recentChat = '', d
       '你在群里解读一组数据/趋势，数字必须带时间和来源。',
       categoryLabel,
       `- 正文 60–${Number(content.maxChars) || 500} 字：数字是什么、从哪来、说明什么、不要过度外推。`,
+      CASUAL_SHARE_RULE,
       '- 必须给出来源链接 sourceUrl；没有可靠数据就输出 {"skip":true}。',
       fixBlock,
       context,
@@ -189,6 +198,7 @@ export function buildShareTask({ module, facet, history = [], recentChat = '', d
     '你在群里分享一期内容，按下面的要求写。',
     categoryLabel,
     commonRules({ audience, tone, minChars: min, maxChars: max, disclaimer: content.disclaimer, customInstruction: content.customInstruction }),
+    CASUAL_SHARE_RULE,
     candidateBlock(candidates),
     fixBlock,
     context,

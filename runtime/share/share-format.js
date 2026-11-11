@@ -2,11 +2,9 @@
 //
 // 版式约定：
 //   - 标题单独一行，后面恰好一个空行；
-//   - 正文每段段首两个全角空格（U+3000），段间恰好一个空行；
+//   - 正文段首不缩进（不再加全角空格），段间恰好一个空行；
 //   - 延伸阅读标题单独一行、其后空一行，条目之间空一行；
 //   - 条目本身不缩进——URL 前的空格会让复制变麻烦。
-
-const INDENT = '\u3000\u3000';
 
 export function cleanLine(value, maxChars) {
   return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, maxChars);
@@ -26,21 +24,19 @@ export function paragraphizeShareText(text, template = '') {
   return groups.join('\n\n');
 }
 
-/** 段首两个全角空格。已带缩进的先剥掉再加，保证重复格式化不叠加。 */
-export function indentParagraphs(text) {
+/** 段首不缩进：剥掉已有缩进/空白再按空行分段，保证重复格式化幂等。 */
+export function normalizeParagraphs(text) {
   return String(text || '')
     .split(/\n{2,}/)
-    .map((item) => item.replace(/^[\s\u3000]+/, '').trim())
+    .map((item) => item.replace(/^[\s　]+/, '').trim())
     .filter(Boolean)
-    .map((item) => `${INDENT}${item}`)
     .join('\n\n');
 }
 
 export function formatShareCaption(parsed = {}, template = '') {
   const title = cleanLine(parsed.title, 60);
-  const body = indentParagraphs(paragraphizeShareText(parsed.text, template));
+  const body = normalizeParagraphs(paragraphizeShareText(parsed.text, template));
   const risk = String(parsed.riskNote ?? '').trim();
-  // 不要对整段结果 trim：U+3000 也算空白，会把首段缩进吃掉；各段在生成时已 trim
   return [title, body, risk].filter(Boolean).join('\n\n');
 }
 
@@ -70,9 +66,52 @@ export function formatAiTipLinks(links, sourceHost = '') {
   return blocks.join('\n\n').trim();
 }
 
-/** 小知识预览/旧发送路径的正文：标题一行 + 空行 + 缩进正文。 */
+/** 小知识预览/旧发送路径的正文：标题一行 + 空行 + 不缩进正文。 */
 export function formatTipCaption(item = {}) {
   const title = String(item.title ?? '').trim();
-  const body = indentParagraphs(paragraphizeShareText(item.text, item.template || 'knowledge'));
+  const body = normalizeParagraphs(paragraphizeShareText(item.text, item.template || 'knowledge'));
   return [title, body].filter(Boolean).join('\n\n');
+}
+
+const SHARE_URL_RE = /https?:\/\/[^\s<>"'，。；、）)】]+/gi;
+
+/** 去掉正文里的链接（候选匹配会把 URL 追加到正文末尾），只留下点评文字。 */
+export function stripShareUrls(text) {
+  return String(text ?? '')
+    .replace(SHARE_URL_RE, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
+
+/**
+ * 把一段正文拆成 1–maxComments 条“短点评”，供非科普分享逐条发送。
+ * 按句子边界均衡分桶，保持原顺序；绝不截断或丢字（长文也只是分成更多/更长的几条）。
+ * 单句或空文本不再硬切，避免把一句话拆得支离破碎。
+ */
+export function splitShareComments(text, { maxComments = 3, maxChars = 50 } = {}) {
+  const raw = String(text ?? '').replace(/　/g, '').replace(/[ \t]+/g, ' ').trim();
+  if (!raw) return [];
+  const sentences = raw.split(/(?<=[。！？!?…])\s*/).map((item) => item.trim()).filter(Boolean);
+  if (sentences.length <= 1) return [raw];
+  const cap = Math.max(1, Math.min(10, Number(maxComments) || 3));
+  const width = Math.max(20, Number(maxChars) || 50);
+  const n = Math.max(1, Math.min(cap, sentences.length, Math.ceil(raw.length / width)));
+  if (n === 1) return [raw];
+  const target = raw.length / n;
+  const buckets = [];
+  let cur = '';
+  for (let i = 0; i < sentences.length; i += 1) {
+    const remainingBuckets = n - buckets.length;
+    const remainingSentences = sentences.length - i;
+    if (cur && remainingBuckets > 1 && cur.length >= target && remainingSentences >= remainingBuckets - 1) {
+      buckets.push(cur);
+      cur = '';
+    }
+    cur += sentences[i];
+  }
+  if (cur) buckets.push(cur);
+  return buckets;
 }

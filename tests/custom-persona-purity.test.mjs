@@ -247,7 +247,7 @@ test('默认角色回归：小鲸鱼的原有提示词和口吻保持不变', as
     const persona = inner.personaBlock();
     assert.match(persona, /猫|独立游戏|音乐/, '默认角色仍注入默认兴趣');
     const prompts = previewPrompts(inner);
-    assert.match(prompts.share, /软和嘴硬都可以|第一句先写你自己的反应/, '默认分享口吻块保持原样');
+    assert.match(prompts.share, /像本人随手说话，自然开头/, '默认分享口吻块保持原样');
     assert.match(prompts.qzone, /🐟/, '默认说说提示保留默认 emoji 示例');
     assert.match(prompts.comment, /软萌、先软后硬/, '默认评论回复保持原口吻');
     assert.match(prompts.mention, /软萌、先软后硬/, '默认 @ 回复保持原口吻');
@@ -259,7 +259,8 @@ test('默认角色回归：小鲸鱼的原有提示词和口吻保持不变', as
     const mentions = inner.promptPreview('mentions', { mentionNames: [] });
     assert.ok(mentions.includes('小鲸鱼') && mentions.includes('DeepSeek'), '默认角色 @ 名单保持原值');
     assert.doesNotMatch(contentVoiceBlock(personaStyleContext({ name: '小鲸鱼' })), /自定义角色已启用/);
-    assert.match(shareVoiceBlock(personaStyleContext({ name: '小鲸鱼' })), /第一句先写你自己的反应/);
+    assert.match(shareVoiceBlock(personaStyleContext({ name: '小鲸鱼' })), /像本人随手说话，自然开头/);
+    assert.doesNotMatch(shareVoiceBlock(personaStyleContext({ name: '小鲸鱼' })), /第一句先写你自己的反应/);
   });
 });
 

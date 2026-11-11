@@ -564,6 +564,9 @@
     "groupProfiles": {},
     "shareModules": {
       "enabled": true,
+      "natural": {
+        "enabled": true
+      },
       "limits": {
         "perGroupPerDay": 8,
         "perGroupPerHour": 3,

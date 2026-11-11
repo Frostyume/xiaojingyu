@@ -1568,6 +1568,17 @@
                   ]
                 }
               }
+            },
+            "natural": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "自然分条分享",
+                  "type": "boolean",
+                  "default": true,
+                  "description": "开启后非科普分享改为图/链接在前 + 多条短点评；关闭回到旧的一大段"
+                }
+              }
             }
           }
         },
@@ -6460,6 +6471,14 @@
       "label": "主动分享目标群",
       "group": "内容引擎",
       "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.shareModules.natural.enabled",
+      "label": "自然分条分享",
+      "group": "内容引擎",
+      "type": "boolean",
       "restart": "none",
       "advanced": false
     },
