@@ -24,8 +24,21 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install dependencies
         run: npm ci
+      - name: Install browser and Pillow test dependencies
+        run: |
+          npm install --no-save playwright
+          python -m pip install --quiet Pillow
+      - name: Console UI tests (real headless browser)
+        run: npm run test:console-ui
+        env:
+          PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: C:\Program Files\Google\Chrome\Application\chrome.exe
+      - name: GIF compression chain test
+        run: npm run test:compress
       - name: Config schema is up to date
         run: node tools/gen-config-schema.mjs --check
       - name: Core reliability tests
