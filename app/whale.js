@@ -89,7 +89,7 @@ import { formatRichSegment } from '../runtime/persona/rich-card.js';
 import { loadPersonaPack, renderPersonaPack, savePersonaPack, validatePersonaPack, personaPackPath } from '../runtime/persona/persona-pack.js';
 import { buildDailyReport, nextDailyAt, localDateKey, dailyReportEnabled } from '../runtime/orchestration/daily-report.js';
 import { createSnowLumaAsr } from '../runtime/persona/speech.js';
-import { generateSignature, normalizeSignatureState, appendSignatureHistory, randomSignatureIntervalMs, isSignatureAdjustCommand, isDuplicateSignatureInstruction } from '../runtime/persona/signature.js';
+import { generateSignature, normalizeSignatureState, appendSignatureHistory, randomSignatureIntervalMs, isSignatureAdjustCommand, isDuplicateSignatureInstruction, cleanSignatureText, isSignatureTextAllowed } from '../runtime/persona/signature.js';
 import { beijingParts, timeOfDayLabel } from '../runtime/kernel/time-awareness.js';
 import { loadFeatures } from '../runtime/kernel/feature-loader.js';
 import { createTransport } from '../runtime/kernel/transport.js';
@@ -1403,16 +1403,17 @@ function loadConfig() {
         : {}
     )
   };
-  // 自动个性签名：本地生成一句短签名，通过 SnowLuma set_qq_profile 更新。
+  // 自动个性签名：优先按真实状态用 LLM 生成，失败/关闭时退回干净模板，通过 SnowLuma set_qq_profile 更新。
   cfg.simulation.signature = {
     enabled: true,
+    llm: true,
     minIntervalHours: 12,
     maxIntervalHours: 48,
     firstDelayMs: 10 * 60 * 1000,
     maxChars: 40,
     dryRun: false,
     requireApproval: true,
-    approvalTimeoutMs: 2 * 3600 * 1000,
+    approvalTimeoutMs: 24 * 3600 * 1000,
     ...(
       cfg.simulation?.signature && typeof cfg.simulation.signature === 'object' && !Array.isArray(cfg.simulation.signature)
         ? cfg.simulation.signature
@@ -2189,6 +2190,39 @@ async function main() {
       roleName: currentRoleName()
     });
   }
+  /**
+   * 自动签名出草稿的正文：优先 LLM 按真实状态生成，产出不合格就带提示重试一次，
+   * 仍不行或 LLM 不可用/抛错时退回干净模板（buildSignaturePreview）。绝不换字造病句。
+   * llm=false 是回滚开关：直接走模板。返回 { text, source }。
+   */
+  async function buildSignatureDraftText() {
+    const sig = cfg.simulation?.signature ?? {};
+    const maxChars = Math.max(8, Math.min(60, Number(sig.maxChars) || 40));
+    let persona = null;
+    try { persona = innerLife?.personaInfo?.()?.state ?? null; } catch {}
+    const filterArgs = {
+      maxChars,
+      history: signatureState.history,
+      interests: persona?.interests ?? [],
+      bannedThemes: [],
+      avoidTexts: []
+    };
+    if (sig.llm !== false && typeof innerLife?.generateSignatureText === 'function') {
+      let hint = '';
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const raw = await innerLife.generateSignatureText({ ...filterArgs, hint, roleName: currentRoleName() });
+          const value = cleanSignatureText(raw, maxChars);
+          if (value && isSignatureTextAllowed(value, filterArgs)) return { text: value, source: 'llm' };
+          hint = '上一版和最近用过的签名太像。换一件最近真实发生的小事来写，别复用同样的句式';
+        } catch (error) {
+          log(`[signature] LLM 生成失败，退回模板兜底：${error?.message ?? error}`);
+          break;
+        }
+      }
+    }
+    return { text: buildSignaturePreview(), source: 'template' };
+  }
   async function applyQQSignature(text) {
     const body = String(text ?? '').trim();
     if (!body) throw new Error('签名不能为空');
@@ -2376,10 +2410,10 @@ async function main() {
         }
         latest.text = refined;
         latest.createdAt = Date.now();
-        latest.expiresAt = Date.now() + Math.max(60 * 1000, Number(cfg.simulation?.signature?.approvalTimeoutMs) || 2 * 3600 * 1000);
+        latest.expiresAt = Date.now() + Math.max(60 * 1000, Number(cfg.simulation?.signature?.approvalTimeoutMs) || 24 * 3600 * 1000);
         signatureState.nextAt = latest.expiresAt;
         saveSignatureState();
-        const timeoutMin = Math.round(Math.max(60 * 1000, Number(cfg.simulation?.signature?.approvalTimeoutMs) || 2 * 3600 * 1000) / 60000);
+        const timeoutMin = Math.round(Math.max(60 * 1000, Number(cfg.simulation?.signature?.approvalTimeoutMs) || 24 * 3600 * 1000) / 60000);
         const sent = await sendOwnerPrivate(`【个性签名草稿·已改】\n${refined}\n\n回复「发签名」更新，回复「不发签名」放弃；还想改就引用这条草稿说，或发「改签名 …」（${timeoutMin} 分钟内有效）`);
         const messageId = String(sent?.message_id ?? sent?.messageId ?? '');
         if (messageId) {
@@ -2413,12 +2447,19 @@ async function main() {
     }
     if (signatureState.pending) {
       if (Date.now() < Number(signatureState.pending.expiresAt || 0)) {
-        return { status: 'pending-approval', retryAfterMs: 30 * 60 * 1000 };
+        // 还在等审核：复用同一版草稿，不重新生成；下次唤醒对齐到过期时刻，避免每 30 分钟空转。
+        const remain = Math.max(60 * 1000, Number(signatureState.pending.expiresAt || 0) - Date.now());
+        return { status: 'pending-approval', retryAfterMs: remain };
       }
+      // 过期不算主人拒绝：只记录 + 顺延到下一个正常间隔，绝不在同一 tick 立刻再出一版（churn 收敛）。
+      log(`[signature] 草稿过期未审：${signatureState.pending.text}`);
       signatureState.pending = null;
       saveSignatureState();
+      const nextAt = scheduleSignatureNext();
+      log(`[signature] 已顺延到 ${nextAt ? new Date(nextAt).toISOString() : '下次'}`);
+      return { status: 'expired', nextAt };
     }
-    const text = buildSignaturePreview();
+    const { text } = await buildSignatureDraftText();
     if (!text) return { status: 'empty' };
     if (text === signatureState.lastText) {
       scheduleSignatureNext();
@@ -2436,7 +2477,7 @@ async function main() {
         scheduleSignatureNext();
         return { status: 'no-owner' };
       }
-      const timeoutMs = Math.max(60 * 1000, Number(sig.approvalTimeoutMs) || 2 * 3600 * 1000);
+      const timeoutMs = Math.max(60 * 1000, Number(sig.approvalTimeoutMs) || 24 * 3600 * 1000);
       const timeoutMin = Math.round(timeoutMs / 60000);
       const body = `【个性签名草稿】\n${text}\n\n回复「发签名」更新，回复「不发签名」放弃；想改请引用这条草稿回我，比如「短一点」「别写猫，换成米饭」；也可以直接说「改签名 …」（${timeoutMin} 分钟内有效）`;
       try {
@@ -4092,6 +4133,7 @@ async function main() {
       })(),
       signature: {
         enabled: cfg.simulation?.signature?.enabled === true,
+        llm: cfg.simulation?.signature?.llm !== false,
         minIntervalHours: Number(cfg.simulation?.signature?.minIntervalHours) || 12,
         maxIntervalHours: Number(cfg.simulation?.signature?.maxIntervalHours) || 48,
         requireApproval: cfg.simulation?.signature?.requireApproval !== false,
@@ -8073,6 +8115,7 @@ async function main() {
           sendJson({
             ok: true,
             enabled: sig.enabled === true,
+            llm: sig.llm !== false,
             minIntervalHours: Number(sig.minIntervalHours) || 12,
             maxIntervalHours: Number(sig.maxIntervalHours) || 48,
             dryRun: sig.dryRun === true,

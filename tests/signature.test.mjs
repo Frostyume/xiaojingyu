@@ -1,8 +1,65 @@
 // 自动个性签名：本地生成规则 + 桥接 API（不真改 QQ）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { generateSignature, normalizeSignatureState, appendSignatureHistory, randomSignatureIntervalMs, isSignatureAdjustCommand, isDuplicateSignatureInstruction } from '../runtime/persona/signature.js';
+import { atomicWriteJson, readJsonSafe } from '../runtime/kernel/state-file.js';
 import { bridgeHarness } from './bridge-harness.mjs';
+
+const signatureSends = (h) => h.calls.http.filter((c) => String(c.url).endsWith('/send_private_msg'));
+
+// ── 红自测共用工具 ──────────────────────────────────────────────────────────
+// 只依赖既有导出 + 读源码，保证「换回旧源码」时这些测试仍能运行并真的变红。
+const SIG_SOURCE = fileURLToPath(new URL('../runtime/persona/signature.js', import.meta.url));
+const sigSource = () => fs.readFileSync(SIG_SOURCE, 'utf8');
+const CORRUPT_RE = /\uFFFD/;
+
+// 与模块内 clean() 同口径（本地复刻，不依赖新导出）。
+const cleanLocal = (text, maxChars = 40) => {
+  let s = String(text ?? '').replace(/\s+/g, ' ').trim();
+  s = s.replace(/[。．.]+$/u, '');
+  if (s.length > maxChars) s = `${s.slice(0, Math.max(1, maxChars - 1))}…`;
+  return s;
+};
+
+// 抽取源码里所有含中文的单引号字面量（模板/尾巴/语气词等），作为干净输出空间的超集。
+const cjkLiterals = (source) => {
+  const out = new Set();
+  const re = /'([^'\n]*[\u4e00-\u9fff][^'\n]*)'/g;
+  let m;
+  while ((m = re.exec(source))) out.add(m[1]);
+  return [...out];
+};
+
+// 纯模板空间：全部模板字面量 + 兴趣主题组合。强制拼接的尾巴不属于其中，
+// 所以「出口硬补尾巴」的旧行为能被识别为越界。
+const buildTemplateSpace = (maxChars = 40) => {
+  const space = new Set();
+  for (const lit of cjkLiterals(sigSource())) {
+    space.add(cleanLocal(lit, maxChars));
+    space.add(cleanLocal(lit.replace('{topic}', '羽毛球'), maxChars));
+  }
+  space.delete('');
+  return space;
+};
+
+// 完整干净空间：纯模板 + 新旧兜底短尾组合（枯竭测试用，覆盖所有合法兜底出口）。
+const buildCleanSpace = (maxChars = 40) => {
+  const tails = ['，尾巴还在', '，摸鱼中', '，米饭要紧', '，懒得动', '，慢慢来嘛', '，慢慢来就好', '，想到什么再补', '，今天也不急', '，先游一圈再说', '，先缓一缓再说'];
+  const space = buildTemplateSpace(maxChars);
+  for (const lit of cjkLiterals(sigSource())) {
+    for (const tail of tails) space.add(cleanLocal(`${lit}${tail}`, maxChars));
+  }
+  space.delete('');
+  return space;
+};
+
+// 编码损坏夹具：GBK 字节被按 UTF-8 有损解码后留下的 U+FFFD（与真实坏条目同形，ASCII 安全）。
+const CORRUPT_FIXTURE = '\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u05be\u00fb\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u02fc\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u04bb\ufffd\ufffd\u04bb\ufffd\ufffd\ufffd';
+const CLEAN_FIXTURE = '记忆与持久化比想象中有意思，正在一点一点啃';
 
 async function pendingSignatureHarness() {
   const h = await bridgeHarness({
@@ -271,4 +328,159 @@ test('signature API: 预览与手动更新（fixture 网关）', async () => {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
   } finally { await h.close(); }
+});
+
+// ── 红自测：必须在旧行为上真的变红（带锚点/空操作守卫）──────────────────────
+
+test('signature red: 强制尾巴兜底已删除，池子枯竭宁可交空也不造垃圾', () => {
+  // Part A 静态：ensureVoice 固定尾巴必须从源码彻底删除（开源旧版的病句来源是硬拼尾巴）。
+  const src = sigSource();
+  assert.ok(src.includes('export function generateSignature'), '锚点：应读到签名生成源码（非空文件）');
+  assert.ok(!src.includes('ensureVoice'), '强制补尾巴的 ensureVoice 必须已删除');
+  assert.ok(!src.includes('VOICE_TAILS'), '固定尾巴数组 VOICE_TAILS 必须已删除');
+
+  // Part B 行为：正常输出必须是纯模板句（生活记号靠选句偏好），不许硬拼尾巴。
+  const templateSpace = buildTemplateSpace(40);
+  assert.ok(templateSpace.size > 50, '锚点：模板空间应覆盖全部模板');
+  assert.ok(templateSpace.has(cleanLocal('慢慢游，慢慢想，今天也不急着给答案，事情一件一件来就好', 40)), '锚点：已知模板应在空间内');
+  const persona = { state: { energy: 0.6, mood: { valence: 0.1 } } };
+  const base = Date.UTC(2026, 9, 26, 2, 0);
+  // 空操作守卫：历史为空时仍应正常产出干净模板（证明 '' 是枯竭所致，而非模块坏掉）。
+  const normal = generateSignature({ persona, now: base, maxChars: 40, history: [], interests: [] });
+  assert.ok(normal && templateSpace.has(normal), `正常应产出纯模板句，实际：${normal}`);
+  for (let i = 0; i < 24; i += 1) {
+    const text = generateSignature({ persona, now: base + i * 3700000, maxChars: 40, history: [], interests: [] });
+    assert.ok(text && templateSpace.has(text), `出口不得硬拼尾巴/造病句，实际：${text}`);
+  }
+
+  // Part C 行为：把所有干净输出塞进历史/废案制造彻底枯竭，只能交空，绝不重复废案。
+  const space = buildCleanSpace(40);
+  const avoid = [...space].map((text) => ({ text }));
+  for (const roleName of ['', '阿岚']) {
+    for (let i = 0; i < 8; i += 1) {
+      const text = generateSignature({
+        persona, now: base + i * 3700000, maxChars: 40,
+        history: avoid, avoidTexts: avoid, interests: [], bannedThemes: [], roleName
+      });
+      assert.equal(text, '', `池子枯竭时宁可交空也不重复/造垃圾（roleName=${roleName || '默认'}），实际：${text}`);
+      assert.ok(!CORRUPT_RE.test(text), '输出不得含编码损坏标记');
+    }
+  }
+});
+
+test('signature red: 中文持久化往返无损，编码损坏历史条目自愈', () => {
+  // 守卫：UTF-8 原子写读往返，中文必须无损（持久化层本就 UTF-8，这是回归 guard）。
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sig-enc-'));
+  try {
+    const file = path.join(dir, 'signature.json');
+    atomicWriteJson(file, { history: [{ text: CLEAN_FIXTURE, at: 1 }] });
+    const back = readJsonSafe(file, {});
+    assert.equal(back.history[0].text, CLEAN_FIXTURE, '中文经持久化往返必须无损');
+    assert.ok(!CORRUPT_RE.test(back.history[0].text), '往返不得引入 U+FFFD');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+
+  // 红：旧 normalizeSignatureState 会保留 U+FFFD 坏条目；新版必须自愈丢弃。
+  const healed = normalizeSignatureState({ history: [CLEAN_FIXTURE, CORRUPT_FIXTURE], lastText: CORRUPT_FIXTURE });
+  assert.ok(healed.history.every((h) => !CORRUPT_RE.test(h.text)), '历史里的编码损坏条目必须被清除');
+  assert.ok(healed.history.some((h) => h.text === CLEAN_FIXTURE), '干净条目必须原样保留');
+  assert.equal(healed.history.length, 1, '坏条目丢弃后只剩干净那条');
+  assert.equal(healed.lastText, CLEAN_FIXTURE, 'lastText 损坏时回退到最近干净历史');
+  // 空操作守卫：纯干净历史不得被误删。
+  const intact = normalizeSignatureState({ history: [CLEAN_FIXTURE], lastText: CLEAN_FIXTURE });
+  assert.equal(intact.history.length, 1);
+  assert.equal(intact.history[0].text, CLEAN_FIXTURE);
+  assert.equal(intact.lastText, CLEAN_FIXTURE);
+  // 坏 pending 同样自愈（开源状态模型没有 rejected/bannedThemes，对应字段不存在即不校验）。
+  const mixed = normalizeSignatureState({ pending: { text: CORRUPT_FIXTURE, expiresAt: 9 } });
+  assert.equal(mixed.pending, null, '损坏 pending 应清空');
+});
+
+test('signature red: 有 pending 时不在同一 tick 重新生成草稿', async () => {
+  const T = Date.now();
+  const pendingText = '最近被羽毛球勾住了，明明想偷懒，脑子却一直往那边跑';
+
+  // 场景一：未过期 pending —— 复用同一版，唤醒对齐到剩余有效期（不是固定 30 分钟空转）。
+  const live = await bridgeHarness({
+    config: { consoleAuth: { enabled: false }, simulation: { signature: { enabled: true, requireApproval: true, approvalTimeoutMs: 7200000 } } },
+    files: { 'state/signature.json': { pending: { text: pendingText, createdAt: T, expiresAt: T + 5 * 60 * 1000, messageId: 'm1', messageIds: ['m1'] } } }
+  });
+  try {
+    live.setSnowlumaConnected(true);
+    live.setMode('simulation');
+    let llmCalls = 0;
+    live.setInnerLife({ personaInfo: () => ({ state: { energy: 0.8, mood: { valence: 0.5 }, interests: [] } }), generateSignatureText: async () => { llmCalls += 1; return '不该被调用的一版'; } });
+    const before = signatureSends(live).length;
+    const result = await live.handleSignatureJob({});
+    assert.equal(result.status, 'pending-approval');
+    assert.equal(live.signatureState.pending.text, pendingText, '未过期必须复用同一版草稿');
+    assert.equal(llmCalls, 0, '等审核时不得调用模型重新生成');
+    assert.equal(signatureSends(live).length, before, '等审核时不得再发新草稿');
+    assert.ok(result.retryAfterMs > 4 * 60 * 1000 && result.retryAfterMs <= 5 * 60 * 1000, `唤醒应对齐剩余有效期（约 5 分钟），而非固定 30 分钟，实际 ${result.retryAfterMs}`);
+  } finally { await live.close(); }
+
+  // 场景二：已过期 pending —— 记录 + 顺延，绝不在同一 tick 再出一版（churn 收敛）。
+  const expired = await bridgeHarness({
+    config: { consoleAuth: { enabled: false }, simulation: { signature: { enabled: true, requireApproval: true, approvalTimeoutMs: 7200000 } } },
+    files: { 'state/signature.json': { pending: { text: pendingText, createdAt: T - 7200000, expiresAt: T - 1000, messageId: 'm1', messageIds: ['m1'] } } }
+  });
+  try {
+    expired.setSnowlumaConnected(true);
+    expired.setMode('simulation');
+    let llmCalls = 0;
+    expired.setInnerLife({ personaInfo: () => ({ state: { energy: 0.8, mood: { valence: 0.5 }, interests: [] } }), generateSignatureText: async () => { llmCalls += 1; return '过期后不该立刻生成的新一版'; } });
+    const before = signatureSends(expired).length;
+    const result = await expired.handleSignatureJob({});
+    assert.equal(result.status, 'expired', '过期只记录+顺延，不在同一 tick 重生成');
+    assert.equal(expired.signatureState.pending, null, '过期后清空 pending');
+    assert.equal(llmCalls, 0, '过期这一 tick 不得调用模型');
+    assert.equal(signatureSends(expired).length, before, '过期这一 tick 不得再私聊发新草稿');
+    assert.ok(result.nextAt > T, '过期后应顺延到下一个正常间隔');
+    assert.equal(expired.signatureState.nextAt, result.nextAt);
+  } finally { await expired.close(); }
+});
+
+test('signature red: 自动签名走 LLM 真实状态，失败/关闭退回干净模板', async () => {
+  const space = buildCleanSpace(40);
+  const llmText = '今天把一段卡住的代码理顺了，心里踏实不少';
+  const persona = () => ({ state: { energy: 0.7, mood: { valence: 0.3 }, interests: [] } });
+
+  // 红：开启 LLM 且模型可用时，草稿正文必须是模型按真实状态写的那一句（旧代码只会套模板）。
+  const ok = await bridgeHarness({ config: { consoleAuth: { enabled: false }, simulation: { signature: { enabled: true, requireApproval: true, llm: true } } } });
+  try {
+    ok.setSnowlumaConnected(true);
+    ok.setMode('simulation');
+    let calls = 0;
+    ok.setInnerLife({ personaInfo: persona, generateSignatureText: async () => { calls += 1; return llmText; } });
+    const result = await ok.handleSignatureJob({});
+    assert.equal(result.status, 'draft');
+    assert.equal(calls, 1, '应调用模型按真实状态生成');
+    assert.equal(ok.signatureState.pending.text, llmText, '草稿应采用 LLM 产出，而非模板');
+  } finally { await ok.close(); }
+
+  // 守卫：模型抛错时退回干净模板（非空、无损坏、属于干净模板空间），绝不产病句。
+  const fail = await bridgeHarness({ config: { consoleAuth: { enabled: false }, simulation: { signature: { enabled: true, requireApproval: true, llm: true } } } });
+  try {
+    fail.setSnowlumaConnected(true);
+    fail.setMode('simulation');
+    fail.setInnerLife({ personaInfo: persona, generateSignatureText: async () => { throw new Error('模型不可用'); } });
+    const result = await fail.handleSignatureJob({});
+    assert.equal(result.status, 'draft');
+    const text = fail.signatureState.pending.text;
+    assert.ok(text && !CORRUPT_RE.test(text), '兜底必须是非空干净文本');
+    assert.ok(space.has(text), `兜底必须是干净模板，绝不换字造病句，实际：${text}`);
+  } finally { await fail.close(); }
+
+  // 守卫：llm=false 回滚开关 —— 即便模型可用也走模板。
+  const off = await bridgeHarness({ config: { consoleAuth: { enabled: false }, simulation: { signature: { enabled: true, requireApproval: true, llm: false } } } });
+  try {
+    off.setSnowlumaConnected(true);
+    off.setMode('simulation');
+    let calls = 0;
+    off.setInnerLife({ personaInfo: persona, generateSignatureText: async () => { calls += 1; return llmText; } });
+    const result = await off.handleSignatureJob({});
+    assert.equal(result.status, 'draft');
+    assert.equal(calls, 0, 'llm=false 时不得调用模型');
+    assert.notEqual(off.signatureState.pending.text, llmText, 'llm=false 应退回模板');
+    assert.ok(space.has(off.signatureState.pending.text), '回滚兜底也必须是干净模板');
+  } finally { await off.close(); }
 });

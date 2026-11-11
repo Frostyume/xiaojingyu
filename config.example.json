@@ -332,13 +332,14 @@
     },
     "signature": {
       "enabled": true,
+      "llm": true,
       "minIntervalHours": 12,
       "maxIntervalHours": 48,
       "firstDelayMs": 600000,
       "maxChars": 40,
       "dryRun": false,
       "requireApproval": true,
-      "approvalTimeoutMs": 7200000
+      "approvalTimeoutMs": 86400000
     },
     "media": {
       "maxBytes": 8388608,

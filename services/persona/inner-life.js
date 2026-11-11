@@ -4088,6 +4088,45 @@ ${formatTipCaption(item)}`;
     return cleaned;
   }
 
+  /**
+   * 按她此刻的真实状态生成一句个性签名（心情/精力/最近在迷/最近学到或发生的小事）。
+   * 复用内心会话 runTurn：buildBasePrompt 已带上【当前状态】【现在】【最近群聊】，
+   * 所以签名跟着真实近况走，而不是轮模板。只产出正文，是否采用由桥接按去重规则决定。
+   * 失败/为空时抛错，由桥接退回干净模板兜底（绝不换字造病句）。
+   */
+  async function generateSignatureText({ maxChars = 40, avoidTexts = [], bannedThemes = [], interests = [], hint = '', roleName = '' } = {}) {
+    const limit = Math.max(8, Math.min(60, Number(maxChars) || 40));
+    const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
+    const recent = (Array.isArray(avoidTexts) ? avoidTexts : [])
+      .map((t) => String(typeof t === 'string' ? t : t?.text ?? '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .slice(-8);
+    const bans = (Array.isArray(bannedThemes) ? bannedThemes : [])
+      .map((t) => String(typeof t === 'string' ? t : t?.theme ?? '').trim())
+      .filter(Boolean)
+      .slice(-12);
+    const topics = (Array.isArray(interests) ? interests : [])
+      .map((i) => String(typeof i === 'string' ? i : i?.topic ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 4);
+    const task = [
+      '写一句你现在的 QQ 个性签名：像随手挂在资料页的一行生活状态，不是说说、不是群消息、不是标题。',
+      '必须基于【当前状态】里你真实的心情/精力/最近在迷的东西/最近学到或发生的小事来写，写出此刻具体的你；不要空泛口号，不要万能模板句，不要总结升华。',
+      topics.length ? `可以自然带到你最近在迷的：${topics.join('、')}（只在真的贴合状态时提，别硬塞）。` : '',
+      `只输出签名正文一行，最多 ${limit} 字；不要引号、不要 emoji、不要解释、不要标题，末尾不要句号。`,
+      customRole
+        ? '保持当前角色的口吻，不要出现鲸鱼/尾巴/米饭/摸鱼/水里游这类不属于这个角色的生活记号。'
+        : '可以带一点小鲸鱼自己的生活记号（尾巴、米饭、摸鱼、水里游），但最多一个，别堆砌。',
+      recent.length ? `这些是最近用过或被否掉的签名，别和它们雷同（换措辞也算雷同）：\n${recent.map((t) => `- ${t}`).join('\n')}` : '',
+      bans.length ? `这些主题最近被封了，别再写：${bans.join('、')}。` : '',
+      hint ? `【重写要求】${hint}` : ''
+    ].filter(Boolean).join('\n\n');
+    const output = await runTurn(buildBasePrompt(task, `${contentVoiceBlock(roleStyle())}\n`), 120000);
+    const cleaned = cleanPost(output, limit);
+    if (!cleaned) throw new Error('签名生成为空或含敏感信息');
+    return cleaned.replace(/[。．.]+$/u, '').trim();
+  }
+
   async function handleOwnerCommand(text, { kind, isOwner } = {}) {
     if (!isOwner || kind !== 'private') return false;
     const command = String(text ?? '').trim();
@@ -4686,6 +4725,7 @@ ${formatTipCaption(item)}`;
     personaBlock,
     personaInfo,
     refineText,
+    generateSignatureText,
     handleOwnerCommand,
     ownerPublishQzone,
     nudgeMood,
