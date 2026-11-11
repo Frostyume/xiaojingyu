@@ -1,14 +1,22 @@
-// 自动个性签名：根据心情/精力/兴趣/时段生成一句有内容的签名。
+// 个性签名：模板兜底生成 + 文本校验 + 状态归一化。
+// 真正「按真实状态生成」走 inner-life.generateSignatureText（LLM）；本模块只在
+// LLM 不可用 / 失败 / 产出不合格时兜底，并负责去重、相似、封主题与历史清洗。
 //
 // 约束：
-//   · 不调用模型，零 token；
-//   · 不重复最近用过的签名；
+//   · 兜底不调用模型，零 token；
+//   · 不重复最近用过的签名 / 主题，尊重封禁；
 //   · 只改 QQ 资料里的 personal_note，不动昵称、不发群消息；
-//   · 文本末尾不留中文句号；超长截断。
+//   · 文本末尾不留中文句号；超长截断；
+//   · 绝不产出换字病句；池子枯竭时宁可交空，由调用方按 empty 跳过。
 
 const MAX_DEFAULT = 40;
 const HISTORY_MAX = 20;
 const MIN_CHARS = 22;
+const SIMILARITY_LIMIT = 0.55;
+
+// 编码损坏标记：GBK 字节被按 UTF-8 解码等有损转换会留下 U+FFFD。
+// 正常生成的中文签名永远不会含它，据此自愈历史里的坏条目。
+const CORRUPT_RE = /\uFFFD/;
 
 const TEMPLATES = Object.freeze({
   bright: [
@@ -59,7 +67,7 @@ const TEMPLATES = Object.freeze({
     '最近总在想{topic}，想得太入神，尾巴都忘了摇',
     '{topic}有点上头，我本来真的只想瞄一眼的',
     '这两天在啃{topic}，啃不动就先放一放，不硬撑',
-    '脑子里装着{topic}，游着游着走神了，回来还在想'
+    '满脑子{topic}，游着游着就忘了要往哪儿去'
   ],
   identity: [
     '今天也没干什么正事，米饭倒是认真吃了，尾巴先晃两下',
@@ -126,24 +134,116 @@ function clean(text, maxChars) {
   return s;
 }
 
+/** 对外暴露的签名清洗：与兜底生成同一套口径（去空白、去末尾句号、超长截断）。 */
+export function cleanSignatureText(text, maxChars = MAX_DEFAULT) {
+  return clean(text, Math.max(1, Number(maxChars) || MAX_DEFAULT));
+}
+
 function cleanInstruction(text) {
   return String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, 200);
 }
 
 const VOICE_RE = /尾巴|鲸鱼|米饭|摸鱼|懒|嘴硬|水里|游|饭/;
-const VOICE_TAILS = ['，尾巴还在', '，摸鱼中', '，米饭要紧', '，懒得动', '，慢慢来嘛'];
-
-/** 没有生活记号的签名补一个很短的尾巴，避免掉回通用签名。 */
-function ensureVoice(text, seed, maxChars) {
-  const value = clean(text, maxChars);
-  if (!value || VOICE_RE.test(value)) return value;
-  const tail = VOICE_TAILS[Math.abs(Number(seed) || 0) % VOICE_TAILS.length];
-  const room = Math.max(4, maxChars - tail.length);
-  return clean(`${clean(value, room)}${tail}`, maxChars);
-}
 
 function hourInShanghai(now) {
   return new Date(Number(now) + 8 * 3600 * 1000).getUTCHours();
+}
+
+export function normalizeSignatureTheme(text) {
+  return String(text ?? '').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
+}
+
+/** 从候选句里提取命中的兴趣主题（取最长命中），供主题级去重/封禁使用。 */
+export function signatureTheme(text, topics = []) {
+  const hay = normalizeSignatureTheme(text);
+  if (!hay) return '';
+  let best = '';
+  let bestLen = 0;
+  for (const raw of Array.isArray(topics) ? topics : []) {
+    const topic = String(typeof raw === 'string' ? raw : raw?.topic ?? '').replace(/\s+/g, ' ').trim().slice(0, 12);
+    const needle = normalizeSignatureTheme(topic);
+    if (!needle || !hay.includes(needle)) continue;
+    if (needle.length > bestLen) { best = topic; bestLen = needle.length; }
+  }
+  return best;
+}
+
+function charBigrams(text) {
+  const t = normalizeSignatureTheme(text);
+  const grams = new Set();
+  if (!t) return grams;
+  if (t.length <= 2) { grams.add(t); return grams; }
+  for (let i = 0; i < t.length - 1; i += 1) grams.add(t.slice(i, i + 2));
+  return grams;
+}
+
+export function signatureSimilarity(a, b) {
+  const left = charBigrams(a);
+  const right = charBigrams(b);
+  if (!left.size || !right.size) return 0;
+  let shared = 0;
+  for (const gram of left) if (right.has(gram)) shared += 1;
+  return shared / (left.size + right.size - shared);
+}
+
+/**
+ * 去重 / 相似 / 封主题过滤器：兜底生成与 LLM 产出校验共用同一套口径，避免两处规则漂移。
+ * 返回 recent（最近用过原文）、avoidSet（废案原文）、bannedSet（封禁主题）、topics、
+ * themeOf、recentThemeBlocked、bannedText。
+ */
+function signatureFilter({
+  maxChars = MAX_DEFAULT,
+  history = [],
+  interests = [],
+  bannedThemes = [],
+  avoidTexts = [],
+  recentThemeWindow = HISTORY_MAX
+} = {}) {
+  const hist = Array.isArray(history) ? history : [];
+  const recent = new Set(hist.map((h) => clean(typeof h === 'string' ? h : h?.text, maxChars)));
+  const avoidSet = new Set((Array.isArray(avoidTexts) ? avoidTexts : [])
+    .map((h) => clean(typeof h === 'string' ? h : h?.text, 200))
+    .filter(Boolean));
+  const bannedSet = new Set((Array.isArray(bannedThemes) ? bannedThemes : [])
+    .map((h) => normalizeSignatureTheme(typeof h === 'string' ? h : h?.theme))
+    .filter(Boolean));
+  const topics = (Array.isArray(interests) ? interests : [])
+    .map((i) => String(typeof i === 'string' ? i : i?.topic ?? '').trim().slice(0, 12))
+    .filter(Boolean);
+  const themeOf = (text) => normalizeSignatureTheme(signatureTheme(text, topics));
+  // 最近 N 条已用签名里的主题也去重：换个措辞但主题相同同样算重复。
+  const window = Math.max(1, Math.min(HISTORY_MAX, Math.floor(Number(recentThemeWindow) || HISTORY_MAX)));
+  const recentThemes = new Set(hist.slice(-window)
+    .map((h) => themeOf(clean(typeof h === 'string' ? h : h?.text, 200)))
+    .filter(Boolean));
+  const recentThemeBlocked = (text) => {
+    const theme = themeOf(text);
+    return Boolean(theme) && recentThemes.has(theme);
+  };
+  const bannedText = (text) => {
+    if (!text) return true;
+    if (avoidSet.has(text)) return true;
+    if (bannedSet.size && bannedSet.has(themeOf(text))) return true;
+    if (recentThemeBlocked(text)) return true;
+    for (const avoid of avoidSet) {
+      if (signatureSimilarity(text, avoid) >= SIMILARITY_LIMIT) return true;
+    }
+    return false;
+  };
+  return { recent, avoidSet, bannedSet, topics, themeOf, recentThemes, recentThemeBlocked, bannedText };
+}
+
+/**
+ * 校验一句候选签名（尤其是 LLM 产出）是否可用：非空、不含编码损坏、不撞最近原文 / 废案、
+ * 不踩封禁主题 / 最近主题窗口、与废案相似度低于阈值。与兜底生成同一套规则。
+ */
+export function isSignatureTextAllowed(text, options = {}) {
+  const maxChars = Math.max(1, Number(options.maxChars) || MAX_DEFAULT);
+  const value = clean(text, maxChars);
+  if (!value || CORRUPT_RE.test(value)) return false;
+  const { recent, bannedText } = signatureFilter({ ...options, maxChars });
+  if (recent.has(value)) return false;
+  return !bannedText(value);
 }
 
 export function generateSignature({
@@ -152,6 +252,9 @@ export function generateSignature({
   maxChars = MAX_DEFAULT,
   history = [],
   interests = [],
+  bannedThemes = [],
+  avoidTexts = [],
+  recentThemeWindow = HISTORY_MAX,
   roleName = ''
 } = {}) {
   const state = persona?.state ?? persona ?? {};
@@ -159,11 +262,15 @@ export function generateSignature({
   const valence = Number.isFinite(Number(mood.valence)) ? Number(mood.valence) : 0.15;
   const energy = Number.isFinite(Number(state.energy)) ? Number(state.energy) : 0.6;
   const hour = hourInShanghai(now);
-  const recent = new Set((Array.isArray(history) ? history : []).map((h) => clean(typeof h === 'string' ? h : h?.text, maxChars)));
   // 自定义角色不套用默认鲸鱼生活记号，整池换成中性模板。
   const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
   const source = customRole ? NEUTRAL_TEMPLATES : TEMPLATES;
-  const finish = (text, seed) => (customRole ? clean(text, maxChars) : ensureVoice(text, seed, maxChars));
+  const resolvedInterests = Array.isArray(interests) && interests.length ? interests : (state.interests || []);
+  const { recent, avoidSet, bannedSet, topics, themeOf, recentThemeBlocked, bannedText } = signatureFilter({
+    maxChars, history, interests: resolvedInterests, bannedThemes, avoidTexts, recentThemeWindow
+  });
+  // 出口只 clean：不再硬补「尾巴还在」之类的固定尾巴（生活记号靠选句偏好保证）。
+  const finish = (text) => clean(text, maxChars);
   const pool = [];
   if (hour >= 23 || hour < 6) pool.push(...source.late);
   if (energy <= 0.35 || valence <= -0.25) pool.push(...source.low);
@@ -174,9 +281,6 @@ export function generateSignature({
   // 心情普通时也混入 calm，避免只有一句
   if (!pool.length) pool.push(...source.calm);
 
-  const topics = (Array.isArray(interests) && interests.length ? interests : (state.interests || []))
-    .map((i) => String(typeof i === 'string' ? i : i?.topic ?? '').trim().slice(0, 12))
-    .filter(Boolean);
   if (topics.length) {
     for (const t of topics.slice(0, 2)) {
       for (const tpl of TEMPLATES.interest) {
@@ -187,7 +291,8 @@ export function generateSignature({
     }
   }
   const candidates = [...new Set(pool.map((t) => clean(t, maxChars)).filter(Boolean))]
-    .filter((t) => !recent.has(t));
+    .filter((t) => !recent.has(t))
+    .filter((t) => !bannedText(t));
   if (!candidates.length) {
     // 全用过时用「长句 + 短尾」组合，避免退化回几个字的短签名
     const tails = customRole
@@ -196,22 +301,43 @@ export function generateSignature({
     for (const base of source.calm) {
       for (const tail of tails) {
         const t = clean(`${base}${tail}`, maxChars);
-        if (!recent.has(t)) return finish(t, now);
+        if (!recent.has(t) && !bannedText(t)) return finish(t);
       }
     }
-    return finish(source.calm[0], now);
+    // 仍被过滤空时放宽相似度，但绝不返回废案原文，也不碰被封的主题。
+    const fallback = [...new Set(pool.map((t) => clean(t, maxChars)).filter(Boolean))]
+      .filter((t) => !recent.has(t) && !avoidSet.has(t)
+        && !(bannedSet.size && bannedSet.has(themeOf(t))) && !recentThemeBlocked(t));
+    if (fallback.length) {
+      const day = Math.floor(Number(now) / 86400000);
+      return finish(fallback[Math.abs(day + Math.floor(Number(now) / 3600000)) % fallback.length]);
+    }
+    // 理论上到不了这里；真到了也只退回最普通的句子，绝不回废案原文。
+    const lastResort = customRole ? NEUTRAL_TEMPLATES.calm : [...TEMPLATES.calm, ...TEMPLATES.identity];
+    for (const base of lastResort) {
+      const t = finish(base);
+      if (!avoidSet.has(t) && !recentThemeBlocked(t)) return t;
+    }
+    // 池子彻底枯竭：宁可交空（调用方按 empty 跳过），也绝不换字造病句、绝不回废案原文。
+    const base = clean((customRole ? NEUTRAL_TEMPLATES.calm : TEMPLATES.calm)[0], maxChars);
+    return avoidSet.has(base) ? '' : base;
   }
-  // 优先 18 字以上；如果配置把上限压得很短，则至少不要选最短的那批。
+  // 优先长句；如果配置把上限压得很短，则至少不要选最短的那批。
   const minChars = Math.min(MIN_CHARS, maxChars);
   const preferred = candidates.filter((t) => t.length >= minChars);
-  const usable = preferred.length
+  let usable = preferred.length
     ? preferred
     : (candidates.filter((t) => t.length >= Math.min(10, maxChars)).length
       ? candidates.filter((t) => t.length >= Math.min(10, maxChars))
       : candidates);
+  // 默认人格优先选自带生活记号的句子，避免掉回通用签名；自定义角色不做此偏好。
+  if (!customRole) {
+    const voiced = usable.filter((t) => VOICE_RE.test(t));
+    if (voiced.length) usable = voiced;
+  }
   // 用当天日期做稳定轮换：同一天多次预览不会跳来跳去
   const day = Math.floor(Number(now) / 86400000);
-  return finish(usable[Math.abs(day + Math.floor(Number(now) / 3600000)) % usable.length], Math.floor(Number(now) / 3600000));
+  return finish(usable[Math.abs(day + Math.floor(Number(now) / 3600000)) % usable.length]);
 }
 
 export function appendSignatureHistory(history, text, now = Date.now()) {
@@ -228,23 +354,26 @@ export function randomSignatureIntervalMs(minHours = 8, maxHours = 24, { random 
   return Math.round(hours * 3600 * 1000);
 }
 
-/** 只保留最近 history 条；兼容旧格式字符串数组。 */
+/** 只保留最近 history 条；兼容旧格式字符串数组；自愈编码损坏（U+FFFD）的坏条目。 */
 export function normalizeSignatureState(raw, now = Date.now()) {
   const obj = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
   const history = Array.isArray(obj.history)
     ? obj.history.map((h) => ({
       text: clean(typeof h === 'string' ? h : h?.text, 200),
       at: Number(typeof h === 'object' ? h?.at : 0) || 0
-    })).filter((h) => h.text).slice(-HISTORY_MAX)
+    })).filter((h) => h.text && !CORRUPT_RE.test(h.text)).slice(-HISTORY_MAX)
     : [];
   const pendingRaw = obj.pending && typeof obj.pending === 'object' && !Array.isArray(obj.pending) ? obj.pending : null;
-  const pendingText = clean(pendingRaw?.text, 200);
+  const pendingClean = clean(pendingRaw?.text, 200);
+  const pendingText = CORRUPT_RE.test(pendingClean) ? '' : pendingClean;
   const pendingMessageId = String(pendingRaw?.messageId || '');
   const pendingMessageIds = Array.isArray(pendingRaw?.messageIds)
     ? pendingRaw.messageIds.map((id) => String(id || '')).filter(Boolean).slice(-5)
     : [];
+  const lastTextRaw = clean(obj.lastText ?? history.at(-1)?.text ?? '', 200);
+  const lastText = CORRUPT_RE.test(lastTextRaw) ? (history.at(-1)?.text ?? '') : lastTextRaw;
   return {
-    lastText: clean(obj.lastText ?? history.at(-1)?.text ?? '', 200),
+    lastText,
     lastAppliedAt: Number(obj.lastAppliedAt) || 0,
     nextAt: Number(obj.nextAt) || 0,
     history,

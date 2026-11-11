@@ -9,6 +9,9 @@ config.json
 *.bak
 *.bak-*
 
+# 本地 UI 预览截图（浏览器自测产物，不入库）
+/.preview-shots/
+
 # Local development / planning / research docs (not part of public project)
 /PROJECT_GUIDE.md
 /ARCH_REVIEW.md

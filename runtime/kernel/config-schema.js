@@ -106,6 +106,7 @@ const FIELD_META = {
   'simulation.voice.loudness': { label: '智能音量', group: '语音', restart: 'none', enum: ['quiet', 'normal', 'loud'] },
   'simulation.voice.normalize': { label: '响度归一', group: '语音', restart: 'none', description: '开启后按目标 LUFS 统一语音响度（-16 为日常）' },
   'simulation.innerLife.groupShare.targets': { label: '主动分享目标群', group: '内容引擎', restart: 'none', description: '可多选；每次只挑一个群分享，按最近分享时间轮换' },
+  'simulation.shareModules.natural.enabled': { label: '自然分条分享', group: '内容引擎', restart: 'none', description: '开启后非科普分享改为图/链接在前 + 多条短点评；关闭回到旧的一大段' },
   'simulation.voice.ffmpegPath': { label: 'ffmpeg 路径', group: '语音', restart: 'none', advanced: true },
   'simulation.voice.autoReadback': { label: '语音后自动朗读', group: '语音', restart: 'none', advanced: true },
 
@@ -200,7 +201,8 @@ const FIELD_META = {
   'simulation.relationships.excludedGroups': { label: '额外排除的群', group: '群友关系', restart: 'none' },
   'simulation.relationships.promptLimit': { label: 'prompt 关系卡人数', group: '群友关系', restart: 'none', min: 1, max: 12 },
   'simulation.relationships.liveLimit': { label: '实时页展示人数', group: '群友关系', restart: 'none', min: 1, max: 12 },
-  'simulation.signature.enabled': { label: '自动个性签名', group: '个性签名', restart: 'none', description: '根据心情/精力/兴趣生成短签名并更新 QQ personal_note；不发群消息' },
+  'simulation.signature.enabled': { label: '自动个性签名', group: '个性签名', restart: 'none', description: '按心情/精力/兴趣/近况生成短签名并更新 QQ personal_note；不发群消息' },
+  'simulation.signature.llm': { label: '用模型按真实状态生成', group: '个性签名', restart: 'none', description: '开启后签名由内心会话按她此刻的心情/精力/近况生成；关闭或模型不可用时退回干净模板兜底（回滚开关）' },
   'simulation.signature.minIntervalHours': { label: '最短间隔（小时）', group: '个性签名', restart: 'none', min: 1, max: 720 },
   'simulation.signature.maxIntervalHours': { label: '最长间隔（小时）', group: '个性签名', restart: 'none', min: 1, max: 720 },
   'simulation.signature.firstDelayMs': { label: '首次延迟（ms）', group: '个性签名', restart: 'none', min: 60000, max: 86400000, advanced: true },

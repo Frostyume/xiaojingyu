@@ -1568,6 +1568,17 @@
                   ]
                 }
               }
+            },
+            "natural": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "自然分条分享",
+                  "type": "boolean",
+                  "default": true,
+                  "description": "开启后非科普分享改为图/链接在前 + 多条短点评；关闭回到旧的一大段"
+                }
+              }
             }
           }
         },
@@ -1577,7 +1588,7 @@
             "approvalTimeoutMs": {
               "title": "Approval Timeout Ms",
               "type": "number",
-              "default": 7200000
+              "default": 86400000
             },
             "requireApproval": {
               "title": "Require Approval",
@@ -1593,7 +1604,7 @@
               "title": "自动个性签名",
               "type": "boolean",
               "default": true,
-              "description": "根据心情/精力/兴趣生成短签名并更新 QQ personal_note；不发群消息"
+              "description": "按心情/精力/兴趣/近况生成短签名并更新 QQ personal_note；不发群消息"
             },
             "firstDelayMs": {
               "title": "首次延迟（ms）",
@@ -1601,6 +1612,12 @@
               "default": 600000,
               "minimum": 60000,
               "maximum": 86400000
+            },
+            "llm": {
+              "title": "用模型按真实状态生成",
+              "type": "boolean",
+              "default": true,
+              "description": "开启后签名由内心会话按她此刻的心情/精力/近况生成；关闭或模型不可用时退回干净模板兜底（回滚开关）"
             },
             "maxChars": {
               "title": "签名最大字数",
@@ -6400,6 +6417,14 @@
       "max": 86400000
     },
     {
+      "key": "simulation.signature.llm",
+      "label": "用模型按真实状态生成",
+      "group": "个性签名",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "simulation.signature.maxChars",
       "label": "签名最大字数",
       "group": "个性签名",
@@ -6446,6 +6471,14 @@
       "label": "主动分享目标群",
       "group": "内容引擎",
       "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.shareModules.natural.enabled",
+      "label": "自然分条分享",
+      "group": "内容引擎",
+      "type": "boolean",
       "restart": "none",
       "advanced": false
     },

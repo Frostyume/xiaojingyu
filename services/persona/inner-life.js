@@ -32,7 +32,7 @@ import { AI_TIP_CATEGORIES, categoryById, inWindow, isDuplicateTip, nextSlotAt, 
 import { normalizeShareConfig, normalizeShareModule, moduleFacets, engineFacets, hasEngineFacets, facetRuntime, pickShareFacet, parseShareOutput, validateShareOutput, verificationPending, moduleDayTarget, nextFacetAt, inWindowAt, topicTooSimilar, recentShareUrls, urlAlreadyShared, SHARE_TEMPLATES } from '../../runtime/share/share-modules.js';
 import { loadShareState, saveShareState, groupBudgetCheck, recordGroupSend, recordModuleSend, recordModuleFailure, setVerification, migrateAiTipsState, localDayKey as shareDayKey, globalBudgetCheck, recordGlobalSend, nextGlobalWindowAt } from '../../runtime/share/share-state.js';
 import { buildShareTask } from '../../runtime/share/share-prompts.js';
-import { formatShareCaption, formatShareLinksText, formatAiTipLinks, formatTipCaption } from '../../runtime/share/share-format.js';
+import { formatShareCaption, formatShareLinksText, formatAiTipLinks, formatTipCaption, splitShareComments, stripShareUrls } from '../../runtime/share/share-format.js';
 import { featureEnabled, featureForInnerJob, featureForShareModule, shareEngineEnabled, shareModuleEnabled } from '../../runtime/control/feature-switches.js';
 
 const DEFAULTS = {
@@ -1287,10 +1287,19 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
       saveInner(state);
       return false;
     }
-    await sendToQQ(key, shareText);
-    if (lastSendSucceeded && lastSendSucceeded(key) === false) {
-      log(`[inner] 群分享发送失败（${key}），不记账`);
-      return false;
+    if (naturalShareEnabled()) {
+      const leadUrl = String(candidates?.[0]?.url || '').trim();
+      const res = await sendNaturalShare(key, { text: shareText, title: '', sourceUrl: leadUrl }, { links: leadUrl ? [{ title: '来源', url: leadUrl }] : [] });
+      if (res.failed) {
+        log(`[inner] 群分享发送失败（${key}），不记账`);
+        return false;
+      }
+    } else {
+      await sendToQQ(key, shareText);
+      if (lastSendSucceeded && lastSendSucceeded(key) === false) {
+        log(`[inner] 群分享发送失败（${key}），不记账`);
+        return false;
+      }
     }
     state.counts.groupShare += 1;
     state.lastShareAt = now;
@@ -2318,6 +2327,50 @@ ${othersLine}拟回复：${reply}
     saveShareModulesState(state);
   }
 
+  // 自然分条分享门控：默认开启，读原始 cfg（normalizeShareConfig 会丢掉 natural 键）。
+  // 关闭后非科普分享逐字回到旧的一大段发送，便于一键回滚。
+  function naturalShareEnabled() {
+    return cfg.simulation?.shareModules?.natural?.enabled !== false;
+  }
+
+  function isKnowledgeTemplate(template) {
+    return ['knowledge', 'finance'].includes(String(template || ''));
+  }
+
+  // 真人分享：图/链接在前，随后 1–3 条独立短点评，逐条走 sendToQQ（仍经 outbox/限频/顺序）。
+  // 返回 { imageSent, failed, error }，调用方据此记账或返回 send-failed。
+  async function sendNaturalShare(target, parsed, { links = [], images = [], imageHosts = '', coverCandidate = null } = {}) {
+    let imageSent = false;
+    if (images.length) imageSent = await sendAiTipImage(target, images, parsed, { caption: '' });
+    if (coverCandidate) {
+      try { markSeen(coverCandidate); } catch {}
+      try {
+        const cover = await buildVideoCover(coverCandidate);
+        if (cover) await imageLibrary.sendToKey(target, cover.id, { caption: '' });
+      } catch (error) {
+        log(`[share] 分享配图发送失败（忽略）：${error?.message ?? error}`);
+      }
+    }
+    const leadUrls = [...new Set([
+      ...(Array.isArray(links) ? links.map((link) => String(link?.url || '').trim()) : []),
+      String(parsed.sourceUrl || '').trim()
+    ].filter(Boolean))];
+    let leadText = leadUrls.join('\n');
+    if (imageSent && imageHosts) leadText += `${leadText ? '\n' : ''}配图来源：${imageHosts}`;
+    const messages = [];
+    if (leadText) messages.push(leadText);
+    messages.push(...splitShareComments(stripShareUrls(parsed.text)));
+    for (const msg of messages) {
+      try {
+        await sendToQQ(target, msg);
+      } catch (error) {
+        return { imageSent, failed: true, error: error?.message ?? String(error) };
+      }
+      if (lastSendSucceeded && lastSendSucceeded(target) === false) return { imageSent, failed: true, error: 'send failed' };
+    }
+    return { imageSent, failed: false };
+  }
+
   function shareModulesConfig() {
     const normalized = normalizeShareConfig(cfg.simulation?.shareModules);
     const tips = ilCfg().aiTips;
@@ -2545,13 +2598,19 @@ ${othersLine}拟回复：${reply}
     const { images, imageSource, imageHosts } = await buildShareImages(module, facet, parsed, pending.links || []);
     const caption = formatShareCaption(parsed, facet?.template || module.template);
     let imageSent = false;
-    if (images.length) imageSent = await sendAiTipImage(pending.target, images, parsed, { caption });
-    if (!imageSent) {
-      await sendToQQ(pending.target, caption);
-      if (lastSendSucceeded && lastSendSucceeded(pending.target) === false) return { status: 'send-failed' };
+    if (naturalShareEnabled() && !isKnowledgeTemplate(facet?.template || module.template)) {
+      const res = await sendNaturalShare(pending.target, parsed, { links: pending.links || [], images, imageHosts });
+      imageSent = res.imageSent;
+      if (res.failed) return { status: 'send-failed', error: res.error };
+    } else {
+      if (images.length) imageSent = await sendAiTipImage(pending.target, images, parsed, { caption });
+      if (!imageSent) {
+        await sendToQQ(pending.target, caption);
+        if (lastSendSucceeded && lastSendSucceeded(pending.target) === false) return { status: 'send-failed' };
+      }
+      const linksText = formatShareLinksText(pending.links || [], { imageHosts: imageSent ? imageHosts : '', sourceUrl: parsed.sourceUrl });
+      if (linksText) await sendToQQ(pending.target, linksText);
     }
-    const linksText = formatShareLinksText(pending.links || [], { imageHosts: imageSent ? imageHosts : '', sourceUrl: parsed.sourceUrl });
-    if (linksText) await sendToQQ(pending.target, linksText);
     recordGroupSend(state, pending.target, Date.now());
     recordGlobalSend(state, Date.now(), conf.limits);
     recordModuleSend(state, moduleId, pending.facetId, Date.now(), {
@@ -3437,30 +3496,40 @@ ${share.text}${share.item?.url ? `
     }
     const caption = formatShareCaption(parsed, facet?.template || module.template);
     let imageSent = false;
-    if (media.images.length) imageSent = await sendAiTipImage(target, media.images, parsed, { caption });
-    if (!imageSent) {
-      try {
-        await sendToQQ(target, caption);
-      } catch (error) {
-        recordModuleFailure(state, moduleId, facet.id, Date.now(), error?.message ?? String(error));
+    if (naturalShareEnabled() && !isKnowledgeTemplate(facet?.template || module.template)) {
+      const res = await sendNaturalShare(target, parsed, { links, images: media.images, imageHosts: media.imageHosts, coverCandidate: chosenCandidate });
+      imageSent = res.imageSent;
+      if (res.failed) {
+        recordModuleFailure(state, moduleId, facet.id, Date.now(), res.error || 'send failed');
         saveShareModulesState(state);
-        return { status: 'send-failed', error: error?.message ?? String(error) };
+        return { status: 'send-failed', error: res.error };
       }
-      if (lastSendSucceeded && lastSendSucceeded(target) === false) {
-        recordModuleFailure(state, moduleId, facet.id, Date.now(), 'send failed');
-        saveShareModulesState(state);
-        return { status: 'send-failed' };
+    } else {
+      if (media.images.length) imageSent = await sendAiTipImage(target, media.images, parsed, { caption });
+      if (!imageSent) {
+        try {
+          await sendToQQ(target, caption);
+        } catch (error) {
+          recordModuleFailure(state, moduleId, facet.id, Date.now(), error?.message ?? String(error));
+          saveShareModulesState(state);
+          return { status: 'send-failed', error: error?.message ?? String(error) };
+        }
+        if (lastSendSucceeded && lastSendSucceeded(target) === false) {
+          recordModuleFailure(state, moduleId, facet.id, Date.now(), 'send failed');
+          saveShareModulesState(state);
+          return { status: 'send-failed' };
+        }
       }
-    }
-    const linksText = formatShareLinksText(links, { imageHosts: imageSent ? media.imageHosts : '', sourceUrl: parsed.sourceUrl });
-    if (linksText && facet.template !== 'fun') await sendToQQ(target, linksText);
-    if (chosenCandidate) {
-      try { markSeen(chosenCandidate); } catch {}
-      try {
-        const cover = await buildVideoCover(chosenCandidate);
-        if (cover) await imageLibrary.sendToKey(target, cover.id, { caption: '' });
-      } catch (error) {
-        log(`[share:${moduleId}] 分享配图发送失败（忽略）：${error?.message ?? error}`);
+      const linksText = formatShareLinksText(links, { imageHosts: imageSent ? media.imageHosts : '', sourceUrl: parsed.sourceUrl });
+      if (linksText && facet.template !== 'fun') await sendToQQ(target, linksText);
+      if (chosenCandidate) {
+        try { markSeen(chosenCandidate); } catch {}
+        try {
+          const cover = await buildVideoCover(chosenCandidate);
+          if (cover) await imageLibrary.sendToKey(target, cover.id, { caption: '' });
+        } catch (error) {
+          log(`[share:${moduleId}] 分享配图发送失败（忽略）：${error?.message ?? error}`);
+        }
       }
     }
     recordGroupSend(state, target, Date.now());
@@ -4088,6 +4157,45 @@ ${formatTipCaption(item)}`;
     return cleaned;
   }
 
+  /**
+   * 按她此刻的真实状态生成一句个性签名（心情/精力/最近在迷/最近学到或发生的小事）。
+   * 复用内心会话 runTurn：buildBasePrompt 已带上【当前状态】【现在】【最近群聊】，
+   * 所以签名跟着真实近况走，而不是轮模板。只产出正文，是否采用由桥接按去重规则决定。
+   * 失败/为空时抛错，由桥接退回干净模板兜底（绝不换字造病句）。
+   */
+  async function generateSignatureText({ maxChars = 40, avoidTexts = [], bannedThemes = [], interests = [], hint = '', roleName = '' } = {}) {
+    const limit = Math.max(8, Math.min(60, Number(maxChars) || 40));
+    const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
+    const recent = (Array.isArray(avoidTexts) ? avoidTexts : [])
+      .map((t) => String(typeof t === 'string' ? t : t?.text ?? '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .slice(-8);
+    const bans = (Array.isArray(bannedThemes) ? bannedThemes : [])
+      .map((t) => String(typeof t === 'string' ? t : t?.theme ?? '').trim())
+      .filter(Boolean)
+      .slice(-12);
+    const topics = (Array.isArray(interests) ? interests : [])
+      .map((i) => String(typeof i === 'string' ? i : i?.topic ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 4);
+    const task = [
+      '写一句你现在的 QQ 个性签名：像随手挂在资料页的一行生活状态，不是说说、不是群消息、不是标题。',
+      '必须基于【当前状态】里你真实的心情/精力/最近在迷的东西/最近学到或发生的小事来写，写出此刻具体的你；不要空泛口号，不要万能模板句，不要总结升华。',
+      topics.length ? `可以自然带到你最近在迷的：${topics.join('、')}（只在真的贴合状态时提，别硬塞）。` : '',
+      `只输出签名正文一行，最多 ${limit} 字；不要引号、不要 emoji、不要解释、不要标题，末尾不要句号。`,
+      customRole
+        ? '保持当前角色的口吻，不要出现鲸鱼/尾巴/米饭/摸鱼/水里游这类不属于这个角色的生活记号。'
+        : '可以带一点小鲸鱼自己的生活记号（尾巴、米饭、摸鱼、水里游），但最多一个，别堆砌。',
+      recent.length ? `这些是最近用过或被否掉的签名，别和它们雷同（换措辞也算雷同）：\n${recent.map((t) => `- ${t}`).join('\n')}` : '',
+      bans.length ? `这些主题最近被封了，别再写：${bans.join('、')}。` : '',
+      hint ? `【重写要求】${hint}` : ''
+    ].filter(Boolean).join('\n\n');
+    const output = await runTurn(buildBasePrompt(task, `${contentVoiceBlock(roleStyle())}\n`), 120000);
+    const cleaned = cleanPost(output, limit);
+    if (!cleaned) throw new Error('签名生成为空或含敏感信息');
+    return cleaned.replace(/[。．.]+$/u, '').trim();
+  }
+
   async function handleOwnerCommand(text, { kind, isOwner } = {}) {
     if (!isOwner || kind !== 'private') return false;
     const command = String(text ?? '').trim();
@@ -4686,6 +4794,7 @@ ${formatTipCaption(item)}`;
     personaBlock,
     personaInfo,
     refineText,
+    generateSignatureText,
     handleOwnerCommand,
     ownerPublishQzone,
     nudgeMood,

@@ -353,13 +353,14 @@ const CARD_LIST = [
     label: '个性签名',
     keywords: '签名 signature 个性签名',
     description: '隔一段时间换一句 QQ 个性签名，让状态跟着心情走。',
-    onEffect: '到点生成新签名；开启审核时会先私聊你确认，回「发签名」才更新。',
+    onEffect: '到点按她此刻的心情/近况生成新签名；开启审核时会先私聊你确认，回「发签名」才更新。',
     offEffect: '不再自动改签名；手动「立即更新」也会被拒绝。',
     dangerousOff: true,
     dependencies: [
       dep('simulation.signature.enabled', '自动签名子开关', { enableValue: true })
     ],
     advanced: [
+      { key: 'simulation.signature.llm', label: '用模型按真实状态生成（关掉退回模板）', type: 'boolean', default: true },
       { key: 'simulation.signature.minIntervalHours', label: '最短间隔（小时）', type: 'number', min: 1, max: 720, default: 12 },
       { key: 'simulation.signature.maxIntervalHours', label: '最长间隔（小时）', type: 'number', min: 1, max: 720, default: 48 },
       { key: 'simulation.signature.maxChars', label: '字数上限', type: 'number', min: 10, max: 80, default: 40 },

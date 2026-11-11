@@ -115,6 +115,9 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
 #signals .row{padding:9px 10px;border:1px solid var(--line);background:#0a1424;border-radius:8px;font-size:11px;line-height:1.5}
 #signals .muted{margin-top:3px}
 /* bonds */
+/* relationship graph：小正方形区域，径向布局随容器缩放 */
+.rel-graph{position:relative;width:min(100%,380px);aspect-ratio:1/1;margin:0 auto;overflow:hidden;border:2px solid var(--line);
+  background:radial-gradient(circle at 50% 45%,#0d1830 0%,#080e1b 72%)}
 .rel-graph svg{display:block;width:100%;height:auto}
 .bonds-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .bonds-tabs button{background:#0a1424;border:1px solid var(--line);color:var(--muted);padding:4px 9px;font:inherit;font-size:10px;cursor:pointer}
@@ -210,6 +213,50 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
 .login-card input:focus{border-color:var(--cyan)}
 .login-card button{margin-top:10px;width:100%;background:var(--cyan);color:#041018;border:0;padding:10px;font-family:inherit;font-weight:700;letter-spacing:.08em;cursor:pointer}
 .login-card .err{color:var(--red);font-size:10px;min-height:14px;margin-top:8px}
+/* 分组标题：把相关板块归拢，视觉语言沿用卡片角标 */
+.group-head{grid-column:span 12;display:flex;align-items:center;gap:10px;margin:12px 0 -2px;font-size:10px;letter-spacing:.22em;color:var(--text);text-transform:uppercase;font-weight:700}
+.group-head::before{content:"";width:8px;height:8px;background:var(--cyan);flex:none;box-shadow:0 0 8px rgba(94,234,212,.4)}
+.group-head::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line2),transparent)}
+.group-head .gh-sub{color:var(--muted);letter-spacing:.14em;font-size:8px;font-weight:400}
+/* 折叠卡：次要信息默认收起，数据仍在 DOM，可手动展开 */
+details.fold{padding:0}
+details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;font-weight:700;user-select:none}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary:hover{color:var(--text)}
+details.fold>summary:focus-visible{outline:1px solid var(--cyan);outline-offset:-2px}
+details.fold>summary .tag{color:var(--cyan);letter-spacing:.08em;font-size:9px;border:1px solid var(--line);padding:2px 5px;background:#0a1424}
+details.fold>summary .fold-hint{margin-left:auto;font-size:9px;letter-spacing:.06em;color:var(--muted);font-weight:400;text-transform:none}
+details.fold>summary::after{content:"▸";color:var(--cyan);font-size:12px;transition:transform .15s steps(3,end)}
+details.fold[open]>summary::after{transform:rotate(90deg)}
+details.fold[open]>summary{border-bottom:1px dashed var(--line)}
+details.fold .fold-body{padding:12px 14px 14px}
+/* 读书摘录：她最新读到的原文/摘要 */
+.reading-excerpt{margin-top:9px;border-left:2px solid var(--cyan);background:#0a1424;padding:7px 10px}
+.reading-excerpt .ex-label{font-size:8px;letter-spacing:.14em;color:var(--cyan);text-transform:uppercase;margin-bottom:4px}
+.reading-excerpt .ex-text{font-size:11px;line-height:1.65;color:var(--text);word-break:break-word}
+.reading-excerpt .src{margin-top:5px;font-size:9px;color:var(--muted)}
+.reading-summary{margin-top:6px}
+.reading-summary>summary,.ow-more>summary{cursor:pointer;font-size:10px;color:var(--muted);list-style:none}
+.reading-summary>summary::-webkit-details-marker,.ow-more>summary::-webkit-details-marker{display:none}
+.reading-summary>summary::before,.ow-more>summary::before{content:"▸ ";color:var(--cyan)}
+.reading-summary[open]>summary::before,.ow-more[open]>summary::before{content:"▾ "}
+.reading-summary>summary:hover,.ow-more>summary:hover{color:var(--text)}
+.reading-summary p{margin:6px 0 0;font-size:10px;line-height:1.65;color:var(--muted);word-break:break-word}
+/* 出门见闻条目 */
+.ow-note{border:1px solid var(--line);background:#0a1424;padding:8px 10px;margin-top:8px}
+.ow-note .oh{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.ow-note .oh b{font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ow-note .quote{margin-top:5px;font-size:10px;line-height:1.6;color:var(--cyan);word-break:break-word}
+.ow-note .summary{margin-top:5px;font-size:10px;line-height:1.6;color:var(--text);word-break:break-word}
+.ow-note .meta{margin-top:5px}
+.ow-more{margin-top:8px}
+.ow-more .ow-note{margin-top:6px}
+/* 主题滚动条 */
+html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--line2);border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
 /* responsive */
 @media (max-width:1100px){.span-7,.span-5,.span-4{grid-column:span 6}.flow{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:760px){.app{padding:12px}.hero{grid-template-columns:1fr;justify-items:start}.conn{align-items:flex-start;text-align:left}.span-7,.span-5,.span-4,.span-6{grid-column:span 12}.flow{grid-template-columns:repeat(2,1fr)}.session .metrics{grid-template-columns:repeat(2,1fr)}.sprite-wrap{width:140px;height:140px}}
@@ -241,18 +288,9 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
 
   <section class="card flow span-12" id="flow"></section>
 
-  <section class="card span-12">
-    <h2>关系图谱 <span class="tag">GRAPH</span></h2>
-    <div class="rel-graph" id="relGraph"></div>
-  </section>
+  <div class="group-head span-12">她的状态 <span class="gh-sub">MOOD · GRAPH · GROWTH · INNER</span></div>
 
-  <section class="card span-12">
-    <h2>羁绊 <span class="tag">BONDS</span></h2>
-    <div id="bondOwner"></div>
-    <div id="bonds"></div>
-  </section>
-
-  <section class="card span-4">
+  <section class="card span-6">
     <h2>心情 / 精力 <span class="tag">MOOD</span></h2>
     <div class="compass" id="compass">
       <i class="axis-x"></i><i class="axis-y"></i>
@@ -268,19 +306,27 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
     <div class="mood-note" id="moodNote">状态稳定，等待下一次反思</div>
   </section>
 
-  <section class="card span-4">
+  <section class="card span-6">
+    <h2>关系图谱 <span class="tag">GRAPH</span></h2>
+    <div class="rel-graph" id="relGraph"></div>
+    <div class="muted small" style="margin-top:6px;text-align:center">以她为中心：羁绊越深节点越大、离得越近，连线越粗。</div>
+  </section>
+
+  <section class="card span-6">
     <h2>兴趣 / 成长 <span class="tag">GROWTH</span></h2>
     <div id="interests"></div>
     <div class="learn" id="learnings"></div>
     <div class="chips" id="quirks"></div>
   </section>
 
-  <section class="card span-4">
+  <section class="card span-6">
     <h2>内心生活 <span class="tag">INNER</span></h2>
     <div class="timeline" id="timeline"></div>
     <div class="counts" id="innerCounts"></div>
     <div class="note" id="innerNote">--</div>
   </section>
+
+  <div class="group-head span-12">出门见闻 <span class="gh-sub">READING · OUTER WORLD</span></div>
 
   <section class="card span-12" id="readingCard" hidden>
     <h2>她在读 <span class="tag" id="readingTag">READING</span></h2>
@@ -288,9 +334,17 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
     <div class="muted small" style="margin-top:8px" id="readingToday">--</div>
   </section>
 
+  <section class="card span-12" id="owNotesCard" hidden>
+    <h2>出门见闻 <span class="tag" id="owNotesTag">OUTER</span></h2>
+    <div id="owNotes"></div>
+  </section>
+
+  <div class="group-head span-12">人物与对话 <span class="gh-sub">BONDS · SESSIONS · EVENTS</span></div>
+
   <section class="card span-12">
-    <h2>动向 <span class="tag">SIGNAL</span></h2>
-    <div id="signals"></div>
+    <h2>羁绊 <span class="tag">BONDS</span></h2>
+    <div id="bondOwner"></div>
+    <div id="bonds"></div>
   </section>
 
   <section class="card span-7">
@@ -303,27 +357,36 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
     <div class="feed" id="feed"></div>
   </section>
 
-  <section class="card span-4">
+  <div class="group-head span-12">运行与资源 <span class="gh-sub">SYSTEM · MEMORY · LIBRARY</span></div>
+
+  <section class="card span-6">
     <h2>服务健康 <span class="tag">HEALTH</span></h2>
     <div id="health"></div>
   </section>
 
-  <section class="card span-4">
+  <section class="card span-6">
     <h2>累计用量 <span class="tag">TOKENS</span></h2>
     <div class="stats" id="usage"></div>
     <div class="muted small" style="margin-top:8px" id="usageNote">--</div>
   </section>
 
-  <section class="card span-6">
-    <h2>长期记忆 <span class="tag">MEMORY</span></h2>
-    <div class="muted small" id="memoryFacts">--</div>
-  </section>
+  <details class="card fold span-12" id="signalsCard">
+    <summary><span>动向</span><span class="tag">SIGNAL</span><span class="fold-hint">分享 / 说说 / 声线 / 赛事等节奏摘要 · 点开查看</span></summary>
+    <div class="fold-body"><div id="signals"></div></div>
+  </details>
 
-  <section class="card span-4">
-    <h2>资源库 <span class="tag">LIBRARY</span></h2>
-    <div class="stats" id="libraries"></div>
-    <div class="muted small" style="margin-top:8px">只读监控 · 数据来自桥接内存与状态文件</div>
-  </section>
+  <details class="card fold span-6" id="memoryCard">
+    <summary><span>长期记忆</span><span class="tag">MEMORY</span><span class="fold-hint">最近事实 · 点开查看</span></summary>
+    <div class="fold-body"><div class="muted small" id="memoryFacts">--</div></div>
+  </details>
+
+  <details class="card fold span-6" id="libraryCard">
+    <summary><span>资源库</span><span class="tag">LIBRARY</span><span class="fold-hint">表情 / 图片 / 黑话 / 语音 · 点开查看</span></summary>
+    <div class="fold-body">
+      <div class="stats" id="libraries"></div>
+      <div class="muted small" style="margin-top:8px">只读监控 · 数据来自桥接内存与状态文件</div>
+    </div>
+  </details>
 
   </div>
 
@@ -453,7 +516,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
     return [...people.values()];
   }
 
-  function renderRelationshipGraph(host, { ownerName = '主人', members = [], height = 300 } = {}) {
+  function renderRelationshipGraph(host, { ownerName = '主人', members = [] } = {}) {
     if (!host) return;
     host.textContent = '';
     const list = (Array.isArray(members) ? members : [])
@@ -466,8 +529,9 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
       return;
     }
     const ns = 'http://www.w3.org/2000/svg';
-    const W = 760;
-    const H = height;
+    // 小正方形容器：viewBox 与容器同比例，径向布局随容器缩放。
+    const W = 380;
+    const H = 380;
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.setAttribute('role', 'img');
@@ -812,6 +876,28 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
           } else {
             card.appendChild(el('div', 'reading-note', item.note || '进度待下次阅读后补齐'));
           }
+
+          // 最新读到的内容：只渲染快照里真实持久化的摘句/摘要，没有就明说，不编造。
+          const ex = item.excerpt && typeof item.excerpt === 'object' ? item.excerpt : null;
+          if (ex && (ex.quote || ex.summary)) {
+            const box = el('div', 'reading-excerpt');
+            box.appendChild(el('div', 'ex-label', ex.quote ? '最新读到 · 原文摘录' : '最新读到 · 消化摘要'));
+            box.appendChild(el('div', 'ex-text', ex.quote ? '「' + ex.quote + '」' : ex.summary));
+            const srcBits = [];
+            if (ex.title && ex.title !== item.title) srcBits.push(ex.title);
+            if (ex.sourceHost) srcBits.push(ex.sourceHost);
+            if (ex.at) srcBits.push(ago(ex.at));
+            if (srcBits.length) box.appendChild(el('div', 'src', srcBits.join(' · ')));
+            card.appendChild(box);
+            if (ex.quote && ex.summary) {
+              const det = el('details', 'reading-summary');
+              det.appendChild(el('summary', null, '她的消化摘要'));
+              det.appendChild(el('p', null, ex.summary));
+              card.appendChild(det);
+            }
+          } else {
+            card.appendChild(el('div', 'muted small', '还没有摘录，下次阅读后生成'));
+          }
           list.appendChild(card);
         }
         const rcItems = Math.max(0, Number(readingTodayData.items) || 0);
@@ -822,6 +908,37 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
         if (!rcBits.length) rcBits.push('今天还没出门');
         else if (rcItems > 0 && rcChars <= 0) rcBits.push('字数待下次阅读后补齐');
         $('readingToday').textContent = rcBits.join(' · ');
+      }
+    }
+
+    const owNotesCard = $('owNotesCard');
+    const owNotesBox = $('owNotes');
+    if (owNotesBox) {
+      clear(owNotesBox);
+      const notes = (Array.isArray(data.outerNotes) ? data.outerNotes : []).filter((n) => n && typeof n === 'object');
+      if (owNotesCard) owNotesCard.hidden = notes.length === 0;
+      const owTag = $('owNotesTag');
+      if (owTag) owTag.textContent = notes.length ? notes.length + ' 条' : 'OUTER';
+      if (notes.length) {
+        const renderNote = (note) => {
+          const box = el('div', 'ow-note');
+          const head = el('div', 'oh');
+          head.appendChild(el('b', null, '《' + (note.title || '未命名') + '》'));
+          head.appendChild(el('span', 'muted small', note.at ? ago(note.at) : ''));
+          box.appendChild(head);
+          if (note.quote) box.appendChild(el('div', 'quote', '「' + note.quote + '」'));
+          else if (note.summary) box.appendChild(el('div', 'summary', note.summary));
+          const metaBits = [note.sourceType === 'video' ? '视频字幕' : '阅读', note.sourceHost || ''].filter(Boolean);
+          box.appendChild(el('div', 'muted small meta', metaBits.join(' · ')));
+          return box;
+        };
+        owNotesBox.appendChild(renderNote(notes[0]));
+        if (notes.length > 1) {
+          const det = el('details', 'ow-more');
+          det.appendChild(el('summary', null, `更早的见闻（${notes.length - 1} 条）`));
+          for (const note of notes.slice(1)) det.appendChild(renderNote(note));
+          owNotesBox.appendChild(det);
+        }
       }
     }
 
