@@ -8,6 +8,11 @@
 She is present the way a friend is: she reads the room, picks her moment, remembers what you told her,
 and actually does things when you ask.</p>
 
+> **Lurks, doesn't hog the chat.** Hundreds of messages a day; she only looks up when called or when the topic is hers, and stays quiet otherwise.<br>
+> **Remembers you, and where she stands with each friend.** Cross-session memory of what you said; a relationship graph draws how close she is to everyone and what stage each bond is at.<br>
+> **Has a life of her own.** Reads novels, collects sights, reflects on a schedule; her mood drifts with real time instead of flipping from happy to heartbroken in one line.<br>
+> **You complain, she files the dev ticket.** Say "this is broken" in a DM and she turns it into a proposal with acceptance criteria, handed to your own coding agent; nothing merges until you approve.
+
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-1.4.1-5B8DEF?style=flat-square">
   <img alt="node" src="https://img.shields.io/badge/Node.js-%E2%89%A5%2022.13-339933?style=flat-square&logo=nodedotjs&logoColor=white">
@@ -25,12 +30,6 @@ and actually does things when you ask.</p>
   <a href="SECURITY.md">Security</a> ·
   <a href="UPSTREAM.md">Upstream</a>
 </p>
-
-> [!NOTE]
-> Current version **v1.4.1**, verified item by item against **DSH 0.2.0-rc.2**. This release makes console saving and refreshing more reliable (drafts and save confirmations are no longer swallowed) and folds dead-switch detection, real-browser UI tests, and the image-compression path into automated verification.
-> (`npm run verify:adaptation`). The first stable release, `v1.0.0`, shipped on 2026-11-03;
-> the `v0.1.x` / `v0.2.x` tags belong to upstream
-> [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) and are unrelated to this project.
 
 **Contents**
 
@@ -87,6 +86,12 @@ drops reconnect, and undelivered messages replay in order. All of it runs on you
 | A sentence in plain language | Deterministic rules first, semantic judgement second |
 | She remembers you | Cross-chat memory, topics and summaries fetched by relevance |
 | She is always there | Process supervision, reconnects, queued replay |
+
+> [!NOTE]
+> Current version **v1.4.1**, verified item by item against **DSH 0.2.0-rc.2**. This release makes console saving and refreshing more reliable (drafts and save confirmations are no longer swallowed) and folds dead-switch detection, real-browser UI tests, and the image-compression path into automated verification.
+> (`npm run verify:adaptation`). The first stable release, `v1.0.0`, shipped on 2026-11-03;
+> the `v0.1.x` / `v0.2.x` tags belong to upstream
+> [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) and are unrelated to this project.
 
 ## Quick deploy (no coding required)
 
@@ -292,6 +297,18 @@ and settles down late at night.
   number, raw scores or owner-private facts;
 - **Sharing has caps**: group shares, Qzone posts and share modules all obey daily counts, intervals
   and night silence.
+
+<p align="center">
+  <img src="assets/screenshots/graph.png" width="860" alt="Relationship graph: deeper bonds draw bigger, closer nodes">
+  <br>
+  <sub>Relationship graph (offline demo data): node size and distance follow the bond; hover for relationship stage and interaction count</sub>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/reading.png" width="860" alt="Currently reading: progress bars for books and video">
+  <br>
+  <sub>"Currently reading" (offline demo data): books advance by chapter or character count, videos are marked watched, and today's findings are summed up</sub>
+</p>
 
 > The social-memory and person-dossier kernel currently ships in the runtime build; the open-source
 > package syncs the console and docs first, with the backend following by release.
