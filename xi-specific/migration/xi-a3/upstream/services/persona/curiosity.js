@@ -326,6 +326,18 @@ function discoveryMatch(item, topic) {
   return null;
 }
 
+function privateDiscoveryMatch(item, topic) {
+  const match = discoveryMatch(item, topic);
+  if (match) return match;
+  // A short interest needs both its own search provenance and a literal title word.
+  if (!/^\p{Script=Han}$/u.test(topic) || !item?.searchTopics?.includes(topic)) return null;
+  const title = typeof item.title === 'string' ? item.title.trim().slice(0, 200) : '';
+  if (!title || /^https?:\/\//i.test(title)) return null;
+  for (const part of discoveryWords.segment(title)) {
+    if (part.isWordLike && part.segment === topic) return {topic, anchors: [topic], fromQuery: true};
+  }
+  return null;
+}
 function tasteScore(item) {
   const text = `${item?.title ?? ''} ${item?.summary ?? ''}`;
   let score = 0;
@@ -383,7 +395,7 @@ export function rankCandidates({ items = [], persona = null, seen = [], max = 12
   const byProvenance = items.map(item => {
     const searchTopics = [...(targeted.get(candidateUrlKey(item)) || [])].slice(0,8);
     const rankedItem = { ...item, searchTopics };
-    return { rankedItem, pertinent: searchTopics.some(topic=>discoveryMatch(rankedItem,topic)) };
+    return { rankedItem, pertinent: searchTopics.some(topic=>privateDiscoveryMatch(rankedItem,topic)) };
   }).sort((a,b)=>Number(b.pertinent)-Number(a.pertinent));
   for (const {rankedItem:item} of byProvenance) {
     const urlKey = candidateUrlKey(item);
@@ -415,7 +427,7 @@ export function rankCandidates({ items = [], persona = null, seen = [], max = 12
 
   accepted.sort((a, b) => b.score - a.score);
   const top = accepted.slice(0, Math.max(1, max));
-  const targetedItem = accepted.find(row=>row.searchTopics.some(topic=>discoveryMatch(row,topic)));
+  const targetedItem = accepted.find(row=>row.searchTopics.some(topic=>privateDiscoveryMatch(row,topic)));
   if (targetedItem && !top.includes(targetedItem)) top[top.length-1]=targetedItem;
   return top;
 }

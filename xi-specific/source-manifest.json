@@ -1096,8 +1096,8 @@
     },
     {
       "path": "migration/xi-a3/upstream/services/persona/curiosity.js",
-      "bytes": 17520,
-      "sha256": "b4a8f756bb8a0c3321cb3823e5650100dbb3cf8616c1275e0631d591bd0b4f6b"
+      "bytes": 18152,
+      "sha256": "302fbc60eb7ddad5b226d873882a65b14cd1085bc9cdf1e44f3b5120d17bd433"
     },
     {
       "path": "migration/xi-a3/upstream/services/persona/inner-life.js",
