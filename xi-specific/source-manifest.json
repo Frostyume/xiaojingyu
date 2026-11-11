@@ -180,6 +180,36 @@
       "sha256": "3498fbdb35f786dd1b836ba89dadd7ea7fa14c621197994b4c800c26427e93f1"
     },
     {
+      "path": "companion/public-reading-bookmark.mjs",
+      "bytes": 3636,
+      "sha256": "60aa19d5c8147872202d262c6666721265996429c822319b1ea4031731e870d7"
+    },
+    {
+      "path": "companion/python-unittest/README.md",
+      "bytes": 2530,
+      "sha256": "710c6570cfa1079025dc526c6726d9361788adcf5cd4558b5bed57648809cadf"
+    },
+    {
+      "path": "companion/python-unittest/container.mjs",
+      "bytes": 2216,
+      "sha256": "2a2172a312df165ac3d7506406de7c3a8a8422b5e03dfbd31fc21d93ba38ab38"
+    },
+    {
+      "path": "companion/python-unittest/index.mjs",
+      "bytes": 6434,
+      "sha256": "640ad744fd6690a62ad0d79eec5b636281ceb3e940326a3c28a5ebfed162332f"
+    },
+    {
+      "path": "companion/python-unittest/pack-runtime.py",
+      "bytes": 1855,
+      "sha256": "eb68ce3391f19680af03da0f34ec45ccc8eb4ae00684adf7c67c2839ef73e3f1"
+    },
+    {
+      "path": "companion/python-unittest/verify.mjs",
+      "bytes": 1329,
+      "sha256": "86b45c309979f92757e84b87c956cb3629510f70328e380d9fb7cec6ebe9cec7"
+    },
+    {
       "path": "companion/qq-bubbles.mjs",
       "bytes": 4514,
       "sha256": "32bcb373218a0df0329114cc32516513af5d04c01811c138990137fce7d74afc"
@@ -235,6 +265,11 @@
       "sha256": "509b77564598cd2a82438625e71081a948104e133ea5dee5e2440f7e7a040456"
     },
     {
+      "path": "companion/test-qzone-public.mjs",
+      "bytes": 5285,
+      "sha256": "c949fc09f2616fae72cec30887e70b1e85a976249005c75ecb10c335feae5193"
+    },
+    {
       "path": "companion/tieba-claw.mjs",
       "bytes": 21362,
       "sha256": "b302636218f359d55a4c93d85e8d10f46c3d4ad1741e793f1c37a4932d1e52fe"
@@ -283,6 +318,11 @@
       "path": "companion/workshop.mjs",
       "bytes": 15495,
       "sha256": "7a834ac77c1a554425527dd5dbcfb6f998e29a67cc371f61e125d8c344cdcef1"
+    },
+    {
+      "path": "docs/QZONE_READBACK_20261103.md",
+      "bytes": 1613,
+      "sha256": "a962279d8afb45d393744bca417e4e6b66b3fe908c98944e417b45ba73c01183"
     },
     {
       "path": "install-dependencies.ps1",
@@ -498,6 +538,11 @@
       "path": "migration/xi-a3/deployment/stop-owned.ps1",
       "bytes": 1234,
       "sha256": "8d92983b897a1b5606de2f43c027685a68c1d32912746fc3fee2e24b9e4fa275"
+    },
+    {
+      "path": "migration/xi-a3/desktop-chat/public-reading.mjs",
+      "bytes": 7132,
+      "sha256": "8f0e2d4e343dac66c9d4be0e59f73c90490b31510bd9249df7d819ba03bca529"
     },
     {
       "path": "migration/xi-a3/dsh/bridge-client.mjs",
@@ -1203,6 +1248,31 @@
       "path": "migration/xi-a3/web-runtime/bilibili-frames.mjs",
       "bytes": 7801,
       "sha256": "0e204895cfeee021c2e17692e0deb19cfc2e68b62264d2df6724798c543ba8ec"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/browser/package-lock.json",
+      "bytes": 660,
+      "sha256": "59323140d157b8c6b28577379edcb2f7f5f0c5bb183ef380d02c146ff4971f2c"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/browser/package.json",
+      "bytes": 138,
+      "sha256": "77610437b24053e4e43caebad1c836be9de64d5dad520136afb43bee59120029"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/browser/tieba-account.mjs",
+      "bytes": 35833,
+      "sha256": "2ca73cdcf5d1d4e676a7f894f361511c190810f2af659d5cd31e9737a373f5db"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/browser/tieba-browser.mjs",
+      "bytes": 43792,
+      "sha256": "6b6939f987545f05db13946b33c7e03a43ba7e63c5e252608ca23e938b2896fd"
+    },
+    {
+      "path": "migration/xi-a3/web-runtime/browser/tieba-reply.mjs",
+      "bytes": 28022,
+      "sha256": "9152400312af079dc9dbc00792f10adc13afb2fbf351f7dc4124a68b3f174879"
     },
     {
       "path": "migration/xi-a3/web-runtime/catalog.mjs",
