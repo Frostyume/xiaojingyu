@@ -36,8 +36,8 @@
     },
     {
       "path": "companion/bilibili-public.mjs",
-      "bytes": 11080,
-      "sha256": "1b0dbde081c8f0cae190d441a7744a4b02846c83c913429966f18d1e28e3a040"
+      "bytes": 11461,
+      "sha256": "7c74ec2e15c449e86e88f751e7dedaee1f0bcf558cee9132199dce9ce44273e7"
     },
     {
       "path": "companion/bilibili-speech.mjs",
