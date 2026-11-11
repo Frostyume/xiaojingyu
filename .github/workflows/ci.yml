@@ -41,6 +41,10 @@ jobs:
         run: npm run test:compress
       - name: Config schema is up to date
         run: node tools/gen-config-schema.mjs --check
+      - name: Dead-switch reach gate
+        run: npm run check:reach
+      - name: Reach gate self-test
+        run: npm run test:reach
       - name: Core reliability tests
         run: npm run test:core
       - name: Stage 2 tests

@@ -1,0 +1,109 @@
+{
+  "说明": "已知「写进配置但运行期故意不读」的键。命中后归入「已知未实现」，不算硬问题。每项必须有 reason；业务代码真的接上之后要把对应条目删掉，否则 --check 会按「allowlist 已过期」判红。",
+  "entries": [
+    {
+      "key": "simulation.speech.asr.provider",
+      "reason": "默认值只出现在 app/whale.js:1358 的归一化对象里；唯一消费方 createSnowLumaAsr 只读 asr.enabled / asr.timeoutMs / asr.cacheTtlMs（app/whale.js:2054-2059），runtime/persona/speech.js 没有 provider 分支（文件头自注「将来接 faster-whisper / 云 ASR 时只加一个 provider」）。"
+    },
+    {
+      "key": "simulation.innerLife.mood.noise.enabled",
+      "reason": "config.example.json:475 声明；services/persona/inner-life.js:171 只把 raw.mood 整体 merge 进默认值，运行期源码（app/runtime/services/channels/features/mcp/console）对 noise 零命中，没有任何消费方。"
+    },
+    {
+      "key": "simulation.innerLife.mood.noise.sigma",
+      "reason": "config.example.json:476 声明；与同段 noise.enabled 一样只在 services/persona/inner-life.js:171 被整体 merge，运行期源码对 sigma 零命中。"
+    },
+    {
+      "key": "simulation.innerLife.mood.mode",
+      "reason": "config.example.json:445 声明 mode=v2，但运行期心情一律走 v3（services/persona/persona-state.js 的 applyReflectionV3 / MOOD_V3_DEFAULTS），模式由 derivePersonaMode 按状态推导（runtime/persona/persona-mode.js:56-66），全仓无人读 mood.mode。"
+    },
+    {
+      "key": "simulation.innerLife.mood.maxEventsPerReflection",
+      "reason": "services/persona/persona-state.js:581 截断事件用的是常量 MOOD_V3_DEFAULTS.maxEventsPerReflection（:58），不是同函数 :565 归一化出来的 moodCfg；用户值被 merge 进来后无人读。"
+    },
+    {
+      "key": "simulation.innerLife.mood.maxReflectionDelta",
+      "reason": "services/persona/persona-state.js:586 夹取增量用的是常量 MOOD_V3_DEFAULTS.maxReflectionDelta（:57），同样绕过 :565 的 moodCfg；用户值零消费。"
+    },
+    {
+      "key": "simulation.context.contextWindow",
+      "reason": "app/whale.js:1121 写默认值、:9740 保存时归一化；buildWakeSnapshot 只读 wakeMaxChars / wakeMessageLimit / wakeRecentLimit（app/whale.js:17158-17160）。运行期真正被读的 contextWindow 是另一个键 cfg.social.contextWindow（app/whale.js:15766/15780）。"
+    },
+    {
+      "key": "simulation.outerWorld.browse.enabled",
+      "reason": "默认值只出现在 app/whale.js:1284 与 runtime/kernel/config-schema.js:470 的对象字面量里；唯一消费方 outerWorldFetchText 只读 browse.policy / browse.allowlist / browse.blockedDomains（app/whale.js:3505-3509），本版没有浏览器步骤机，enabled 无人读。"
+    },
+    {
+      "key": "simulation.outerWorld.browse.maxSteps",
+      "reason": "默认值只出现在 app/whale.js:1284 与 runtime/kernel/config-schema.js:470；outerWorldFetchText 只读 policy/allowlist/blockedDomains（app/whale.js:3505-3509），maxSteps 全仓零消费，与同段 browse.enabled 同族。"
+    },
+    {
+      "key": "simulation.outerWorld.browse.snapshotChars",
+      "reason": "默认值只出现在 app/whale.js:1284 与 runtime/kernel/config-schema.js:470；outerWorldFetchText 只读 policy/allowlist/blockedDomains（app/whale.js:3505-3509），正文长度由 OUTER_WORLD_FETCH_CHARS 常量决定，snapshotChars 零消费。"
+    },
+    {
+      "key": "simulation.outerWorld.browse.readOnly",
+      "reason": "默认值只出现在 app/whale.js:1284 与 runtime/kernel/config-schema.js:470；outerWorldFetchText 只读 policy/allowlist/blockedDomains（app/whale.js:3505-3509），该路径下的 readOnly 零消费。"
+    },
+    {
+      "key": "simulation.outerWorld.digest.enabled",
+      "reason": "app/whale.js:1285 与 runtime/kernel/config-schema.js:471 只写默认值；出门见闻生成后是否私聊只读 digest.pushToOwner（app/whale.js:3648），digest.enabled 无人读。"
+    },
+    {
+      "key": "simulation.outerWorld.digest.mentionPolicy",
+      "reason": "app/whale.js:1285 与 runtime/kernel/config-schema.js:471 只写默认值；digest 段唯一被读的字段是 pushToOwner（app/whale.js:3648），mentionPolicy 零消费。"
+    },
+    {
+      "key": "simulation.outerWorld.schedule.window.idleOnly",
+      "reason": "app/whale.js:1289 与 runtime/kernel/config-schema.js:475 只写默认值；排程窗口判定只读 window.start / window.end（app/whale.js:3748-3750），idleOnly 零消费。"
+    },
+    {
+      "key": "simulation.shareModules.limits.moduleMaxPerDay",
+      "reason": "runtime/share/share-modules.js:272 把它 merge 进 limits 后无人读：share-state.js:124-147 只读 perGroupPerDay/perGroupPerHour/crossModuleGapMs/globalMaxPerDay/windows，模块级上限取各模块自己的 limits.maxPerDay（share-modules.js:439-440）；:235 用的是常量 SHARE_LIMITS_DEFAULTS.moduleMaxPerDay，不是用户配置值。卡片字段声明在 runtime/control/feature-control.js:154。"
+    },
+    {
+      "key": "social.surrenderProbability",
+      "reason": "app/whale.js:995 自注「已弃用：桥接不再直接生成退让短句（避免割裂），保留字段兼容旧配置」；:9496 只在保存时 clamp 到 0~1，运行期零读取。"
+    },
+    {
+      "key": "tts.refAudio",
+      "reason": "GPT-SoVITS 时代参数，中文声源已切到 BreezeTTS2（mcp/qq-actions.js:1892-1895 自注日语声源下线）。声明只在 config.example.json:637 与 runtime/kernel/config-schema.js:114；qq_speak 只读 t.maxChars（:1887）/t.maxSeconds（:1801）/t.keepFiles（:1824）/t.breeze.*（:1714 起），合成请求只发 text/instruction/cfg_scale/seed/bitrate（:1758-1763）。runtime/persona/tts-emotion.js:49 的 refAudio 是 emotionRefs 查表结果，与本键无关。"
+    },
+    {
+      "key": "tts.promptText",
+      "reason": "声明只在 config.example.json:638 与 runtime/kernel/config-schema.js:115；Breeze 合成请求只发 text/instruction/cfg_scale/seed/bitrate（mcp/qq-actions.js:1758-1763），参考音频文本不再转发，全仓零消费。"
+    },
+    {
+      "key": "tts.promptLang",
+      "reason": "声明只在 config.example.json:639 与 runtime/kernel/config-schema.js:116；同 tts.promptText，Breeze 请求体（mcp/qq-actions.js:1758-1763）不含该字段，零消费。"
+    },
+    {
+      "key": "tts.textLang",
+      "reason": "声明只在 config.example.json:633 与 runtime/kernel/config-schema.js:117；中文声源固定 Breeze，合成语言不再可配，运行期零读取。"
+    },
+    {
+      "key": "tts.topK",
+      "reason": "声明只在 config.example.json:640（无 FIELD_META 条目）；Breeze 请求体只发 text/instruction/cfg_scale/seed/bitrate（mcp/qq-actions.js:1758-1763）。app/whale.js:17564 读的 topK 属于 simulation.memory，与本键无关。"
+    },
+    {
+      "key": "tts.topP",
+      "reason": "声明只在 config.example.json:641（无 FIELD_META 条目）；GPT-SoVITS 采样参数，Breeze 请求体（mcp/qq-actions.js:1758-1763）不含该字段，全仓零消费。"
+    },
+    {
+      "key": "tts.temperature",
+      "reason": "声明只在 config.example.json:642（无 FIELD_META 条目）；同上，Breeze 请求体不含该字段。services/media/vision.js:38 与 services/social/weather.js 里的 temperature 是无关字段。"
+    },
+    {
+      "key": "tts.textSplitMethod",
+      "reason": "声明只在 config.example.json:643（无 FIELD_META 条目）；GPT-SoVITS 切句参数，中文声源下线后无人读，Breeze 请求体（mcp/qq-actions.js:1758-1763）不含该字段。"
+    },
+    {
+      "key": "tts.speedFactor",
+      "reason": "声明只在 config.example.json:645 与 runtime/kernel/config-schema.js:120；语速现在由 breeze 的 instruction/delivery 文案表达，Breeze 请求体（mcp/qq-actions.js:1758-1763）不含 speed_factor，零消费。"
+    },
+    {
+      "key": "tts.timeoutMs",
+      "reason": "声明只在 config.example.json:647 与 runtime/kernel/config-schema.js:122；合成超时实际读的是 tts.breeze.timeoutMs / tts.breeze.opusTimeoutMs（mcp/qq-actions.js:1766-1767、runtime/orchestration/feature-voice.js:73），顶层 timeoutMs 零消费。"
+    }
+  ]
+}
