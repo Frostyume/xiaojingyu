@@ -66,7 +66,7 @@ import {
   chunkText, digestBudget, digestChunks, isSegmentedSource, isSourceFinished, limitDigestChunks,
   migrateLegacySegmentedProgress, pickBodyText, pickNextSource, readCharOffset, segmentDedupeKey
 } from '../services/social/outer-world/pipeline.js';
-import { buildReadingSnapshot, readingToday } from '../services/social/outer-world/reading-progress.js';
+import { buildReadingSnapshot, readingToday, attachReadingExcerpts, outerNotesSnapshot } from '../services/social/outer-world/reading-progress.js';
 import { normalizeNovelSource, readChapter } from '../services/social/outer-world/sources/novel.js';
 import { evaluateUrl, redactUrlForAudit } from '../services/social/outer-world/policy.js';
 import { createRateLimiter } from '../services/social/outer-world/ratelimit.js';
@@ -4527,10 +4527,14 @@ async function main() {
     }
     sessions.sort((a, b) => (b.lastIncomingAt || 0) - (a.lastIncomingAt || 0));
     // 她在读：书/字幕进度；旧进度缺 totalChars 时只给 null percent，不回写。
+    // 摘录只读自已落盘的见闻笔记（quote 在消化层已逐字校验），没有笔记就不挂。
     let featureReading = [];
     let featureReadingToday = readingToday({});
+    let featureOuterNotes = [];
     try {
-      featureReading = outerWorldReading();
+      const recentNotes = outerWorldStore.notes.list({ limit: 40 });
+      featureReading = attachReadingExcerpts(outerWorldReading(), recentNotes);
+      featureOuterNotes = outerNotesSnapshot(recentNotes);
       featureReadingToday = readingToday(outerWorldStore.quota.get(shanghaiDayKey()));
     } catch {}
     const unreadTotal = sessions.reduce((n, s) => n + s.unread, 0);
@@ -4601,6 +4605,7 @@ async function main() {
       sessions,
       reading: featureReading,
       readingToday: featureReadingToday,
+      outerNotes: featureOuterNotes,
       relationships: buildRelationshipSnapshot(),
       content: buildContentSnapshot(),
       flow: {

@@ -57,6 +57,62 @@ export function buildReadingSnapshot({ sources = [], progress = {}, now = Date.n
   return items;
 }
 
+// 见闻笔记 → 实时页只读摘要。quote 在消化层已逐字校验出自原文，这里只做截断，不改写。
+export function outerNotesSnapshot(notes, { limit = 6 } = {}) {
+  const cap = Math.max(1, Math.min(20, toInt(limit, 6) || 6));
+  const rows = [];
+  for (const note of Array.isArray(notes) ? notes : []) {
+    if (!note || typeof note !== 'object') continue;
+    const title = String(note.title || '').trim().slice(0, 80);
+    const summary = String(note.summary || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    const quote = String(note.quote || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    if (!title && !summary && !quote) continue;
+    rows.push({
+      id: String(note.id || '').slice(0, 12),
+      title,
+      sourceId: String(note.sourceId || ''),
+      sourceType: note.sourceType === 'video' ? 'video' : 'book',
+      chapterIndex: toInt(note.chapterIndex),
+      summary,
+      quote,
+      sourceHost: String(note.sourceHost || '').slice(0, 60),
+      at: toInt(note.at)
+    });
+    if (rows.length >= cap) break;
+  }
+  return rows;
+}
+
+// 给「她在读」条目挂上她最新读到的那段：取该来源最近一条笔记的原文摘句/摘要。
+// 没有笔记就不挂 excerpt，前端显示「还没有摘录」，绝不编造内容。
+export function attachReadingExcerpts(items, notes) {
+  const latest = new Map();
+  for (const note of Array.isArray(notes) ? notes : []) {
+    const sourceId = String(note?.sourceId || '');
+    if (!sourceId) continue;
+    const prev = latest.get(sourceId);
+    if (!prev || toInt(note.at) >= toInt(prev.at)) latest.set(sourceId, note);
+  }
+  return (Array.isArray(items) ? items : []).map((item) => {
+    const note = latest.get(String(item?.id || ''));
+    if (!note) return item;
+    const quote = String(note.quote || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    const summary = String(note.summary || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (!quote && !summary) return item;
+    return {
+      ...item,
+      excerpt: {
+        quote,
+        summary,
+        title: String(note.title || '').trim().slice(0, 80),
+        chapterIndex: toInt(note.chapterIndex),
+        sourceHost: String(note.sourceHost || '').slice(0, 60),
+        at: toInt(note.at)
+      }
+    };
+  });
+}
+
 export function readingToday(quota = {}) {
   const q = quota && typeof quota === 'object' && !Array.isArray(quota) ? quota : {};
   const items = toInt(q.items);
