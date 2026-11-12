@@ -3009,6 +3009,12 @@
         }
       }
     },
+    "consoleLanAccess": {
+      "title": "允许局域网访问控制台",
+      "type": "boolean",
+      "default": false,
+      "description": "默认关闭：只监听本机回环。开启后监听所有网卡并强制令牌鉴权（即使关闭了控制台鉴权），需重启桥接生效；仅建议在可信局域网使用"
+    },
     "consolePort": {
       "title": "控制台端口",
       "type": "number",
@@ -6243,6 +6249,14 @@
     {
       "key": "consoleAuth.enabled",
       "label": "控制台要求访问令牌",
+      "group": "基础",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "consoleLanAccess",
+      "label": "允许局域网访问控制台",
       "group": "基础",
       "type": "boolean",
       "restart": "bridge",

@@ -67,6 +67,7 @@ const FIELD_META = {
   consolePort: { label: '控制台端口', group: '基础', restart: 'bridge', min: 1, max: 65535 },
   consoleToken: { label: '控制台令牌', group: '基础', restart: 'bridge', secret: true },
   'consoleAuth.enabled': { label: '控制台要求访问令牌', group: '基础', restart: 'bridge', description: '默认关闭：仅本机回环 + Host/CSRF 防护；开启后浏览器需输入令牌' },
+  consoleLanAccess: { label: '允许局域网访问控制台', group: '基础', restart: 'bridge', description: '默认关闭：只监听本机回环。开启后监听所有网卡并强制令牌鉴权（即使关闭了控制台鉴权），需重启桥接生效；仅建议在可信局域网使用' },
   'role.maxInjectChars': { label: '人格注入上限（字符）', group: '人格注入', restart: 'none', min: 1000, max: 20000 },
 
   'security.interceptNotify': { label: '敏感回复拦截时通知管理员', group: '安全', restart: 'none' },

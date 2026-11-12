@@ -30,7 +30,8 @@ export const FEATURE_BOARDS = Object.freeze([
   { id: 'social', label: '聊天与社交', description: '说说、评论回复、签名和语音：她对外说话的方式。' },
   { id: 'outerWorld', label: '出门见闻', description: '自主阅读与见闻：按排程读小说或取视频字幕，整理成见闻卡片，并记住读到哪。' },
   { id: 'ops', label: '群运营', description: '面向整个群的固定推送，比如每日群日报。' },
-  { id: 'owner', label: '主人能力', description: '你在主人私聊里创建的功能中心任务。' }
+  { id: 'owner', label: '主人能力', description: '你在主人私聊里创建的功能中心任务。' },
+  { id: 'console', label: '控制台访问', description: '控制台与实时状态页的访问范围：默认只允许本机回环；局域网开启后强制令牌鉴权，需重启桥接生效。' }
 ]);
 
 function dep(key, label, { enableValue, soft = false, fallback = true } = {}) {
@@ -424,6 +425,22 @@ const CARD_LIST = [
       dep('simulation.ownerFeatures.enabled', '功能中心子开关', { enableValue: true, fallback: false })
     ],
     resetKeys: []
+  },
+
+  // ── 控制台访问板块 ──────────────────────────────────────────────────────
+  {
+    id: 'consoleLanAccess',
+    board: 'console',
+    configKey: 'consoleLanAccess',
+    enabledValue: true,
+    disabledValue: false,
+    label: '局域网访问',
+    keywords: '局域网 LAN 手机 移动端 访问 控制台 live 实时页 WiFi',
+    description: '让同一 WiFi 下的手机访问控制台与实时状态页。开启后监听所有网卡，并强制要求控制台令牌（即使关闭了控制台鉴权）。',
+    onEffect: '重启桥接后，同一局域网的设备可用 http://<本机IP>:端口/live 访问；数据接口一律要令牌，外部域名仍被拒绝。',
+    offEffect: '只监听本机回环，局域网设备无法访问；本机使用不受影响。',
+    dangerousOff: false,
+    dependencies: []
   }
 ];
 

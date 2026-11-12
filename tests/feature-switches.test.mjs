@@ -208,10 +208,12 @@ assert.notEqual(sharePreview.status, 'disabled', '分享模块 dryRun 预览不�
 
 // 9. 控制台信息架构：群聊剧场总闸 + 15 个 features 模块各一张卡
 const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatNightQuiet'];
-assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS].sort());
-assert.equal(FEATURE_CARDS.length, 21);
+// 控制台访问板块：局域网开关默认关，显式 true 才开（与配置键卡片同一套防假开关口径）。
+const CONSOLE_CARDS = ['consoleLanAccess'];
+assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS].sort());
+assert.equal(FEATURE_CARDS.length, 22);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
-assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner']);
+assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner', 'console']);
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'chat').master, 'groupChat');
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'shareEngine').master, 'shareModule');
 for (const board of FEATURE_BOARDS) {
@@ -234,6 +236,25 @@ for (const card of FEATURE_CARDS) {
   }
 }
 assert.equal(cardFor('not-a-module'), null);
+
+// 9c. 局域网访问：默认关、显式开关键、不连带任何总闸；关掉只是收回监听范围，不毁数据。
+{
+  const card = cardFor('consoleLanAccess');
+  assert.ok(card, '局域网访问必须有卡片');
+  assert.equal(card.board, 'console');
+  assert.equal(FEATURE_BOARDS.find((board) => board.id === 'console').master, undefined, '控制台访问板块不设总闸');
+  assert.equal(cardSwitchKey(card), 'consoleLanAccess');
+  assert.equal(card.enabledValue, true, '必须显式声明开启值，否则缺省会被判成开');
+  assert.equal(card.disabledValue, false, '必须显式声明关闭值');
+  assert.equal(cardEnabled('consoleLanAccess', {}), false, '配置里没写 consoleLanAccess 时必须显示为关');
+  assert.equal(cardEnabled('consoleLanAccess', { consoleLanAccess: false }), false);
+  assert.equal(cardEnabled('consoleLanAccess', { consoleLanAccess: true }), true);
+  assert.equal(cardSwitchValue('consoleLanAccess', true), true);
+  assert.equal(cardSwitchValue('consoleLanAccess', false), false);
+  assert.equal(card.dangerousOff, false, '关掉局域网只是收回监听范围，不该要求确认');
+  assert.deepEqual(card.dependencies, [], '局域网开关独立于各功能总闸');
+  assert.deepEqual(featureEnablePatch(card), {}, '打开局域网不能连带打开任何总闸');
+}
 
 // 群聊剧场卡片复用 simulation.*：默认开、只有显式 false 才是关，升级后不会把已有行为关掉。
 assert.equal(cardSwitchKey('groupChat'), 'simulation.enabled');

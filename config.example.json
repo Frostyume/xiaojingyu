@@ -42,6 +42,7 @@
   "consoleAuth": {
     "enabled": false
   },
+  "consoleLanAccess": false,
   "configVersion": 2,
   "storage": {
     "enabled": true,

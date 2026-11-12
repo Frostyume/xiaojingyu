@@ -89,21 +89,34 @@ try {
     handleOwnerCommand: async () => false
   });
 
-  // ── 1. 端点快照：6 板块 / 20 卡片 / 群聊剧场与分享引擎总闸 ─────────────
+  // ── 1. 端点快照：7 板块 / 22 卡片 / 群聊剧场与分享引擎总闸 ─────────────
   const snap = await call('/api/features/control');
   assert.equal(snap.status, 200, 'GET /api/features/control 应成功');
   assert.equal(snap.json.ok, true);
-  assert.deepEqual(snap.json.boards.map((b) => b.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner']);
+  assert.deepEqual(snap.json.boards.map((b) => b.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner', 'console']);
   assert.equal(snap.json.boards.find((b) => b.id === 'chat').master, 'groupChat');
   assert.equal(snap.json.boards.find((b) => b.id === 'shareEngine').master, 'shareModule');
   assert.deepEqual(snap.json.modules.map((m) => m.id).sort(), FEATURE_CARDS.map((c) => c.id).sort());
-  assert.equal(snap.json.modules.length, 21);
+  assert.equal(snap.json.modules.length, 22);
   for (const module of snap.json.modules) {
     assert.equal(typeof module.enabled, 'boolean', `${module.id} 必须只有一个布尔主开关`);
     assert.ok(module.board, `${module.id} 必须归属板块`);
     assert.equal(module.dependencies.every((d) => d.ok === true), true, `${module.id} 依赖应就绪`);
   }
   assert.equal(snap.json.modules.find((m) => m.id === 'qzone').enabled, true);
+  const lanModule = snap.json.modules.find((m) => m.id === 'consoleLanAccess');
+  assert.ok(lanModule, '局域网访问卡片必须出现在功能快照里');
+  assert.equal(lanModule.enabled, false, '局域网访问默认关');
+  assert.ok(lanModule.statusLine.length > 0, '局域网卡片必须有状态行');
+  // 开关切换只写自己的键，且必须标注「需重启桥接」——监听地址在启动时捕获，热更新到不了。
+  const lanOn = await call('/api/features/control', { method: 'POST', body: { id: 'consoleLanAccess', enabled: true } });
+  assert.equal(lanOn.json.ok, true, `局域网访问应能在控制台打开：${lanOn.json.error || ''}`);
+  assert.deepEqual(lanOn.json.applied, ['consoleLanAccess'], '只该写自己那一个键');
+  assert.deepEqual(lanOn.json.requiresRestart, [{ key: 'consoleLanAccess', scope: 'bridge' }], '必须标注需重启桥接，否则控制台会谎称立即生效');
+  assert.equal(h.cfg.consoleLanAccess, true, '打开后运行期 cfg 必须更新');
+  const lanOff = await call('/api/features/control', { method: 'POST', body: { id: 'consoleLanAccess', enabled: false } });
+  assert.equal(lanOff.json.ok, true, '局域网访问应能关回');
+  assert.equal(h.cfg.consoleLanAccess, false, '关闭必须写回 false');
   assert.equal(snap.json.modules.find((m) => m.id === 'groupChat').enabled, true, '群聊剧场默认开');
   const chatModules = snap.json.boards.find((b) => b.id === 'chat').modules.map((m) => m.id);
   assert.deepEqual(chatModules, ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatNightQuiet']);
@@ -112,7 +125,7 @@ try {
     assert.equal(module.board, 'shareEngine', `${id} 应归入分享引擎板块`);
     assert.ok(module.dependencies.some((d) => d.key === 'features.shareModule' && d.ok), `${id} 应声明分享引擎总闸依赖`);
   }
-  console.log('OK 快照：6 板块 / 20 模块 / 群聊剧场与分享引擎总闸');
+  console.log('OK 快照：7 板块 / 22 模块 / 群聊剧场与分享引擎总闸');
 
   // ── 2. 关闭空间说说：配置落盘 + HTTP 入口拒绝 ──────────────────────────
   const offQzone = await call('/api/features/control', { method: 'POST', body: { id: 'qzone', enabled: false } });

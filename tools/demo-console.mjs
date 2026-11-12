@@ -493,6 +493,8 @@ export function makeFixtureState() {
       dailyReport: false,
       esportsFeed: false,
       ownerFeature: true,
+      // 控制台访问默认关，和真实缺省一致。
+      consoleLanAccess: false,
     },
     featureAdvanced: {},
   };
