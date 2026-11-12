@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>小鲸鱼 · 实时状态</title>
 <style>
 :root{
@@ -58,6 +58,10 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opa
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 .conn{display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-size:10px;color:var(--muted);letter-spacing:.06em;text-align:right}
 .conn .now{color:var(--text);font-size:12px}
+#connState{font-weight:700}
+#connState.live{color:var(--green)}
+#connState.reconnecting{color:var(--amber)}
+#connState.offline{color:var(--red)}
 /* flow */
 .flow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:12px 14px}
 .stat{border-left:2px solid var(--line2);padding-left:10px;min-width:0}
@@ -230,6 +234,13 @@ details.fold>summary::after{content:"▸";color:var(--cyan);font-size:12px;trans
 details.fold[open]>summary::after{transform:rotate(90deg)}
 details.fold[open]>summary{border-bottom:1px dashed var(--line)}
 details.fold .fold-body{padding:12px 14px 14px}
+/* 桌面端自动展开的折叠卡：外观与原 section 卡片一致（不显示折叠箭头/分隔线） */
+.mobile-hint{display:none}
+@media (min-width:761px){
+  details.fold[data-desktop-open]>summary{cursor:default}
+  details.fold[data-desktop-open]>summary::after{display:none}
+  details.fold[data-desktop-open][open]>summary{border-bottom:0}
+}
 /* 读书摘录：她最新读到的原文/摘要 */
 .reading-excerpt{margin-top:9px;border-left:2px solid var(--cyan);background:#0a1424;padding:7px 10px}
 .reading-excerpt .ex-label{font-size:8px;letter-spacing:.14em;color:var(--cyan);text-transform:uppercase;margin-bottom:4px}
@@ -257,12 +268,119 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--line2);border:2px solid var(--bg)}
 ::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
-/* responsive */
-@media (max-width:1100px){.span-7,.span-5,.span-4{grid-column:span 6}.flow{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:760px){.app{padding:12px}.hero{grid-template-columns:1fr;justify-items:start}.conn{align-items:flex-start;text-align:left}.span-7,.span-5,.span-4,.span-6{grid-column:span 12}.flow{grid-template-columns:repeat(2,1fr)}.session .metrics{grid-template-columns:repeat(2,1fr)}.sprite-wrap{width:140px;height:140px}}
-@media (prefers-reduced-motion:reduce){.sprite,.bubble,.live-dot{animation:none}.mood-dot{transition:none}}
+/* 长期记忆 */
 .memory-row{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--line);font-size:11px}
 .memory-row .tag{flex:none}
+/* responsive：手机端单列流、可读字号（正文≥14px / 次要≥12px）、触控目标≥44px、刘海安全区 */
+@media (max-width:1100px){.span-7,.span-5,.span-4{grid-column:span 6}.flow{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:760px){
+  html,body{font-size:14px}
+  .app{padding:14px;padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right));padding-bottom:max(14px,env(safe-area-inset-bottom))}
+  .grid{gap:14px;margin-top:14px}
+  .span-7,.span-5,.span-4,.span-6{grid-column:span 12}
+  .card{padding:14px}
+  .card h2{font-size:12px;margin:0 0 12px}
+  .card h2 .tag{font-size:12px;padding:3px 7px}
+  .small{font-size:12px}
+  /* hero：连接状态置顶一行，像素形象与身份随后 */
+  .hero{display:flex;flex-direction:column;align-items:stretch;gap:14px;padding:16px}
+  .conn{order:-1;flex-direction:row;align-items:center;justify-content:space-between;text-align:left;font-size:12px;gap:10px}
+  .conn .now{font-size:14px}
+  .sprite-wrap{width:140px;height:140px}
+  .identity h1{font-size:22px}
+  .identity h1 .jp{font-size:12px}
+  .speech{font-size:14px;padding:9px 12px;max-width:none}
+  .pill{font-size:12px;padding:5px 9px}
+  .group-head{font-size:12px;margin:16px 0 0}
+  .group-head .gh-sub{font-size:12px}
+  /* 折叠卡：summary 是触控目标，提示文案只在手机显示 */
+  .mobile-hint{display:inline}
+  details.fold>summary{min-height:44px;padding:12px 14px;font-size:13px}
+  details.fold>summary .tag{font-size:12px;padding:3px 7px}
+  details.fold>summary .fold-hint{font-size:12px}
+  details.fold .fold-body{padding:12px 14px 14px}
+  /* 流量统计 */
+  .flow{grid-template-columns:repeat(2,1fr);gap:12px;padding:14px}
+  .stat .k{font-size:12px}
+  .stat .v{font-size:22px}
+  .stat .v small{font-size:12px}
+  /* 心情 */
+  .compass .lab{font-size:12px}
+  .mood-label{font-size:16px}
+  .mood-note{font-size:12px}
+  .mood-curve{height:40px}
+  .energy .seg{height:14px}
+  /* 兴趣 / 成长 / 内心 */
+  .interest .name{width:88px;font-size:14px}
+  .interest .w{font-size:12px}
+  .learn .row{font-size:14px}
+  .chip{font-size:12px;padding:4px 8px}
+  .tl{padding:10px 12px}
+  .tl .l b{font-size:14px}
+  .tl .l span{font-size:12px}
+  .tl .r{font-size:16px}
+  .count b{font-size:20px}
+  .count span{font-size:12px}
+  .note{font-size:12px}
+  #signals{grid-template-columns:1fr}
+  #signals .row{font-size:14px}
+  /* 羁绊 */
+  .bonds-tabs button{min-height:44px;padding:8px 14px;font-size:13px}
+  .bond-spot{font-size:14px}
+  .bond-owner{font-size:14px}
+  .bond-owner .ox{font-size:12px}
+  .bond-grid{grid-template-columns:1fr}
+  .bond-name{font-size:15px}
+  .bond-stage{font-size:12px;padding:3px 7px}
+  .bond-meta{font-size:12px}
+  .bond-axis{grid-template-columns:34px 1fr 30px;font-size:12px}
+  .bond-delta{font-size:12px}
+  .bond-tone{font-size:12px}
+  /* 会话 */
+  .session .tname{font-size:15px}
+  .session .tkey{font-size:12px}
+  .badge{font-size:12px;padding:4px 8px}
+  .unread{min-width:34px;height:34px;font-size:14px}
+  .session .metrics{grid-template-columns:repeat(2,1fr)}
+  .session .m span{font-size:12px}
+  .session .m b{font-size:13px}
+  /* 最近活动 */
+  .feed{max-height:420px}
+  .ev{grid-template-columns:52px 64px 1fr;font-size:14px;padding:7px 0}
+  .ev .tag{font-size:12px;padding:2px 4px}
+  .empty{font-size:12px}
+  /* 健康 / 用量 / 资源 */
+  .hrow{font-size:14px}
+  .hrow .hr{font-size:12px}
+  .st span{font-size:12px}
+  .st b{font-size:20px}
+  .st b small{font-size:12px}
+  /* 她在读 / 见闻 */
+  .reading-list{grid-template-columns:1fr}
+  .reading-title{font-size:15px}
+  .reading-kind{font-size:12px}
+  .reading-meta{font-size:12px}
+  .reading-pct{font-size:12px}
+  .reading-note{font-size:12px}
+  .reading-excerpt .ex-label{font-size:12px}
+  .reading-excerpt .ex-text{font-size:14px}
+  .reading-excerpt .src{font-size:12px}
+  .reading-summary>summary,.ow-more>summary{display:flex;align-items:center;min-height:44px;font-size:14px}
+  .reading-summary p{font-size:12px}
+  .ow-note .oh b{font-size:14px}
+  .ow-note .quote{font-size:14px}
+  .ow-note .summary{font-size:14px}
+  /* 长期记忆 */
+  .memory-row{font-size:14px}
+  /* 登录：输入≥16px 防 iOS 聚焦缩放，按钮触控友好，安全区留白 */
+  .login{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .login-card{padding:20px}
+  .login-card p{font-size:12px}
+  .login-card input{font-size:16px;padding:12px;min-height:48px}
+  .login-card button{font-size:16px;padding:14px;min-height:48px}
+  .login-card .err{font-size:12px;min-height:16px}
+}
+@media (prefers-reduced-motion:reduce){.sprite,.bubble,.live-dot{animation:none}.mood-dot{transition:none}}
 </style>
 </head>
 <body>
@@ -306,25 +424,31 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
     <div class="mood-note" id="moodNote">状态稳定，等待下一次反思</div>
   </section>
 
-  <section class="card span-6">
-    <h2>关系图谱 <span class="tag">GRAPH</span></h2>
+  <details class="card fold span-6" id="graphCard" data-desktop-open>
+    <summary><span>关系图谱</span><span class="tag">GRAPH</span><span class="fold-hint mobile-hint">点开查看</span></summary>
+    <div class="fold-body">
     <div class="rel-graph" id="relGraph"></div>
     <div class="muted small" style="margin-top:6px;text-align:center">以她为中心：羁绊越深节点越大、离得越近，连线越粗。</div>
-  </section>
+    </div>
+  </details>
 
-  <section class="card span-6">
-    <h2>兴趣 / 成长 <span class="tag">GROWTH</span></h2>
+  <details class="card fold span-6" id="growthCard" data-desktop-open>
+    <summary><span>兴趣 / 成长</span><span class="tag">GROWTH</span><span class="fold-hint mobile-hint">点开查看</span></summary>
+    <div class="fold-body">
     <div id="interests"></div>
     <div class="learn" id="learnings"></div>
     <div class="chips" id="quirks"></div>
-  </section>
+    </div>
+  </details>
 
-  <section class="card span-6">
-    <h2>内心生活 <span class="tag">INNER</span></h2>
+  <details class="card fold span-6" id="innerCard" data-desktop-open>
+    <summary><span>内心生活</span><span class="tag">INNER</span><span class="fold-hint mobile-hint">点开查看</span></summary>
+    <div class="fold-body">
     <div class="timeline" id="timeline"></div>
     <div class="counts" id="innerCounts"></div>
     <div class="note" id="innerNote">--</div>
-  </section>
+    </div>
+  </details>
 
   <div class="group-head span-12">出门见闻 <span class="gh-sub">READING · OUTER WORLD</span></div>
 
@@ -334,23 +458,29 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
     <div class="muted small" style="margin-top:8px" id="readingToday">--</div>
   </section>
 
-  <section class="card span-12" id="owNotesCard" hidden>
-    <h2>出门见闻 <span class="tag" id="owNotesTag">OUTER</span></h2>
+  <details class="card fold span-12" id="owNotesCard" data-desktop-open hidden>
+    <summary><span>出门见闻</span><span class="tag" id="owNotesTag">OUTER</span><span class="fold-hint mobile-hint">点开查看</span></summary>
+    <div class="fold-body">
     <div id="owNotes"></div>
-  </section>
+    </div>
+  </details>
 
   <div class="group-head span-12">人物与对话 <span class="gh-sub">BONDS · SESSIONS · EVENTS</span></div>
 
-  <section class="card span-12">
-    <h2>羁绊 <span class="tag">BONDS</span></h2>
+  <details class="card fold span-12" id="bondsCard" data-desktop-open>
+    <summary><span>羁绊</span><span class="tag">BONDS</span><span class="fold-hint mobile-hint">点开查看</span></summary>
+    <div class="fold-body">
     <div id="bondOwner"></div>
     <div id="bonds"></div>
-  </section>
+    </div>
+  </details>
 
-  <section class="card span-7">
-    <h2>会话 <span class="tag" id="sessionTag">--</span></h2>
+  <details class="card fold span-7" id="sessionsCard" data-desktop-open>
+    <summary><span>会话</span><span class="tag" id="sessionTag">--</span><span class="fold-hint mobile-hint">点开查看</span></summary>
+    <div class="fold-body">
     <div id="sessions"></div>
-  </section>
+    </div>
+  </details>
 
   <section class="card span-5">
     <h2>最近活动 <span class="tag">EVENTS</span></h2>
@@ -359,16 +489,20 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
 
   <div class="group-head span-12">运行与资源 <span class="gh-sub">SYSTEM · MEMORY · LIBRARY</span></div>
 
-  <section class="card span-6">
-    <h2>服务健康 <span class="tag">HEALTH</span></h2>
+  <details class="card fold span-6" id="healthCard" data-desktop-open>
+    <summary><span>服务健康</span><span class="tag">HEALTH</span><span class="fold-hint mobile-hint">点开查看</span></summary>
+    <div class="fold-body">
     <div id="health"></div>
-  </section>
+    </div>
+  </details>
 
-  <section class="card span-6">
-    <h2>累计用量 <span class="tag">TOKENS</span></h2>
+  <details class="card fold span-6" id="usageCard" data-desktop-open>
+    <summary><span>累计用量</span><span class="tag">TOKENS</span><span class="fold-hint mobile-hint">点开查看</span></summary>
+    <div class="fold-body">
     <div class="stats" id="usage"></div>
     <div class="muted small" style="margin-top:8px" id="usageNote">--</div>
-  </section>
+    </div>
+  </details>
 
   <details class="card fold span-12" id="signalsCard">
     <summary><span>动向</span><span class="tag">SIGNAL</span><span class="fold-hint">分享 / 说说 / 声线 / 赛事等节奏摘要 · 点开查看</span></summary>
@@ -390,7 +524,7 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
 
   </div>
 
-  <div class="muted small" style="text-align:center;padding:18px 0 6px">小鲸鱼 · 实时状态 · 127.0.0.1 · 每 1 秒刷新</div>
+  <div class="muted small" id="footNote" style="text-align:center;padding:18px 0 6px">小鲸鱼 · 实时状态 · 每 1 秒刷新</div>
 </main>
 
 <div class="login hidden" id="login">
@@ -419,6 +553,30 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
   let lastSseAt = 0;
   let lastSnapshot = null;
   let fallbackTimer = null;
+
+  // 连接状态：文本 + 颜色（LIVE 绿 / 重连中 琥珀 / 离线 红），手机桌面共用。
+  function setConn(text, cls) {
+    const n = $('connState');
+    n.textContent = text;
+    n.className = cls || '';
+  }
+
+  // 次要面板的折叠模式：桌面自动展开（外观与原卡片一致），手机默认收起、点开保留。
+  // 数据始终在 DOM 里（details 收起 ≠ 删除），SSE 渲染不中断。
+  const mobileMq = window.matchMedia('(max-width:760px)');
+  const autoFolds = Array.from(document.querySelectorAll('details.fold[data-desktop-open]'));
+  function syncFoldMode() {
+    for (const d of autoFolds) d.open = !mobileMq.matches || d.dataset.userOpen === '1';
+  }
+  for (const d of autoFolds) {
+    const s = d.querySelector('summary');
+    if (s) s.addEventListener('click', () => {
+      if (!mobileMq.matches) return;
+      setTimeout(() => { d.dataset.userOpen = d.open ? '1' : '0'; }, 0);
+    });
+  }
+  if (typeof mobileMq.addEventListener === 'function') mobileMq.addEventListener('change', syncFoldMode);
+  syncFoldMode();
 
   const SPRITES = {
     excited: '/live-assets/whale-pixel-excited.png',
@@ -678,7 +836,8 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
   function render(data) {
     lastSnapshot = data;
     $('lastUpdate').textContent = fmtTime(data.ts);
-    $('connState').textContent = '● LIVE';
+    setConn('● LIVE', 'live');
+    $('footNote').textContent = '小鲸鱼 · 实时状态 · ' + (data.console?.lanAccess ? '局域网' : '127.0.0.1') + ' · 每 1 秒刷新';
     $('selfLine').textContent = (data.self?.name || '小鲸鱼') + (data.self?.userId ? ' · QQ ' + data.self.userId : '') + ' · ' + (data.mode || '--') + (data.paused ? ' · 已暂停' : '');
     const p = data.persona || {};
     const mood = p.mood || {};
@@ -759,6 +918,7 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
     heroPills.appendChild(pill('SNOWLUMA', data.health?.snowluma?.connected === true, data.health?.snowluma?.connected ? '在线' : '离线'));
     heroPills.appendChild(pill('TTS', data.health?.tts?.ok === true, data.health?.tts?.ok ? '在线' : '离线'));
     heroPills.appendChild(pill('BRIDGE', data.health?.bridge?.ok === true, data.health?.bridge?.ok ? '运行中' : '离线'));
+    if (data.console?.lanAccess) heroPills.appendChild(pill('LAN', true, '局域网可访问'));
 
     const flow = $('flow'); clear(flow);
     const f = data.flow || {};
@@ -1132,7 +1292,7 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
       if (data && data.ok) render(data);
       return true;
     } catch (e) {
-      $('connState').textContent = '离线';
+      setConn('离线', 'offline');
       return false;
     }
   }
@@ -1142,14 +1302,14 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
     try {
       const suffix = token ? ('?token=' + encodeURIComponent(token)) : '';
       es = new EventSource('/api/live/stream' + suffix);
-      es.onopen = () => { lastSseAt = Date.now(); $('connState').textContent = '● LIVE'; };
+      es.onopen = () => { lastSseAt = Date.now(); setConn('● LIVE', 'live'); };
       es.onmessage = (ev) => {
         lastSseAt = Date.now();
         try { const data = JSON.parse(ev.data); if (data) render(data); } catch {}
       };
-      es.onerror = () => { $('connState').textContent = '重连中…'; };
+      es.onerror = () => { setConn('重连中…', 'reconnecting'); };
     } catch {
-      $('connState').textContent = '离线';
+      setConn('离线', 'offline');
     }
   }
 
@@ -1162,7 +1322,7 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
     showApp();
     const ok = await fetchSnapshot();
     if (!ok) return;
-    if (STATIC_MODE) { $('connState').textContent = 'SNAPSHOT'; return; }
+    if (STATIC_MODE) { setConn('SNAPSHOT', ''); return; }
     connect();
     if (fallbackTimer) clearInterval(fallbackTimer);
     fallbackTimer = setInterval(() => {

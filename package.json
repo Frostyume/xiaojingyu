@@ -52,6 +52,7 @@
     "voice-cli": "cd ../voice-tool && node voice-cli.mjs",
     "test-console": "node tests/console.test.mjs",
     "test:console-ui": "node tests/console-ui.test.mjs",
+    "verify:live-mobile": "node tools/verify-live-mobile.mjs",
     "test:compress": "node tests/compress-gif.test.mjs",
     "check:reach": "node tools/check-config-reach.mjs --check",
     "test:reach": "node tools/test-config-reach.mjs",
