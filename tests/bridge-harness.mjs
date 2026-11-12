@@ -60,6 +60,7 @@ import * as controlTiers from '../runtime/control/control-tiers.js';
 import * as ownerConfig from '../runtime/control/owner-config.js';
 import * as featureSwitches from '../runtime/control/feature-switches.js';
 import * as featureControl from '../runtime/control/feature-control.js';
+import * as coreBlacklist from '../runtime/control/blacklist.js';
 import * as coreTimeAwareness from '../runtime/kernel/time-awareness.js';
 import * as esportsSchedule from '../services/social/esports-schedule.js';
 import * as esportsFeed from '../services/social/esports-feed.js';
@@ -190,6 +191,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     buildWakePrompt, buildWakeSnapshot, sendWakePrompt, simulation,
     renderWakePrompt, commitWakePrompt, invalidateRoleCards, currentRoleName, isCustomRoleName,
     relationshipStore, relationshipsEnabledForKey, buildRelationshipSnapshot, buildLiveSnapshot,
+    blacklistStore, blacklistCfg, handleBlacklistOwnerCommand,
     refreshMode, modeAllowed, trackTurnEvent, replayPendingWakeReasons,
     collectors, setupSleepTimer,
     scheduleProactiveCheck, cancelProactiveCheck, cancelAllProactiveChecks,
@@ -276,7 +278,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     relationshipStageLabel: coreRelationshipModel.stageLabel,
     relationshipAxisWords: coreRelationshipModel.axisWords,
     relationshipBond: coreRelationshipModel.computeBond,
-    ...coreTtsEmotion, ...coreSpeech, ...coreFeatureLoader, ...coreEventBus, ...coreTransport, ...coreBudget, ...coreSignature, ...controlTiers, ...ownerConfig, ...featureSwitches, ...featureControl, ...coreTimeAwareness,
+    ...coreTtsEmotion, ...coreSpeech, ...coreFeatureLoader, ...coreEventBus, ...coreTransport, ...coreBudget, ...coreSignature, ...controlTiers, ...ownerConfig, ...featureSwitches, ...featureControl, ...coreBlacklist, ...coreTimeAwareness,
     ...esportsSchedule,
     ...esportsFeed,
     ...broadcastLimits,

@@ -98,6 +98,7 @@ import { listOwnerCapabilities } from '../runtime/control/owner-capabilities.js'
 import { normalizeOwnerFeature, validateOwnerFeature, nextOwnerFeatureRuns, renderOwnerFeaturePreview } from '../runtime/control/owner-features.js';
 import { synthesizeFeatureVoice } from '../runtime/orchestration/feature-voice.js';
 import { listOwnerConfig, readOwnerConfig, validateOwnerConfig, ownerConfigPatch } from '../runtime/control/owner-config.js';
+import { createBlacklist, parseBlacklistCommand, BLACKLIST_DEFAULTS, shouldCountBlacklistStrike, looksLikeBlacklistTalk, resolveBlacklistTarget } from '../runtime/control/blacklist.js';
 import { FEATURE_MODULES, normalizeFeatureConfig, featureEnabled, featureSnapshot, featureForShareModule, shareEngineEnabled, shareModuleIdForFeature, SHARE_MODULE_FEATURES } from '../runtime/control/feature-switches.js';
 import { FEATURE_BOARDS, FEATURE_CARDS, cardFor, cardDefaultKeys, cardEnabled, cardSwitchKey, cardSwitchValue, evaluateDependencies, featureEnablePatch, advancedFieldsFor, configValueFor, valueAtPath } from '../runtime/control/feature-control.js';
 import { listProposals, proposalSummary, readResult, writeResult, mergeProposal, rejectProposal, notificationFor } from '../runtime/orchestration/dev-proposals.js';
@@ -264,6 +265,7 @@ const SUBSCRIPTIONS_FILE = path.join(STATE_DIR, 'subscriptions.json');
 const ESPORTS_SCHEDULE_FILE = path.join(STATE_DIR, 'esports-schedule.json');
 const ESPORTS_BROADCAST_AUDIT_FILE = path.join(STATE_DIR, 'esports-broadcast-audit.jsonl');
 const SIGNATURE_FILE = path.join(STATE_DIR, 'signature.json');
+const BLACKLIST_FILE = path.join(STATE_DIR, 'blacklist.json');
 const VOICE_STYLE_FILE = path.join(STATE_DIR, 'voice-style.json');
 const ACTIVITY_LOG = path.join(STATE_DIR, 'qq-activity.log');
 const BRIDGE_LOG = path.join(STATE_DIR, 'bridge.log');
@@ -1445,6 +1447,30 @@ function loadConfig() {
     )
   };
 
+  // 拉黑阈值物化：默认值与 runtime/control/blacklist.js 的 BLACKLIST_DEFAULTS 逐字相等，
+  // 与 blacklistCfg() 的消费 fallback 同源。simulation 是浅合并，config.json 一旦自带
+  // safety 段，字面默认就被挤掉，键会既进不了 /api/config/schema，也被 apply 判未知项。
+  {
+    const nested = (value) => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const blacklist = nested(cfg.simulation?.safety?.blacklist);
+    cfg.simulation.safety = {
+      ...nested(cfg.simulation?.safety),
+      blacklist: {
+        enabled: BLACKLIST_DEFAULTS.enabled,
+        announce: BLACKLIST_DEFAULTS.announce,
+        ...blacklist,
+        auto: {
+          ...BLACKLIST_DEFAULTS.auto,
+          ...nested(blacklist.auto)
+        },
+        naturalLanguage: {
+          ...BLACKLIST_DEFAULTS.naturalLanguage,
+          ...nested(blacklist.naturalLanguage)
+        }
+      }
+    };
+  }
+
   // simulation.initialPromptMaxChars：会话「初始提示词」的字数上限。config.json 是用户可编辑的，
   // 手工写进字符串/负数/超大值时要收敛到安全区间，否则要么保存接口永远报"过长"，要么等于没上限。
   {
@@ -2186,6 +2212,9 @@ async function main() {
   let reminderStoreWritable = true;
   let subscriptionState = {};
   const gameCooldowns = new Map();
+
+  // ── 拉黑名单 ─────────────────────────────────────────────────────────────
+  const blacklistStore = createBlacklist({ file: BLACKLIST_FILE, log: (...args) => log(...args) });
 
   // ── 自动个性签名 ──────────────────────────────────────────────────────────
   let signatureState = normalizeSignatureState(readJsonSafe(SIGNATURE_FILE, {}));
@@ -4474,6 +4503,12 @@ async function main() {
         const active = isNightQuietNow();
         return { line: `${active ? '当前在静默时段' : '当前不在静默时段'} · ${quiet.start}-${quiet.end}`, tone: active ? 'ok' : 'muted' };
       }
+      if (id === 'blacklist') {
+        const count = blacklistStore.count();
+        return count
+          ? { line: `已拉黑 ${count} 人；完整名单只在主人私聊发`, tone: 'ok' }
+          : { line: '黑名单是空的；说「别理某某」或「拉黑 QQ号」即可拉黑', tone: 'muted' };
+      }
       if (id === 'consoleLanAccess') {
         return cfg.consoleLanAccess === true
           ? { line: '配置已开启：重启桥接后局域网可访问，数据接口强制令牌', tone: 'warn' }
@@ -4637,6 +4672,13 @@ async function main() {
       readingToday: featureReadingToday,
       outerNotes: featureOuterNotes,
       relationships: buildRelationshipSnapshot(),
+      safety: {
+        blacklist: {
+          enabled: blacklistCfg().enabled,
+          count: blacklistStore.count(),
+          entries: blacklistStore.list().slice(0, 20)
+        }
+      },
       content: buildContentSnapshot(),
       flow: {
         unreadTotal,
@@ -9568,6 +9610,30 @@ async function main() {
           cfg.security = { ...(cfg.security ?? {}), ...next };
           log(`控制台：安全拦截通知已更新（interceptNotify=${cfg.security.interceptNotify}）`);
           sendJson({ ok: true, security: cfg.security });
+          return;
+        }
+        // ── 拉黑名单（查看/手动拉黑/解封；完整名单只在本机控制台与主人私聊） ──
+        if (req.method === 'GET' && url.pathname === '/api/blacklist') {
+          sendJson({ ok: true, enabled: blacklistCfg().enabled, count: blacklistStore.count(), entries: blacklistStore.list() });
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/blacklist') {
+          const body = await readBody();
+          const action = String(body.action ?? '').trim();
+          if (action === 'add') {
+            const qq = String(body.qq ?? '').trim();
+            if (String(qq) === String(cfg.ownerQQ ?? '')) { sendJson({ ok: false, error: '不能拉黑主人自己' }, 400); return; }
+            const r = blacklistStore.add({ qq, name: body.name, reason: body.reason, origin: 'owner' });
+            if (!r.ok) { sendJson({ ok: false, error: 'QQ 号格式不对' }, 400); return; }
+            sendJson({ ok: true, entry: r.entry, count: blacklistStore.count() });
+            return;
+          }
+          if (action === 'remove') {
+            const r = blacklistStore.remove(body.qq);
+            sendJson(r.ok ? { ok: true, count: blacklistStore.count() } : { ok: false, error: '不在黑名单里' }, r.ok ? 200 : 404);
+            return;
+          }
+          sendJson({ ok: false, error: 'action 必须是 add / remove' }, 400);
           return;
         }
         // ── 控制台访问令牌（可手动修改/生成随机） ─────────────────────────────
@@ -16953,6 +17019,31 @@ async function main() {
         });
         st.lastIncomingUserId = String(userId);
         st.lastIncomingSenderName = String(sender || '').slice(0, 40);
+        // 自行拉黑：窗口内多次辱骂/攻击，或好感跌到门槛以下且仍有攻击。
+        // 只对「确实在跟她说话」的消息计数：群里骂别人/泛吐槽不应攒成拉黑。
+        // 开源结构适配：仿真模式用 relationContext.directed（@/引用/叫名字）+ 私聊天然指向她。
+        const blacklistAddressedTo = key.startsWith('private:') || relationContext?.directed === true ? 'self' : 'other';
+        if (result?.event && userId != null && shouldCountBlacklistStrike({ addressedTo: blacklistAddressedTo, isOwner })) {
+          try {
+            const bl = blacklistCfg();
+            if (bl.enabled && bl.auto.enabled && !blacklistStore.isBlocked(userId)) {
+              const strike = blacklistStore.noteStrike({
+                qq: userId,
+                type: result.event.type,
+                affection: result.row?.affection,
+                threshold: bl.auto
+              });
+              if (strike.block) {
+                blacklistStore.add({ qq: userId, name: sender, reason: strike.reason, origin: 'auto' });
+                try { recordLiveEvent('blacklist', `${sender} 被她自行拉黑：${strike.reason}`); } catch {}
+                log(`[blacklist] 自行拉黑 ${sender}（${userId}）：${strike.reason}`);
+                try { Promise.resolve(sendToQQ(key, bl.announce)).catch(() => {}); } catch {}
+              }
+            }
+          } catch (error) {
+            log(`[blacklist] 自动判定失败（忽略）：${error?.message ?? error}`);
+          }
+        }
         if (result?.stageChanged) {
           const label = relationshipStageLabel(result.row.stage);
           log(`[relation] ${sender} 的关系阶段变为「${label}」`);
@@ -18663,6 +18754,181 @@ async function main() {
   }
 
   // QQ 消息 → DSH prompt
+  function blacklistCfg() {
+    const raw = cfg.simulation?.safety?.blacklist;
+    const value = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const auto = value.auto && typeof value.auto === 'object' && !Array.isArray(value.auto) ? value.auto : {};
+    const nl = value.naturalLanguage && typeof value.naturalLanguage === 'object' && !Array.isArray(value.naturalLanguage) ? value.naturalLanguage : {};
+    return {
+      enabled: value.enabled !== false,
+      auto: {
+        enabled: auto.enabled !== false,
+        windowMs: Math.max(60 * 1000, Number(auto.windowMs) || BLACKLIST_DEFAULTS.auto.windowMs),
+        insultCount: Math.max(1, Math.floor(Number(auto.insultCount) || BLACKLIST_DEFAULTS.auto.insultCount)),
+        affectionFloor: Number.isFinite(Number(auto.affectionFloor)) ? Number(auto.affectionFloor) : BLACKLIST_DEFAULTS.auto.affectionFloor
+      },
+      announce: String(value.announce || BLACKLIST_DEFAULTS.announce).slice(0, 60),
+      naturalLanguage: { enabled: nl.enabled !== false }
+    };
+  }
+
+  // 她自己的叫法：角色名 + 当前昵称 + 历史别名；用于「永不拉黑她自己」的名字护栏。
+  function blacklistSelfNames() {
+    const role = (() => { try { return currentRoleName(); } catch { return ''; } })();
+    return [...new Set([
+      selfDisplayName,
+      selfNickname,
+      ...selfAliases,
+      ...(role ? [role] : [])
+    ].map((name) => String(name ?? '').trim()).filter(Boolean))];
+  }
+
+  // 主人拉黑指令。自然语言模式（naturalLanguage.enabled，默认开）：群/私聊都认，
+  // 意图由内心会话 LLM 理解，名字/@→QQ 由桥接解析，歧义/找不到一律反问不猜拉；
+  // 完整名单永远只私聊发。关闭开关则逐字回旧版「私聊+固定关键词+QQ号」。
+  function blacklistSpeakers(key) {
+    let recent = [];
+    try { recent = getSimulationState(key)?.recentMessages ?? []; } catch { return []; }
+    const byQq = new Map();
+    for (const msg of Array.isArray(recent) ? recent.slice(-80) : []) {
+      const qq = String(msg?.userId ?? '').trim();
+      if (!/^\d{5,12}$/.test(qq) || msg?.isSelf) continue;
+      byQq.set(qq, { qq, name: String(msg?.sender ?? '').trim() });
+    }
+    return [...byQq.values()].reverse().slice(0, 15);
+  }
+
+  function blacklistAtTargets(event, speakers) {
+    const segments = Array.isArray(event?.message) ? event.message : [];
+    const out = [];
+    const seen = new Set();
+    for (const seg of segments) {
+      if (seg?.type !== 'at') continue;
+      const qq = String(seg?.data?.qq ?? '').trim();
+      if (!/^\d{5,12}$/.test(qq) || seen.has(qq)) continue;
+      seen.add(qq);
+      const known = speakers.find((item) => item.qq === qq);
+      out.push({ qq, name: known?.name || String(seg?.data?.name ?? '').trim() });
+    }
+    return out;
+  }
+
+  async function execBlacklistOwnerAction({ action, qq, name = '', reason = '' }, { reply, kind, selfQQ = '' }) {
+    const id = String(qq ?? '').trim();
+    const label = name ? `${name}（${id}）` : id;
+    if (action === 'block') {
+      if (id === String(cfg.ownerQQ ?? '')) { await reply('不能拉黑主人自己。'); return true; }
+      if (selfQQ && id === selfQQ) { await reply('不能拉黑我自己呀。'); return true; }
+      if (blacklistStore.isBlocked(id)) { await reply(`${label} 已经在黑名单里了。`); return true; }
+      const r = blacklistStore.add({ qq: id, name, reason: reason || '主人要求不再理这个人', origin: 'owner' });
+      if (!r.ok) { await reply('QQ 号格式不对，应该是 5–12 位数字。'); return true; }
+      try { recordLiveEvent('blacklist', `${label} 被主人拉黑`); } catch {}
+      const tail = kind === 'private' ? `说「解封 ${id}」可以解除。` : '';
+      await reply(`已拉黑 ${label}，之后不再理他。${reason ? `原因：${reason}。` : ''}${tail}`);
+      return true;
+    }
+    const r = blacklistStore.remove(id);
+    await reply(r.ok ? `已解封 ${label}，可以正常回复了。` : `${label} 不在黑名单里。`);
+    return true;
+  }
+
+  async function handleBlacklistOwnerCommand(text, { kind, isOwner, key = '', event = null } = {}) {
+    if (!isOwner) return false;
+    const bl = blacklistCfg();
+    const ownerKey = `private:${cfg.ownerQQ}`;
+    const legacy = parseBlacklistCommand(text);
+    if (!bl.naturalLanguage.enabled) {
+      // 回滚路径：旧版只认主人私聊 + 固定关键词 + QQ 号，逐字保留。
+      if (kind !== 'private') return false;
+      if (!legacy) return false;
+      const cmd = legacy;
+      const reply = (msg) => sendToQQ(ownerKey, msg);
+      if (cmd.action === 'list') {
+        const rows = blacklistStore.list();
+        if (!rows.length) { await reply('黑名单是空的。'); return true; }
+        const lines = rows.map((row) => `${row.qq}${row.name ? `（${row.name}）` : ''} · ${row.origin === 'auto' ? '她自行拉黑' : '你下令'} · ${row.reason || '没有原因'}`);
+        await reply([`黑名单 ${rows.length} 人：`, ...lines].join(String.fromCharCode(10)));
+        return true;
+      }
+      if (!cmd.qq) { await reply('要带 QQ 号，例如：拉黑 123456 一直骂人 / 解封 123456'); return true; }
+      if (cmd.action === 'block') {
+        if (String(cmd.qq) === String(cfg.ownerQQ ?? '')) { await reply('不能拉黑主人自己。'); return true; }
+        if (blacklistStore.isBlocked(cmd.qq)) { await reply(`${cmd.qq} 已经在黑名单里了；说「解封 ${cmd.qq}」可以解除。`); return true; }
+        const r = blacklistStore.add({ qq: cmd.qq, reason: cmd.reason || '主人要求不再理这个人', origin: 'owner' });
+        if (!r.ok) { await reply('QQ 号格式不对，应该是 5–12 位数字。'); return true; }
+        try { recordLiveEvent('blacklist', `${cmd.qq} 被主人拉黑`); } catch {}
+        await reply(`已拉黑 ${cmd.qq}${cmd.reason ? `（${cmd.reason}）` : ''}。之后不再回复他，也不会记他的消息；说「解封 ${cmd.qq}」解除。`);
+        return true;
+      }
+      const r = blacklistStore.remove(cmd.qq);
+      await reply(r.ok ? `已解封 ${cmd.qq}，可以正常回复了。` : `${cmd.qq} 不在黑名单里。`);
+      return true;
+    }
+    const reply = (msg) => sendToQQ(key || ownerKey, msg);
+    const selfQQ = String(event?.self_id ?? '');
+    const sendList = async () => {
+      const rows = blacklistStore.list();
+      const body = rows.length
+        ? [`黑名单 ${rows.length} 人：`, ...rows.map((row) => `${row.qq}${row.name ? `（${row.name}）` : ''} · ${row.origin === 'auto' ? '她自行拉黑' : '你下令'} · ${row.reason || '没有原因'}`)].join(String.fromCharCode(10))
+        : '黑名单是空的。';
+      await sendToQQ(ownerKey, body);
+      if (kind !== 'private') await reply('黑名单我私聊发你了。');
+      return true;
+    };
+    if (legacy?.action === 'list') return sendList();
+    // 显式「拉黑/解封 + QQ号」保持确定性：不花 LLM，行为与旧版一致（只是群里也认）。
+    if (legacy && legacy.qq && (legacy.action === 'block' || legacy.action === 'unblock')) {
+      return execBlacklistOwnerAction({ action: legacy.action, qq: legacy.qq, reason: legacy.reason || '' }, { reply, kind, selfQQ });
+    }
+    const speakers = blacklistSpeakers(key);
+    const ats = blacklistAtTargets(event, speakers);
+    if (!looksLikeBlacklistTalk(text, { hasAt: ats.length > 0 })) return false;
+    if (!innerLife?.extractBlacklistIntent) return false;
+    let intent = null;
+    try {
+      intent = await innerLife.extractBlacklistIntent({ text: String(text ?? ''), kind, speakers, ats });
+    } catch (error) {
+      log(`[blacklist] 意图识别失败（不动作）：${error?.message ?? error}`);
+      return false;
+    }
+    if (!intent || intent.action === 'none') return false;
+    if (intent.action === 'list') return sendList();
+    let members = [];
+    try {
+      members = (relationshipStore?.list?.(key, { limit: 100, includeOwner: true }) || [])
+        .map((row) => ({ qq: String(row?.userId ?? ''), name: String(row?.displayName ?? '') }));
+    } catch {}
+    const resolution = resolveBlacklistTarget({
+      targetRef: intent.targetRef,
+      rawText: String(text ?? ''),
+      ats,
+      speakers,
+      members,
+      ownerQQ: cfg.ownerQQ,
+      selfQQ,
+      selfNames: blacklistSelfNames()
+    });
+    if (!resolution.ok) {
+      const ref = intent.targetRef || '这个人';
+      if (resolution.error === 'protected-owner') {
+        await reply(intent.action === 'block' ? '不能拉黑主人自己。' : '主人本来就不在黑名单里。');
+        return true;
+      }
+      if (resolution.error === 'protected-self') {
+        await reply(intent.action === 'block' ? '不能拉黑我自己呀。' : '我本来就不在黑名单里。');
+        return true;
+      }
+      if (resolution.error === 'ambiguous') {
+        const options = resolution.candidates.map((item) => `${item.name || '未命名'}（${item.qq}）`).join('、');
+        await reply(`「${ref}」对得上多个人：${options}。请 @ 他或直接给 QQ 号，我再动手。`);
+        return true;
+      }
+      await reply(`没找到「${ref}」对应的人。请 @ 他或直接给 QQ 号，我再动手。`);
+      return true;
+    }
+    return execBlacklistOwnerAction({ action: intent.action, qq: resolution.qq, name: resolution.name, reason: intent.reason }, { reply, kind, selfQQ });
+  }
+
   async function handleIncoming(kind, id, event, cfg) {
     const key = convKey(kind, id);
     if (!modeAllowed(key, kind, id, cfg, currentMode)) {
@@ -18718,6 +18984,15 @@ async function main() {
     if (!isSessionAllowedInCurrentMode(key)) return;
     if (!plainContent && !quoteTargetIsSelf) return;
     const isOwner = String(event.user_id) === String(cfg.ownerQQ ?? '');
+    // 拉黑：主人以外的人被拉黑后，消息在入库/唤醒/记忆之前直接丢掉。
+    if (!isOwner && blacklistCfg().enabled && blacklistStore.isBlocked(event.user_id)) {
+      log(`[blacklist] 忽略已拉黑用户 ${event.user_id} 的消息（${key}）`);
+      return;
+    }
+    if (await handleBlacklistOwnerCommand(plainContent, { kind, isOwner, key, event })) {
+      log(`[blacklist] 主人命令已处理：${plainContent.slice(0, 40)}`);
+      return;
+    }
     const roleState = readRoleState();
 
     // 若该会话有挂起的提问/审批，先当作回答处理（用当前消息自己的文字，不含引用原文）。

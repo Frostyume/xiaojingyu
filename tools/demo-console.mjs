@@ -468,6 +468,10 @@ export function makeFixtureState() {
       { id: 'demo-rejected', content: '测试噪声', meaning: '', risk: '演示排除项', status: 'rejected', count: 1, source: 'auto', createdAt: timestamp, updatedAt: timestamp },
     ],
     security: { interceptNotify: true },
+    // 拉黑名单（离线示例，假 QQ 假名字）：演示面板的列表与一键解封。
+    blacklist: [
+      { qq: '30001', name: '演示群友', reason: '演示：持续辱骂', origin: 'auto', at: timestamp },
+    ],
     // state/ 的 ACL 是否已收紧。离线演示默认给「未收紧」，这样告警条在预览里可见
     // （真实场景：Windows 上未以管理员身份运行桥接时就是这个状态）。
     hardenStateDir: false,
@@ -712,6 +716,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
               ? { hardened: true, path: 'D:\\demo\\qq-bridge\\state', manualCommand: '' }
               : { hardened: false, path: 'D:\\demo\\qq-bridge\\state', manualCommand: manualDirCommand('D:\\demo\\qq-bridge\\state') }
           });
+          case '/api/blacklist': return json({ ok: true, enabled: true, count: state.blacklist.length, entries: state.blacklist });
           // 令牌与花费：全部为离线示例数据，不含任何真实用量。
           case '/api/tokens/summary': return json(usageSummaryFixture());
           case '/api/tokens/series': return json(usageSeriesFixture(url.searchParams.get('hours')));
@@ -800,6 +805,26 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
             }
             state.security = body;
             return json({ ok: true });
+          case '/api/blacklist': {
+            const action = String(body.action ?? '').trim();
+            if (action === 'add') {
+              const qq = String(body.qq ?? '').trim();
+              if (qq === String(state.whitelist.ownerQQ ?? '')) return json({ ok: false, error: '不能拉黑主人自己' }, 400);
+              if (!/^\d{5,12}$/.test(qq)) return json({ ok: false, error: 'QQ 号格式不对' }, 400);
+              const entry = { qq, name: String(body.name ?? ''), reason: String(body.reason ?? ''), origin: 'owner', at: Date.now() };
+              state.blacklist = state.blacklist.filter((e) => e.qq !== qq);
+              state.blacklist.push(entry);
+              return json({ ok: true, entry, count: state.blacklist.length });
+            }
+            if (action === 'remove') {
+              const before = state.blacklist.length;
+              state.blacklist = state.blacklist.filter((e) => e.qq !== String(body.qq ?? ''));
+              return state.blacklist.length < before
+                ? json({ ok: true, count: state.blacklist.length })
+                : json({ ok: false, error: '不在黑名单里' }, 404);
+            }
+            return json({ ok: false, error: 'action 必须是 add / remove' }, 400);
+          }
           case '/api/console/token': return json({ ok: true, token: body.token || 'offline-demo-token-123456', generated: !body.token });
           case '/api/test-send': return json({ ok: true, message_id: 'mock-message-001' });
           // 语音试发（操作者通道）：离线只回执，不产生任何真实 QQ 消息

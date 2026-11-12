@@ -428,6 +428,26 @@ const CARD_LIST = [
     ]
   },
 
+  {
+    id: 'blacklist',
+    board: 'social',
+    configKey: 'simulation.safety.blacklist.enabled',
+    label: '拉黑名单',
+    keywords: '拉黑 黑名单 解封 屏蔽 不理 blacklist',
+    description: '被拉黑的人的消息在入库/唤醒前就被丢弃；主人可以下令拉黑/解封，持续辱骂她的人也会被自行拉黑。',
+    onEffect: '继续拦截被拉黑者的消息；主人可在群/私聊用自然语言（如「别理某某」）或「拉黑 QQ号」管理名单，完整名单只私聊发。',
+    offEffect: '不再拦截被拉黑者的消息，也不再自行拉黑；已有名单保留，重新打开后继续生效。',
+    dangerousOff: true,
+    covers: ['simulation.safety.blacklist'],
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.safety.blacklist.naturalLanguage.enabled', label: '自然语言指令（关掉退回私聊+QQ号）', type: 'boolean', default: true },
+      { key: 'simulation.safety.blacklist.auto.enabled', label: '自行拉黑判定', type: 'boolean', default: true },
+      { key: 'simulation.safety.blacklist.auto.insultCount', label: '窗口内辱骂次数阈值', type: 'number', min: 1, max: 20, default: 3 },
+      { key: 'simulation.safety.blacklist.auto.affectionFloor', label: '好感度触发线', type: 'number', min: 0, max: 10, default: 5 }
+    ]
+  },
+
   // ── 群运营板块 ──────────────────────────────────────────────────────────
   {
     id: 'dailyReport',

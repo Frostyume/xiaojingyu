@@ -210,8 +210,10 @@ assert.notEqual(sharePreview.status, 'disabled', '分享模块 dryRun 预览不�
 const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatPixelSticker', 'chatMoodVoice', 'chatNightQuiet'];
 // 控制台访问板块：局域网开关默认关，显式 true 才开（与配置键卡片同一套防假开关口径）。
 const CONSOLE_CARDS = ['consoleLanAccess'];
-assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS].sort());
-assert.equal(FEATURE_CARDS.length, 24);
+// 安全板块卡片：拉黑名单复用 simulation.safety.* 配置键，默认开、显式 false 才关。
+const SAFETY_CARDS = ['blacklist'];
+assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS, ...SAFETY_CARDS].sort());
+assert.equal(FEATURE_CARDS.length, 25);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
 assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner', 'console']);
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'chat').master, 'groupChat');
@@ -254,6 +256,34 @@ assert.equal(cardFor('not-a-module'), null);
   assert.equal(card.dangerousOff, false, '关掉局域网只是收回监听范围，不该要求确认');
   assert.deepEqual(card.dependencies, [], '局域网开关独立于各功能总闸');
   assert.deepEqual(featureEnablePatch(card), {}, '打开局域网不能连带打开任何总闸');
+}
+
+// 9d. 拉黑名单：默认开、复用 simulation.safety.* 配置键；关掉是安全降级，必须标 dangerousOff。
+{
+  const card = cardFor('blacklist');
+  assert.ok(card, '拉黑名单必须有卡片');
+  assert.equal(card.board, 'social');
+  assert.equal(cardSwitchKey(card), 'simulation.safety.blacklist.enabled');
+  assert.equal(cardEnabled('blacklist', {}), true, '默认开：配置里没写时按开启判定');
+  assert.equal(cardEnabled('blacklist', { simulation: { safety: { blacklist: { enabled: false } } } }), false);
+  assert.equal(cardSwitchValue('blacklist', true), true);
+  assert.equal(cardSwitchValue('blacklist', false), false);
+  assert.equal(card.dangerousOff, true, '关掉拉黑等于放开拦截，必须要求确认');
+  assert.deepEqual(card.dependencies, [], '拉黑独立于各功能总闸');
+  assert.deepEqual(featureEnablePatch(card), {}, '打开拉黑不能连带打开任何总闸');
+  assert.deepEqual(card.covers, ['simulation.safety.blacklist']);
+  const advanced = advancedFieldsFor(card, {});
+  assert.equal(advanced.find((field) => field.key === 'simulation.safety.blacklist.naturalLanguage.enabled').value, true, '自然语言指令默认开');
+  assert.equal(advanced.find((field) => field.key === 'simulation.safety.blacklist.auto.enabled').value, true);
+  assert.equal(advanced.find((field) => field.key === 'simulation.safety.blacklist.auto.insultCount').value, 3);
+  assert.equal(advanced.find((field) => field.key === 'simulation.safety.blacklist.auto.affectionFloor').value, 5);
+  // 高级设置键必须全部物化进示例配置（否则控制台保存会被判未知项）。
+  for (const field of card.advanced) {
+    assert.equal(valueAtPath(example, field.key), field.default, `示例配置缺少 ${field.key} 的默认值`);
+  }
+  assert.equal(valueAtPath(example, 'simulation.safety.blacklist.enabled'), true);
+  assert.equal(valueAtPath(example, 'simulation.safety.blacklist.announce'), '我再也不想理你了');
+  assert.equal(valueAtPath(example, 'simulation.safety.blacklist.auto.windowMs'), 24 * 3600 * 1000);
 }
 
 // 群聊剧场卡片复用 simulation.*：默认开、只有显式 false 才是关，升级后不会把已有行为关掉。
