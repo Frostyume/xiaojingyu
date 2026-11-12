@@ -114,6 +114,44 @@ const CARD_LIST = [
     ]
   },
   {
+    id: 'chatPixelSticker',
+    board: 'chat',
+    configKey: 'simulation.pixelSticker.enabled',
+    label: '像素心情贴纸',
+    keywords: '像素 贴纸 pixel sticker 心情 透明',
+    description: '说完一句话顺手丢一张自己的透明像素贴纸，按心情挑图；频率与表情包共用同一套控制。',
+    onEffect: '文字回复后按节奏补一张保持人设的透明像素贴纸（原色、无挂饰），不刷屏。',
+    offEffect: '不再自动丢像素贴纸；文字与表情包不受影响。',
+    dangerousOff: false,
+    dependencies: [
+      dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })
+    ],
+    advanced: [
+      { key: 'simulation.pixelSticker.afterText', label: '说完话顺手丢一张', type: 'boolean', default: true },
+      { key: 'simulation.pixelSticker.minTextsSince', label: '至少隔几次文字才丢', type: 'number', min: 1, max: 20, default: 2 },
+      { key: 'simulation.pixelSticker.minGapMs', label: '两张最小间隔（ms）', type: 'number', min: 60000, max: 86400000, default: 1200000 }
+    ]
+  },
+  {
+    id: 'chatMoodVoice',
+    board: 'chat',
+    configKey: 'simulation.moodVoice.enabled',
+    label: '心情语音',
+    keywords: '语音 心情 voice mood 主动',
+    description: '按当前心情主动发一条状态匹配的短语音；节奏适中，不是每天只一条也不是天天一堆。',
+    onEffect: '按每日上限+最小间隔+随机跳过，主动发一条心情语音。',
+    offEffect: '不再主动发心情语音；回复中的语音不受影响。',
+    dangerousOff: false,
+    dependencies: [
+      dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })
+    ],
+    advanced: [
+      { key: 'simulation.moodVoice.maxPerDay', label: '每天最多几条', type: 'number', min: 1, max: 10, default: 3 },
+      { key: 'simulation.moodVoice.minGapMs', label: '两条最小间隔（ms）', type: 'number', min: 60000, max: 86400000, default: 18000000 },
+      { key: 'simulation.moodVoice.skipChance', label: '随机跳过概率（0-1）', type: 'number', min: 0, max: 1, default: 0.4 }
+    ]
+  },
+  {
     id: 'chatNightQuiet',
     board: 'chat',
     configKey: 'simulation.nightQuiet.enabled',

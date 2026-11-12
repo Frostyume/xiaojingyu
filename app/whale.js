@@ -113,6 +113,8 @@ import { parseScheduleMatches, parseOfficialSchedule, mergeScheduleMatches, buil
 import { dayStatsFromAudit, decideBroadcast, pruneAuditLines, resultMatchKey, createSkipAuditThrottle } from '../services/social/broadcast-limits.js';
 import { webSearch } from '../services/social/web-search.js';
 import { isQVersionWhaleSticker } from '../services/media/vision.js';
+import { pickPixelSticker, pixelStickerCount } from '../services/media/pixel-stickers.js';
+import { moodVoiceCadenceOk, MOOD_VOICE_DEFAULTS } from '../services/media/mood-voice-cadence.js';
 import { loadReminderStore, saveReminderStore, addReminder, listReminders, cancelReminder, dueReminders } from '../services/social/reminders.js';
 import { getWeather } from '../services/social/weather.js';
 import { validConsoleTokenShape, lanHostsFromInterfaces } from '../console/policy.js';
@@ -1242,6 +1244,26 @@ function loadConfig() {
       shrinkScriptPath: '',
       ...((cfg.simulation?.sticker?.collect) ?? {})
     }
+  };
+
+  // 像素贴纸：说完一句话顺手丢一张透明像素贴纸；频率与表情包共用同一套计数/间隔。
+  cfg.simulation.pixelSticker = {
+    enabled: true,
+    afterText: true,
+    minTextsSince: 2,
+    minGapMs: 20 * 60 * 1000,
+    ...(cfg.simulation?.pixelSticker ?? {})
+  };
+  // 心情语音：主动、状态匹配、节奏适中（不是每天只一条，也不是天天一堆）。
+  // 默认目标走配置（targets 为空时回退到 ownerQQ 占位），不硬编码任何真实号码。
+  cfg.simulation.moodVoice = {
+    enabled: true,
+    maxPerDay: MOOD_VOICE_DEFAULTS.maxPerDay,
+    minGapMs: MOOD_VOICE_DEFAULTS.minGapMs,
+    skipChance: MOOD_VOICE_DEFAULTS.skipChance,
+    intervalMs: 30 * 60 * 1000,
+    targets: [],
+    ...(cfg.simulation?.moodVoice ?? {})
   };
 
   // simulation.media：图片/表情的数量与体积上限。旧配置没有这一段，必须深度合并出默认值，
@@ -3918,6 +3940,7 @@ async function main() {
     // 主人功能独立调度：不依赖提醒任务队列，开关关闭时内部直接返回。
     setTimeout(() => void processOwnerFeatureJobs(), 6000).unref?.();
     setInterval(() => void processOwnerFeatureJobs(), 30000).unref?.();
+    setInterval(() => void maybeSendMoodVoice(), Math.max(60000, Number(cfg.simulation?.moodVoice?.intervalMs) || 30 * 60 * 1000)).unref?.();
     setTimeout(() => void notifyDevProposalResults(), 8000).unref?.();
     setInterval(() => void notifyDevProposalResults(), 30000).unref?.();
     if (jobQueue) {
@@ -4639,6 +4662,16 @@ async function main() {
         lanAccess: cfg.consoleLanAccess === true,
         authRequired: cfg.consoleAuth?.enabled !== false || cfg.consoleLanAccess === true
       },
+      pixelSticker: {
+        enabled: cfg.simulation?.pixelSticker?.enabled !== false,
+        afterText: cfg.simulation?.pixelSticker?.afterText !== false,
+        count: pixelStickerCount()
+      },
+      moodVoice: {
+        enabled: cfg.simulation?.moodVoice?.enabled !== false,
+        maxPerDay: Number(cfg.simulation?.moodVoice?.maxPerDay) || MOOD_VOICE_DEFAULTS.maxPerDay,
+        sentToday: moodVoiceTimes.filter((t) => shanghaiDayKey(t) === shanghaiDayKey(Date.now())).length
+      },
       usage: liveUsage,
       libraries: {
         stickers: stickerEntries.length,
@@ -5068,6 +5101,90 @@ async function main() {
     st.lastImageAt = Date.now();
     st.textSendsSinceImage = 0;
     st.textSendsSinceMedia = 0;
+  }
+
+  // 像素贴纸：文字回复后顺手丢一张透明像素贴纸。频率与表情包共用
+  // lastStickerAt / textSendsSinceSticker（noteStickerSent），不另开一套计数。
+  async function maybeSendPixelSticker(st, key) {
+    const pc = cfg.simulation?.pixelSticker ?? {};
+    if (pc.enabled === false || pc.afterText === false || !st || !key) return;
+    if ((Number(st.textSendsSinceSticker) || 0) < Math.max(1, Number(pc.minTextsSince) || 2)) return;
+    const last = Number(st.lastStickerAt) || 0;
+    if (last && Date.now() - last < Math.max(60000, Number(pc.minGapMs) || 20 * 60 * 1000)) return;
+    let mood = 'idle';
+    try {
+      const s = innerLife?.personaInfo?.()?.state ?? {};
+      const v = Number(s.mood?.valence ?? 0);
+      const e = Number(s.energy ?? 0.6);
+      mood = v >= 0.4 ? 'happy' : v <= -0.25 ? 'pout' : e <= 0.35 ? 'tired' : 'idle';
+    } catch {}
+    const pick = pickPixelSticker(mood);
+    if (!pick || !fs.existsSync(pick.path)) return;
+    try {
+      const buffer = fs.readFileSync(pick.path);
+      const assertSendAllowed = captureSendGuard(key);
+      const [kind, id] = key.split(':');
+      const segments = [{ type: 'image', data: { file: 'base64://' + buffer.toString('base64') } }];
+      const action = kind === 'private' ? 'send_private_msg' : 'send_group_msg';
+      const params = kind === 'private' ? { user_id: Number(id), message: segments } : { group_id: Number(id), message: segments };
+      const httpUrl = String(cfg.snowluma?.httpUrl || 'http://127.0.0.1:3000').replace(/\/+$/, '');
+      await new Promise((resolve, reject) => {
+        sendChain = sendChain.then(async () => {
+          try {
+            await sleep(randInt(300, 1200));
+            assertSendAllowed();
+            const res = await fetch(`${httpUrl}/${action}`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', ...(cfg.snowluma?.accessToken ? { authorization: `Bearer ${cfg.snowluma.accessToken}` } : {}) },
+              body: JSON.stringify(params),
+              signal: AbortSignal.timeout(30000)
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok || body.status !== 'ok' || body.retcode !== 0) throw new Error(`pixel sticker send failed: ${body.retcode ?? res.status}`);
+            resolve(body.data);
+          } catch (e) { reject(e); }
+        });
+      });
+      noteStickerSent(st);
+      saveSimulationState();
+    } catch {}
+  }
+
+  // 心情语音节奏状态（上海自然日计数 + 最小间隔），持久化到 state/mood-voice.json。
+  let moodVoiceTimes = (() => {
+    try {
+      const t = coreReadJsonSafe(path.join(ROOT, 'state', 'mood-voice.json'), {})?.times;
+      return Array.isArray(t) ? t.filter((x) => Number.isFinite(Number(x))) : [];
+    } catch { return []; }
+  })();
+  async function maybeSendMoodVoice() {
+    const mv = cfg.simulation?.moodVoice ?? {};
+    if (mv.enabled === false || !featureEnabled(cfg, 'voice')) return;
+    try { if (!snowlumaHealth?.connected) return; } catch { return; }
+    if (!moodVoiceCadenceOk({ times: moodVoiceTimes, now: Date.now(), maxPerDay: mv.maxPerDay, minGapMs: mv.minGapMs }).ok) return;
+    if (Math.random() < Number(mv.skipChance ?? MOOD_VOICE_DEFAULTS.skipChance)) return;
+    let mood = 'idle';
+    try {
+      const s = innerLife?.personaInfo?.()?.state ?? {};
+      const v = Number(s.mood?.valence ?? 0);
+      const e = Number(s.energy ?? 0.6);
+      mood = v >= 0.4 ? 'happy' : v <= -0.25 ? 'pout' : e <= 0.35 ? 'sleepy' : 'idle';
+    } catch {}
+    const LINES = {
+      happy: '今天心情不错，忍不住想跟你们说说话～',
+      sleepy: '有点困了，先眯一会儿，别吵我哦…',
+      pout: '哼，刚才有点小委屈，不过现在好啦',
+      idle: '在水里游了一圈，回来看看你们在聊什么～'
+    };
+    const targets = (Array.isArray(mv.targets) && mv.targets.length) ? mv.targets : [`private:${cfg.ownerQQ}`];
+    const key = targets[Math.floor(Math.random() * targets.length)];
+    try {
+      const voice = await synthesizeFeatureVoice({ text: LINES[mood] || LINES.idle, mood, cfg, outDir: path.join(ROOT, 'audio', 'tts') });
+      await sendVoiceFile(key, voice.path, { guard: true });
+      moodVoiceTimes.push(Date.now());
+      if (moodVoiceTimes.length > 50) moodVoiceTimes = moodVoiceTimes.slice(-50);
+      try { coreAtomicWriteJson(path.join(ROOT, 'state', 'mood-voice.json'), { times: moodVoiceTimes }); } catch {}
+    } catch {}
   }
 
   /**
@@ -10736,6 +10853,7 @@ async function main() {
             const sentMessages = await sendMessages(key, messages, delays);
             recordSentMessages(key, sentMessages);
             if (sentMessages.length > 0) noteTextSent(st);
+            if (sentMessages.length > 0) void maybeSendPixelSticker(st, key);
             st.lastAiReplyAt = now;
             st.lastActionAt = now;
             st.wakeConfig.noActionCount = 0;
@@ -10893,6 +11011,7 @@ async function main() {
             const sentMessages = await sendMessages(key, messages, delays, actualReplyToMessageId, atUserId);
             recordSentMessages(key, sentMessages);
             if (sentMessages.length > 0) noteTextSent(st);
+            if (sentMessages.length > 0) void maybeSendPixelSticker(st, key);
             st.lastAiReplyAt = now;
             st.lastActionAt = now;
             st.wakeConfig.noActionCount = 0;
@@ -13475,6 +13594,7 @@ async function main() {
             const sentMessages = await sendMessages(key, [message], [], actualReplyToMessageId, atUserId);
             recordSentMessages(key, sentMessages);
             if (sentMessages.length > 0) noteTextSent(st);
+            if (sentMessages.length > 0) void maybeSendPixelSticker(st, key);
             st.lastAiReplyAt = now;
             st.lastActionAt = now;
             st.wakeConfig.noActionCount = 0;

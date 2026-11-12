@@ -253,6 +253,12 @@
         "shrinkScriptPath": ""
       }
     },
+    "pixelSticker": {
+      "enabled": true,
+      "afterText": true,
+      "minTextsSince": 2,
+      "minGapMs": 1200000
+    },
     "voice": {
       "enabled": false,
       "dir": "audio",
@@ -266,6 +272,14 @@
       "ffmpegPath": "",
       "autoReadback": true,
       "normalize": true
+    },
+    "moodVoice": {
+      "enabled": true,
+      "maxPerDay": 3,
+      "minGapMs": 18000000,
+      "skipChance": 0.4,
+      "intervalMs": 1800000,
+      "targets": []
     },
     "proactive": {
       "enabled": true,

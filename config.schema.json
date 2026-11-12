@@ -2253,6 +2253,80 @@
             }
           }
         },
+        "pixelSticker": {
+          "type": "object",
+          "properties": {
+            "afterText": {
+              "title": "说完话顺手丢一张",
+              "type": "boolean",
+              "default": true
+            },
+            "enabled": {
+              "title": "像素心情贴纸",
+              "type": "boolean",
+              "default": true,
+              "description": "文字回复后按节奏丢一张透明像素贴纸；频率与表情包共用同一套计数/间隔"
+            },
+            "minGapMs": {
+              "title": "两张最小间隔（ms）",
+              "type": "number",
+              "default": 1200000,
+              "minimum": 60000,
+              "maximum": 86400000
+            },
+            "minTextsSince": {
+              "title": "至少隔几次文字才丢",
+              "type": "number",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 20
+            }
+          }
+        },
+        "moodVoice": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "心情语音",
+              "type": "boolean",
+              "default": true,
+              "description": "按当前心情主动发状态匹配短语音；每日上限+最小间隔+随机跳过，节奏适中"
+            },
+            "intervalMs": {
+              "title": "检查间隔（ms）",
+              "type": "number",
+              "default": 1800000,
+              "minimum": 60000,
+              "maximum": 86400000
+            },
+            "maxPerDay": {
+              "title": "每天最多几条",
+              "type": "number",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 10
+            },
+            "minGapMs": {
+              "title": "两条最小间隔（ms）",
+              "type": "number",
+              "default": 18000000,
+              "minimum": 60000,
+              "maximum": 86400000
+            },
+            "skipChance": {
+              "title": "随机跳过概率",
+              "type": "number",
+              "default": 0.4,
+              "minimum": 0,
+              "maximum": 1
+            },
+            "targets": {
+              "title": "发送目标（留空=主人私聊）",
+              "type": "array",
+              "default": []
+            }
+          }
+        },
         "voice": {
           "type": "object",
           "properties": {
@@ -6849,6 +6923,42 @@
       "advanced": false
     },
     {
+      "key": "simulation.pixelSticker.afterText",
+      "label": "说完话顺手丢一张",
+      "group": "表情与图片",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.pixelSticker.enabled",
+      "label": "像素心情贴纸",
+      "group": "表情与图片",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.pixelSticker.minGapMs",
+      "label": "两张最小间隔（ms）",
+      "group": "表情与图片",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "simulation.pixelSticker.minTextsSince",
+      "label": "至少隔几次文字才丢",
+      "group": "表情与图片",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 20
+    },
+    {
       "key": "simulation.sticker.collect.compress",
       "label": "超过上限自动压缩 GIF",
       "group": "表情与图片",
@@ -6897,6 +7007,62 @@
       "type": "boolean",
       "restart": "none",
       "advanced": false
+    },
+    {
+      "key": "simulation.moodVoice.enabled",
+      "label": "心情语音",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.moodVoice.intervalMs",
+      "label": "检查间隔（ms）",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "simulation.moodVoice.maxPerDay",
+      "label": "每天最多几条",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 10
+    },
+    {
+      "key": "simulation.moodVoice.minGapMs",
+      "label": "两条最小间隔（ms）",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "simulation.moodVoice.skipChance",
+      "label": "随机跳过概率",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "simulation.moodVoice.targets",
+      "label": "发送目标（留空=主人私聊）",
+      "group": "语音",
+      "type": "array",
+      "restart": "none",
+      "advanced": true
     },
     {
       "key": "simulation.speech.asr.cacheTtlMs",
