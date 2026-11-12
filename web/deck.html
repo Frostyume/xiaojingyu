@@ -5167,6 +5167,11 @@ button.active,.primary {
         <div class="meta">排查：打开 SnowLuma 的 <code>logs/snowluma-*.log</code>，搜 <code>[Hook]</code>，看有没有 <code>receive path stale</code> / <code>process enumeration timed out</code> 这类行；顺带考虑<b>升级 SnowLuma</b>（新版运行时对 hook 的兜底更好）。桥接这边不用重启。</div>
       </div>
     </section>
+<section id="section-blacklist" data-page="access" class="card">
+      <h2>拉黑名单</h2>
+      <div class="meta">被拉黑的人的消息在入库/唤醒前就被丢弃，直到解封；主人也可在群/私聊说「别理某某」「拉黑 QQ号 / 解封 QQ号」，完整名单只私聊发。</div>
+      <div id="blacklistBox" class="meta" style="margin-top:8px">（读取中…）</div>
+    </section>
 <section id="section-token" data-page="access" class="card">
       <h2>控制台访问令牌</h2>
       <div class="meta">用于打开本控制台 / 调用管理 API 的令牌。可手动输入新令牌保存，或留空生成随机令牌。修改后当前页面会自动使用新令牌。</div>
@@ -10093,6 +10098,27 @@ document.getElementById('stateDirReharden').addEventListener('click', async () =
   msg.className = r.hardened === true ? 'meta ok' : 'meta err';
   loadSecurity();
 });
+
+// 拉黑名单：只读列表 + 一键解封；拉黑走主人 QQ 指令（群/私聊自然语言或「拉黑 QQ号」）。
+function loadBlacklist() {
+  const box = document.getElementById('blacklistBox');
+  if (!box) return;
+  api('/api/blacklist').then(r => {
+    const rows = Array.isArray(r.entries) ? r.entries : [];
+    box.innerHTML = rows.length
+      ? rows.map(e => `<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line,#e6ebf3)"><span><b>${esc(e.qq)}</b>${e.name ? `（${esc(e.name)}）` : ''}</span><span class="muted small">${e.origin === 'auto' ? '她自行拉黑' : '你下令'} · ${esc(e.reason || '没有原因')}</span><button class="small" data-unblock="${esc(e.qq)}" style="margin-left:auto">解封</button></div>`).join('')
+      : '<span class="muted small">黑名单是空的。</span>';
+  }).catch(e => { box.textContent = '读取黑名单失败：' + e.message; });
+}
+document.getElementById('blacklistBox')?.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('[data-unblock]');
+  if (!b) return;
+  b.disabled = true;
+  try { await api('/api/blacklist', 'POST', { action: 'remove', qq: b.dataset.unblock }); } catch {}
+  loadBlacklist();
+});
+loadBlacklist();
+setInterval(loadBlacklist, 30000);
 
 async function changeConsoleToken(generate) {
   const input = document.getElementById('consoleTokenInput');

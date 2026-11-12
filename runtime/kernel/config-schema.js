@@ -71,6 +71,13 @@ const FIELD_META = {
   'role.maxInjectChars': { label: '人格注入上限（字符）', group: '人格注入', restart: 'none', min: 1000, max: 20000 },
 
   'security.interceptNotify': { label: '敏感回复拦截时通知管理员', group: '安全', restart: 'none' },
+  'simulation.safety.blacklist.enabled': { label: '拉黑名单', group: '安全', restart: 'none', description: '被拉黑的人的消息在入库/唤醒前就被丢弃，直到主人解封' },
+  'simulation.safety.blacklist.announce': { label: '自行拉黑时说的话', group: '安全', restart: 'none', description: '她按规则自行拉黑时对群里说的那句话' },
+  'simulation.safety.blacklist.auto.enabled': { label: '自行拉黑判定', group: '安全', restart: 'none', description: '关闭后只有主人下令才会拉黑' },
+  'simulation.safety.blacklist.auto.windowMs': { label: '统计窗口（ms）', group: '安全', restart: 'none', advanced: true },
+  'simulation.safety.blacklist.auto.insultCount': { label: '窗口内次数阈值', group: '安全', restart: 'none', advanced: true },
+  'simulation.safety.blacklist.auto.affectionFloor': { label: '好感度触发线', group: '安全', restart: 'none', advanced: true },
+  'simulation.safety.blacklist.naturalLanguage.enabled': { label: '自然语言拉黑指令', group: '安全', restart: 'none', description: '开启后主人在群/私聊说「别理某某」「可以理某某了」即可拉黑/解封，按名字或@找人，歧义时反问；关闭回到旧版私聊+固定关键词+QQ号（回滚开关）' },
   pricing: { label: '价目表覆盖', group: '价目表', restart: 'none', type: 'object', nullable: true, advanced: true },
 
   // ── 存储与可靠性（本轮新增） ────────────────────────────────────────────────

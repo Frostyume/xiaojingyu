@@ -28,6 +28,7 @@ import { timeStampCN, currentTimeBlock, timeConflict } from '../../runtime/kerne
 import { postQzone, listQzone, deleteQzone, qzoneHasContent, qzoneItemTid, qzoneVisibilityLabel, getQzoneFeeds, commentQzone, parseQzoneComments, parseQzoneFeedPost, getQzoneSelfUin, getQzoneMsgDetail, parseQzoneFeedImages } from '../social/qzone.js';
 import { DEFAULT_QUIET_HOURS, normalizeQuietHours, isQuietNow, quietEndAt } from './quiet-hours.js';
 import { SENSITIVE_RE } from '../../runtime/kernel/sensitive.js';
+import { parseBlacklistIntentOutput } from '../../runtime/control/blacklist.js';
 import { AI_TIP_CATEGORIES, categoryById, inWindow, isDuplicateTip, nextSlotAt, pickCategory, pickTipLinks, parseTipOutput, rollDailyTarget } from '../../runtime/persona/ai-tips.js';
 import { normalizeShareConfig, normalizeShareModule, moduleFacets, engineFacets, hasEngineFacets, facetRuntime, pickShareFacet, parseShareOutput, validateShareOutput, verificationPending, moduleDayTarget, nextFacetAt, inWindowAt, topicTooSimilar, recentShareUrls, urlAlreadyShared, SHARE_TEMPLATES } from '../../runtime/share/share-modules.js';
 import { loadShareState, saveShareState, groupBudgetCheck, recordGroupSend, recordModuleSend, recordModuleFailure, setVerification, migrateAiTipsState, localDayKey as shareDayKey, globalBudgetCheck, recordGlobalSend, nextGlobalWindowAt } from '../../runtime/share/share-state.js';
@@ -4196,6 +4197,34 @@ ${formatTipCaption(item)}`;
     return cleaned.replace(/[。．.]+$/u, '').trim();
   }
 
+  /**
+   * 主人拉黑指令的意图抽取：只判断「是不是指令、指向谁」，不做任何动作。
+   * 名字→QQ 的解析与护栏在桥接侧（resolveBlacklistTarget）；这里拿不准就 none。
+   */
+  async function extractBlacklistIntent({ text, kind, speakers = [], ats = [] } = {}) {
+    const speakerLines = (Array.isArray(speakers) ? speakers : []).slice(0, 15)
+      .map((item) => `${item?.name || '未命名'}（QQ ${item?.qq ?? ''}）`).join('、');
+    const atLines = (Array.isArray(ats) ? ats : [])
+      .map((item) => `${item?.name || '未命名'}（QQ ${item?.qq ?? ''}）`).join('、');
+    const extra = [
+      `【会话类型】${kind === 'private' ? '主人私聊' : '群聊'}`,
+      `【主人原话】${String(text ?? '').slice(0, 300)}`,
+      speakerLines ? `【最近发言人（名字→QQ）】${speakerLines}` : '【最近发言人】无',
+      atLines ? `【这条消息@的人】${atLines}` : '【这条消息@的人】无'
+    ].join('\n');
+    const task = '判断主人这句话是不是在对你下「拉黑 / 解封 / 查黑名单」的指令。只输出一个 JSON 对象，不要 markdown、不要解释。格式：\n'
+      + '{"action":"block|unblock|list|none","targetRef":"目标的名字或QQ号；查名单或没有目标时留空","reason":"不超过30字；没有就留空"}\n'
+      + '规则：\n'
+      + '- block：主人明确要你不再理某个人/拉黑某人，例如「别理小A」「以后不想理他了」「拉黑这个人」。\n'
+      + '- unblock：主人要你恢复理某人，例如「可以理小A了」「解封他」「把他从黑名单放出来」。\n'
+      + '- list：主人想看黑名单/拉黑名单。\n'
+      + '- none：其余一律 none——普通聊天、吐槽、陈述（如「他拉黑了我」）、指向主人自己或你自己、泛指一群人、看不出具体指谁、拿不准是不是指令。宁可 none，不要猜。\n'
+      + '- targetRef 优先用【最近发言人】【这条消息@的人】里出现过的名字或QQ号；指代词（他/她/这个人）原样输出，由桥接按@解析；不要编造QQ号。';
+    const prompt = buildBasePrompt(task, extra, '', { digestText: '', topics: [], anchor: '' });
+    const output = await runTurn(prompt, 60000);
+    return parseBlacklistIntentOutput(output);
+  }
+
   async function handleOwnerCommand(text, { kind, isOwner } = {}) {
     if (!isOwner || kind !== 'private') return false;
     const command = String(text ?? '').trim();
@@ -4795,6 +4824,7 @@ ${formatTipCaption(item)}`;
     personaInfo,
     refineText,
     generateSignatureText,
+    extractBlacklistIntent,
     handleOwnerCommand,
     ownerPublishQzone,
     nudgeMood,

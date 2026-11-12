@@ -157,225 +157,68 @@
         }
       }
     },
-    "slang": {
-      "type": "object",
-      "properties": {
-        "autoResearch": {
-          "title": "Auto Research",
-          "type": "boolean",
-          "default": true
-        },
-        "enabled": {
-          "title": "Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "extractCooldownMs": {
-          "title": "Extract Cooldown Ms",
-          "type": "number",
-          "default": 300000
-        },
-        "extractMinMessages": {
-          "title": "Extract Min Messages",
-          "type": "number",
-          "default": 10
-        },
-        "inferenceThresholds": {
-          "title": "Inference Thresholds",
-          "type": "array",
-          "default": [
-            2,
-            4,
-            8
-          ]
-        },
-        "injectMax": {
-          "title": "Inject Max",
-          "type": "number",
-          "default": 8
-        },
-        "learnerPreset": {
-          "title": "Learner Preset",
-          "type": "string",
-          "default": "qq-chat"
-        },
-        "researchBatchSize": {
-          "title": "Research Batch Size",
-          "type": "number",
-          "default": 2
-        },
-        "researchMaxPerRun": {
-          "title": "Research Max Per Run",
-          "type": "number",
-          "default": 6
-        },
-        "researchTimeoutMs": {
-          "title": "Research Timeout Ms",
-          "type": "number",
-          "default": 240000
-        },
-        "workspaceTitle": {
-          "title": "Workspace Title",
-          "type": "string",
-          "default": "QQ 黑话学习"
-        }
-      }
-    },
-    "social": {
-      "type": "object",
-      "properties": {
-        "activeCheckMaxMs": {
-          "title": "Active Check Max Ms",
-          "type": "number",
-          "default": 30000
-        },
-        "activeCheckMinMs": {
-          "title": "Active Check Min Ms",
-          "type": "number",
-          "default": 8000
-        },
-        "activeDurationEnabled": {
-          "title": "Active Duration Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "activeDurationMaxMs": {
-          "title": "Active Duration Max Ms",
-          "type": "number",
-          "default": 3000000
-        },
-        "activeDurationMinMs": {
-          "title": "Active Duration Min Ms",
-          "type": "number",
-          "default": 1200000
-        },
-        "activeReplyDelayMaxMs": {
-          "title": "Active Reply Delay Max Ms",
-          "type": "number",
-          "default": 5000
-        },
-        "activeReplyDelayMinMs": {
-          "title": "Active Reply Delay Min Ms",
-          "type": "number",
-          "default": 1000
-        },
-        "burstEnabled": {
-          "title": "Burst Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "burstIntervalMaxMs": {
-          "title": "Burst Interval Max Ms",
-          "type": "number",
-          "default": 3000
-        },
-        "burstIntervalMinMs": {
-          "title": "Burst Interval Min Ms",
-          "type": "number",
-          "default": 1000
-        },
-        "contextWindow": {
-          "title": "Context Window",
-          "type": "number",
-          "default": 20
-        },
-        "enabled": {
-          "title": "Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "idleRetryProbability": {
-          "title": "Idle Retry Probability",
-          "type": "number",
-          "default": 0.4
-        },
-        "idleRetryWaitMs": {
-          "title": "Idle Retry Wait Ms",
-          "type": "number",
-          "default": 120000
-        },
-        "idleWindowMs": {
-          "title": "Idle Window Ms",
-          "type": "number",
-          "default": 360000
-        },
-        "longGapMaxMs": {
-          "title": "Long Gap Max Ms",
-          "type": "number",
-          "default": 10000
-        },
-        "longGapMinMs": {
-          "title": "Long Gap Min Ms",
-          "type": "number",
-          "default": 5000
-        },
-        "longGapProbability": {
-          "title": "Long Gap Probability",
-          "type": "number",
-          "default": 0.2
-        },
-        "maxReplyChars": {
-          "title": "Max Reply Chars",
-          "type": "number",
-          "default": 500
-        },
-        "mustReplyKeywords": {
-          "title": "Must Reply Keywords",
-          "type": "array",
-          "default": [
-            "deepseek",
-            "小鲸鱼",
-            "大肥鱼",
-            "鲸鱼",
-            "d指导",
-            "在吗"
-          ]
-        },
-        "proactiveCheckMaxMs": {
-          "title": "Proactive Check Max Ms",
-          "type": "number",
-          "default": 5400000
-        },
-        "proactiveCheckMinMs": {
-          "title": "Proactive Check Min Ms",
-          "type": "number",
-          "default": 2700000
-        },
-        "proactiveEnabled": {
-          "title": "Proactive Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "proactiveIdleThresholdMs": {
-          "title": "Proactive Idle Threshold Ms",
-          "type": "number",
-          "default": 1800000
-        },
-        "proactiveProbability": {
-          "title": "Proactive Probability",
-          "type": "number",
-          "default": 0.2
-        },
-        "skipProbability": {
-          "title": "Skip Probability",
-          "type": "number",
-          "default": 0.05
-        },
-        "surrenderProbability": {
-          "title": "Surrender Probability",
-          "type": "number",
-          "default": 0
-        },
-        "triggerProbability": {
-          "title": "Trigger Probability",
-          "type": "number",
-          "default": 0.1
-        }
-      }
-    },
     "simulation": {
       "type": "object",
       "properties": {
+        "safety": {
+          "type": "object",
+          "properties": {
+            "blacklist": {
+              "type": "object",
+              "properties": {
+                "announce": {
+                  "title": "自行拉黑时说的话",
+                  "type": "string",
+                  "default": "我再也不想理你了",
+                  "description": "她按规则自行拉黑时对群里说的那句话"
+                },
+                "auto": {
+                  "type": "object",
+                  "properties": {
+                    "affectionFloor": {
+                      "title": "好感度触发线",
+                      "type": "number",
+                      "default": 5
+                    },
+                    "enabled": {
+                      "title": "自行拉黑判定",
+                      "type": "boolean",
+                      "default": true,
+                      "description": "关闭后只有主人下令才会拉黑"
+                    },
+                    "insultCount": {
+                      "title": "窗口内次数阈值",
+                      "type": "number",
+                      "default": 3
+                    },
+                    "windowMs": {
+                      "title": "统计窗口（ms）",
+                      "type": "number",
+                      "default": 86400000
+                    }
+                  }
+                },
+                "enabled": {
+                  "title": "拉黑名单",
+                  "type": "boolean",
+                  "default": true,
+                  "description": "被拉黑的人的消息在入库/唤醒前就被丢弃，直到主人解封"
+                },
+                "naturalLanguage": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "title": "自然语言拉黑指令",
+                      "type": "boolean",
+                      "default": true,
+                      "description": "开启后主人在群/私聊说「别理某某」「可以理某某了」即可拉黑/解封，按名字或@找人，歧义时反问；关闭回到旧版私聊+固定关键词+QQ号（回滚开关）"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "activityControl": {
           "type": "object",
           "properties": {
@@ -2440,6 +2283,222 @@
         }
       }
     },
+    "slang": {
+      "type": "object",
+      "properties": {
+        "autoResearch": {
+          "title": "Auto Research",
+          "type": "boolean",
+          "default": true
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "extractCooldownMs": {
+          "title": "Extract Cooldown Ms",
+          "type": "number",
+          "default": 300000
+        },
+        "extractMinMessages": {
+          "title": "Extract Min Messages",
+          "type": "number",
+          "default": 10
+        },
+        "inferenceThresholds": {
+          "title": "Inference Thresholds",
+          "type": "array",
+          "default": [
+            2,
+            4,
+            8
+          ]
+        },
+        "injectMax": {
+          "title": "Inject Max",
+          "type": "number",
+          "default": 8
+        },
+        "learnerPreset": {
+          "title": "Learner Preset",
+          "type": "string",
+          "default": "qq-chat"
+        },
+        "researchBatchSize": {
+          "title": "Research Batch Size",
+          "type": "number",
+          "default": 2
+        },
+        "researchMaxPerRun": {
+          "title": "Research Max Per Run",
+          "type": "number",
+          "default": 6
+        },
+        "researchTimeoutMs": {
+          "title": "Research Timeout Ms",
+          "type": "number",
+          "default": 240000
+        },
+        "workspaceTitle": {
+          "title": "Workspace Title",
+          "type": "string",
+          "default": "QQ 黑话学习"
+        }
+      }
+    },
+    "social": {
+      "type": "object",
+      "properties": {
+        "activeCheckMaxMs": {
+          "title": "Active Check Max Ms",
+          "type": "number",
+          "default": 30000
+        },
+        "activeCheckMinMs": {
+          "title": "Active Check Min Ms",
+          "type": "number",
+          "default": 8000
+        },
+        "activeDurationEnabled": {
+          "title": "Active Duration Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "activeDurationMaxMs": {
+          "title": "Active Duration Max Ms",
+          "type": "number",
+          "default": 3000000
+        },
+        "activeDurationMinMs": {
+          "title": "Active Duration Min Ms",
+          "type": "number",
+          "default": 1200000
+        },
+        "activeReplyDelayMaxMs": {
+          "title": "Active Reply Delay Max Ms",
+          "type": "number",
+          "default": 5000
+        },
+        "activeReplyDelayMinMs": {
+          "title": "Active Reply Delay Min Ms",
+          "type": "number",
+          "default": 1000
+        },
+        "burstEnabled": {
+          "title": "Burst Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "burstIntervalMaxMs": {
+          "title": "Burst Interval Max Ms",
+          "type": "number",
+          "default": 3000
+        },
+        "burstIntervalMinMs": {
+          "title": "Burst Interval Min Ms",
+          "type": "number",
+          "default": 1000
+        },
+        "contextWindow": {
+          "title": "Context Window",
+          "type": "number",
+          "default": 20
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "idleRetryProbability": {
+          "title": "Idle Retry Probability",
+          "type": "number",
+          "default": 0.4
+        },
+        "idleRetryWaitMs": {
+          "title": "Idle Retry Wait Ms",
+          "type": "number",
+          "default": 120000
+        },
+        "idleWindowMs": {
+          "title": "Idle Window Ms",
+          "type": "number",
+          "default": 360000
+        },
+        "longGapMaxMs": {
+          "title": "Long Gap Max Ms",
+          "type": "number",
+          "default": 10000
+        },
+        "longGapMinMs": {
+          "title": "Long Gap Min Ms",
+          "type": "number",
+          "default": 5000
+        },
+        "longGapProbability": {
+          "title": "Long Gap Probability",
+          "type": "number",
+          "default": 0.2
+        },
+        "maxReplyChars": {
+          "title": "Max Reply Chars",
+          "type": "number",
+          "default": 500
+        },
+        "mustReplyKeywords": {
+          "title": "Must Reply Keywords",
+          "type": "array",
+          "default": [
+            "deepseek",
+            "小鲸鱼",
+            "大肥鱼",
+            "鲸鱼",
+            "d指导",
+            "在吗"
+          ]
+        },
+        "proactiveCheckMaxMs": {
+          "title": "Proactive Check Max Ms",
+          "type": "number",
+          "default": 5400000
+        },
+        "proactiveCheckMinMs": {
+          "title": "Proactive Check Min Ms",
+          "type": "number",
+          "default": 2700000
+        },
+        "proactiveEnabled": {
+          "title": "Proactive Enabled",
+          "type": "boolean",
+          "default": true
+        },
+        "proactiveIdleThresholdMs": {
+          "title": "Proactive Idle Threshold Ms",
+          "type": "number",
+          "default": 1800000
+        },
+        "proactiveProbability": {
+          "title": "Proactive Probability",
+          "type": "number",
+          "default": 0.2
+        },
+        "skipProbability": {
+          "title": "Skip Probability",
+          "type": "number",
+          "default": 0.05
+        },
+        "surrenderProbability": {
+          "title": "Surrender Probability",
+          "type": "number",
+          "default": 0
+        },
+        "triggerProbability": {
+          "title": "Trigger Probability",
+          "type": "number",
+          "default": 0.1
+        }
+      }
+    },
     "features": {
       "type": "object",
       "properties": {
@@ -3307,6 +3366,62 @@
     {
       "key": "security.interceptNotify",
       "label": "敏感回复拦截时通知管理员",
+      "group": "安全",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.safety.blacklist.announce",
+      "label": "自行拉黑时说的话",
+      "group": "安全",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.safety.blacklist.auto.affectionFloor",
+      "label": "好感度触发线",
+      "group": "安全",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.safety.blacklist.auto.enabled",
+      "label": "自行拉黑判定",
+      "group": "安全",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.safety.blacklist.auto.insultCount",
+      "label": "窗口内次数阈值",
+      "group": "安全",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.safety.blacklist.auto.windowMs",
+      "label": "统计窗口（ms）",
+      "group": "安全",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.safety.blacklist.enabled",
+      "label": "拉黑名单",
+      "group": "安全",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.safety.blacklist.naturalLanguage.enabled",
+      "label": "自然语言拉黑指令",
       "group": "安全",
       "type": "boolean",
       "restart": "none",

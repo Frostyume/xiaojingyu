@@ -2,6 +2,7 @@
   "exact": [
     "/",
     "/api/authorize/read",
+    "/api/blacklist",
     "/api/budget",
     "/api/config/apply",
     "/api/config/schema",

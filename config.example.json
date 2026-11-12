@@ -367,6 +367,21 @@
       "groupEscalationNotify": true,
       "requireConfirmForHighRisk": true
     },
+    "safety": {
+      "blacklist": {
+        "enabled": true,
+        "announce": "我再也不想理你了",
+        "auto": {
+          "enabled": true,
+          "windowMs": 86400000,
+          "insultCount": 3,
+          "affectionFloor": 5
+        },
+        "naturalLanguage": {
+          "enabled": true
+        }
+      }
+    },
     "nightQuiet": {
       "enabled": true,
       "start": "23:30",
