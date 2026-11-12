@@ -71,7 +71,7 @@ She keeps a schedule of her own, too — reflecting, browsing out of curiosity, 
 | She is always there | Process supervision, reconnects, queued replay |
 
 > [!NOTE]
-> Current version **v1.5.0**, verified item by item against **DSH 0.2.0-rc.2**. This release makes the signature reflect her real current state, tidies the live page (a small square relationship graph, secondary panels collapsed by default, reading shown with real progress and the latest excerpt), and makes group shares feel like a real person sharing (image/link first, then a few separate short comments, without leading indentation or a fixed opener).
+> Current version **v1.5.0**, verified item by item against **DSH 0.2.0-rc.2**. This release makes the signature reflect her real current state, tidies the live page (a small square relationship graph, secondary panels collapsed by default, reading shown with real progress and the latest excerpt), and makes group shares feel like a real person sharing (image/link first, then a few separate short comments, without leading indentation or a fixed opener). The live page is now phone-friendly too — on the same WiFi, turn on LAN access (off by default, token enforced when on) to watch her state from your phone, synced with the desktop in real time.
 > (`npm run verify:adaptation`). The first stable release, `v1.0.0`, shipped on 2026-11-03;
 > the `v0.1.x` / `v0.2.x` tags belong to upstream
 > [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) and are unrelated to this project.
@@ -336,7 +336,7 @@ The tool list, pacing boundaries, capability tables and secure defaults are in t
   <sub>Read-only live status page (offline demo data); no real account is shown</sub>
 </p>
 
-Put it on a second monitor to watch her mood, energy, bonds, interests, inner life and current activity, plus unread counts and activity for every session. The page is read-only, refreshed over SSE, guarded by its own token, and listens on `127.0.0.1` by default. Panel-by-panel details are in [the console guide](docs/guides/CONSOLE.md).
+Put it on a second monitor to watch her mood, energy, bonds, interests, inner life and current activity, plus unread counts and activity for every session. The page is read-only, refreshed over SSE, guarded by its own token, and listens on `127.0.0.1` by default. It is phone-friendly too: on narrow screens it collapses to a single column with larger body text, bigger touch targets and secondary panels folded by default (data stays in the DOM), while the desktop layout is unchanged. To watch from a phone on the same WiFi, turn on `consoleLanAccess` and restart the bridge, then open `http://<your-LAN-IP>:3100/live` — LAN access always enforces the token, the Host allowlist only admits the machine's real NIC IPs (domains are still rejected), and the token lives in `state/console-token` and is never logged. Panel-by-panel details are in [the console guide](docs/guides/CONSOLE.md).
 
 ## Local console
 
