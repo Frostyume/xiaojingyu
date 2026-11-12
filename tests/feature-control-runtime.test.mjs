@@ -89,7 +89,7 @@ try {
     handleOwnerCommand: async () => false
   });
 
-  // ── 1. 端点快照：7 板块 / 22 卡片 / 群聊剧场与分享引擎总闸 ─────────────
+  // ── 1. 端点快照：7 板块 / 24 卡片 / 群聊剧场与分享引擎总闸 ─────────────
   const snap = await call('/api/features/control');
   assert.equal(snap.status, 200, 'GET /api/features/control 应成功');
   assert.equal(snap.json.ok, true);
@@ -97,7 +97,7 @@ try {
   assert.equal(snap.json.boards.find((b) => b.id === 'chat').master, 'groupChat');
   assert.equal(snap.json.boards.find((b) => b.id === 'shareEngine').master, 'shareModule');
   assert.deepEqual(snap.json.modules.map((m) => m.id).sort(), FEATURE_CARDS.map((c) => c.id).sort());
-  assert.equal(snap.json.modules.length, 22);
+  assert.equal(snap.json.modules.length, 24);
   for (const module of snap.json.modules) {
     assert.equal(typeof module.enabled, 'boolean', `${module.id} 必须只有一个布尔主开关`);
     assert.ok(module.board, `${module.id} 必须归属板块`);
@@ -119,13 +119,13 @@ try {
   assert.equal(h.cfg.consoleLanAccess, false, '关闭必须写回 false');
   assert.equal(snap.json.modules.find((m) => m.id === 'groupChat').enabled, true, '群聊剧场默认开');
   const chatModules = snap.json.boards.find((b) => b.id === 'chat').modules.map((m) => m.id);
-  assert.deepEqual(chatModules, ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatNightQuiet']);
+  assert.deepEqual(chatModules, ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatPixelSticker', 'chatMoodVoice', 'chatNightQuiet']);
   for (const id of ['aiTips', 'lifeFun', 'financeTips', 'llmTips', 's16Share', 'customShare']) {
     const module = snap.json.modules.find((m) => m.id === id);
     assert.equal(module.board, 'shareEngine', `${id} 应归入分享引擎板块`);
     assert.ok(module.dependencies.some((d) => d.key === 'features.shareModule' && d.ok), `${id} 应声明分享引擎总闸依赖`);
   }
-  console.log('OK 快照：7 板块 / 22 模块 / 群聊剧场与分享引擎总闸');
+  console.log('OK 快照：7 板块 / 24 模块 / 群聊剧场与分享引擎总闸');
 
   // ── 2. 关闭空间说说：配置落盘 + HTTP 入口拒绝 ──────────────────────────
   const offQzone = await call('/api/features/control', { method: 'POST', body: { id: 'qzone', enabled: false } });

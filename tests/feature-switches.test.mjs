@@ -207,11 +207,11 @@ const sharePreview = await inner.runShareModule('ai_tips', { dryRun: true, force
 assert.notEqual(sharePreview.status, 'disabled', '分享模块 dryRun 预览不应被主开关拦住');
 
 // 9. 控制台信息架构：群聊剧场总闸 + 15 个 features 模块各一张卡
-const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatNightQuiet'];
+const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatPixelSticker', 'chatMoodVoice', 'chatNightQuiet'];
 // 控制台访问板块：局域网开关默认关，显式 true 才开（与配置键卡片同一套防假开关口径）。
 const CONSOLE_CARDS = ['consoleLanAccess'];
 assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS].sort());
-assert.equal(FEATURE_CARDS.length, 22);
+assert.equal(FEATURE_CARDS.length, 24);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
 assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner', 'console']);
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'chat').master, 'groupChat');
@@ -220,7 +220,7 @@ for (const board of FEATURE_BOARDS) {
   assert(FEATURE_CARDS.some((card) => card.board === board.id), `板块 ${board.id} 必须至少有一个模块`);
 }
 const chatChildren = FEATURE_CARDS.filter((card) => card.board === 'chat' && !card.boardMaster).map((card) => card.id);
-assert.deepEqual(chatChildren, ['chatActivity', 'chatProactive', 'chatStickers', 'chatNightQuiet']);
+assert.deepEqual(chatChildren, ['chatActivity', 'chatProactive', 'chatStickers', 'chatPixelSticker', 'chatMoodVoice', 'chatNightQuiet']);
 const shareEngineChildren = FEATURE_CARDS.filter((card) => card.board === 'shareEngine' && !card.boardMaster).map((card) => card.id);
 assert.deepEqual(shareEngineChildren.sort(), ['aiTips', 'customShare', 'esportsFeed', 'financeTips', 'lifeFun', 'llmTips', 's16Share', 'share'].sort());
 for (const card of FEATURE_CARDS) {

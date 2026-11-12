@@ -1,0 +1,146 @@
+{
+ "version": 2,
+ "count": 20,
+ "stickers": [
+  {
+   "file": "excited-n-full.png",
+   "mood": "excited",
+   "base": "whale-pixel-excited.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "excited-n-head.png",
+   "mood": "excited",
+   "base": "whale-pixel-excited.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "excited-f-full.png",
+   "mood": "excited",
+   "base": "whale-pixel-excited.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "excited-f-head.png",
+   "mood": "excited",
+   "base": "whale-pixel-excited.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "happy-n-full.png",
+   "mood": "happy",
+   "base": "whale-pixel-wave.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "happy-n-head.png",
+   "mood": "happy",
+   "base": "whale-pixel-wave.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "happy-f-full.png",
+   "mood": "happy",
+   "base": "whale-pixel-wave.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "happy-f-head.png",
+   "mood": "happy",
+   "base": "whale-pixel-wave.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "idle-n-full.png",
+   "mood": "idle",
+   "base": "whale-pixel-idle.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "idle-n-head.png",
+   "mood": "idle",
+   "base": "whale-pixel-idle.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "idle-f-full.png",
+   "mood": "idle",
+   "base": "whale-pixel-idle.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "idle-f-head.png",
+   "mood": "idle",
+   "base": "whale-pixel-idle.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "tired-n-full.png",
+   "mood": "tired",
+   "base": "whale-pixel-sit.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "tired-n-head.png",
+   "mood": "tired",
+   "base": "whale-pixel-sit.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "tired-f-full.png",
+   "mood": "tired",
+   "base": "whale-pixel-sit.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "tired-f-head.png",
+   "mood": "tired",
+   "base": "whale-pixel-sit.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "pout-n-full.png",
+   "mood": "pout",
+   "base": "whale-pixel-pout.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "pout-n-head.png",
+   "mood": "pout",
+   "base": "whale-pixel-pout.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "pout-f-full.png",
+   "mood": "pout",
+   "base": "whale-pixel-pout.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "pout-f-head.png",
+   "mood": "pout",
+   "base": "whale-pixel-pout.png",
+   "flip": true,
+   "crop": "head"
+  }
+ ]
+}
