@@ -88,6 +88,9 @@ const tests = [
   // 回环服务验证接线（401/403/415 与安全头）。名单外提到 console/policy.js 后，
   // 这里锁的是「权限边界不许漂移」。
   'console-gate.test.mjs',
+  // 局域网访问（consoleLanAccess）安全不变量：默认只回环；开启后 bind 0.0.0.0
+  // 且强制令牌，Host 只额外放行本机真实网卡 IP，evil 域名/DNS-rebinding 仍拒。
+  'console-lan.test.mjs',
 ];
 let failed = 0;
 for (const test of tests) {

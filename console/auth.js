@@ -40,13 +40,15 @@ const CONTINUE = { action: 'continue' };
  * Host → 控制台令牌 → 智能体调用 → CSRF。
  * 返回值：{ action:'continue' } 或 { action:'respond', status, json?, html? }。
  */
-export function evaluateConsoleGate({ method, headers, pathname, searchParams, boundPort, consoleToken, authRequired, isLiveAgentToken }) {
-  // Host 头校验（DNS rebinding 硬化）：控制台只监听 127.0.0.1，攻击者把 TTL=0 的域名
+export function evaluateConsoleGate({ method, headers, pathname, searchParams, boundPort, consoleToken, authRequired, isLiveAgentToken, lanHosts = [] }) {
+  // Host 头校验（DNS rebinding 硬化）：控制台默认只监听 127.0.0.1，攻击者把 TTL=0 的域名
   // 解析到 127.0.0.1 时，浏览器会把 evil.com:3100 当作同源；卡住 Host 这一层后，
   // 这类请求在进入任何业务分支之前就被拒掉。反代/端口转发会被一并拒绝——这是有意的。
+  // consoleLanAccess 开启时 lanHosts 额外放行本机真实网卡 IP:port（仍拒绝一切域名）。
   const hostHeader = String(headers.host ?? '');
-  if (!hostHeaderAllowed(hostHeader, boundPort)) {
-    return json(403, `Host 头不被允许（${hostHeader || '缺失'}）：控制台只接受本机回环访问`);
+  if (!hostHeaderAllowed(hostHeader, boundPort, { lanHosts })) {
+    const scope = lanHosts.length ? '本机回环或已启用的局域网地址' : '本机回环';
+    return json(403, `Host 头不被允许（${hostHeader || '缺失'}）：控制台只接受${scope}访问`);
   }
   const suppliedToken = String(searchParams?.get('token') ?? headers['x-console-token'] ?? '');
   const tokenMatches = authTokenEquals(suppliedToken, consoleToken);
@@ -79,7 +81,7 @@ export function evaluateConsoleGate({ method, headers, pathname, searchParams, b
       return json(415, '请求必须是 application/json');
     }
     const origin = headers.origin;
-    if (origin && !originAllowed(origin, boundPort)) {
+    if (origin && !originAllowed(origin, boundPort, { lanHosts })) {
       return json(403, '跨站请求被拒绝');
     }
   }

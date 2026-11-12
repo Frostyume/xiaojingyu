@@ -101,19 +101,43 @@ export function readonlyStoreFor(pathname, method, { slangStoreWritable, sticker
   return '';
 }
 
-/** 控制台只监听回环：合法 Host/Origin 只可能是这三种拼写。 */
+/** 控制台默认只监听回环：合法 Host/Origin 只可能是这三种拼写。 */
 export function allowedLoopbackHosts(port) {
   return [`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`];
 }
 
-export function hostHeaderAllowed(hostHeader, port) {
-  return allowedLoopbackHosts(port).includes(String(hostHeader ?? '').toLowerCase());
+/**
+ * 从 os.networkInterfaces() 的形状里取本机非内部 IPv4，拼成 `<ip>:<port>` 名单。
+ * 只认真实网卡 IP：域名、IPv6、内部回环一律不进名单——Host 校验的 DNS-rebinding
+ * 防线不能因为开了局域网就放宽到任意主机名。纯函数：interfaces 由调用方注入，
+ * 单测不依赖跑测试那台机器的网卡。
+ */
+export function lanHostsFromInterfaces(port, interfaces) {
+  const hosts = [];
+  for (const addrs of Object.values(interfaces ?? {})) {
+    for (const addr of Array.isArray(addrs) ? addrs : []) {
+      if (!addr || addr.internal === true) continue;
+      const family = typeof addr.family === 'number' ? `IPv${addr.family}` : String(addr.family ?? '');
+      if (family !== 'IPv4') continue;
+      const ip = String(addr.address ?? '');
+      if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) continue;
+      hosts.push(`${ip}:${port}`);
+    }
+  }
+  return [...new Set(hosts)];
 }
 
-export function originAllowed(origin, port) {
+/** opts.lanHosts 缺省为空：行为与只监听回环时逐字一致；传入时额外放行这些 LAN IP:port。 */
+export function hostHeaderAllowed(hostHeader, port, { lanHosts = [] } = {}) {
+  const host = String(hostHeader ?? '').toLowerCase();
+  return allowedLoopbackHosts(port).includes(host) || lanHosts.some((entry) => String(entry).toLowerCase() === host);
+}
+
+export function originAllowed(origin, port, { lanHosts = [] } = {}) {
   let originHost = '';
   try { originHost = new URL(String(origin)).host; } catch {}
-  return allowedLoopbackHosts(port).includes(originHost);
+  return allowedLoopbackHosts(port).includes(originHost)
+    || lanHosts.some((entry) => String(entry).toLowerCase() === originHost.toLowerCase());
 }
 
 /** 初始化 consoleToken 的合法性判定（长度 16–128、仅 A-Za-z0-9_-）。 */

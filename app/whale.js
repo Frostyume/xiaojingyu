@@ -115,7 +115,7 @@ import { webSearch } from '../services/social/web-search.js';
 import { isQVersionWhaleSticker } from '../services/media/vision.js';
 import { loadReminderStore, saveReminderStore, addReminder, listReminders, cancelReminder, dueReminders } from '../services/social/reminders.js';
 import { getWeather } from '../services/social/weather.js';
-import { validConsoleTokenShape } from '../console/policy.js';
+import { validConsoleTokenShape, lanHostsFromInterfaces } from '../console/policy.js';
 import { CONSOLE_SECURITY_HEADERS, CONSOLE_TOKEN_PROMPT_HTML, authTokenEquals, evaluateConsoleGate, evaluateAgentAccess } from '../console/auth.js';
 import {
   CONTROL_TIERS_DEFAULTS,
@@ -949,6 +949,8 @@ function loadConfig() {
     questionTimeoutMs: file.questionTimeoutMs ?? 5 * 60 * 1000,
     consolePort: file.consolePort ?? 3100,
     consoleToken: file.consoleToken ?? '',
+    // 局域网访问：默认关闭（只监听回环）。开启后监听所有网卡并强制令牌鉴权，重启生效。
+    consoleLanAccess: file.consoleLanAccess === true,
     // 价目表覆盖项（可选）。留空即用 services/social/model-prices.js 的官方默认价。
     pricing: file.pricing ?? null,
     security: {
@@ -4449,6 +4451,11 @@ async function main() {
         const active = isNightQuietNow();
         return { line: `${active ? '当前在静默时段' : '当前不在静默时段'} · ${quiet.start}-${quiet.end}`, tone: active ? 'ok' : 'muted' };
       }
+      if (id === 'consoleLanAccess') {
+        return cfg.consoleLanAccess === true
+          ? { line: '配置已开启：重启桥接后局域网可访问，数据接口强制令牌', tone: 'warn' }
+          : { line: '仅本机回环可访问（默认）；开启后需重启桥接生效', tone: 'muted' };
+      }
       return { line: '', tone: 'muted' };
     };
     const modules = FEATURE_CARDS.map((card) => {
@@ -4626,6 +4633,11 @@ async function main() {
           lastPacketAgoMs: snow?.lastPacketAgoMs ?? null
         },
         tts: { ok: liveTtsOnline === true, checkedAt: liveTtsCheckedAt, provider: liveTtsProvider }
+      },
+      // 控制台访问范围（只读状态，供实时页/移动端展示；不含令牌与网卡地址）。
+      console: {
+        lanAccess: cfg.consoleLanAccess === true,
+        authRequired: cfg.consoleAuth?.enabled !== false || cfg.consoleLanAccess === true
       },
       usage: liveUsage,
       libraries: {
@@ -7445,7 +7457,12 @@ async function main() {
     // 控制台鉴权默认关闭：只要仍只监听回环，Host 校验与 CSRF 防护还在；
     // 打开 consoleAuth.enabled 后恢复令牌校验。令牌本身仍会生成，
     // 供 MCP 工具进程在需要时携带（与是否要求浏览器输入无关）。
-    const authRequired = cfg.consoleAuth?.enabled !== false;
+    // 局域网访问是硬例外：一旦监听 0.0.0.0，同一网络里任何设备都能碰到数据接口，
+    // 即使 consoleAuth.enabled=false 也强制令牌鉴权——LAN 暴露绝不匿名可读。
+    const consoleLanAccess = cfg.consoleLanAccess === true;
+    const authRequired = cfg.consoleAuth?.enabled !== false || consoleLanAccess;
+    // 本机真实网卡 IP:port 名单（仅局域网开启时非空），listen 之后按实际绑定端口生成。
+    let lanHosts = [];
     // 令牌必须非空才继续。下面鉴权处原来的写法是「令牌为空 ⇒ return true（放行）」，
     // 注释写着"启动时已自动生成并持久化"—— 等于承认那一行不可达，可它是一条**失败开放**的分支：
     // 一旦真的空了（写盘异常被吞、以后新增"关闭鉴权"之类的配置），控制台上那些
@@ -7455,6 +7472,7 @@ async function main() {
     if (!tokenValid && configuredToken) log(`控制台 config.consoleToken 长度/字符不合法，已忽略并回退到自动生成令牌`);
     if (!configuredToken) log('控制台未配置 consoleToken，使用 state/console-token 中的持久化令牌');
     if (!authRequired) log('控制台鉴权已关闭（仅本机回环，Host/CSRF 防护仍生效）；如需恢复请设置 config.consoleAuth.enabled=true');
+    if (consoleLanAccess && cfg.consoleAuth?.enabled === false) log('局域网访问已开启：即使 consoleAuth.enabled=false，控制台也强制要求访问令牌');
     // 运行时以实际生效的令牌为准（schema/控制台只显示「已配置」，不会回传明文）。
     cfg.consoleToken = consoleToken;
     // 仿真会话工具必须仍命中当前模式的白名单/准入；避免白名单移除后旧 agentToken 继续读状态。
@@ -7534,8 +7552,9 @@ async function main() {
         res.end();
         return;
       }
-      // Host 头校验（DNS rebinding 硬化）：控制台只监听 127.0.0.1，因此合法请求的 Host
-      // 只可能是 127.0.0.1 / localhost / [::1] 加本端口。攻击者用一个 TTL=0 的域名解析到
+      // Host 头校验（DNS rebinding 硬化）：控制台默认只监听 127.0.0.1，因此合法请求的 Host
+      // 只可能是 127.0.0.1 / localhost / [::1] 加本端口；consoleLanAccess 开启时额外放行
+      // 本机真实网卡 IP:port（lanHosts），但一切域名仍然拒绝。攻击者用一个 TTL=0 的域名解析到
       // 127.0.0.1 时，浏览器会把 evil.com:3100 当作同源，Origin 校验随之失效；卡住 Host
       // 这一层后，这类请求在进入任何业务分支之前就被拒掉。
       // 反代/端口转发场景会被一并拒绝——这是有意的（要远程访问请用 SSH 隧道并自行承担）。
@@ -7552,7 +7571,8 @@ async function main() {
         boundPort,
         consoleToken,
         authRequired,
-        isLiveAgentToken
+        isLiveAgentToken,
+        lanHosts
       });
       if (gate.action === 'respond') {
         if (gate.html) {
@@ -13586,9 +13606,17 @@ async function main() {
         sendJson({ ok: false, error: error?.message ?? String(error) }, status);
       }
     });
-    server.listen(port, '127.0.0.1', () => {
+    server.listen(port, consoleLanAccess ? '0.0.0.0' : '127.0.0.1', () => {
       consoleBoundPort = server.address()?.port ?? port;
-      log(`本地控制台已启动：http://127.0.0.1:${consoleBoundPort}`);
+      if (consoleLanAccess) {
+        lanHosts = lanHostsFromInterfaces(consoleBoundPort, os.networkInterfaces());
+        log(`本地控制台已启动：http://127.0.0.1:${consoleBoundPort}`);
+        log(`局域网访问已开启（监听 0.0.0.0:${consoleBoundPort}，强制令牌鉴权）；手机与本机需在同一 WiFi`);
+        for (const host of lanHosts) log(`局域网实时页：http://${host}/live（令牌见 state/console-token，勿外传）`);
+        if (!lanHosts.length) log('未找到非内部 IPv4 网卡：局域网设备暂时无法访问，请检查网络连接后重启桥接');
+      } else {
+        log(`本地控制台已启动：http://127.0.0.1:${consoleBoundPort}`);
+      }
     });
     // 端口被占用说明已有实例在跑：以 exit 2 退出，守护脚本会识别为"已有实例"而不是无限重启
     server.on('error', (error) => {
