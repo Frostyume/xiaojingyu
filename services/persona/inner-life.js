@@ -179,6 +179,16 @@ export function createInnerLife(deps) {
     mood.history = merge(MOOD_V3_DEFAULTS.history, raw.mood?.history);
     mood.eventNudge = merge(MOOD_V3_DEFAULTS.eventNudge || {}, raw.mood?.eventNudge);
     mood.autoEvent = merge(MOOD_V3_DEFAULTS.autoEvent || {}, raw.mood?.autoEvent);
+    // 目标值限速漂移：复用认知区的独立开关；关闭时 persona-state 完全不读这一段。
+    const drift = cfg.simulation?.cognition?.moodDrift;
+    if (drift && typeof drift === 'object' && !Array.isArray(drift)) {
+      mood.moodDrift = {
+        ...merge(MOOD_V3_DEFAULTS.moodDrift, drift),
+        windowH: Number(drift.windowH) || MOOD_V3_DEFAULTS.moodDrift.windowH,
+        risePerHour: Number.isFinite(Number(drift.risePerHour)) ? Number(drift.risePerHour) : MOOD_V3_DEFAULTS.moodDrift.risePerHour,
+        fallPerHour: Number.isFinite(Number(drift.fallPerHour)) ? Number(drift.fallPerHour) : MOOD_V3_DEFAULTS.moodDrift.fallPerHour
+      };
+    }
     return {
       enabled: raw.enabled === true,
       dryRun: raw.dryRun === true,

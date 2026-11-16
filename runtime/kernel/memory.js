@@ -39,17 +39,83 @@ function rowToFact(row) {
     weight: Number(row.weight),
     lastSeenAt: row.last_seen_at === null ? null : Number(row.last_seen_at),
     expiresAt: row.expires_at === null ? null : Number(row.expires_at),
+    validFrom: row.valid_from === undefined || row.valid_from === null ? null : Number(row.valid_from),
+    validTo: row.valid_to === undefined || row.valid_to === null ? null : Number(row.valid_to),
     createdAt: Number(row.created_at)
   };
 }
 
 export class MemoryStore {
-  constructor({ db, now = () => Date.now(), logger = () => {} } = {}) {
+  constructor({ db, now = () => Date.now(), logger = () => {}, invalidation = null } = {}) {
     if (!db) throw new Error('MemoryStore 需要 db');
     this.db = db;
     this.now = now;
     this.logger = logger;
     this.ftsReady = true;
+    // 事实失效（默认关闭）：关闭时不读不写有效时间列，写入/检索 SQL 与旧版一致。
+    this.invalidationEnabled = invalidation?.enabled === true && this._ensureValidityColumns();
+    if (invalidation?.enabled === true && !this.invalidationEnabled) {
+      logger('记忆失效已请求启用，但数据库缺少有效时间列，按关闭处理');
+    }
+  }
+
+  /**
+   * 可重入补列。旧行 valid_from 回填 created_at，valid_to 保持 NULL（即一直有效）。
+   * 只加列/补空值，不删除、不改正文。
+   */
+  _ensureValidityColumns() {
+    try {
+      const columns = this.db.all('PRAGMA table_info(memory_facts)').map((c) => String(c.name));
+      const addColumn = (name, definition) => {
+        if (!columns.includes(name)) this.db.exec(`ALTER TABLE memory_facts ADD COLUMN ${name} ${definition}`);
+      };
+      addColumn('valid_from', 'INTEGER');
+      addColumn('valid_to', 'INTEGER');
+      addColumn('invalidated_by', 'TEXT');
+      addColumn('invalidate_reason', 'TEXT');
+      this.db.run('UPDATE memory_facts SET valid_from = created_at WHERE valid_from IS NULL');
+      return true;
+    } catch (error) {
+      this.logger(`记忆有效时间列初始化失败：${error?.message ?? error}`);
+      return false;
+    }
+  }
+
+  /** 默认只取有效行；传 asOf 时取那个时刻有效的行（旧版本有效时间用 created_at 兜底）。 */
+  _validityWhere(asOf = null) {
+    if (!this.invalidationEnabled) return null;
+    if (asOf === null || asOf === undefined) return { sql: 'valid_to IS NULL', params: [] };
+    const at = Number(asOf);
+    if (!Number.isFinite(at)) return { sql: 'valid_to IS NULL', params: [] };
+    return {
+      sql: 'COALESCE(valid_from, created_at) <= ? AND (valid_to IS NULL OR valid_to > ?)',
+      params: [at, at]
+    };
+  }
+
+  /**
+   * 同 scope/owner/topic 且正文不同 = 冲突。确定性判断，不调用模型。
+   * topic 为空时不判定：宁可漏判，也不能把整个会话压成一条事实。
+   */
+  _invalidateConflicts({ scope, ownerKey, topic, hash, text, at }) {
+    if (!topic) return 0;
+    const rows = this.db.all(
+      `SELECT id FROM memory_facts
+       WHERE scope = ? AND (owner_key = ? OR (owner_key IS NULL AND ? IS NULL)) AND topic = ?
+         AND valid_to IS NULL AND (fact_hash IS NULL OR fact_hash <> ?) AND fact <> ?
+       ORDER BY id`,
+      scope, ownerKey, ownerKey, topic, hash, text
+    );
+    if (!rows.length) return 0;
+    const row = this.db.get('SELECT id FROM memory_facts WHERE fact_hash = ?', hash);
+    if (!row) return 0;
+    const placeholders = rows.map(() => '?').join(',');
+    this.db.run(
+      `UPDATE memory_facts SET valid_to = ?, invalidated_by = ?, invalidate_reason = 'superseded'
+       WHERE id IN (${placeholders}) AND valid_to IS NULL`,
+      at, String(row.id), ...rows.map((r) => Number(r.id))
+    );
+    return rows.length;
   }
 
   _ftsUpsert(fact) {
@@ -82,20 +148,38 @@ export class MemoryStore {
     const at = this.now();
     const hash = hashFact(scope, ownerKey, text);
     const conf = Math.min(1, Math.max(0, Number(confidence) || 0.7));
+    const topicValue = normalize(topic);
+    const textValue = text.slice(0, 500);
+    const validityOn = this.invalidationEnabled;
+    // 关闭失效开关时下面拼出的 SQL 与旧版逐字一致；开启时只多写 valid_from。
     this.db.run(
-      `INSERT INTO memory_facts(scope, owner_key, topic, fact, source, confidence, weight, last_seen_at, expires_at, created_at, updated_at, fact_hash)
-       VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
+      `INSERT INTO memory_facts(scope, owner_key, topic, fact, source, confidence, weight, last_seen_at, expires_at, created_at, updated_at, fact_hash${validityOn ? ', valid_from' : ''})
+       VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?${validityOn ? ', ?' : ''})
        ON CONFLICT(fact_hash) DO UPDATE SET
          weight = memory_facts.weight + 1,
          confidence = MAX(memory_facts.confidence, excluded.confidence),
          last_seen_at = excluded.last_seen_at,
          updated_at = excluded.updated_at,
-         topic = CASE WHEN excluded.topic != '' THEN excluded.topic ELSE memory_facts.topic END`,
-      scope, ownerKey, normalize(topic), text.slice(0, 500), String(source || '').slice(0, 100),
-      conf, at, expiresAt === null ? null : Number(expiresAt), at, at, hash
+         topic = CASE WHEN excluded.topic != '' THEN excluded.topic ELSE memory_facts.topic END${validityOn ? ',\n         valid_from = COALESCE(memory_facts.valid_from, excluded.valid_from)' : ''}`,
+      scope, ownerKey, topicValue, textValue, String(source || '').slice(0, 100),
+      conf, at, expiresAt === null ? null : Number(expiresAt), at, at, hash,
+      ...(validityOn ? [at] : [])
     );
-    this._ftsUpsert({ hash, fact: text.slice(0, 500), topic: normalize(topic), scope, ownerKey });
-    return this.db.get('SELECT * FROM memory_facts WHERE fact_hash = ?', hash);
+    this._ftsUpsert({ hash, fact: textValue, topic: topicValue, scope, ownerKey });
+    if (!validityOn) return this.db.get('SELECT * FROM memory_facts WHERE fact_hash = ?', hash);
+    let row = this.db.get('SELECT * FROM memory_facts WHERE fact_hash = ?', hash);
+    if (row) {
+      // 旧说法被重新写入：恢复有效；冲突的旧行失效，但正文与历史都保留。
+      if (row.valid_to !== null && row.valid_to !== undefined) {
+        this.db.run(
+          'UPDATE memory_facts SET valid_to = NULL, invalidated_by = NULL, invalidate_reason = NULL WHERE id = ?',
+          row.id
+        );
+      }
+      this._invalidateConflicts({ scope, ownerKey, topic: topicValue, hash, text: textValue, at });
+      row = this.db.get('SELECT * FROM memory_facts WHERE id = ?', row.id);
+    }
+    return row;
   }
 
   _ftsQuery(query) {
@@ -131,10 +215,13 @@ export class MemoryStore {
     return [...new Set([q, ...grams])].slice(0, 10);
   }
 
-  search(query, { scopes = ['group', 'global'], ownerKey = null, limit = MEMORY_DEFAULTS.limit, minConfidence = MEMORY_DEFAULTS.minConfidence } = {}) {
+  search(query, { scopes = ['group', 'global'], ownerKey = null, limit = MEMORY_DEFAULTS.limit, minConfidence = MEMORY_DEFAULTS.minConfidence, asOf = null } = {}) {
     const at = this.now();
     const allowed = Array.isArray(scopes) && scopes.length ? scopes : ['group', 'global'];
     const scopePlaceholders = allowed.map(() => '?').join(',');
+    const validity = this._validityWhere(asOf);
+    const validSql = validity ? ` AND ${validity.sql}` : '';
+    const validParams = validity ? validity.params : [];
     const ids = this._ftsQuery(query);
     let rows = [];
     if (ids.length) {
@@ -142,9 +229,9 @@ export class MemoryStore {
       rows = this.db.all(
         `SELECT * FROM memory_facts WHERE id IN (${placeholders})
          AND scope IN (${scopePlaceholders}) AND (scope = 'global' OR owner_key = ?)
-         AND confidence >= ? AND (expires_at IS NULL OR expires_at > ?)
+         AND confidence >= ? AND (expires_at IS NULL OR expires_at > ?)${validSql}
          LIMIT 50`,
-        ...ids, ...allowed, ownerKey, Number(minConfidence), at
+        ...ids, ...allowed, ownerKey, Number(minConfidence), at, ...validParams
       );
     } else {
       const terms = this._likeTerms(query);
@@ -155,9 +242,9 @@ export class MemoryStore {
         `SELECT * FROM memory_facts
          WHERE (${likeClause}) AND scope IN (${scopePlaceholders})
          AND (scope = 'global' OR owner_key = ?)
-         AND confidence >= ? AND (expires_at IS NULL OR expires_at > ?)
+         AND confidence >= ? AND (expires_at IS NULL OR expires_at > ?)${validSql}
          ORDER BY weight DESC, last_seen_at DESC LIMIT 50`,
-        ...likeParams, ...allowed, ownerKey, Number(minConfidence), at
+        ...likeParams, ...allowed, ownerKey, Number(minConfidence), at, ...validParams
       );
     }
     // 相关度不能只看 FTS rank：口语化查询经常让一条只被提过一次的旧事实
@@ -178,9 +265,9 @@ export class MemoryStore {
   }
 
   /** 生成可注入 prompt 的短块；exclude 里的内容（当前话题等）不重复列出。 */
-  contextBlock(query, { scopes, ownerKey, limit = 6, maxChars = MEMORY_DEFAULTS.maxChars, exclude = [] } = {}) {
+  contextBlock(query, { scopes, ownerKey, limit = 6, maxChars = MEMORY_DEFAULTS.maxChars, exclude = [], asOf = null } = {}) {
     const excluded = new Set((Array.isArray(exclude) ? exclude : []).map((x) => normalize(x).toLowerCase()));
-    const facts = this.search(query, { scopes, ownerKey, limit: Math.max(limit * 2, limit) })
+    const facts = this.search(query, { scopes, ownerKey, limit: Math.max(limit * 2, limit), asOf })
       .filter((f) => !excluded.has(normalize(f.fact).toLowerCase()))
       .slice(0, limit);
     if (!facts.length) return '';
@@ -195,7 +282,7 @@ export class MemoryStore {
     return lines.length > 1 ? lines.join('\n') : '';
   }
 
-  list({ scope = '', ownerKey = '', source = '', limit = 100, includeExpired = false } = {}) {
+  list({ scope = '', ownerKey = '', source = '', limit = 100, includeExpired = false, asOf = null } = {}) {
     const at = this.now();
     const where = [];
     const params = [];
@@ -203,6 +290,8 @@ export class MemoryStore {
     if (ownerKey) { where.push('owner_key = ?'); params.push(ownerKey); }
     if (source) { where.push('source = ?'); params.push(source); }
     if (!includeExpired) { where.push('(expires_at IS NULL OR expires_at > ?)'); params.push(at); }
+    const validity = this._validityWhere(asOf);
+    if (validity) { where.push(validity.sql); params.push(...validity.params); }
     const sql = `SELECT * FROM memory_facts ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY weight DESC, last_seen_at DESC LIMIT ?`;
     return this.db.all(sql, ...params, Math.min(1000, Math.max(1, Number(limit) || 100))).map(rowToFact);
   }
