@@ -43,6 +43,11 @@ import * as corePromptBudget from '../runtime/kernel/prompt-budget.js';
 import * as coreWakeScore from '../runtime/kernel/wake-score.js';
 import * as coreModelRouting from '../runtime/kernel/model-routing.js';
 import * as coreMemory from '../runtime/kernel/memory.js';
+import * as cognitionExperience from '../runtime/persona/cognition/experience.js';
+import * as cognitionContextTiers from '../runtime/persona/cognition/context-tiers.js';
+import * as cognitionReunion from '../runtime/persona/cognition/reunion.js';
+import * as cognitionFish from '../runtime/persona/cognition/fish-memory.js';
+import * as cognitionSleep from '../runtime/persona/cognition/sleep-consolidation.js';
 import * as coreSessionMap from '../runtime/kernel/session-map.js';
 import * as coreRelationships from '../runtime/persona/relationships.js';
 import * as coreRelationshipModel from '../runtime/persona/relationship-model.js';
@@ -276,6 +281,10 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     coreAtomicWriteText: coreStateFile.atomicWriteText,
     coreReadJsonSafe: coreStateFile.readJsonSafe,
     ...coreHealth, ...corePromptBudget, ...coreWakeScore, ...coreModelRouting, ...coreMemory,
+    ...cognitionExperience, ...cognitionContextTiers, ...cognitionReunion,
+    fishConversationAnchor: cognitionFish.conversationAnchor,
+    fishHintForTurn: cognitionFish.hintForTurn,
+    ...cognitionSleep,
     ...coreSessionMap, ...coreRelationships, ...coreRelationshipModel, ...coreRichCard, ...corePersonaPack, ...coreStyleContext, ...coreDailyReport,
     relationshipStageLabel: coreRelationshipModel.stageLabel,
     relationshipAxisWords: coreRelationshipModel.axisWords,

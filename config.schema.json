@@ -1960,6 +1960,200 @@
             }
           }
         },
+        "cognition": {
+          "type": "object",
+          "properties": {
+            "contextTiers": {
+              "type": "object",
+              "properties": {
+                "deepMaxChars": {
+                  "title": "深海字数配额",
+                  "type": "number",
+                  "default": 600,
+                  "minimum": 100,
+                  "maximum": 4000
+                },
+                "enabled": {
+                  "title": "水层召回（表层/温跃层/深海）",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；开启后上下文按表层/温跃层/深海分层，先摘要后展开，固定字数配额；关闭时输出与旧逻辑一致"
+                },
+                "surfaceMaxChars": {
+                  "title": "表层字数配额",
+                  "type": "number",
+                  "default": 900,
+                  "minimum": 100,
+                  "maximum": 4000
+                },
+                "thermoclineMaxChars": {
+                  "title": "温跃层字数配额",
+                  "type": "number",
+                  "default": 900,
+                  "minimum": 100,
+                  "maximum": 4000
+                }
+              }
+            },
+            "fishMemory": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "鱼的记忆彩蛋",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；极低频地表现一次“刚才走神”的可爱感，只注入提示词，不改记忆/心情"
+                },
+                "maxSessionMs": {
+                  "title": "会话最长持续（ms）",
+                  "type": "number",
+                  "default": 420000,
+                  "minimum": 60000,
+                  "maximum": 3600000
+                },
+                "minSessionMs": {
+                  "title": "会话最短持续（ms）",
+                  "type": "number",
+                  "default": 180000,
+                  "minimum": 60000,
+                  "maximum": 3600000
+                },
+                "probability": {
+                  "title": "触发概率",
+                  "type": "number",
+                  "default": 0.08,
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            },
+            "invalidation": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "事实失效不删除（as-of）",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；开启后同话题冲突的新事实只让旧事实失效（valid_to），不覆盖正文、不删行；检索默认只看有效行，可传 asOf 回看"
+                }
+              }
+            },
+            "memoryStrength": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "记忆强度（半衰期/回忆强化）",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；开启后共同经历按类型半衰期变淡、被重提时加亮，并按有效强度排序与过滤弱记忆；不删除历史"
+                },
+                "minEffective": {
+                  "title": "弱记忆隐藏门槛",
+                  "type": "number",
+                  "default": 0.15,
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            },
+            "moodDrift": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "心情目标值限速",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；事件先改目标、现值按每小时速率追随；同源同向 6h 内第 2 次才生效，关闭时完全走旧逻辑"
+                },
+                "fallPerHour": {
+                  "title": "向坏每小时下降上限",
+                  "type": "number",
+                  "default": 0.08,
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "risePerHour": {
+                  "title": "向好后每小时上升上限",
+                  "type": "number",
+                  "default": 0.12,
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "windowH": {
+                  "title": "同源同向判定窗口（小时）",
+                  "type": "number",
+                  "default": 6,
+                  "minimum": 1,
+                  "maximum": 168
+                }
+              }
+            },
+            "reunion": {
+              "type": "object",
+              "properties": {
+                "cooldownHours": {
+                  "title": "最短再次提示间隔（小时）",
+                  "type": "number",
+                  "default": 72,
+                  "minimum": 1,
+                  "maximum": 720
+                },
+                "enabled": {
+                  "title": "重逢唤醒",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；距上次互动 ≥7 天后第一次开口，注入一条高强度共同经历当破冰提示；每个久别周期一次、72h 内最多一次，不自动发消息"
+                },
+                "gapDays": {
+                  "title": "久别天数门槛",
+                  "type": "number",
+                  "default": 7,
+                  "minimum": 1,
+                  "maximum": 365
+                }
+              }
+            },
+            "sleepConsolidation": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "睡眠期巩固（离线整理+删除提案）",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；开启后每夜或连续空闲时离线整理经历，产出可追溯观察（新证据只精化不覆盖）；永不自动删除，删除只生成待审批提案"
+                },
+                "hour": {
+                  "title": "每夜整理时间（0-23，北京时间）",
+                  "type": "number",
+                  "default": 4,
+                  "minimum": 0,
+                  "maximum": 23
+                },
+                "idleMs": {
+                  "title": "空闲多久后整理（ms）",
+                  "type": "number",
+                  "default": 1800000,
+                  "minimum": 60000,
+                  "maximum": 86400000
+                },
+                "maxEpisodes": {
+                  "title": "单次整理经历数上限",
+                  "type": "number",
+                  "default": 20,
+                  "minimum": 1,
+                  "maximum": 200
+                },
+                "maxLlmCalls": {
+                  "title": "单次整理模型调用上限",
+                  "type": "number",
+                  "default": 3,
+                  "minimum": 0,
+                  "maximum": 20
+                }
+              }
+            }
+          }
+        },
         "valueScore": {
           "type": "object",
           "properties": {
@@ -5626,6 +5820,222 @@
       "type": "number",
       "restart": "none",
       "advanced": false
+    },
+    {
+      "key": "simulation.cognition.contextTiers.deepMaxChars",
+      "label": "深海字数配额",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 100,
+      "max": 4000
+    },
+    {
+      "key": "simulation.cognition.contextTiers.enabled",
+      "label": "水层召回（表层/温跃层/深海）",
+      "group": "认知升级",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.cognition.contextTiers.surfaceMaxChars",
+      "label": "表层字数配额",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 100,
+      "max": 4000
+    },
+    {
+      "key": "simulation.cognition.contextTiers.thermoclineMaxChars",
+      "label": "温跃层字数配额",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 100,
+      "max": 4000
+    },
+    {
+      "key": "simulation.cognition.fishMemory.enabled",
+      "label": "鱼的记忆彩蛋",
+      "group": "认知升级",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.cognition.fishMemory.maxSessionMs",
+      "label": "会话最长持续（ms）",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 60000,
+      "max": 3600000
+    },
+    {
+      "key": "simulation.cognition.fishMemory.minSessionMs",
+      "label": "会话最短持续（ms）",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 60000,
+      "max": 3600000
+    },
+    {
+      "key": "simulation.cognition.fishMemory.probability",
+      "label": "触发概率",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "simulation.cognition.invalidation.enabled",
+      "label": "事实失效不删除（as-of）",
+      "group": "认知升级",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "simulation.cognition.memoryStrength.enabled",
+      "label": "记忆强度（半衰期/回忆强化）",
+      "group": "认知升级",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "simulation.cognition.memoryStrength.minEffective",
+      "label": "弱记忆隐藏门槛",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "bridge",
+      "advanced": true,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "simulation.cognition.moodDrift.enabled",
+      "label": "心情目标值限速",
+      "group": "认知升级",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.cognition.moodDrift.fallPerHour",
+      "label": "向坏每小时下降上限",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "simulation.cognition.moodDrift.risePerHour",
+      "label": "向好后每小时上升上限",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "key": "simulation.cognition.moodDrift.windowH",
+      "label": "同源同向判定窗口（小时）",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 168
+    },
+    {
+      "key": "simulation.cognition.reunion.cooldownHours",
+      "label": "最短再次提示间隔（小时）",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 720
+    },
+    {
+      "key": "simulation.cognition.reunion.enabled",
+      "label": "重逢唤醒",
+      "group": "认知升级",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.cognition.reunion.gapDays",
+      "label": "久别天数门槛",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 365
+    },
+    {
+      "key": "simulation.cognition.sleepConsolidation.enabled",
+      "label": "睡眠期巩固（离线整理+删除提案）",
+      "group": "认知升级",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.cognition.sleepConsolidation.hour",
+      "label": "每夜整理时间（0-23，北京时间）",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 23
+    },
+    {
+      "key": "simulation.cognition.sleepConsolidation.idleMs",
+      "label": "空闲多久后整理（ms）",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 60000,
+      "max": 86400000
+    },
+    {
+      "key": "simulation.cognition.sleepConsolidation.maxEpisodes",
+      "label": "单次整理经历数上限",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 200
+    },
+    {
+      "key": "simulation.cognition.sleepConsolidation.maxLlmCalls",
+      "label": "单次整理模型调用上限",
+      "group": "认知升级",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 20
     },
     {
       "key": "features.aiTips",

@@ -83,6 +83,11 @@ import { scoreMessage, scoreInputsFromState, VALUE_SCORE_DEFAULTS, topicOverlapS
 import { resolveModelRoutes, routeSignature } from '../runtime/kernel/model-routing.js';
 import { MemoryStore } from '../runtime/kernel/memory.js';
 import { SessionMapStore } from '../runtime/kernel/session-map.js';
+import { ExperienceStore } from '../runtime/persona/cognition/experience.js';
+import { buildContextTiers } from '../runtime/persona/cognition/context-tiers.js';
+import { reunionId, noteReunionInteraction, reunionPromptLine } from '../runtime/persona/cognition/reunion.js';
+import { conversationAnchor as fishConversationAnchor, hintForTurn as fishHintForTurn } from '../runtime/persona/cognition/fish-memory.js';
+import { SleepConsolidator, nextSleepAt, isIdleSince } from '../runtime/persona/cognition/sleep-consolidation.js';
 import { RelationshipStore } from '../runtime/persona/relationships.js';
 import { stageLabel as relationshipStageLabel, axisWords as relationshipAxisWords, computeBond as relationshipBond } from '../runtime/persona/relationship-model.js';
 import { formatRichSegment } from '../runtime/persona/rich-card.js';
@@ -1374,6 +1379,31 @@ function loadConfig() {
         : {}
     )
   };
+  // 认知升级：七个独立开关，默认全关；关哪个就回到哪条旧路径，彼此不联动。
+  {
+    const at = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
+    const raw = at(cfg.simulation?.cognition);
+    cfg.simulation.cognition = {
+      memoryStrength: { enabled: false, minEffective: 0.15, ...at(raw.memoryStrength) },
+      invalidation: { enabled: false, ...at(raw.invalidation) },
+      contextTiers: { enabled: false, surfaceMaxChars: 900, thermoclineMaxChars: 900, deepMaxChars: 600, ...at(raw.contextTiers) },
+      sleepConsolidation: {
+        enabled: false,
+        hour: 4,
+        idleMs: 30 * 60 * 1000,
+        maxEpisodes: 20,
+        maxLlmCalls: 3,
+        ...at(raw.sleepConsolidation)
+      },
+      reunion: { enabled: false, gapDays: 7, cooldownHours: 72, ...at(raw.reunion) },
+      fishMemory: { enabled: false, probability: 0.08, minSessionMs: 180000, maxSessionMs: 420000, ...at(raw.fishMemory) },
+      moodDrift: { enabled: false, windowH: 6, risePerHour: 0.12, fallPerHour: 0.08, ...at(raw.moodDrift) }
+    };
+    for (const name of Object.keys(cfg.simulation.cognition)) {
+      const leaf = cfg.simulation.cognition[name];
+      leaf.enabled = leaf.enabled === true;
+    }
+  }
   // 群日报：默认关闭，按群开启（groups 列表或 groupProfiles[key].dailyReport=true）。
   cfg.simulation.dailyReport = {
     enabled: false,
@@ -1586,6 +1616,13 @@ let stateWritable = true;
 let reliabilityDb = null;
 let sessionMapStore = null;
 let memoryStore = null;
+let experienceStore = null;
+// 认知开关的会话内锚点（只存内存，不跨重启）：重逢周期与鱼的记忆每会话次数。
+const reunionCycles = new Map();
+const fishMemoryTurns = new Map();
+let cognitionLastIncomingAt = 0;
+let sleepConsolidating = false;
+let lastSleepRunAt = 0;
 let relationshipStore = null;
 let relationshipsEnabledForKey = () => false;
 let budgetStore = null;
@@ -2038,7 +2075,18 @@ async function main() {
       inbox = new Inbox({ db, logger: (message) => log(`[inbox] ${message}`) });
       reliabilityDb = db;
       sessionMapStore = new SessionMapStore({ db, logger: (message) => log(`[db] ${message}`) });
-      memoryStore = new MemoryStore({ db, logger: (message) => log(`[memory] ${message}`) });
+      memoryStore = new MemoryStore({
+        db,
+        logger: (message) => log(`[memory] ${message}`),
+        invalidation: { enabled: cfg.simulation?.cognition?.invalidation?.enabled === true }
+      });
+      // 共同经历只在任一认知开关打开时才真正读写；构造本身不建表。
+      experienceStore = new ExperienceStore({
+        db,
+        logger: (message) => log(`[cognition] ${message}`),
+        strength: { enabled: cfg.simulation?.cognition?.memoryStrength?.enabled === true },
+        minEffective: cfg.simulation?.cognition?.memoryStrength?.minEffective
+      });
       relationshipStore = new RelationshipStore({
         db,
         ownerId: cfg.ownerQQ ?? '',
@@ -8043,6 +8091,31 @@ async function main() {
             requiresRestart: applied.requiresRestart,
             note: applied.requiresRestart.length ? '标注为 bridge/dsh 的项需重启对应进程后生效' : '已热更新'
           });
+          return;
+        }
+        if (req.method === 'GET' && url.pathname === '/api/cognition/proposals') {
+          const enabled = sleepConsolidationConfig().enabled === true;
+          const consolidator = sleepConsolidator();
+          const pending = consolidator ? consolidator.listPendingProposals({ limit: 50 }) : [];
+          sendJson({
+            ok: true,
+            enabled,
+            pending,
+            counts: consolidator ? consolidator.countProposals() : { pending: 0, approved: 0, rejected: 0, total: 0 }
+          });
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/cognition/proposals/decide') {
+          const body = await readBody();
+          const consolidator = sleepConsolidator();
+          if (!consolidator) { sendJson({ ok: false, error: '可靠性层未就绪' }, 503); return; }
+          const result = consolidator.decideProposal({
+            id: String(body.id ?? '').trim(),
+            decision: String(body.decision ?? '').trim()
+          });
+          if (!result.ok) { sendJson(result, 400); return; }
+          log(`[cognition] 删除提案已${result.status === 'approved' ? '批准' : '拒绝'}：${result.id}（删除 ${result.deleted} 段经历）`);
+          sendJson(result);
           return;
         }
         if (req.method === 'POST' && url.pathname === '/api/features/advanced') {
@@ -17137,6 +17210,233 @@ async function main() {
   }
 
   // ── 群聊仿真模式（simulation）唤醒调度 ──────────────────────────────────
+  // ── 认知升级（七个独立开关，默认全关） ───────────────────────────────────
+  function cognitionSettings() {
+    const c = cfg.simulation?.cognition;
+    return c && typeof c === 'object' && !Array.isArray(c) ? c : {};
+  }
+
+  function cognitionAnyEnabled() {
+    const c = cognitionSettings();
+    return ['memoryStrength', 'reunion', 'contextTiers', 'sleepConsolidation'].some((name) => c[name]?.enabled === true);
+  }
+
+  /** 入站消息落一条共同经历：按 10 分钟桶去重，只存摘要不存原文。 */
+  function maybeRecordCognitionExperience(key, msg, sender) {
+    if (!experienceStore || !msg || msg.isSelf || !cognitionAnyEnabled()) return;
+    const text = String(msg.plain || msg.text || '').trim();
+    if (!text) return;
+    try {
+      const at = Number(msg.time) || Date.now();
+      const bucketMs = 10 * 60 * 1000;
+      experienceStore.record({
+        occurredAt: at,
+        scopeKey: key,
+        topic: '对话',
+        summary: `${String(sender || '有人')}说「${text.slice(0, 40)}」`,
+        valence: 'neutral',
+        energy: 'low',
+        dedupeKey: `chat:${key}:${Math.floor(at / bucketMs)}`
+      });
+    } catch (error) {
+      log(`[cognition] 经历记录失败（忽略）：${error?.message ?? error}`);
+    }
+  }
+
+  function cognitionExperiencesFor(key, { limit = 50, includeWeak = true } = {}) {
+    if (!experienceStore) return [];
+    try {
+      return experienceStore.list({ scopeKey: key, limit, includeWeak });
+    } catch (error) {
+      log(`[cognition] 经历读取失败（忽略）：${error?.message ?? error}`);
+      return [];
+    }
+  }
+
+  function sleepConsolidationConfig() {
+    const value = cognitionSettings().sleepConsolidation;
+    const raw = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const num = (input, fallback) => (Number.isFinite(Number(input)) ? Number(input) : fallback);
+    return {
+      ...raw,
+      hour: num(raw.hour, 4),
+      idleMs: num(raw.idleMs, 30 * 60 * 1000),
+      maxEpisodes: num(raw.maxEpisodes, 20),
+      maxLlmCalls: num(raw.maxLlmCalls, 3)
+    };
+  }
+
+  function lastIncomingAcrossConversations() {
+    let last = Number(cognitionLastIncomingAt) || 0;
+    try {
+      for (const st of simulation.conversations?.values?.() ?? []) last = Math.max(last, Number(st?.lastIncomingAt) || 0);
+    } catch { /* 状态尚未就绪时用模块级时间 */ }
+    return last;
+  }
+
+  function sleepSummaryGenerator() {
+    if (!innerLife || typeof innerLife.runTurn !== 'function') return null;
+    if (cfg.simulation?.innerLife?.enabled === false) return null;
+    return async ({ topic, quote, summary }) => innerLife.runTurn([
+      '把下面这段经历整理成一句客观的概括，供以后回忆时使用。',
+      `话题：${String(topic ?? '').trim() || '未归类'}`,
+      `原话：${String(quote ?? '').trim() || '（无）'}`,
+      `拼出来的草稿：${String(summary ?? '').trim() || '（无）'}`,
+      '只输出这一句概括，不要引号、不要解释、不要加人称之外的评价。'
+    ].join('\n'), 60000);
+  }
+
+  function sleepConsolidator() {
+    if (!db) return null;
+    return new SleepConsolidator({
+      db,
+      logger: (message) => log(`[cognition] ${message}`),
+      config: sleepConsolidationConfig(),
+      auditFile: path.join(STATE_DIR, 'cognition', 'consolidation-audit.jsonl'),
+      generate: sleepSummaryGenerator()
+    });
+  }
+
+  async function runSleepConsolidation(reason = 'sleep') {
+    if (!db || sleepConsolidationConfig().enabled !== true || sleepConsolidating) return null;
+    sleepConsolidating = true;
+    try {
+      const consolidator = sleepConsolidator();
+      if (!consolidator) return null;
+      const result = await consolidator.run({
+        reason,
+        lastIncomingAt: lastIncomingAcrossConversations()
+      });
+      lastSleepRunAt = Date.now();
+      if (result?.done) {
+        log(`[cognition] 睡眠巩固(${reason})：看过 ${result.processed} 段经历，新增观察 ${result.observations} 条、`
+          + `精化 ${result.refined} 条，删除提案 ${result.proposals} 条（只提不删，等主人审批），模型调用 ${result.llmCalls} 次`);
+      }
+      return result;
+    } catch (error) {
+      log(`[cognition] 睡眠巩固失败（忽略）：${error?.message ?? error}`);
+      return null;
+    } finally {
+      sleepConsolidating = false;
+    }
+  }
+
+  /** 每夜一次（北京时间 hour:00）。关闭时把排队/历史失败的任务一并取消，不留告警。 */
+  function syncCognitionSleepJob() {
+    if (!jobQueue) return 0;
+    if (sleepConsolidationConfig().enabled !== true || !db) {
+      return (jobQueue.clearPending('cognition.sleep', '睡眠期巩固已关闭') || 0)
+        + (jobQueue.clearDead('cognition.sleep', '睡眠期巩固已关闭：历史失败任务不再重试') || 0);
+    }
+    const at = nextSleepAt(Date.now(), Number(sleepConsolidationConfig().hour) || 4);
+    jobQueue.enqueue({
+      type: 'cognition.sleep',
+      dedupeKey: 'cognition.sleep',
+      runAfter: at,
+      maxAttempts: 2
+    });
+    return at;
+  }
+
+  function cognitionReunionLine(key, st) {
+    const c = cognitionSettings().reunion;
+    if (c?.enabled !== true) return '';
+    try {
+      const lastMsg = [...(Array.isArray(st.recentMessages) ? st.recentMessages : [])].reverse().find((m) => m && !m.isSelf);
+      const userId = String(lastMsg?.userId || (key.startsWith('private:') ? key.slice('private:'.length) : '') || '');
+      if (!userId) return '';
+      const cycle = reunionCycles.get(reunionId(key, userId));
+      return reunionPromptLine({
+        enabled: true,
+        cycle,
+        now: Date.now(),
+        episodes: cognitionExperiencesFor(key, { limit: 50, includeWeak: true }),
+        gapDays: Number(c.gapDays) || 7,
+        cooldownHours: Number(c.cooldownHours) || 72
+      });
+    } catch (error) {
+      log(`[cognition] 重逢提示生成失败（忽略）：${error?.message ?? error}`);
+      return '';
+    }
+  }
+
+  function cognitionFishLine(key, st) {
+    const c = cognitionSettings().fishMemory;
+    if (c?.enabled !== true) return '';
+    try {
+      const now = Date.now();
+      const anchor = fishConversationAnchor(st.recentMessages, now);
+      const prev = fishMemoryTurns.get(key) || null;
+      const lastMsg = [...(Array.isArray(st.recentMessages) ? st.recentMessages : [])].reverse().find((m) => m && !m.isSelf);
+      const mustReply = key.startsWith('private:')
+        || Boolean(lastMsg && (lastMsg.atSelf === true || lastMsg.quoteTargetIsSelf === true || lastMsg.directed === true));
+      const hint = fishHintForTurn({
+        key,
+        now,
+        messages: st.recentMessages,
+        mood: null,
+        limits: {
+          probability: Number(c.probability) || 0.08,
+          minSessionMs: Number(c.minSessionMs) || 180000,
+          maxSessionMs: Number(c.maxSessionMs) || 420000
+        },
+        flags: {
+          enabled: true,
+          mustReply,
+          sessionStartedAt: anchor,
+          lastHintAt: Number(prev?.lastHintAt) || 0,
+          lastSessionAnchor: prev?.sessionAnchor ?? null,
+          hintCount: prev && prev.sessionAnchor === anchor ? Number(prev.count) || 0 : 0,
+          random: Math.random()
+        }
+      });
+      if (!hint) return '';
+      fishMemoryTurns.set(key, {
+        sessionAnchor: anchor,
+        lastHintAt: now,
+        count: (prev && prev.sessionAnchor === anchor ? Number(prev.count) || 0 : 0) + 1
+      });
+      return `${hint}\n\n`;
+    } catch (error) {
+      log(`[cognition] 走神提示生成失败（忽略）：${error?.message ?? error}`);
+      return '';
+    }
+  }
+
+  function cognitionObservationsText(key) {
+    if (!db || sleepConsolidationConfig().enabled !== true) return '';
+    // 观察是主人视角的整理产物；只注入主人私聊，避免把别的会话内容带进群里。
+    if (!cfg.ownerQQ || key !== `private:${cfg.ownerQQ}`) return '';
+    try {
+      const rows = sleepConsolidator()?.listObservations({ limit: 5 }) || [];
+      return rows.map((row) => String(row.summary || '')).filter(Boolean).join('；').slice(0, 600);
+    } catch {
+      return '';
+    }
+  }
+
+  function cognitionTierLine(key, st) {
+    const c = cognitionSettings().contextTiers;
+    if (c?.enabled !== true) return '';
+    try {
+      const result = buildContextTiers({
+        recentMessages: st.recentMessages,
+        experiences: cognitionExperiencesFor(key, { limit: 50, includeWeak: true }),
+        deep: cognitionObservationsText(key),
+        now: Date.now(),
+        budgets: {
+          surfaceMaxChars: Number(c.surfaceMaxChars) || 900,
+          thermoclineMaxChars: Number(c.thermoclineMaxChars) || 900,
+          deepMaxChars: Number(c.deepMaxChars) || 600
+        }
+      });
+      return result.text ? `${result.text}\n\n` : '';
+    } catch (error) {
+      log(`[cognition] 分层上下文生成失败（忽略）：${error?.message ?? error}`);
+      return '';
+    }
+  }
+
   function appendSimulationMessage(key, sender, textContent, plainContent, quoteTargetIsSelf, isOwner, messageId, media = [], userId = null, forwardIds = [], relationContext = {}) {
     const st = getSimulationState(key);
     const recentLimit = Number(cfg.simulation?.context?.recentLimit) || 100;
@@ -17218,6 +17518,8 @@ async function main() {
     st.preSleepWaitAccumMs = 0;
     st.recentMessages.push(msg);
     if (st.recentMessages.length > recentLimit) st.recentMessages.splice(0, st.recentMessages.length - recentLimit);
+    cognitionLastIncomingAt = msg.time;
+    maybeRecordCognitionExperience(key, msg, sender);
     st.unread.push(msg);
     if (st.unread.length > unreadLimit) st.unread.splice(0, st.unread.length - unreadLimit);
     const lowerPlain = String(plainContent ?? textContent ?? '');
@@ -17231,6 +17533,20 @@ async function main() {
     // 关系模型：熟悉度小步上升；主人固定。失败不影响消息处理。
     if (relationshipStore && userId != null && relationshipsEnabledForKey(key)) {
       try {
+        // 重逢唤醒：observe() 会立刻刷新 lastInteractionAt，先记下这次回归隔了多久。
+        if (cfg.simulation?.cognition?.reunion?.enabled === true) {
+          try {
+            noteReunionInteraction(reunionCycles, {
+              key,
+              userId,
+              priorLastInteractionAt: relationshipStore.get(key, userId)?.lastInteractionAt,
+              now: Date.now(),
+              gapDays: Number(cfg.simulation.cognition.reunion.gapDays) || 7
+            });
+          } catch (error) {
+            log(`[cognition] 重逢锚点记录失败（忽略）：${error?.message ?? error}`);
+          }
+        }
         const result = relationshipStore.observe({
           key,
           userId,
@@ -18153,6 +18469,10 @@ async function main() {
     const preSleepLine = `【沉睡前强制等待】这是决定潜水收尾时的步骤，不是首回复的前置条件。除非对方明确说“不聊了/晚安/下了/拜拜”等结束语，否则每次设置潜水/下一次唤醒前，必须先调用 qq_wait_for_messages(timeoutMs=${preSleepMs}) 完成一次沉睡前观察；回复前 purpose="reply" 的短静默不能代替这次完整观察。若 ${Math.round(preSleepMs / 60000)} 分钟内没人说话，返回 preSleepWaitSatisfied=true，可以设置下一次唤醒并沉睡；若期间有人发新消息，先查看返回的 newMessages——判断不需要你参与就可以直接沉睡，若你选择参与回复，则下次想睡时需要重新等待观察窗口。如果返回里带 preSleepWaitRemainingMs，就按剩余时间继续等待。\n\n`;
     const lastMsg = [...(Array.isArray(st.recentMessages) ? st.recentMessages : [])].reverse().find((m) => m && !m.isSelf);
     const toneNudgeLine = buildToneNudgeLine(st, lastMsg, key, roleSnapshot);
+    // 认知升级：三个纯提示段，开关关闭时返回空串，提示词逐字不变。
+    const cognitionReunion = cognitionReunionLine(key, st);
+    const cognitionFish = cognitionFishLine(key, st);
+    const cognitionTiers = cognitionTierLine(key, st);
     const lastAiMin = st.lastAiReplyAt ? Math.max(0, Math.round((Date.now() - Number(st.lastAiReplyAt)) / 60000)) : null;
     const statusBits = [`未读 ${(st.unread || []).length} 条`];
     if (lastMsg) statusBits.push(`最近一条来自 ${String(lastMsg.sender || '未知')}：${String(lastMsg.text || lastMsg.plain || '').slice(0, 30)}`);
@@ -18223,6 +18543,9 @@ async function main() {
       { id: 'memoryWrite', text: memoryWriteLine, priority: 80, trim: true },
       { id: 'digest', text: digestLine, priority: 99, trim: true },
       { id: 'longTerm', text: longTermLine, priority: 75, trim: true },
+      { id: 'cognitionTiers', text: cognitionTiers, priority: 74, trim: true },
+      { id: 'cognitionReunion', text: cognitionReunion, priority: 84, trim: true },
+      { id: 'cognitionFish', text: cognitionFish, priority: 83, trim: true },
       { id: 'relationships', text: relationshipLine, priority: 70, trim: true },
       { id: 'esports', text: esportsLine, priority: 15, trim: true },
       { id: 'outerWorld', text: outerWorldLine, priority: 43, trim: true },
@@ -18235,7 +18558,7 @@ async function main() {
     const budget = assembleSections(sections, {
       maxTokens: Number(cfg.simulation?.context?.wakeBudgetTokens) || 10000,
       dropOrder: ['esports', 'capability', 'search', 'timeCheck',
-        'mediaReaction', 'participation', 'groupStyle', 'relationships', 'longTerm', 'imageRead', 'life', 'imageCadence', 'stickerCadence', 'voiceOpp', 'image', 'sticker', 'persona', 'personaKernel']
+        'mediaReaction', 'participation', 'groupStyle', 'cognitionTiers', 'cognitionReunion', 'cognitionFish', 'relationships', 'longTerm', 'imageRead', 'life', 'imageCadence', 'stickerCadence', 'voiceOpp', 'image', 'sticker', 'persona', 'personaKernel']
     });
     const base = budget.text;
     if (budget.dropped.length || budget.trimmed.length) {
@@ -20789,6 +21112,13 @@ async function main() {
       await innerLife.tick();
       return { status: 'ok' };
     });
+    jobQueue.register('cognition.sleep', async () => {
+      if (sleepConsolidationConfig().enabled !== true) return { status: 'disabled', reason: 'sleepConsolidation.enabled=false' };
+      await runSleepConsolidation('nightly');
+      // 同一行继续当值：顺延到下一个整点，不产生第二条待办任务。
+      const nextAt = nextSleepAt(Date.now(), Number(sleepConsolidationConfig().hour) || 4);
+      return { retryAfterMs: Math.max(60 * 1000, nextAt - Date.now()) };
+    });
     // 收藏补收：每 5 分钟重试一次，最多 6 次；成功后同步本地库并回一句。
     jobQueue.register('sticker.collect', processPendingStickers);
     if (loadPendingStickers().length) scheduleStickerCollectJob(60 * 1000);
@@ -20810,6 +21140,8 @@ async function main() {
     if (sigAt) log(`[signature] 下次自动更新约 ${new Date(sigAt).toLocaleString('zh-CN', { hour12: false })}`);
     const outerAt = syncOuterWorldJob();
     if (outerAt) log(`[outerWorld] 下次出门见闻约 ${new Date(outerAt).toLocaleString('zh-CN', { hour12: false })}`);
+    const sleepAt = syncCognitionSleepJob();
+    if (sleepAt) log(`[cognition] 下次睡眠巩固约 ${new Date(sleepAt).toLocaleString('zh-CN', { hour12: false })}`);
     jobQueue.start();
   }
   // 启动重放放在连接建立之后：DSH/SnowLuma 没就绪时排队，不丢消息。
@@ -20824,6 +21156,22 @@ async function main() {
   setInterval(() => void ensureBreezeTunnel(), 60 * 1000).unref?.();
   refreshLiveUsage();
   setInterval(refreshLiveUsage, 30 * 1000).unref?.();
+  // 睡眠巩固的排程自愈 + 空闲触发：关闭时每轮只读一次配置，不建表。
+  setInterval(() => {
+    try {
+      if (sleepConsolidationConfig().enabled !== true) {
+        if (jobQueue) syncCognitionSleepJob();
+        return;
+      }
+      if (jobQueue) syncCognitionSleepJob();
+      const idleMs = Number(sleepConsolidationConfig().idleMs) || 30 * 60 * 1000;
+      if (!isIdleSince(lastIncomingAcrossConversations(), Date.now(), idleMs)) return;
+      if (Date.now() - lastSleepRunAt < 2 * 60 * 60 * 1000) return;
+      void runSleepConsolidation('idle');
+    } catch (error) {
+      log(`[cognition] 睡眠巩固排程检查失败（忽略）：${error?.message ?? error}`);
+    }
+  }, 5 * 60 * 1000).unref?.();
   startDshWatch();
   startSnowlumaWatch();
   startWakeSessionReconcile();
