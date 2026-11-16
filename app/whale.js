@@ -2148,6 +2148,7 @@ async function main() {
     }
   } else {
     log('ℹ️ storage.enabled=false：可靠性层关闭（使用旧的内存/JSON 路径）');
+    if (cognitionAnyEnabled()) log('⚠️ 认知升级依赖 SQLite 可靠性层；storage.enabled=false 时这些开关不会生效');
   }
 
   if (db && STORAGE.jobsEnabled !== false) {
