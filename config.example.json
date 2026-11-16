@@ -257,7 +257,11 @@
       "enabled": true,
       "afterText": true,
       "minTextsSince": 2,
-      "minGapMs": 1200000
+      "minGapMs": 1200000,
+      "turnWindowMs": 600000
+    },
+    "sceneSticker": {
+      "enabled": false
     },
     "voice": {
       "enabled": false,
@@ -279,7 +283,9 @@
       "minGapMs": 18000000,
       "skipChance": 0.4,
       "intervalMs": 1800000,
-      "targets": []
+      "targets": [],
+      "llm": true,
+      "tailChance": 0.6
     },
     "proactive": {
       "enabled": true,

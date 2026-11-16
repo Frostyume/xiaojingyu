@@ -89,7 +89,7 @@ import { formatRichSegment } from '../runtime/persona/rich-card.js';
 import { loadPersonaPack, renderPersonaPack, savePersonaPack, validatePersonaPack, personaPackPath } from '../runtime/persona/persona-pack.js';
 import { buildDailyReport, nextDailyAt, localDateKey, dailyReportEnabled } from '../runtime/orchestration/daily-report.js';
 import { createSnowLumaAsr } from '../runtime/persona/speech.js';
-import { generateSignature, normalizeSignatureState, appendSignatureHistory, randomSignatureIntervalMs, isSignatureAdjustCommand, isDuplicateSignatureInstruction, cleanSignatureText, isSignatureTextAllowed } from '../runtime/persona/signature.js';
+import { generateSignature, normalizeSignatureState, appendSignatureHistory, randomSignatureIntervalMs, isSignatureAdjustCommand, isDuplicateSignatureInstruction, cleanSignatureText, sanitizeSignatureText, isSignatureTextAllowed, signatureRecentCues } from '../runtime/persona/signature.js';
 import { beijingParts, timeOfDayLabel } from '../runtime/kernel/time-awareness.js';
 import { loadFeatures } from '../runtime/kernel/feature-loader.js';
 import { createTransport } from '../runtime/kernel/transport.js';
@@ -114,8 +114,9 @@ import { parseScheduleMatches, parseOfficialSchedule, mergeScheduleMatches, buil
 import { dayStatsFromAudit, decideBroadcast, pruneAuditLines, resultMatchKey, createSkipAuditThrottle } from '../services/social/broadcast-limits.js';
 import { webSearch } from '../services/social/web-search.js';
 import { isQVersionWhaleSticker } from '../services/media/vision.js';
-import { pickPixelSticker, pixelStickerCount } from '../services/media/pixel-stickers.js';
-import { moodVoiceCadenceOk, MOOD_VOICE_DEFAULTS } from '../services/media/mood-voice-cadence.js';
+import { pickPixelSticker, pixelStickerCount, stickerTurnGate, STICKER_TURN_WINDOW_MS } from '../services/media/pixel-stickers.js';
+import { inferSceneFromText, pickSceneSticker, sceneStickerCount, sceneStickerScenes } from '../services/media/scene-stickers.js';
+import { moodVoiceCadenceOk, MOOD_VOICE_DEFAULTS, MOOD_VOICE_MAX_CHARS, MOOD_VOICE_RECENT_LIMIT, MOOD_VOICE_TAIL_MAX_CHARS, normalizeMoodVoiceRecent, mergeMoodVoiceRecent, resolveMoodVoiceLine, pickMoodVoiceGroup, normalizeMoodVoiceGroups, moodVoiceTailDue, cleanMoodVoiceTail } from '../services/media/mood-voice-cadence.js';
 import { loadReminderStore, saveReminderStore, addReminder, listReminders, cancelReminder, dueReminders } from '../services/social/reminders.js';
 import { getWeather } from '../services/social/weather.js';
 import { validConsoleTokenShape, lanHostsFromInterfaces } from '../console/policy.js';
@@ -1254,10 +1255,16 @@ function loadConfig() {
     afterText: true,
     minTextsSince: 2,
     minGapMs: 20 * 60 * 1000,
+    turnWindowMs: STICKER_TURN_WINDOW_MS,
     ...(cfg.simulation?.pixelSticker ?? {})
   };
+  // 场景贴纸：只随主动分享/见闻按活动附图，不用于回复顶替表情包，也不进互斥计数。
+  cfg.simulation.sceneSticker = {
+    enabled: false,
+    ...(cfg.simulation?.sceneSticker ?? {})
+  };
   // 心情语音：主动、状态匹配、节奏适中（不是每天只一条，也不是天天一堆）。
-  // 默认目标走配置（targets 为空时回退到 ownerQQ 占位），不硬编码任何真实号码。
+  // 默认目标走配置（targets 为空=全部白名单群，私聊不发），不硬编码任何真实号码。
   cfg.simulation.moodVoice = {
     enabled: true,
     maxPerDay: MOOD_VOICE_DEFAULTS.maxPerDay,
@@ -1265,6 +1272,8 @@ function loadConfig() {
     skipChance: MOOD_VOICE_DEFAULTS.skipChance,
     intervalMs: 30 * 60 * 1000,
     targets: [],
+    llm: MOOD_VOICE_DEFAULTS.llm,
+    tailChance: MOOD_VOICE_DEFAULTS.tailChance,
     ...(cfg.simulation?.moodVoice ?? {})
   };
 
@@ -2240,6 +2249,8 @@ async function main() {
       maxChars: Math.max(8, Math.min(60, Number(sig.maxChars) || 40)),
       history: signatureState.history,
       interests,
+      bannedThemes: (signatureState.bannedThemes || []).map((item) => item.theme),
+      avoidTexts: (signatureState.rejected || []).map((item) => item.text),
       roleName: currentRoleName()
     });
   }
@@ -2251,23 +2262,40 @@ async function main() {
   async function buildSignatureDraftText() {
     const sig = cfg.simulation?.signature ?? {};
     const maxChars = Math.max(8, Math.min(60, Number(sig.maxChars) || 40));
+    const roleName = currentRoleName();
+    const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
     let persona = null;
     try { persona = innerLife?.personaInfo?.()?.state ?? null; } catch {}
+    const interests = persona?.interests ?? [];
+    const history = signatureState.history || [];
     const filterArgs = {
       maxChars,
-      history: signatureState.history,
-      interests: persona?.interests ?? [],
-      bannedThemes: [],
-      avoidTexts: []
+      history,
+      interests,
+      bannedThemes: (signatureState.bannedThemes || []).map((item) => item.theme),
+      avoidTexts: (signatureState.rejected || []).map((item) => item.text),
+      roleName
     };
     if (sig.llm !== false && typeof innerLife?.generateSignatureText === 'function') {
+      // 最近反复出现的生活记号与开头词一并交给模型避开，提示词与去重共用同一份线索。
+      const cues = signatureRecentCues({ history });
       let hint = '';
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          const raw = await innerLife.generateSignatureText({ ...filterArgs, hint, roleName: currentRoleName() });
-          const value = cleanSignatureText(raw, maxChars);
-          if (value && isSignatureTextAllowed(value, filterArgs)) return { text: value, source: 'llm' };
-          hint = '上一版和最近用过的签名太像。换一件最近真实发生的小事来写，别复用同样的句式';
+          const raw = await innerLife.generateSignatureText({
+            ...filterArgs,
+            hint,
+            avoidMarks: customRole ? [] : cues.marks,
+            avoidOpeners: cues.openers
+          });
+          const value = sanitizeSignatureText(raw);
+          // 超长整句作废（绝不截断加「…」），带「压短」提示重试，仍不行才退模板。
+          if (value && value.length <= maxChars && isSignatureTextAllowed(value, filterArgs)) {
+            return { text: value, source: 'llm' };
+          }
+          hint = value && value.length > maxChars
+            ? `上一版超过 ${maxChars} 字，压到 ${maxChars} 字以内，仍然写一件具体的小事`
+            : '上一版和最近用过/被否的签名太像，或撞了被封主题，或复用了同样的生活记号/开头。换一件最近真实发生的小事来写，别复用同样的句式和记号';
         } catch (error) {
           log(`[signature] LLM 生成失败，退回模板兜底：${error?.message ?? error}`);
           break;
@@ -3740,7 +3768,10 @@ async function main() {
       outerWorldStore.audit.append({ kind: 'read', sourceId: source.id, host: note.sourceHost, chapterIndex: note.chapterIndex, tokens, trigger: reason, noteId: appended.id });
       outerWorldStore.circuit.ok();
       if (outerWorldConfig().digest?.pushToOwner === true && ownerChatKey()) {
-        try { await sendToQQ(ownerChatKey(), `出门见闻：${note.title}\n${note.summary}`); } catch {}
+        try {
+          await sendToQQ(ownerChatKey(), `出门见闻：${note.title}\n${note.summary}`);
+          await sendSceneStickerToKey(ownerChatKey(), `${note.title} ${note.summary}`, { scene: note.sourceType === 'video' ? 'video' : 'reading' });
+        } catch {}
       }
       return { ok: true, enabled: true, note: { ...note, id: appended.id } };
     } catch (error) {
@@ -4707,7 +4738,13 @@ async function main() {
       pixelSticker: {
         enabled: cfg.simulation?.pixelSticker?.enabled !== false,
         afterText: cfg.simulation?.pixelSticker?.afterText !== false,
+        turnWindowMs: cfg.simulation?.pixelSticker?.turnWindowMs == null ? STICKER_TURN_WINDOW_MS : Number(cfg.simulation?.pixelSticker?.turnWindowMs),
         count: pixelStickerCount()
+      },
+      sceneSticker: {
+        enabled: cfg.simulation?.sceneSticker?.enabled !== false,
+        count: sceneStickerCount(),
+        scenes: sceneStickerScenes()
       },
       moodVoice: {
         enabled: cfg.simulation?.moodVoice?.enabled !== false,
@@ -5132,11 +5169,24 @@ async function main() {
     st.textSendsSinceImage = Math.min(999, (Number(st.textSendsSinceImage) || 0) + 1);
     st.textSendsSinceMedia = Math.min(999, (Number(st.textSendsSinceMedia) || 0) + 1);
   }
-  function noteStickerSent(st) {
+  function noteStickerSent(st, kind = 'meme') {
     if (!st) return;
     st.lastStickerAt = Date.now();
     st.textSendsSinceSticker = 0;
     st.textSendsSinceMedia = 0;
+    // 同回合互斥闸的时间戳：表情包与像素贴纸谁先发，另一个本回合就让路。
+    if (kind === 'pixel') st.lastPixelStickerAt = Date.now();
+    else st.lastMemeStickerAt = Date.now();
+  }
+  // 同回合互斥同步占坑：决定发送的那一刻先写时间戳再 await 发送，并发后来者
+  // 查闸必让路（旧码「发送完成后才记」会让两条路径都在对方记录前过闸→同回合双发）。
+  // 返回回滚函数：发送失败时恢复原值；若期间被 turn/start 等覆写则不动。
+  function claimStickerTurn(st, kind) {
+    const field = kind === 'pixel' ? 'lastPixelStickerAt' : 'lastMemeStickerAt';
+    const prev = Number(st[field]) || 0;
+    const at = Date.now();
+    st[field] = at;
+    return () => { if (Number(st[field]) === at) st[field] = prev; };
   }
   function noteImageSent(st) {
     if (!st) return;
@@ -5153,6 +5203,19 @@ async function main() {
     if ((Number(st.textSendsSinceSticker) || 0) < Math.max(1, Number(pc.minTextsSince) || 2)) return;
     const last = Number(st.lastStickerAt) || 0;
     if (last && Date.now() - last < Math.max(60000, Number(pc.minGapMs) || 20 * 60 * 1000)) return;
+    const turnWindowMs = pc.turnWindowMs == null ? STICKER_TURN_WINDOW_MS : Number(pc.turnWindowMs);
+    const gateNow = () => stickerTurnGate({
+      lastMemeStickerAt: Number(st.lastMemeStickerAt) || 0,
+      lastPixelStickerAt: Number(st.lastPixelStickerAt) || 0,
+      now: Date.now(),
+      windowMs: turnWindowMs
+    });
+    if (!gateNow().allowPixel) return;
+    // 本回合已发/已占坑像素贴纸（含并发钩子）：不再叠加第二张。
+    if (turnWindowMs > 0) {
+      const pixelAt = Number(st.lastPixelStickerAt) || 0;
+      if (pixelAt && Date.now() - pixelAt < turnWindowMs) return;
+    }
     let mood = 'idle';
     try {
       const s = innerLife?.personaInfo?.()?.state ?? {};
@@ -5162,6 +5225,8 @@ async function main() {
     } catch {}
     const pick = pickPixelSticker(mood);
     if (!pick || !fs.existsSync(pick.path)) return;
+    // 同步占坑：先登记再排队/await，排队期间表情包工具查闸即让路；失败回滚。
+    const releasePixelClaim = claimStickerTurn(st, 'pixel');
     try {
       const buffer = fs.readFileSync(pick.path);
       const assertSendAllowed = captureSendGuard(key);
@@ -5170,11 +5235,13 @@ async function main() {
       const action = kind === 'private' ? 'send_private_msg' : 'send_group_msg';
       const params = kind === 'private' ? { user_id: Number(id), message: segments } : { group_id: Number(id), message: segments };
       const httpUrl = String(cfg.snowluma?.httpUrl || 'http://127.0.0.1:3000').replace(/\/+$/, '');
-      await new Promise((resolve, reject) => {
+      const sentData = await new Promise((resolve, reject) => {
         sendChain = sendChain.then(async () => {
           try {
             await sleep(randInt(300, 1200));
             assertSendAllowed();
+            // 排队期间模型可能已经发了表情包：真正发出前再查一次互斥闸。
+            if (!gateNow().allowPixel) { resolve(null); return; }
             const res = await fetch(`${httpUrl}/${action}`, {
               method: 'POST',
               headers: { 'content-type': 'application/json', ...(cfg.snowluma?.accessToken ? { authorization: `Bearer ${cfg.snowluma.accessToken}` } : {}) },
@@ -5183,49 +5250,179 @@ async function main() {
             });
             const body = await res.json().catch(() => ({}));
             if (!res.ok || body.status !== 'ok' || body.retcode !== 0) throw new Error(`pixel sticker send failed: ${body.retcode ?? res.status}`);
-            resolve(body.data);
+            resolve(body.data || {});
           } catch (e) { reject(e); }
         });
       });
-      noteStickerSent(st);
+      if (!sentData) { releasePixelClaim(); return; }
+      noteStickerSent(st, 'pixel');
       saveSimulationState();
+    } catch { releasePixelClaim(); }
+  }
+
+  // 场景贴纸：主动分享/见闻的附图。与回复贴纸体系完全分开——不查互斥闸、
+  // 不记 lastPixelStickerAt/lastMemeStickerAt，分享节奏已由分享引擎/见闻配额约束。
+  async function sendSceneStickerToKey(key, text, { scene = null } = {}) {
+    const sc = cfg.simulation?.sceneSticker ?? {};
+    if (sc.enabled === false || !key) return false;
+    const want = scene || inferSceneFromText(text);
+    if (!want) return false;
+    const pick = pickSceneSticker(want);
+    if (!pick || !fs.existsSync(pick.path)) return false;
+    try {
+      const buffer = fs.readFileSync(pick.path);
+      const [kind, id] = key.split(':');
+      const segments = [{ type: 'image', data: { file: 'base64://' + buffer.toString('base64') } }];
+      const action = kind === 'private' ? 'send_private_msg' : 'send_group_msg';
+      const params = kind === 'private' ? { user_id: Number(id), message: segments } : { group_id: Number(id), message: segments };
+      const httpUrl = String(cfg.snowluma?.httpUrl || 'http://127.0.0.1:3000').replace(/\/+$/, '');
+      const res = await fetch(`${httpUrl}/${action}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...(cfg.snowluma?.accessToken ? { authorization: `Bearer ${cfg.snowluma.accessToken}` } : {}) },
+        body: JSON.stringify(params),
+        signal: AbortSignal.timeout(30000)
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || body.status !== 'ok' || body.retcode !== 0) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // 心情语音节奏状态（上海自然日计数 + 最小间隔）与群轮换游标，持久化到 state/mood-voice.json。
+  const moodVoiceStateFile = path.join(ROOT, 'state', 'mood-voice.json');
+  const moodVoiceState = (() => {
+    try { return coreReadJsonSafe(moodVoiceStateFile, {}) ?? {}; } catch { return {}; }
+  })();
+  let moodVoiceTimes = (() => {
+    const t = moodVoiceState.times;
+    return Array.isArray(t) ? t.filter((x) => Number.isFinite(Number(x))) : [];
+  })();
+  // 最近发过的语音文本：LLM 与模板都据此去重，修「每条都是一模一样的 happy 句」。
+  let moodVoiceRecent = (() => {
+    try { return normalizeMoodVoiceRecent(moodVoiceState.recent, MOOD_VOICE_RECENT_LIMIT); } catch { return []; }
+  })();
+  // 群轮换：nextGroupIndex 指向「下一个该发的群」，lastGroup 记录上一次发到哪。
+  let moodVoiceNextGroupIndex = Number.isFinite(Number(moodVoiceState.nextGroupIndex))
+    ? Math.trunc(Number(moodVoiceState.nextGroupIndex))
+    : 0;
+  let moodVoiceLastGroup = typeof moodVoiceState.lastGroup === 'string' ? moodVoiceState.lastGroup : '';
+  function saveMoodVoiceState() {
+    try {
+      coreAtomicWriteJson(moodVoiceStateFile, {
+        times: moodVoiceTimes,
+        recent: moodVoiceRecent,
+        nextGroupIndex: moodVoiceNextGroupIndex,
+        lastGroup: moodVoiceLastGroup
+      });
     } catch {}
   }
 
-  // 心情语音节奏状态（上海自然日计数 + 最小间隔），持久化到 state/mood-voice.json。
-  let moodVoiceTimes = (() => {
+  /**
+   * 这一条心情语音该发到哪：只在白名单群之间轮换，私聊一律不发。
+   * targets 仅用于「缩小到哪几个群」——里面写 private:* 会被忽略；一个群都没有就返回 null。
+   */
+  function moodVoiceTargetGroups(mv) {
+    let groups = [];
     try {
-      const t = coreReadJsonSafe(path.join(ROOT, 'state', 'mood-voice.json'), {})?.times;
-      return Array.isArray(t) ? t.filter((x) => Number.isFinite(Number(x))) : [];
-    } catch { return []; }
-  })();
-  async function maybeSendMoodVoice() {
+      groups = (listChatTargets().groups || []).map((item) => item.key);
+    } catch { groups = []; }
+    const wanted = normalizeMoodVoiceGroups(mv?.targets);
+    return wanted.length ? groups.filter((key) => wanted.includes(key)) : groups;
+  }
+
+  async function maybeSendMoodVoice({ now = Date.now(), rng = Math.random } = {}) {
     const mv = cfg.simulation?.moodVoice ?? {};
     if (mv.enabled === false || !featureEnabled(cfg, 'voice')) return;
     try { if (!snowlumaHealth?.connected) return; } catch { return; }
-    if (!moodVoiceCadenceOk({ times: moodVoiceTimes, now: Date.now(), maxPerDay: mv.maxPerDay, minGapMs: mv.minGapMs }).ok) return;
-    if (Math.random() < Number(mv.skipChance ?? MOOD_VOICE_DEFAULTS.skipChance)) return;
+    if (!moodVoiceCadenceOk({ times: moodVoiceTimes, now, maxPerDay: mv.maxPerDay, minGapMs: mv.minGapMs }).ok) return;
+    if (Number(rng()) < Number(mv.skipChance ?? MOOD_VOICE_DEFAULTS.skipChance)) return;
+    // 先把「发哪个群」定下来：由头、生成、入上下文都以这个群为准。
+    const pick = pickMoodVoiceGroup({ groups: moodVoiceTargetGroups(mv), cursor: moodVoiceNextGroupIndex });
+    if (!pick) return;
+    const key = pick.key;
     let mood = 'idle';
+    let valence = 0;
+    let energy = 0.6;
+    let cause = '';
     try {
       const s = innerLife?.personaInfo?.()?.state ?? {};
-      const v = Number(s.mood?.valence ?? 0);
-      const e = Number(s.energy ?? 0.6);
-      mood = v >= 0.4 ? 'happy' : v <= -0.25 ? 'pout' : e <= 0.35 ? 'sleepy' : 'idle';
+      valence = Number(s.mood?.valence ?? 0);
+      energy = Number(s.energy ?? 0.6);
+      cause = String(s.mood?.cause ?? '').trim();
+      mood = valence >= 0.4 ? 'happy' : valence <= -0.25 ? 'pout' : energy <= 0.35 ? 'sleepy' : 'idle';
     } catch {}
-    const LINES = {
-      happy: '今天心情不错，忍不住想跟你们说说话～',
-      sleepy: '有点困了，先眯一会儿，别吵我哦…',
-      pout: '哼，刚才有点小委屈，不过现在好啦',
-      idle: '在水里游了一圈，回来看看你们在聊什么～'
-    };
-    const targets = (Array.isArray(mv.targets) && mv.targets.length) ? mv.targets : [`private:${cfg.ownerQQ}`];
-    const key = targets[Math.floor(Math.random() * targets.length)];
+    // llm:false 是回滚开关：只走模板池；生成器缺席时同样退回模板，也不补续句。
+    const llmEnabled = mv.llm !== false;
+    const generate = typeof innerLife?.generateMoodVoiceText === 'function'
+      ? (args) => innerLife.generateMoodVoiceText(args)
+      : null;
+    const roleName = typeof currentRoleName === 'function' ? currentRoleName() : '';
+    const { text } = await resolveMoodVoiceLine({
+      mood,
+      valence,
+      energy,
+      cause,
+      recent: moodVoiceRecent,
+      llmEnabled,
+      maxChars: MOOD_VOICE_MAX_CHARS,
+      generate,
+      roleName,
+      targetKey: key,
+      log: (message) => log(`[moodVoice] ${message}`)
+    });
+    if (!text) return;
     try {
-      const voice = await synthesizeFeatureVoice({ text: LINES[mood] || LINES.idle, mood, cfg, outDir: path.join(ROOT, 'audio', 'tts') });
-      await sendVoiceFile(key, voice.path, { guard: true });
-      moodVoiceTimes.push(Date.now());
+      // fresh + 随机 seed：同一句也要每次重新合成，避免命中同一缓存文件重发同一个 OGG。
+      const voice = await synthesizeFeatureVoice({
+        text,
+        mood,
+        cfg,
+        outDir: path.join(ROOT, 'audio', 'tts'),
+        fresh: true,
+        seed: randInt(1, 2 ** 31 - 2)
+      });
+      let sent;
+      try {
+        sent = await sendVoiceFile(key, voice.path, { guard: true });
+      } catch (error) {
+        // 这个群发不出去（被移出群/网关报错）时把游标往前走，别每轮都卡死在同一群。
+        moodVoiceNextGroupIndex = pick.nextCursor;
+        saveMoodVoiceState();
+        throw error;
+      }
+      moodVoiceTimes.push(now);
       if (moodVoiceTimes.length > 50) moodVoiceTimes = moodVoiceTimes.slice(-50);
-      try { coreAtomicWriteJson(path.join(ROOT, 'state', 'mood-voice.json'), { times: moodVoiceTimes }); } catch {}
+      moodVoiceRecent = mergeMoodVoiceRecent(moodVoiceRecent, text, now, MOOD_VOICE_RECENT_LIMIT);
+      moodVoiceLastGroup = key;
+      moodVoiceNextGroupIndex = pick.nextCursor;
+      saveMoodVoiceState();
+      // 把这条语音的话写进该群上下文：有人回这句语音时，她接得住、能顺着说。
+      try { recordVoiceSent(key, sent, `[语音] ${text}`); }
+      catch (error) { log(`[moodVoice] 语音入上下文失败（已发出）：${error?.message ?? error}`); }
+      // 发完顺着补一句很短的话（概率由 tailChance 控制）：续句空/失败就只留语音。
+      const tailChance = Number(mv.tailChance ?? MOOD_VOICE_DEFAULTS.tailChance);
+      if (llmEnabled && typeof innerLife?.generateMoodVoiceTail === 'function'
+          && moodVoiceTailDue({ tailChance, rng })) {
+        let tail = '';
+        try {
+          const raw = await innerLife.generateMoodVoiceTail({
+            voiceText: text,
+            moodLabel: mood,
+            roleName,
+            targetKey: key,
+            maxChars: MOOD_VOICE_TAIL_MAX_CHARS
+          });
+          tail = cleanMoodVoiceTail(raw, MOOD_VOICE_TAIL_MAX_CHARS);
+        } catch (error) {
+          log(`[moodVoice] 续句失败（只发语音）：${error?.message ?? error}`);
+        }
+        if (tail) {
+          await sendToQQ(key, tail);
+          if (lastSendSucceeded(key)) recordSentMessages(key, [tail]);
+        }
+      }
     } catch {}
   }
 
@@ -12420,8 +12617,23 @@ async function main() {
           }
           const sendCfg = cfg.simulation?.send ?? {};
           const now = Date.now();
+          let releaseMemeClaim = null;
           try {
             const st = getSimulationState(key);
+            // 同回合互斥：本轮已自动丢过像素贴纸时，agent 不再叠加表情包（控制台手动发送不受限）。
+            if (req.headers['x-agent-token']) {
+              const pc = cfg.simulation?.pixelSticker ?? {};
+              const gate = stickerTurnGate({
+                lastMemeStickerAt: Number(st.lastMemeStickerAt) || 0,
+                lastPixelStickerAt: Number(st.lastPixelStickerAt) || 0,
+                now,
+                windowMs: pc.turnWindowMs == null ? STICKER_TURN_WINDOW_MS : Number(pc.turnWindowMs)
+              });
+              if (!gate.allowMeme) {
+                sendJson({ ok: false, error: '这一轮刚发过像素贴纸，同一轮不叠加表情包；想发表情下一轮再发' }, 409);
+                return;
+              }
+            }
             const maxPerMinute = Number(sendCfg.maxSendPerMinute) || 0;
             const maxPerHour = Number(sendCfg.maxSendPerHour) || 0;
             const recentMinute = (st.sendTimes || []).filter((t) => now - t < 60000).length;
@@ -12432,6 +12644,8 @@ async function main() {
             }
             st.sendTimes.push(now);
             if (st.sendTimes.length > 500) st.sendTimes = st.sendTimes.slice(-500);
+            // 同步占坑：决定发送即登记（控制台手动同样登记），像素钩子此后必让路；失败回滚。
+            releaseMemeClaim = claimStickerTurn(st, 'meme');
             const sent = await sendSticker(key, stickerId, {
               replyToMessageId: actualReplyToMessageId,
               atUserId
@@ -12463,13 +12677,14 @@ async function main() {
             st.preSleepWaitSatisfiedAt = 0;
             st.preSleepWaitObservedAt = 0;
             st.preSleepWaitAccumMs = 0;
-            noteStickerSent(st);
+            noteStickerSent(st, 'meme');
             saveSimulationState();
             scheduleReplyCheck(key);
             log(`[sticker] 工具发送表情 ${key}: ${sent.entry?.id || stickerId}`);
             appendActivity(`${key} [sticker] 工具发送表情：${label}`);
             sendJson({ ok: true, key, sticker: sent.entry, sent: 1, failed: 0, quoted: quotedInfo });
           } catch (error) {
+            if (releaseMemeClaim) releaseMemeClaim();
             const st = getSimulationState(key);
             const idx = st.sendTimes.indexOf(now);
             if (idx >= 0) st.sendTimes.splice(idx, 1);
@@ -15303,6 +15518,8 @@ async function main() {
         lastActionAt: 0,
         lastStickerAt: 0,
         textSendsSinceSticker: 0,
+        lastMemeStickerAt: 0,
+        lastPixelStickerAt: 0,
         lastImageAt: 0,
         textSendsSinceImage: 0,
         textSendsSinceMedia: 0,
@@ -15390,6 +15607,8 @@ async function main() {
             lastActionAt: Number(val.lastActionAt) || 0,
             lastStickerAt: Number(val.lastStickerAt) || 0,
             textSendsSinceSticker: Math.max(0, Number(val.textSendsSinceSticker) || 0),
+            lastMemeStickerAt: Number(val.lastMemeStickerAt) || 0,
+            lastPixelStickerAt: Number(val.lastPixelStickerAt) || 0,
             lastImageAt: Number(val.lastImageAt) || 0,
             textSendsSinceImage: Math.max(0, Number(val.textSendsSinceImage) || 0),
             textSendsSinceMedia: Math.max(0, Number(val.textSendsSinceMedia) || Math.max(Number(val.textSendsSinceSticker) || 0, Number(val.textSendsSinceImage) || 0)),
@@ -15505,6 +15724,8 @@ async function main() {
           lastActionAt: st.lastActionAt,
           lastStickerAt: st.lastStickerAt || 0,
           textSendsSinceSticker: st.textSendsSinceSticker || 0,
+          lastMemeStickerAt: st.lastMemeStickerAt || 0,
+          lastPixelStickerAt: st.lastPixelStickerAt || 0,
           lastImageAt: st.lastImageAt || 0,
           textSendsSinceImage: st.textSendsSinceImage || 0,
           textSendsSinceMedia: st.textSendsSinceMedia || 0,
@@ -19532,6 +19753,13 @@ async function main() {
     if (!collector && event?.type === 'turn/start') {
       collector = createTurnCollector();
       collectors.set(sessionId, collector);
+      // 新回合开始：清掉上一回合的贴纸互斥时间戳（漏事件时由窗口兜底）。
+      const turnKey = reverse.get(sessionId);
+      if (turnKey) {
+        const turnSt = getSimulationState(turnKey);
+        turnSt.lastMemeStickerAt = 0;
+        turnSt.lastPixelStickerAt = 0;
+      }
     }
     const ended = collector ? collector.push(event) : null;
     if (ended) {
@@ -20478,6 +20706,7 @@ async function main() {
     onebotSend,
     lastSendSucceeded,
     getSimulationState,
+    sendSceneSticker: (key, text, opts) => sendSceneStickerToKey(key, text, opts),
     getEsportsFeed: () => esportsFeed,
     isSessionAllowedInCurrentMode,
     ensureChatModel: (sessionId) => ensureChatModel(sessionId, 'reflection'),
