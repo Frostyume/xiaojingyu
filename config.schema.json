@@ -2154,6 +2154,36 @@
             }
           }
         },
+        "prompt": {
+          "type": "object",
+          "properties": {
+            "playbooks": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "按需手册",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；开启后按消息/唤醒原因挑 1~2 篇手册注入，首次调用相关工具先返回手册正文"
+                },
+                "maxPlaybooks": {
+                  "title": "每轮最多注入几篇",
+                  "type": "number",
+                  "default": 2,
+                  "minimum": 0,
+                  "maximum": 4
+                },
+                "playbookMaxTokens": {
+                  "title": "单篇手册 token 上限",
+                  "type": "number",
+                  "default": 1200,
+                  "minimum": 200,
+                  "maximum": 1600
+                }
+              }
+            }
+          }
+        },
         "valueScore": {
           "type": "object",
           "properties": {
@@ -2506,6 +2536,37 @@
               "type": "boolean",
               "default": false,
               "description": "超预算只压制非显式唤醒；@/引用/私聊/提问/关键词仍会回"
+            }
+          }
+        },
+        "rice": {
+          "type": "object",
+          "properties": {
+            "dailyTokens": {
+              "title": "每日口粮（token）",
+              "type": "number",
+              "default": 50000000,
+              "minimum": 0,
+              "maximum": 1000000000
+            },
+            "enabled": {
+              "title": "白饭余额感知",
+              "type": "boolean",
+              "default": false,
+              "description": "默认关闭；开启后只向模型注入档位话术、不报数字；被拍到自己当天加口粮（有封顶），次日归零"
+            },
+            "groupsCanMention": {
+              "title": "群里可以自然提没饭了",
+              "type": "boolean",
+              "default": true,
+              "description": "关闭后只在主人私聊里提，群里不主动说"
+            },
+            "pokeBonusTokens": {
+              "title": "每被拍一次加的口粮（token）",
+              "type": "number",
+              "default": 1000000,
+              "minimum": 0,
+              "maximum": 100000000
             }
           }
         }
@@ -7010,6 +7071,34 @@
       "max": 30
     },
     {
+      "key": "simulation.prompt.playbooks.enabled",
+      "label": "按需手册",
+      "group": "上下文与成本",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.prompt.playbooks.maxPlaybooks",
+      "label": "每轮最多注入几篇",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 4
+    },
+    {
+      "key": "simulation.prompt.playbooks.playbookMaxTokens",
+      "label": "单篇手册 token 上限",
+      "group": "上下文与成本",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 200,
+      "max": 1600
+    },
+    {
       "key": "simulation.valueScore.deferThreshold",
       "label": "延后阈值",
       "group": "上下文与成本",
@@ -7831,6 +7920,42 @@
       "type": "boolean",
       "restart": "none",
       "advanced": false
+    },
+    {
+      "key": "simulation.rice.dailyTokens",
+      "label": "每日口粮（token）",
+      "group": "预算",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 1000000000
+    },
+    {
+      "key": "simulation.rice.enabled",
+      "label": "白饭余额感知",
+      "group": "预算",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.rice.groupsCanMention",
+      "label": "群里可以自然提没饭了",
+      "group": "预算",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.rice.pokeBonusTokens",
+      "label": "每被拍一次加的口粮（token）",
+      "group": "预算",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 100000000
     }
   ]
 }

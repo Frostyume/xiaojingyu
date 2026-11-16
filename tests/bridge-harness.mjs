@@ -48,6 +48,8 @@ import * as cognitionContextTiers from '../runtime/persona/cognition/context-tie
 import * as cognitionReunion from '../runtime/persona/cognition/reunion.js';
 import * as cognitionFish from '../runtime/persona/cognition/fish-memory.js';
 import * as cognitionSleep from '../runtime/persona/cognition/sleep-consolidation.js';
+import * as coreRice from '../runtime/persona/rice.js';
+import * as corePromptRegistry from '../runtime/persona/prompt-registry.js';
 import * as coreSessionMap from '../runtime/kernel/session-map.js';
 import * as coreRelationships from '../runtime/persona/relationships.js';
 import * as coreRelationshipModel from '../runtime/persona/relationship-model.js';
@@ -285,6 +287,12 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     fishConversationAnchor: cognitionFish.conversationAnchor,
     fishHintForTurn: cognitionFish.hintForTurn,
     ...cognitionSleep,
+    ...coreRice,
+    loadPlaybook: corePromptRegistry.loadPlaybook,
+    promptCatalog: corePromptRegistry.catalog,
+    selectPlaybooks: corePromptRegistry.selectPlaybooks,
+    planSections: corePromptRegistry.planSections,
+    survivingPlaybooks: corePromptRegistry.survivingPlaybooks,
     ...coreSessionMap, ...coreRelationships, ...coreRelationshipModel, ...coreRichCard, ...corePersonaPack, ...coreStyleContext, ...coreDailyReport,
     relationshipStageLabel: coreRelationshipModel.stageLabel,
     relationshipAxisWords: coreRelationshipModel.axisWords,

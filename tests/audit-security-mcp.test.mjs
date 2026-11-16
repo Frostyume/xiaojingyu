@@ -113,6 +113,11 @@ function loadSnowlumaTools(fetchImpl, fixtureConfig = null, httpImpl = null) {
     fs: fixtureFs,
     SENSITIVE_RE: { test: () => false },
     serializeModelData: (value) => JSON.stringify(value),
+    // 按需手册：VM 里只验证工具面，手册闸门用空实现。
+    loadPlaybook: () => null,
+    createPlaybookGate: () => ({ check: async () => null, reset() {} }),
+    formatGateResult: () => ({ isError: true, content: [] }),
+    annotateWithGate: (result) => result,
   });
   return async (name, arguments_ = {}) => {
     const tool = tools.get(name);

@@ -447,6 +447,43 @@ const CARD_LIST = [
   },
 
   {
+    id: 'rice',
+    board: 'social',
+    configKey: 'simulation.rice.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '白饭余额感知',
+    keywords: '白饭 口粮 token 余额 拍一拍 rice',
+    description: '让她知道自己今天还剩多少口粮，只说话术档位、不报具体数字；被拍一次给当天加口粮。',
+    onEffect: '唤醒提示里带当前档位；被拍到自己时当天临时加一档（有封顶），第二天归零。',
+    offEffect: '不注入任何口粮提示，也不记录被拍次数；其余行为不变。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.rice.dailyTokens', label: '每日口粮（token）', type: 'number', min: 0, max: 1000000000, default: 50000000 },
+      { key: 'simulation.rice.pokeBonusTokens', label: '每被拍一次加的口粮（token）', type: 'number', min: 0, max: 100000000, default: 1000000 },
+      { key: 'simulation.rice.groupsCanMention', label: '群里可以自然提没饭了', type: 'boolean', default: true }
+    ]
+  },
+  {
+    id: 'playbooks',
+    board: 'social',
+    configKey: 'simulation.prompt.playbooks.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '按需手册',
+    keywords: '按需手册 手册 playbook 提示词 工具流程',
+    description: '把常用工具的详细流程拆成手册，只在相关消息出现时注入 1~2 篇，减少每轮固定提示词。',
+    onEffect: '按消息/唤醒原因挑 1~2 篇注入；首次调用相关工具时先返回手册正文，读完重试即可。',
+    offEffect: '不注入任何手册，也不拦截工具调用；提示词与现在逐字一致。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.prompt.playbooks.maxPlaybooks', label: '每轮最多注入几篇', type: 'number', min: 0, max: 4, default: 2 },
+      { key: 'simulation.prompt.playbooks.playbookMaxTokens', label: '单篇手册 token 上限', type: 'number', min: 200, max: 1600, default: 1200 }
+    ]
+  },
+  {
     id: 'blacklist',
     board: 'social',
     configKey: 'simulation.safety.blacklist.enabled',

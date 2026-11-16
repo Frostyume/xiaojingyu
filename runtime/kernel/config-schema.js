@@ -216,6 +216,15 @@ const FIELD_META = {
   'simulation.speech.asr.timeoutMs': { label: '转写超时（ms）', group: '语音', restart: 'bridge', min: 1000, max: 120000, advanced: true },
   'simulation.speech.asr.cacheTtlMs': { label: '转写缓存时长（ms）', group: '语音', restart: 'bridge', advanced: true },
 
+  // ── 白饭感知 / 按需手册（默认关闭） ────────────────────────────────────
+  'simulation.rice.enabled': { label: '白饭余额感知', group: '预算', restart: 'none', description: '默认关闭；开启后只向模型注入档位话术、不报数字；被拍到自己当天加口粮（有封顶），次日归零' },
+  'simulation.rice.dailyTokens': { label: '每日口粮（token）', group: '预算', restart: 'none', min: 0, max: 1000000000, advanced: true },
+  'simulation.rice.pokeBonusTokens': { label: '每被拍一次加的口粮（token）', group: '预算', restart: 'none', min: 0, max: 100000000, advanced: true },
+  'simulation.rice.groupsCanMention': { label: '群里可以自然提没饭了', group: '预算', restart: 'none', description: '关闭后只在主人私聊里提，群里不主动说' },
+  'simulation.prompt.playbooks.enabled': { label: '按需手册', group: '上下文与成本', restart: 'none', description: '默认关闭；开启后按消息/唤醒原因挑 1~2 篇手册注入，首次调用相关工具先返回手册正文' },
+  'simulation.prompt.playbooks.maxPlaybooks': { label: '每轮最多注入几篇', group: '上下文与成本', restart: 'none', min: 0, max: 4, advanced: true },
+  'simulation.prompt.playbooks.playbookMaxTokens': { label: '单篇手册 token 上限', group: '上下文与成本', restart: 'none', min: 200, max: 1600, advanced: true },
+
   // ── 认知升级（七个独立的默认关闭开关） ──────────────────────────────────
   'simulation.cognition.memoryStrength.enabled': { label: '记忆强度（半衰期/回忆强化）', group: '认知升级', restart: 'bridge', description: '默认关闭；开启后共同经历按类型半衰期变淡、被重提时加亮，并按有效强度排序与过滤弱记忆；不删除历史' },
   'simulation.cognition.memoryStrength.minEffective': { label: '弱记忆隐藏门槛', group: '认知升级', restart: 'bridge', min: 0, max: 1, advanced: true },

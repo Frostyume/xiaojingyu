@@ -89,6 +89,14 @@ import { reunionId, noteReunionInteraction, reunionPromptLine } from '../runtime
 import { conversationAnchor as fishConversationAnchor, hintForTurn as fishHintForTurn } from '../runtime/persona/cognition/fish-memory.js';
 import { SleepConsolidator, nextSleepAt, isIdleSince } from '../runtime/persona/cognition/sleep-consolidation.js';
 import { RelationshipStore } from '../runtime/persona/relationships.js';
+import { normalizeRiceConfig, riceBucket, loadRiceBonus, addPokeBonus, saveRiceBonus, buildRiceLine } from '../runtime/persona/rice.js';
+import {
+  loadPlaybook,
+  catalog as promptCatalog,
+  selectPlaybooks,
+  planSections,
+  survivingPlaybooks
+} from '../runtime/persona/prompt-registry.js';
 import { stageLabel as relationshipStageLabel, axisWords as relationshipAxisWords, computeBond as relationshipBond } from '../runtime/persona/relationship-model.js';
 import { formatRichSegment } from '../runtime/persona/rich-card.js';
 import { loadPersonaPack, renderPersonaPack, savePersonaPack, validatePersonaPack, personaPackPath } from '../runtime/persona/persona-pack.js';
@@ -149,6 +157,7 @@ import { handleLiveRequest } from '../console/live.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const STATE_DIR = path.join(ROOT, 'state');
+const RICE_FILE = path.join(STATE_DIR, 'rice.json');
 
 // 插件叫醒主控成功后往 state/wake-bridge/events.jsonl 追加 coordinator-woken；
 // 等到它出现就别再 fork CLI 会话，否则两个主控会同时派单。
@@ -1404,6 +1413,24 @@ function loadConfig() {
       leaf.enabled = leaf.enabled === true;
     }
   }
+  // 白饭感知：默认关闭；开启后只注入档位话术，额度数字留在服务端。
+  cfg.simulation.rice = { ...normalizeRiceConfig(cfg.simulation?.rice) };
+  // 按需手册：默认关闭；开启后按消息/唤醒原因挑 1~2 篇注入。
+  {
+    const at = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
+    const raw = at(cfg.simulation?.prompt);
+    const playbooks = at(raw.playbooks);
+    cfg.simulation.prompt = {
+      ...raw,
+      playbooks: {
+        enabled: false,
+        maxPlaybooks: 2,
+        playbookMaxTokens: 1200,
+        ...playbooks,
+        enabled: playbooks.enabled === true
+      }
+    };
+  }
   // 群日报：默认关闭，按群开启（groups 列表或 groupProfiles[key].dailyReport=true）。
   cfg.simulation.dailyReport = {
     enabled: false,
@@ -1626,6 +1653,8 @@ let lastSleepRunAt = 0;
 let relationshipStore = null;
 let relationshipsEnabledForKey = () => false;
 let budgetStore = null;
+// 按需手册：本轮 wake prompt 实际注入过哪些手册，供 MCP 工具闸门查询，避免首次调用重复注入。
+const lastPlaybookInjection = new Map();
 // Feature host（日报/卡片解析等）在 main() 里异步加载；消息转文本会用到。
 let featureHost = null;
 function loadState() {
@@ -4582,6 +4611,25 @@ async function main() {
         const quiet = nightQuietConfig();
         const active = isNightQuietNow();
         return { line: `${active ? '当前在静默时段' : '当前不在静默时段'} · ${quiet.start}-${quiet.end}`, tone: active ? 'ok' : 'muted' };
+      }
+      if (id === 'rice') {
+        if (!riceAwarenessOn()) return { line: '未开启；开启后只给档位话术，不把数字交给模型', tone: 'muted' };
+        try {
+          const { bucket, bonus } = riceSnapshot();
+          return {
+            line: `今日档位：${bucket.label || '未知'} · 被拍加口粮 ${Number(bonus.bonusTokens) > 0 ? '已生效' : '暂无'}`,
+            tone: bucket.level === 'empty' ? 'warn' : bucket.level === 'unknown' ? 'muted' : 'ok',
+            attention: bucket.level === 'empty'
+          };
+        } catch {
+          return { line: '状态读取失败（不影响聊天）', tone: 'warn' };
+        }
+      }
+      if (id === 'playbooks') {
+        const enabled = playbookSettings().enabled === true;
+        if (!enabled) return { line: '未开启；开启后按消息/唤醒原因挑 1~2 篇手册注入', tone: 'muted' };
+        const count = promptCatalog().length;
+        return { line: `已启用 · ${count} 篇可用 · 每轮最多 ${Number(playbookSettings().maxPlaybooks) || 2} 篇`, tone: 'ok' };
       }
       if (id === 'blacklist') {
         const count = blacklistStore.count();
@@ -10745,6 +10793,60 @@ async function main() {
         }
         // 只读预览：按当前配置拼一次唤醒提示，但不投递、不写入 roleCardVersion。
         // 用于控制台/排查“为什么这个群还是旧人格、为什么没看到赛果”。
+        // ── 白饭状态（控制台只读；模型 prompt 不含数字） ───────────────────────
+        if (req.method === 'GET' && url.pathname === '/api/rice') {
+          if (!riceAwarenessOn()) { sendJson({ ok: true, enabled: false }); return; }
+          const { today, bonus, used, allowance, bucket } = riceSnapshot();
+          sendJson({
+            ok: true,
+            enabled: true,
+            day: today,
+            used,
+            allowance,
+            bonusTokens: bonus.bonusTokens,
+            pokes: bonus.pokes,
+            level: bucket.level,
+            label: bucket.label
+          });
+          return;
+        }
+        // ── 按需手册：目录、正文、本轮已注入记录（与 qq_get_prompt 同一工具开关）──
+        if (req.method === 'GET' && url.pathname === '/api/simulation/prompt-catalog') {
+          const key = String(url.searchParams.get('key') ?? '').trim();
+          if (!key) { sendJson({ ok: false, error: 'key 不能为空' }, 400); return; }
+          if (req.headers['x-agent-token'] && !agentTokenOk(key, req.headers['x-agent-token'])) { sendJson({ ok: false, error: 'agent token 无效' }, 403); return; }
+          if (req.headers['x-agent-token'] && !simulationSessionAllowed(key)) { sendJson({ ok: false, error: '目标不在当前模式允许范围内' }, 403); return; }
+          if (req.headers['x-agent-token'] && !simulationToolEnabled('getPrompt')) { sendJson({ ok: false, error: '工具未启用：qq_prompt_catalog' }, 403); return; }
+          const enabled = playbookSettings().enabled === true;
+          sendJson({ ok: true, key, enabled, playbooks: enabled ? promptCatalog() : [] });
+          return;
+        }
+        if (req.method === 'GET' && url.pathname === '/api/simulation/prompt-load') {
+          const key = String(url.searchParams.get('key') ?? '').trim();
+          if (!key) { sendJson({ ok: false, error: 'key 不能为空' }, 400); return; }
+          if (req.headers['x-agent-token'] && !agentTokenOk(key, req.headers['x-agent-token'])) { sendJson({ ok: false, error: 'agent token 无效' }, 403); return; }
+          if (req.headers['x-agent-token'] && !simulationSessionAllowed(key)) { sendJson({ ok: false, error: '目标不在当前模式允许范围内' }, 403); return; }
+          if (req.headers['x-agent-token'] && !simulationToolEnabled('getPrompt')) { sendJson({ ok: false, error: '工具未启用：qq_prompt_load' }, 403); return; }
+          if (playbookSettings().enabled !== true) { sendJson({ ok: false, error: '按需手册未开启' }, 403); return; }
+          const id = String(url.searchParams.get('id') ?? '').trim();
+          if (!id) { sendJson({ ok: false, error: 'id 不能为空（先用 qq_prompt_catalog 看目录）' }, 400); return; }
+          const maxTokens = Math.min(4000, Math.max(200, Number(url.searchParams.get('maxTokens')) || 3000));
+          const playbook = loadPlaybook(id, { maxTokens });
+          if (!playbook) { sendJson({ ok: false, error: `没有这篇手册：${id}` }, 404); return; }
+          sendJson({ ok: true, key, ...playbook });
+          return;
+        }
+        // 供 MCP 工具闸门查询：本轮 prompt 已经注入过哪些手册，避免首次调用重复注入。
+        if (req.method === 'GET' && url.pathname === '/api/simulation/prompt-injected') {
+          const key = String(url.searchParams.get('key') ?? '').trim();
+          if (!key) { sendJson({ ok: false, error: 'key 不能为空' }, 400); return; }
+          if (req.headers['x-agent-token'] && !agentTokenOk(key, req.headers['x-agent-token'])) { sendJson({ ok: false, error: 'agent token 无效' }, 403); return; }
+          if (req.headers['x-agent-token'] && !simulationSessionAllowed(key)) { sendJson({ ok: false, error: '目标不在当前模式允许范围内' }, 403); return; }
+          const record = lastPlaybookInjection.get(key);
+          const fresh = record && Date.now() - Number(record.at || 0) <= 10 * 60 * 1000;
+          sendJson({ ok: true, key, ids: fresh ? record.ids : [], at: fresh ? record.at : 0 });
+          return;
+        }
         if (req.method === 'GET' && url.pathname === '/api/simulation/wake-preview') {
           const key = String(url.searchParams.get('key') ?? '').trim();
           if (!key) { sendJson({ ok: false, error: 'key 不能为空' }, 400); return; }
@@ -18316,6 +18418,43 @@ async function main() {
     }
   }
 
+  // ── 白饭（口粮档位，默认关闭） ───────────────────────────────────────────
+  function riceSettings() {
+    return normalizeRiceConfig(cfg.simulation?.rice);
+  }
+
+  function riceAwarenessOn() {
+    return riceSettings().enabled === true && Boolean(budgetStore);
+  }
+
+  function riceSnapshot() {
+    const rc = riceSettings();
+    const today = shanghaiDayKey();
+    const bonus = loadRiceBonus(RICE_FILE, { today });
+    const used = Number(budgetStore?.dayUsage()?.tokens) || 0;
+    const allowance = rc.dailyTokens + (Number(bonus.bonusTokens) || 0);
+    const bucket = riceBucket({ used, allowance });
+    return { rc, today, bonus, used, allowance, bucket };
+  }
+
+  /** 提示词只给档位与话术，数字留在服务端。关闭时返回空串且不读状态文件。 */
+  function ricePromptLine() {
+    if (!riceAwarenessOn()) return '';
+    try {
+      const { rc, bucket } = riceSnapshot();
+      const line = buildRiceLine({ level: bucket.level, groupsCanMention: rc.groupsCanMention });
+      return line ? `${line}\n\n` : '';
+    } catch (error) {
+      log(`[rice] 口粮提示生成失败（忽略）：${error?.message ?? error}`);
+      return '';
+    }
+  }
+
+  function playbookSettings() {
+    const value = cfg.simulation?.prompt?.playbooks;
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  }
+
   function renderWakePromptText(key, reason, opts = {}, meta = {}) {
     const st = getSimulationState(key);
     const roleSnapshot = currentRoleSnapshot();
@@ -18474,6 +18613,38 @@ async function main() {
     const cognitionReunion = cognitionReunionLine(key, st);
     const cognitionFish = cognitionFishLine(key, st);
     const cognitionTiers = cognitionTierLine(key, st);
+    const riceLine = ricePromptLine();
+    // 按需手册：默认关闭；开启后按本轮来信/唤醒原因挑 1~2 篇，关闭时 sections 原样。
+    const pbCfg = playbookSettings();
+    const playbooksOn = pbCfg.enabled === true;
+    let playbookIds = [];
+    let playbookTexts = {};
+    let playbookHintLine = '';
+    if (playbooksOn) {
+      try {
+        const lastIncoming = [...(Array.isArray(st.recentMessages) ? st.recentMessages : [])].reverse().find((m) => m && !m.isSelf);
+        const ownerChat = Boolean(cfg.ownerQQ) && key === `private:${cfg.ownerQQ}`;
+        const picked = selectPlaybooks({
+          text: String(lastIncoming?.plain || lastIncoming?.text || ''),
+          reason,
+          ownerChat,
+          hasMedia: lastIncoming?.hasMedia === true,
+          hasForward: lastIncoming?.hasForward === true,
+          limit: Number(pbCfg.maxPlaybooks) || 2
+        });
+        const cap = Math.min(1600, Math.max(200, Number(pbCfg.playbookMaxTokens) || 1200));
+        for (const id of picked) {
+          const playbook = loadPlaybook(id, { maxTokens: cap });
+          if (playbook?.text) playbookTexts[id] = playbook.text;
+        }
+        playbookIds = Object.keys(playbookTexts);
+        playbookHintLine = playbookIds.length
+          ? `【按需手册】本轮可能用到：${playbookIds.join(' / ')}，已附在下方；需要别的先 qq_prompt_catalog 看目录，再 qq_prompt_load(id)。\n\n`
+          : '';
+      } catch (error) {
+        log(`[prompt] 按需手册选择失败（忽略）：${error?.message ?? error}`);
+      }
+    }
     const lastAiMin = st.lastAiReplyAt ? Math.max(0, Math.round((Date.now() - Number(st.lastAiReplyAt)) / 60000)) : null;
     const statusBits = [`未读 ${(st.unread || []).length} 条`];
     if (lastMsg) statusBits.push(`最近一条来自 ${String(lastMsg.sender || '未知')}：${String(lastMsg.text || lastMsg.plain || '').slice(0, 30)}`);
@@ -18544,6 +18715,8 @@ async function main() {
       { id: 'memoryWrite', text: memoryWriteLine, priority: 80, trim: true },
       { id: 'digest', text: digestLine, priority: 99, trim: true },
       { id: 'longTerm', text: longTermLine, priority: 75, trim: true },
+      { id: 'rice', text: riceLine, priority: 44, trim: true },
+      { id: 'playbookHint', text: playbookHintLine, priority: 90 },
       { id: 'cognitionTiers', text: cognitionTiers, priority: 74, trim: true },
       { id: 'cognitionReunion', text: cognitionReunion, priority: 84, trim: true },
       { id: 'cognitionFish', text: cognitionFish, priority: 83, trim: true },
@@ -18556,14 +18729,19 @@ async function main() {
       { id: 'multiReply', text: multiReplyLine, priority: 95 },
       { id: 'groupStyle', text: groupStyleLine, priority: 60, trim: true }
     ];
-    const budget = assembleSections(sections, {
+    const playbookSectionIds = playbookIds.map((id) => `playbook:${id}`);
+    const plannedSections = playbooksOn ? planSections(sections, { playbookIds, playbookTexts }) : sections;
+    const budget = assembleSections(plannedSections, {
       maxTokens: Number(cfg.simulation?.context?.wakeBudgetTokens) || 10000,
       dropOrder: ['esports', 'capability', 'search', 'timeCheck',
+        ...playbookSectionIds, 'playbookHint', 'rice',
         'mediaReaction', 'participation', 'groupStyle', 'cognitionTiers', 'cognitionReunion', 'cognitionFish', 'relationships', 'longTerm', 'imageRead', 'life', 'imageCadence', 'stickerCadence', 'voiceOpp', 'image', 'sticker', 'persona', 'personaKernel']
     });
+    const injectedPlaybookIds = playbooksOn ? survivingPlaybooks(playbookIds, budget) : [];
+    if (playbooksOn) meta.playbook = { ids: injectedPlaybookIds, at: Date.now() };
     const base = budget.text;
     if (budget.dropped.length || budget.trimmed.length) {
-      log(`[prompt] ${key} 预算 ${budget.tokens}/${budget.budget} tokens；丢弃 ${budget.dropped.join(',') || '-'}；截断 ${budget.trimmed.join(',') || '-'}`);
+      log(`[prompt] ${key} 预算 ${budget.tokens}/${budget.budget} tokens；丢弃 ${budget.dropped.join(',') || '-'}；截断 ${budget.trimmed.join(',') || '-'}${playbookIds.length ? `；手册 ${playbookIds.join(',')}` : ''}`);
     }
     if (reason === 'subscription') {
       const b = st.pendingBroadcast;
@@ -18619,7 +18797,7 @@ async function main() {
   }
 
   function renderWakePrompt(key, reason, opts = {}) {
-    const meta = { text: '', roleVersion: '', digestText: '', broadcast: null };
+    const meta = { text: '', roleVersion: '', digestText: '', broadcast: null, playbook: null };
     meta.text = renderWakePromptText(key, reason, opts, meta);
     return meta;
   }
@@ -18640,6 +18818,14 @@ async function main() {
     if (render.broadcast && st.pendingBroadcast === render.broadcast) {
       st.pendingBroadcast = null;
       changed = true;
+    }
+    if (render.playbook && Array.isArray(render.playbook.ids)) {
+      lastPlaybookInjection.set(key, render.playbook);
+      // 只保留 10 分钟内的记录：闸门查询口径与这里一致。
+      const cutoff = Date.now() - 10 * 60 * 1000;
+      for (const [k, rec] of lastPlaybookInjection) {
+        if (Number(rec?.at || 0) < cutoff) lastPlaybookInjection.delete(k);
+      }
     }
     if (changed) saveSimulationState();
     return changed;
@@ -20026,6 +20212,19 @@ async function main() {
     appendActivity(`${key} 拍一拍事件：${msg.text.slice(0, 80)}`);
     if (currentMode !== 'simulation') return;
     if (simulation.paused) return;
+    // 白饭：被拍的是自己就当天加一档口粮；关闭时不读也不写 state 文件。
+    if (targetIsSelf && riceAwarenessOn()) {
+      try {
+        const rc = riceSettings();
+        const today = shanghaiDayKey();
+        const prev = loadRiceBonus(RICE_FILE, { today });
+        const next = addPokeBonus(prev, { today, perPoke: rc.pokeBonusTokens, capTokens: rc.dailyTokens });
+        saveRiceBonus(RICE_FILE, next);
+        log(`[rice] 被拍 +1 口粮档：day=${next.day} bonus=${next.bonusTokens} pokes=${next.pokes}`);
+      } catch (error) {
+        log(`[rice] 记录被拍加口粮失败（忽略）：${error?.message ?? error}`);
+      }
+    }
     if (isDeepDive(key)) {
       appendActivity(`${key} [simulation] 深潜模式：拍一拍只记录，不反应也不唤醒`);
       return;

@@ -24,6 +24,8 @@ import { serializeModelData } from '../services/social/qq-model-view.js';
 import { fetchWithBusyRetry, TtsBusyError } from '../runtime/persona/tts-busy-retry.js';
 import { featureEnabled } from '../runtime/control/feature-switches.js';
 import { neutralVoiceInstruction } from '../runtime/persona/voice-delivery.js';
+import { loadPlaybook } from '../runtime/persona/prompt-registry.js';
+import { createPlaybookGate, formatGateResult, annotateWithGate } from '../runtime/persona/playbook-gate.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -314,6 +316,8 @@ const server = new McpServer({ name: 'snowluma-safe', version: '1.5.0' });
 // 所以这三个仍然只在调用时由桥接校验。
 const TOOL_CONFIG_FLAGS = {
   qq_get_prompt: 'getPrompt',
+  qq_prompt_catalog: 'getPrompt',
+  qq_prompt_load: 'getPrompt',
   qq_get_unread_messages: 'getUnread',
   qq_get_recent_messages: 'getRecent',
   qq_social_state: 'socialState',
@@ -383,6 +387,17 @@ const featureDisabledResult = (id) => ({
 const featurePreviewBypass = (name, args) => name === 'qq_share_module_preview'
   || (args?.dryRun === true && name === 'qq_post_qzone');
 const disabledTools = [];
+// 按需手册闸门：只有 simulation.prompt.playbooks.enabled=true 时生效。
+// 桥接本轮已注入的手册可通过 /api/simulation/prompt-injected 查询，避免重复注入。
+const playbookGate = createPlaybookGate({
+  load: (id) => loadPlaybook(id, { maxTokens: 2000 }),
+  injected: async ({ key, token }) => {
+    const data = await agentApi(`/api/simulation/prompt-injected?key=${encodeURIComponent(key)}`, {
+      headers: token ? { 'x-agent-token': token } : {}
+    });
+    return Array.isArray(data?.ids) ? data.ids : [];
+  }
+});
 {
   const registerTool = server.tool.bind(server);
   server.tool = (name, ...rest) => {
@@ -397,6 +412,20 @@ const disabledTools = [];
       rest[handlerIndex] = async (args, ...rest2) => {
         const featureId = TOOL_FEATURE[name];
         if (featureId && !featureEnabled(getConfig(), featureId) && !featurePreviewBypass(name, args)) return featureDisabledResult(featureId);
+        if (getConfig().simulation?.prompt?.playbooks?.enabled === true && args && typeof args === 'object' && args.key) {
+          try {
+            const gate = await playbookGate.check({
+              tool: name,
+              key: String(args.key),
+              token: String(args.token || '')
+            });
+            if (gate) {
+              if (gate.mode === 'block') return formatGateResult(gate);
+              const result = await handler(args, ...rest2);
+              return annotateWithGate(result, gate);
+            }
+          } catch { /* 闸门失败不阻断正常工具调用 */ }
+        }
         return handler(args, ...rest2);
       };
     }
@@ -621,6 +650,39 @@ server.tool(
       return { content: [{ type: 'text', text: serializeModelData(data) }] };
     } catch (error) {
       return { content: [{ type: 'text', text: `获取提示词失败：${error?.message ?? error}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  'qq_prompt_catalog',
+  '查看按需操作手册目录（只读）：media=看图/转发/表情/图片；voice=语音；life=提醒/天气/小游戏；search=联网搜索；memory=记忆；slang=黑话；wait=等待与沉睡前观察；owner=主人控制台；messaging=发送与分条。不确定某个流程时先看目录，再用 qq_prompt_load(id) 取正文。',
+  { key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'), token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）') },
+  async ({ key, token }) => {
+    try {
+      const data = await agentApi(`/api/simulation/prompt-catalog?key=${encodeURIComponent(key)}`, { headers: { 'x-agent-token': token } });
+      return { content: [{ type: 'text', text: serializeModelData(data) }] };
+    } catch (error) {
+      return { content: [{ type: 'text', text: `获取手册目录失败：${error?.message ?? error}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  'qq_prompt_load',
+  '加载一篇按需操作手册的正文（只读）。id 从 qq_prompt_catalog 取，例如 media / voice / life / search / memory / slang / wait / owner / messaging。调用不熟悉的工具前先看对应手册，避免参数用错。',
+  {
+    key: z.string().describe('会话 key，格式 group:群号 或 private:QQ号'),
+    token: z.string().describe('会话令牌（见唤醒提示中的【会话令牌】）'),
+    id: z.string().describe('手册 id，例如 media / voice / life / search / memory / slang / wait / owner / messaging'),
+    maxTokens: z.number().optional().describe('正文 token 上限，默认 3000，最大 4000')
+  },
+  async ({ key, token, id, maxTokens }) => {
+    try {
+      const data = await agentApi(`/api/simulation/prompt-load?key=${encodeURIComponent(key)}&id=${encodeURIComponent(id)}${maxTokens ? `&maxTokens=${Number(maxTokens)}` : ''}`, { headers: { 'x-agent-token': token } });
+      return { content: [{ type: 'text', text: serializeModelData(data) }] };
+    } catch (error) {
+      return { content: [{ type: 'text', text: `加载手册失败：${error?.message || error}` }], isError: true };
     }
   }
 );

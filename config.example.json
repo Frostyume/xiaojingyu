@@ -363,6 +363,19 @@
         "fallPerHour": 0.08
       }
     },
+    "rice": {
+      "enabled": false,
+      "dailyTokens": 50000000,
+      "pokeBonusTokens": 1000000,
+      "groupsCanMention": true
+    },
+    "prompt": {
+      "playbooks": {
+        "enabled": false,
+        "maxPlaybooks": 2,
+        "playbookMaxTokens": 1200
+      }
+    },
     "dailyReport": {
       "enabled": false,
       "at": "21:30",
