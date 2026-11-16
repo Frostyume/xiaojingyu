@@ -5513,6 +5513,7 @@ button.active,.primary {
         <summary><b>日历晨报</b><span class="meta" id="lifeCalendarSummary">读取中…</span></summary>
         <div class="meta" style="margin-bottom:8px">复用「日历」数据源（.ics 订阅地址），每天早上把当天日程按时间排好私聊发给你；全天和跨天日程单列，时间冲突会点名。天气需要额外配置，暂不自动获取。</div>
         <div class="content-controls">
+          <label>ICS 订阅地址（https，留空不修改）<input type="password" id="lifeCalendarUrl" placeholder="https://example.com/my-calendar.ics" autocomplete="new-password"></label>
           <label>发送时间<input type="time" id="lifeCalendarTime"></label>
           <label>查看范围（天）<input type="number" id="lifeCalendarLookahead" min="1" max="7"></label>
           <label class="feature-adv-check"><input type="checkbox" id="lifeCalendarWeekdaysOnly"> 只在工作日发送</label>
@@ -7382,6 +7383,11 @@ function fillLifePanel(panel) {
   if (remSummary) remSummary.textContent = rem.enabled ? `${rem.active} 条待触发 · 上限 ${rem.maxActive}` : '提醒功能未开启';
 
   const cal = panel.calendarMorning || {};
+  const calUrl = document.getElementById('lifeCalendarUrl');
+  if (calUrl) {
+    calUrl.value = '';
+    calUrl.placeholder = cal.urlConfigured ? '已配置（地址不回显；留空不修改）' : 'https://example.com/my-calendar.ics';
+  }
   set('lifeCalendarTime', cal.time || '07:30');
   set('lifeCalendarLookahead', cal.lookaheadDays ?? 1);
   check('lifeCalendarWeekdaysOnly', cal.weekdaysOnly === true);
@@ -7887,7 +7893,10 @@ document.getElementById('lifeCalendarSave')?.addEventListener('click', () => {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) { lifePanelMsg('lifeCalendarMsg', '发送时间必须是 HH:MM', 'err'); return; }
   const days = Number(document.getElementById('lifeCalendarLookahead').value);
   if (!Number.isInteger(days) || days < 1 || days > 7) { lifePanelMsg('lifeCalendarMsg', '查看范围必须是 1–7 天', 'err'); return; }
+  const calUrl = document.getElementById('lifeCalendarUrl').value.trim();
+  if (calUrl && !/^https:\/\//i.test(calUrl)) { lifePanelMsg('lifeCalendarMsg', 'ICS 地址必须是 https:// 开头', 'err'); return; }
   saveLifePanelSettings({
+    ...(calUrl ? { 'lifeButler.adapters.calendar-ics.url': calUrl } : {}),
     'lifeButler.modules.calendarMorning.time': time,
     'lifeButler.modules.calendarMorning.lookaheadDays': days,
     'lifeButler.modules.calendarMorning.weekdaysOnly': document.getElementById('lifeCalendarWeekdaysOnly').checked,

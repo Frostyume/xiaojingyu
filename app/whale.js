@@ -89,6 +89,8 @@ import { reunionId, noteReunionInteraction, reunionPromptLine } from '../runtime
 import { conversationAnchor as fishConversationAnchor, hintForTurn as fishHintForTurn } from '../runtime/persona/cognition/fish-memory.js';
 import { SleepConsolidator, nextSleepAt, isIdleSince } from '../runtime/persona/cognition/sleep-consolidation.js';
 import { RelationshipStore } from '../runtime/persona/relationships.js';
+import { createLifeButler, normalizeLifeConfig } from '../services/social/life/index.js';
+import { createBridgeLifePort } from '../services/social/life/ports/bridge-port.js';
 import { normalizeRiceConfig, riceBucket, loadRiceBonus, addPokeBonus, saveRiceBonus, buildRiceLine } from '../runtime/persona/rice.js';
 import {
   loadPlaybook,
@@ -158,6 +160,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const STATE_DIR = path.join(ROOT, 'state');
 const RICE_FILE = path.join(STATE_DIR, 'rice.json');
+// 生活管家 GitHub token 只落在 state（0600），config.json 永远只存开关与非敏感项。
+const LIFE_SECRETS_FILE = path.join(STATE_DIR, 'life-secrets.json');
 
 // 插件叫醒主控成功后往 state/wake-bridge/events.jsonl 追加 coordinator-woken；
 // 等到它出现就别再 fork CLI 会话，否则两个主控会同时派单。
@@ -1431,6 +1435,26 @@ function loadConfig() {
       }
     };
   }
+  // 生活管家：内核配置在 simulation.lifeButler，外部源地址在 simulation.life.adapters。
+  // 默认关闭；适配器默认不配源，未配置时安全跳过。
+  {
+    const at = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
+    const raw = at(cfg.simulation?.lifeButler);
+    const defaults = {
+      'calendar-ics': { enabled: false, url: '', timezone: 'Asia/Shanghai', allowedHosts: [] },
+      rss: { enabled: false, url: '', allowedHosts: [] },
+      github: { enabled: false },
+      paper: { enabled: false },
+      arxiv: { enabled: false }
+    };
+    const live = at(at(cfg.simulation?.life).adapters);
+    const adapters = {};
+    for (const id of new Set([...Object.keys(defaults), ...Object.keys(live), ...Object.keys(at(raw.adapters))])) {
+      adapters[id] = { ...(defaults[id] || {}), ...(at(raw.adapters)[id] || {}), ...(live[id] || {}) };
+    }
+    cfg.simulation.lifeButler = normalizeLifeConfig({ ...raw, adapters });
+    cfg.simulation.life = { ...at(cfg.simulation?.life), adapters };
+  }
   // 群日报：默认关闭，按群开启（groups 列表或 groupProfiles[key].dailyReport=true）。
   cfg.simulation.dailyReport = {
     enabled: false,
@@ -1650,6 +1674,10 @@ const fishMemoryTurns = new Map();
 let cognitionLastIncomingAt = 0;
 let sleepConsolidating = false;
 let lastSleepRunAt = 0;
+// 生活管家实例与配置同步链（main 内创建；关闭时只清理不建表）。
+let lifeButlerInstance = null;
+let lifeButlerSignature = '';
+let lifeSyncChain = Promise.resolve();
 let relationshipStore = null;
 let relationshipsEnabledForKey = () => false;
 let budgetStore = null;
@@ -4011,7 +4039,14 @@ async function main() {
       && !touches('simulation.shareModules')
       && !touches('simulation.signature')
       && !touches('simulation.outerWorld')
-      && !touches('simulation.dailyReport')) return;
+      && !touches('simulation.dailyReport')
+      && !touches('simulation.lifeButler')
+      && !touches('simulation.life')) return;
+    if (touches('simulation.lifeButler') || touches('simulation.life')) {
+      void (lifeSyncChain = lifeSyncChain
+        .then(() => syncLifeButler())
+        .catch((error) => log(`[life] 排程刷新失败：${error?.message ?? error}`)));
+    }
     try { innerLife?.reschedule?.(); } catch (error) { log(`[features] 内心生活排程刷新失败：${error?.message ?? error}`); }
     try { syncSignatureJob(); } catch (error) { log(`[features] 签名排程刷新失败：${error?.message ?? error}`); }
     try { syncDailyReportJobs(); } catch (error) { log(`[features] 日报排程刷新失败：${error?.message ?? error}`); }
@@ -4611,6 +4646,38 @@ async function main() {
         const quiet = nightQuietConfig();
         const active = isNightQuietNow();
         return { line: `${active ? '当前在静默时段' : '当前不在静默时段'} · ${quiet.start}-${quiet.end}`, tone: active ? 'ok' : 'muted' };
+      }
+      if (id === 'lifeButler') {
+        if (!lifeWant()) return { line: '未开启；开启后按子开关调度，外部源需自行配置', tone: 'muted' };
+        return lifeButlerInstance?.started
+          ? { line: `${lifeButlerInstance.adapters?.length ?? 0} 个适配器已加载 · 调度运行中`, tone: 'ok' }
+          : { line: '已开启，等待初始化', tone: 'muted' };
+      }
+      if (['paper', 'github', 'calendar', 'rss', 'weekly'].includes(id)) {
+        if (!lifeWant()) return { line: '生活管家总闸关闭', tone: 'muted' };
+        const moduleId = id === 'calendar' ? 'calendarMorning' : id === 'rss' ? 'rssDigest' : id === 'weekly' ? 'weeklyReview' : id;
+        const status = lifeButlerInstance?.moduleStatus?.()?.[moduleId];
+        if (!status?.enabled) return { line: '子开关未开启', tone: 'muted' };
+        if (status.lastError) return { line: '上次同步失败，稍后自动重试', tone: 'warn', attention: true };
+        const bits = [status.lastSuccess ? `上次成功 ${fmt(status.lastSuccess)}` : '还没有成功同步'];
+        if (status.nextRun) bits.push(`下次 ${fmt(status.nextRun)}`);
+        if (status.itemsLast != null) bits.push(`上次 ${Number(status.itemsLast)} 条`);
+        return { line: bits.join(' · '), tone: status.lastSuccess ? 'ok' : 'muted' };
+      }
+      if (id === 'digest') {
+        if (!lifeWant()) return { line: '生活管家总闸关闭', tone: 'muted' };
+        const lifeDigestCfg = cfg.simulation?.lifeButler?.digest || {};
+        return lifeDigestCfg.enabled === true
+          ? { line: `早报 ${lifeDigestCfg.morning || '08:00'} / 晚报 ${lifeDigestCfg.evening || '22:30'}`, tone: 'ok' }
+          : { line: '日报未开启', tone: 'muted' };
+      }
+      if (id === 'reminder') {
+        const active = Array.isArray(reminderStore.reminders)
+          ? reminderStore.reminders.filter((item) => item.status === 'pending').length
+          : 0;
+        return remindersEnabled()
+          ? { line: `${active} 条待触发 · 夜间免打扰顺延`, tone: 'ok' }
+          : { line: '提醒功能已关闭', tone: 'muted' };
       }
       if (id === 'rice') {
         if (!riceAwarenessOn()) return { line: '未开启；开启后只给档位话术，不把数字交给模型', tone: 'muted' };
@@ -8142,6 +8209,164 @@ async function main() {
           });
           return;
         }
+        // ── 生活管家面板（论文 / GitHub / 日报 / 提醒共用一份配置快照） ──────
+        if (req.method === 'GET' && url.pathname === '/api/features/life-panel') {
+          sendJson(lifePanelSnapshot());
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/features/life-panel') {
+          const body = await readBody();
+          const action = String(body.action ?? 'save');
+          if (action === 'token') {
+            try {
+              const info = saveLifeGithubToken(body.token);
+              const panel = await refreshLifePanelAfterSync();
+              log(`控制台：GitHub token ${info.configured ? '已更新' : '已清除'}`);
+              sendJson({ ok: true, githubToken: info, panel });
+            } catch (error) {
+              sendJson({ ok: false, error: error?.message ?? String(error) }, 400);
+            }
+            return;
+          }
+          if (action === 'preview') {
+            const moduleId = String(body.module ?? 'paper');
+            if (!['paper', 'github', 'calendarMorning', 'rssDigest', 'weeklyReview'].includes(moduleId)) {
+              sendJson({ ok: false, error: `未知模块：${moduleId}` }, 400);
+              return;
+            }
+            try {
+              const result = await previewLifeModule(moduleId);
+              const items = Array.isArray(result.items) ? result.items.slice(0, 20).map((item) => {
+                const detail = item.meta ?? item.payload ?? {};
+                return {
+                  title: item.title ?? '',
+                  summary: item.summary ?? '',
+                  url: detail.url ?? item.sourceRef ?? '',
+                  venue: detail.venue ?? '',
+                  year: detail.year ?? null,
+                  publicationDate: detail.publicationDate ?? '',
+                  institutions: Array.isArray(detail.institutions) ? detail.institutions : [],
+                  tldr: detail.tldr ?? '',
+                  tldrSource: detail.tldrSource ?? '',
+                  repo: detail.repo ?? '',
+                  number: detail.number ?? null,
+                  author: detail.author ?? '',
+                  state: detail.state ?? '',
+                  tag: detail.tag ?? '',
+                  releaseName: detail.releaseName ?? '',
+                  feed: detail.feed ?? '',
+                  duration: detail.duration ?? null,
+                  location: detail.location ?? '',
+                  description: detail.description ?? '',
+                  startsAt: item.startsAt ?? null,
+                  endsAt: item.endsAt ?? null,
+                  allDay: detail.allDay === true
+                };
+              }) : [];
+              sendJson({
+                ok: result.ok !== false,
+                module: moduleId,
+                preview: true,
+                fetched: result.fetched ?? items.length,
+                count: result.count ?? items.length,
+                items,
+                text: result.text || '',
+                message: result.message || '',
+                error: result.ok === false ? (result.error || '预览失败') : undefined
+              });
+            } catch (error) {
+              sendJson({ ok: false, error: `预览失败：${error?.message ?? error}` }, 500);
+            }
+            return;
+          }
+          if (action !== 'save') {
+            sendJson({ ok: false, error: `未知操作：${action}` }, 400);
+            return;
+          }
+          const normalized = normalizeLifePanelValues(body.values);
+          if (!normalized.ok) {
+            sendJson({ ok: false, errors: normalized.errors, error: normalized.errors[0] }, 400);
+            return;
+          }
+          if (!Object.keys(normalized.values).length) {
+            sendJson({ ok: false, error: '没有可保存的设置' }, 400);
+            return;
+          }
+          const applied = applyConsoleConfigValues(normalized.values, { tag: 'features' });
+          if (!applied.ok) {
+            sendJson({ ok: false, errors: applied.errors || [], error: applied.error || '保存失败' }, applied.errors ? 400 : 500);
+            return;
+          }
+          log(`控制台：生活管家面板已保存 ${applied.applied.length} 项`);
+          const panel = await refreshLifePanelAfterSync();
+          sendJson({
+            ok: true,
+            applied: applied.applied,
+            requiresRestart: applied.requiresRestart,
+            panel,
+            note: applied.requiresRestart.length ? '标注为 bridge 的项需重启桥接后生效' : '已热更新'
+          });
+          return;
+        }
+
+        // ── 生活管家只读 MCP 专用（仅主人私聊） ──────────────────────────
+        if (req.method === 'POST' && url.pathname.startsWith('/api/life/')) {
+          const body = await readBody();
+          const key = String(body.key ?? '').trim();
+          const token = String(body.token ?? req.headers['x-agent-token'] ?? '').trim();
+          const ownerKey = ownerChatKey();
+          if (!ownerKey || key !== ownerKey) { sendJson({ ok: false, error: '生活管家只允许主人私聊' }, 403); return; }
+          if (!ownerTokenOk(token)) { sendJson({ ok: false, error: 'agent token 无效' }, 403); return; }
+          if (!lifeButlerInstance || lifeButlerInstance.enabled !== true) {
+            sendJson({ ok: false, disabled: true, reason: 'simulation.lifeButler.enabled=false' });
+            return;
+          }
+          const action = url.pathname.slice('/api/life/'.length);
+          try {
+            if (action === 'status') { sendJson(lifeButlerInstance.status()); return; }
+            if (action === 'brief') {
+              const kind = body.kind === 'evening' ? 'evening' : 'morning';
+              const maxTokens = Math.min(300, Math.max(50, Number(body.maxTokens) || 300));
+              sendJson(lifeButlerInstance.brief({ kind, maxTokens }));
+              return;
+            }
+            if (action === 'query') {
+              sendJson(lifeButlerInstance.query({
+                kind: String(body.kind ?? ''),
+                adapter: String(body.adapter ?? ''),
+                status: String(body.status ?? ''),
+                q: String(body.q ?? ''),
+                from: body.from,
+                to: body.to,
+                limit: Math.min(20, Math.max(1, Number(body.limit) || 20))
+              }));
+              return;
+            }
+            if (action === 'watch') {
+              sendJson(lifeButlerInstance.watch({
+                adapter: body.adapter,
+                kind: body.kind,
+                target: body.target,
+                options: body.options ?? null
+              }));
+              return;
+            }
+            if (action === 'unwatch') {
+              sendJson(lifeButlerInstance.unwatch({
+                id: body.id,
+                adapter: body.adapter,
+                kind: body.kind,
+                target: body.target
+              }));
+              return;
+            }
+            sendJson({ ok: false, error: '未知的生活管家操作' }, 404);
+          } catch (error) {
+            sendJson({ ok: false, error: String(error?.message ?? error) }, 500);
+          }
+          return;
+        }
+
         if (req.method === 'GET' && url.pathname === '/api/cognition/proposals') {
           const enabled = sleepConsolidationConfig().enabled === true;
           const consolidator = sleepConsolidator();
@@ -17313,6 +17538,487 @@ async function main() {
   }
 
   // ── 群聊仿真模式（simulation）唤醒调度 ──────────────────────────────────
+  // ── 生活管家（默认关闭） ─────────────────────────────────────────────────
+  function remindersEnabled() {
+    return cfg.simulation?.reminders?.enabled !== false && reminderStoreWritable;
+  }
+
+  function reminderLimits() {
+    const r = cfg.simulation?.reminders || {};
+    return {
+      maxActive: Math.max(1, Math.min(1000, Number(r.maxActive) || 100)),
+      maxPerDayPerKey: Math.max(1, Math.min(50, Number(r.maxPerDayPerKey) || 5)),
+      overdueGraceMs: Math.max(60000, Number(r.overdueGraceMs) || 6 * 3600 * 1000)
+    };
+  }
+
+  function lifeConfig() {
+    const value = cfg.simulation?.lifeButler;
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  }
+
+  function lifeWant() {
+    return lifeConfig().enabled === true;
+  }
+
+  function loadLifeSecrets() {
+    const data = coreReadJsonSafe(LIFE_SECRETS_FILE, {});
+    return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  }
+
+  function loadLifeGithubToken() {
+    const token = loadLifeSecrets().githubToken;
+    return typeof token === 'string' ? token.trim() : '';
+  }
+
+  function lifeGithubTokenInfo() {
+    const token = loadLifeGithubToken();
+    return { configured: token.length > 0, hint: token ? `****${token.slice(-4)}` : '' };
+  }
+
+  function saveLifeGithubToken(raw) {
+    const token = String(raw ?? '').trim();
+    if (token && (token.length < 8 || token.length > 255 || !/^[A-Za-z0-9_.-]+$/.test(token))) {
+      const error = new Error('token 格式无效（只允许字母、数字、_ . -，长度 8–255）');
+      error.code = 'token-format';
+      throw error;
+    }
+    const secrets = loadLifeSecrets();
+    if (token) {
+      secrets.githubToken = token;
+      secrets.githubTokenUpdatedAt = new Date().toISOString();
+    } else {
+      delete secrets.githubToken;
+      delete secrets.githubTokenUpdatedAt;
+    }
+    coreAtomicWriteJson(LIFE_SECRETS_FILE, secrets);
+    return lifeGithubTokenInfo();
+  }
+
+  // 运行配置快照：GitHub token 从 state 注入，签名只含 token 末 4 位，避免明文进日志。
+  function lifeAdapterConfig() {
+    const base = lifeConfig().adapters || {};
+    const live = cfg.simulation?.life?.adapters || {};
+    const merged = {};
+    for (const id of new Set([...Object.keys(base), ...Object.keys(live)])) {
+      merged[id] = { ...(base[id] || {}), ...(live[id] || {}) };
+    }
+    return merged;
+  }
+
+  function lifeConfigSnapshot({ forceEnabled = false } = {}) {
+    const token = loadLifeGithubToken();
+    const base = lifeConfig();
+    const config = {
+      ...base,
+      adapters: lifeAdapterConfig(),
+      modules: {
+        ...(base.modules || {}),
+        github: { ...(base.modules?.github || {}), token }
+      }
+    };
+    if (forceEnabled) config.enabled = true;
+    const signature = JSON.stringify({
+      ...config,
+      modules: {
+        ...config.modules,
+        github: { ...config.modules.github, token: token ? `set:${token.slice(-4)}` : '' }
+      }
+    });
+    return { config, signature, token };
+  }
+
+  function createLifePortFor(scheduler) {
+    return createBridgeLifePort({
+      getConfig: () => cfg,
+      log: (message, meta) => log(`[life] ${message}`, meta ?? ''),
+      db,
+      scheduler,
+      notify: async (text, opts = {}) => {
+        const key = ownerChatKey();
+        if (!key) throw new Error('未配置 ownerQQ，生活简报无法私聊送达');
+        const ok = await auditAndSend(key, text, { kind: opts.kind || 'life-brief' });
+        return { ok: ok !== false };
+      },
+      http: { fetch: async () => { throw new Error('生活管家只允许通过适配器 guard 抓取'); } }
+    });
+  }
+
+  async function syncLifeButler() {
+    if (!lifeWant()) {
+      if (lifeButlerInstance) {
+        try { lifeButlerInstance.dispose(); } catch {}
+        lifeButlerInstance = null;
+        lifeButlerSignature = '';
+        log('[life] 总开关已关闭，生活管家调度已停止');
+      }
+      const cancelled = (jobQueue?.clearPending('life.sync', '生活管家已关闭') || 0)
+        + (jobQueue?.clearPending('life.brief', '生活管家已关闭') || 0)
+        + (jobQueue?.clearPending('life.push', '生活管家已关闭') || 0)
+        + (jobQueue?.clearDead('life.sync', '生活管家已关闭：历史失败任务不再重试') || 0)
+        + (jobQueue?.clearDead('life.brief', '生活管家已关闭：历史失败任务不再重试') || 0)
+        + (jobQueue?.clearDead('life.push', '生活管家已关闭：历史失败任务不再重试') || 0);
+      if (cancelled) log(`[life] 已取消 ${cancelled} 个未执行或历史失败的生活管家任务`);
+      return;
+    }
+    const { config, signature } = lifeConfigSnapshot();
+    if (lifeButlerInstance && signature === lifeButlerSignature) return;
+    if (lifeButlerInstance) {
+      try { lifeButlerInstance.dispose(); } catch {}
+      lifeButlerInstance = null;
+      lifeButlerSignature = '';
+      const stale = jobQueue?.clearPending('life.push', '生活管家配置已更新，按新配置重排') || 0;
+      if (stale) log(`[life] 已取消 ${stale} 个按旧配置排期的生活管家推送`);
+    }
+    if (!db) {
+      log('⚠️ 生活管家已开启但 SQLite 不可用，已跳过（不会写任何表）');
+      return;
+    }
+    if (!jobQueue) {
+      log('⚠️ 生活管家已开启但任务队列不可用，已跳过');
+      return;
+    }
+    try {
+      const port = createLifePortFor({
+        register: (type, handler) => jobQueue.register(type, (job) => (
+          lifeWant() ? handler(job) : { status: 'disabled', reason: 'simulation.lifeButler.enabled=false' }
+        )),
+        enqueue: (input) => (lifeWant() ? jobQueue.enqueue(input) : null),
+        cancel: (dedupeKey) => jobQueue.cancel(dedupeKey)
+      });
+      const butler = createLifeButler(port, {
+        config,
+        reminders: () => reminderStore.reminders
+      });
+      lifeButlerInstance = butler;
+      const started = await butler.start();
+      lifeButlerSignature = signature;
+      log(`[life] 生活管家已启动：${started.adapters ?? 0} 个适配器${started.briefs ? `，${started.briefs} 个简报` : ''}`);
+    } catch (error) {
+      lifeButlerInstance = null;
+      lifeButlerSignature = '';
+      log(`⚠️ 生活管家启动失败（继续运行，其他功能不受影响）：${error?.message ?? error}`);
+    }
+  }
+
+  // 面板预览：不排程、不落库，只拉一次当前数据。
+  async function previewLifeModule(moduleId) {
+    if (!db) return { ok: false, error: 'SQLite 不可用，无法预览' };
+    const { config } = lifeConfigSnapshot({ forceEnabled: true });
+    const port = createLifePortFor({ enqueue: () => null, register: () => {}, cancel: () => 0 });
+    const butler = createLifeButler(port, { config, schedule: false, reminders: () => reminderStore.reminders });
+    try {
+      await butler.init();
+      return await butler.previewModule(moduleId);
+    } finally {
+      try { butler.dispose(); } catch {}
+    }
+  }
+
+  function lifeStripStatus(status = {}) {
+    return {
+      enabled: status.enabled === true,
+      state: status.state || 'ok',
+      lastSuccess: status.lastSuccess ?? null,
+      lastError: status.lastError ?? null,
+      nextRun: status.nextRun ?? null,
+      itemsLast: status.itemsLast ?? null
+    };
+  }
+
+  function lifePanelSnapshot() {
+    const base = lifeConfig();
+    const modules = base.modules || {};
+    const digest = base.digest || {};
+    const paper = modules.paper || {};
+    const github = modules.github || {};
+    const calendar = modules.calendarMorning || {};
+    const rss = modules.rssDigest || {};
+    const weekly = modules.weeklyReview || {};
+    const moduleState = lifeButlerInstance?.moduleStatus?.() || {};
+    const activeReminders = Array.isArray(reminderStore.reminders)
+      ? reminderStore.reminders.filter((item) => item.status === 'pending').length
+      : 0;
+    return {
+      ok: true,
+      enabled: lifeWant(),
+      digest: {
+        enabled: digest.enabled === true,
+        morning: digest.morning || '08:00',
+        evening: digest.evening || '22:30',
+        sections: {
+          calendar: digest.sections?.calendar === true,
+          reminders: digest.sections?.reminders === true,
+          paper: digest.sections?.paper === true,
+          github: digest.sections?.github === true
+        }
+      },
+      paper: {
+        enabled: paper.enabled === true,
+        topics: Array.isArray(paper.topics) ? [...paper.topics] : [],
+        keywords: Array.isArray(paper.keywords) ? [...paper.keywords] : [],
+        frequency: paper.frequency || 'daily',
+        time: paper.time || '09:00',
+        weekday: paper.weekday ?? 1,
+        intervalDays: paper.intervalDays ?? 3,
+        count: paper.count ?? 5,
+        source: paper.source || 'openalex',
+        windowDays: paper.windowDays ?? 7
+      },
+      github: {
+        enabled: github.enabled === true,
+        repos: Array.isArray(github.repos) ? [...github.repos] : [],
+        metrics: {
+          stars: github.metrics?.stars !== false,
+          forks: github.metrics?.forks !== false,
+          issues: github.metrics?.issues !== false,
+          pulls: github.metrics?.pulls !== false,
+          releases: github.metrics?.releases !== false
+        },
+        frequency: github.frequency || 'daily',
+        time: github.time || '09:00',
+        weekday: github.weekday ?? 1,
+        intervalDays: github.intervalDays ?? 1,
+        notifyNoChanges: github.notifyNoChanges === true
+      },
+      githubToken: lifeGithubTokenInfo(),
+      calendarMorning: {
+        enabled: calendar.enabled === true,
+        time: calendar.time || '07:30',
+        weekdaysOnly: calendar.weekdaysOnly === true,
+        lookaheadDays: calendar.lookaheadDays ?? 1,
+        showConflicts: calendar.showConflicts !== false,
+        tomorrowPreview: calendar.tomorrowPreview !== false,
+        urlConfigured: Boolean(String(lifeAdapterConfig()['calendar-ics']?.url || '').trim())
+      },
+      rssDigest: {
+        enabled: rss.enabled === true,
+        feeds: Array.isArray(rss.feeds) ? rss.feeds.map((feed) => ({ ...feed })) : [],
+        frequency: rss.frequency || 'daily',
+        time: rss.time || '08:00',
+        weekday: rss.weekday ?? 1,
+        intervalDays: rss.intervalDays ?? 3,
+        count: rss.count ?? 8,
+        perFeedLimit: rss.perFeedLimit ?? 3,
+        showSummary: rss.showSummary !== false
+      },
+      weeklyReview: {
+        enabled: weekly.enabled === true,
+        weekday: weekly.weekday ?? 7,
+        time: weekly.time || '20:00',
+        sections: {
+          paper: weekly.sections?.paper !== false,
+          github: weekly.sections?.github !== false,
+          reminders: weekly.sections?.reminders !== false,
+          digest: weekly.sections?.digest !== false
+        }
+      },
+      reminder: {
+        ownerKey: ownerChatKey(),
+        enabled: remindersEnabled(),
+        active: activeReminders,
+        maxActive: reminderLimits().maxActive,
+        maxPerDayPerKey: reminderLimits().maxPerDayPerKey,
+        overdueGraceMs: reminderLimits().overdueGraceMs,
+        quietHours: nightQuietConfig(),
+        quietPolicy: 'defer'
+      },
+      status: {
+        paper: lifeStripStatus(moduleState.paper),
+        github: lifeStripStatus(moduleState.github),
+        calendarMorning: lifeStripStatus(moduleState.calendarMorning),
+        rssDigest: lifeStripStatus(moduleState.rssDigest),
+        weeklyReview: lifeStripStatus(moduleState.weeklyReview)
+      }
+    };
+  }
+
+  // 控制台面板白名单：拼错/越界的键在进入配置校验前就被拒。
+  const LIFE_PANEL_FIELDS = Object.freeze({
+    'simulation.lifeButler.modules.paper.enabled': { type: 'boolean' },
+    'simulation.lifeButler.modules.paper.topics': { type: 'string-list', minItems: 1, maxItems: 8, maxChars: 40 },
+    'simulation.lifeButler.modules.paper.keywords': { type: 'string-list', minItems: 0, maxItems: 10, maxChars: 60 },
+    'simulation.lifeButler.modules.paper.frequency': { type: 'enum', values: ['daily', 'weekly', 'interval'] },
+    'simulation.lifeButler.modules.paper.time': { type: 'time' },
+    'simulation.lifeButler.modules.paper.weekday': { type: 'int', min: 1, max: 7 },
+    'simulation.lifeButler.modules.paper.intervalDays': { type: 'int', min: 1, max: 30 },
+    'simulation.lifeButler.modules.paper.count': { type: 'int', min: 1, max: 20 },
+    'simulation.lifeButler.modules.paper.source': { type: 'enum', values: ['openalex', 'arxiv'] },
+    'simulation.lifeButler.modules.paper.windowDays': { type: 'int', min: 1, max: 30 },
+    'simulation.lifeButler.modules.github.enabled': { type: 'boolean' },
+    'simulation.lifeButler.modules.github.repos': { type: 'repo-list', maxItems: 20 },
+    'simulation.lifeButler.modules.github.metrics.stars': { type: 'boolean' },
+    'simulation.lifeButler.modules.github.metrics.forks': { type: 'boolean' },
+    'simulation.lifeButler.modules.github.metrics.issues': { type: 'boolean' },
+    'simulation.lifeButler.modules.github.metrics.pulls': { type: 'boolean' },
+    'simulation.lifeButler.modules.github.metrics.releases': { type: 'boolean' },
+    'simulation.lifeButler.modules.github.frequency': { type: 'enum', values: ['daily', 'weekly', 'interval'] },
+    'simulation.lifeButler.modules.github.time': { type: 'time' },
+    'simulation.lifeButler.modules.github.weekday': { type: 'int', min: 1, max: 7 },
+    'simulation.lifeButler.modules.github.intervalDays': { type: 'int', min: 1, max: 30 },
+    'simulation.lifeButler.modules.github.notifyNoChanges': { type: 'boolean' },
+    'simulation.lifeButler.modules.calendarMorning.enabled': { type: 'boolean' },
+    'simulation.lifeButler.modules.calendarMorning.time': { type: 'time' },
+    'simulation.lifeButler.modules.calendarMorning.weekdaysOnly': { type: 'boolean' },
+    'simulation.lifeButler.modules.calendarMorning.lookaheadDays': { type: 'int', min: 1, max: 7 },
+    'simulation.lifeButler.modules.calendarMorning.showConflicts': { type: 'boolean' },
+    'simulation.lifeButler.modules.calendarMorning.tomorrowPreview': { type: 'boolean' },
+    'simulation.lifeButler.modules.rssDigest.enabled': { type: 'boolean' },
+    'simulation.lifeButler.modules.rssDigest.feeds': { type: 'feed-list', maxItems: 12 },
+    'simulation.lifeButler.modules.rssDigest.frequency': { type: 'enum', values: ['daily', 'weekly', 'interval'] },
+    'simulation.lifeButler.modules.rssDigest.time': { type: 'time' },
+    'simulation.lifeButler.modules.rssDigest.weekday': { type: 'int', min: 1, max: 7 },
+    'simulation.lifeButler.modules.rssDigest.intervalDays': { type: 'int', min: 1, max: 30 },
+    'simulation.lifeButler.modules.rssDigest.count': { type: 'int', min: 1, max: 30 },
+    'simulation.lifeButler.modules.rssDigest.perFeedLimit': { type: 'int', min: 1, max: 10 },
+    'simulation.lifeButler.modules.rssDigest.showSummary': { type: 'boolean' },
+    'simulation.lifeButler.modules.weeklyReview.enabled': { type: 'boolean' },
+    'simulation.lifeButler.modules.weeklyReview.weekday': { type: 'int', min: 1, max: 7 },
+    'simulation.lifeButler.modules.weeklyReview.time': { type: 'time' },
+    'simulation.lifeButler.modules.weeklyReview.sections.paper': { type: 'boolean' },
+    'simulation.lifeButler.modules.weeklyReview.sections.github': { type: 'boolean' },
+    'simulation.lifeButler.modules.weeklyReview.sections.reminders': { type: 'boolean' },
+    'simulation.lifeButler.modules.weeklyReview.sections.digest': { type: 'boolean' },
+    'simulation.lifeButler.digest.enabled': { type: 'boolean' },
+    'simulation.lifeButler.digest.morning': { type: 'time' },
+    'simulation.lifeButler.digest.evening': { type: 'time' },
+    'simulation.lifeButler.digest.sections.calendar': { type: 'boolean' },
+    'simulation.lifeButler.digest.sections.reminders': { type: 'boolean' },
+    'simulation.lifeButler.digest.sections.paper': { type: 'boolean' },
+    'simulation.lifeButler.digest.sections.github': { type: 'boolean' },
+    'simulation.life.adapters.calendar-ics.url': { type: 'url' },
+    'simulation.life.adapters.rss.url': { type: 'url' }
+  });
+
+  const LIFE_REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+
+  function normalizeLifePanelValues(input) {
+    const src = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+    const values = {};
+    const errors = [];
+    for (const [rawKey, raw] of Object.entries(src)) {
+      let key = String(rawKey ?? '');
+      if (key.startsWith('lifeButler.')) key = `simulation.${key}`;
+      const rule = LIFE_PANEL_FIELDS[key];
+      if (!rule) { errors.push(`未知设置项：${rawKey}`); continue; }
+      if (raw === undefined) continue;
+      if (rule.type === 'boolean') {
+        if (typeof raw !== 'boolean') { errors.push(`${key} 必须是布尔值`); continue; }
+        values[key] = raw;
+        continue;
+      }
+      if (rule.type === 'time') {
+        const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(raw ?? '').trim());
+        if (!match) { errors.push(`${key} 必须是 HH:MM（24 小时制）`); continue; }
+        values[key] = `${match[1].padStart(2, '0')}:${match[2]}`;
+        continue;
+      }
+      if (rule.type === 'int') {
+        const n = Number(raw);
+        if (!Number.isInteger(n) || n < rule.min || n > rule.max) {
+          errors.push(`${key} 必须是 ${rule.min}–${rule.max} 的整数`);
+          continue;
+        }
+        values[key] = n;
+        continue;
+      }
+      if (rule.type === 'enum') {
+        const text = String(raw ?? '');
+        if (!rule.values.includes(text)) { errors.push(`${key} 只能是 ${rule.values.join(' / ')}`); continue; }
+        values[key] = text;
+        continue;
+      }
+      if (rule.type === 'url') {
+        const text = String(raw ?? '').trim().slice(0, 500);
+        if (!text) { values[key] = ''; continue; }
+        let parsed;
+        try { parsed = new URL(text); } catch { errors.push(`${key} 必须是有效的 https 地址`); continue; }
+        if (parsed.protocol !== 'https:') { errors.push(`${key} 只允许 https 地址`); continue; }
+        values[key] = text;
+        continue;
+      }
+      if (rule.type === 'string-list') {
+        if (!Array.isArray(raw)) { errors.push(`${key} 必须是数组`); continue; }
+        const seen = new Set();
+        const list = [];
+        for (const item of raw) {
+          const text = String(item ?? '').trim().slice(0, rule.maxChars);
+          if (!text) continue;
+          const lower = text.toLowerCase();
+          if (seen.has(lower)) continue;
+          seen.add(lower);
+          list.push(text);
+        }
+        if (list.length < (rule.minItems ?? 0)) { errors.push(`${key} 至少需要 ${rule.minItems} 项`); continue; }
+        if (list.length > rule.maxItems) { errors.push(`${key} 最多 ${rule.maxItems} 项`); continue; }
+        values[key] = list;
+        continue;
+      }
+      if (rule.type === 'repo-list') {
+        if (!Array.isArray(raw)) { errors.push(`${key} 必须是数组`); continue; }
+        const seen = new Set();
+        const list = [];
+        let invalid = '';
+        for (const item of raw) {
+          const repo = String(item ?? '').trim().slice(0, 140);
+          if (!repo) continue;
+          if (!LIFE_REPO_RE.test(repo)) { invalid = repo.slice(0, 40); break; }
+          const lower = repo.toLowerCase();
+          if (seen.has(lower)) continue;
+          seen.add(lower);
+          list.push(repo);
+        }
+        if (invalid) { errors.push(`仓库格式应为 owner/repo：${invalid}`); continue; }
+        if (list.length > rule.maxItems) { errors.push(`${key} 最多 ${rule.maxItems} 个仓库`); continue; }
+        values[key] = list;
+        continue;
+      }
+      if (rule.type === 'feed-list') {
+        if (!Array.isArray(raw)) { errors.push(`${key} 必须是数组`); continue; }
+        const seen = new Set();
+        const list = [];
+        const bad = [];
+        for (const item of raw) {
+          let name = '';
+          let url = '';
+          if (typeof item === 'string') {
+            const bar = item.indexOf('|');
+            if (bar > 0) { name = item.slice(0, bar); url = item.slice(bar + 1); }
+            else url = item;
+          } else if (item && typeof item === 'object') {
+            name = String(item.name ?? '');
+            url = String(item.url ?? '');
+          }
+          url = url.trim().slice(0, 500);
+          if (!url) continue;
+          let parsed;
+          try { parsed = new URL(url); } catch { bad.push(url.slice(0, 60)); continue; }
+          if (parsed.protocol !== 'https:') { bad.push(url.slice(0, 60)); continue; }
+          const lower = url.toLowerCase();
+          if (seen.has(lower)) continue;
+          seen.add(lower);
+          list.push({ name: (String(name).trim() || parsed.hostname).slice(0, 40), url });
+        }
+        if (bad.length) { errors.push(`${key} 只允许 https 地址：${bad[0]}`); continue; }
+        if (list.length > rule.maxItems) { errors.push(`${key} 最多 ${rule.maxItems} 个订阅源`); continue; }
+        values[key] = list;
+        continue;
+      }
+    }
+    return { ok: errors.length === 0, values, errors };
+  }
+
+  async function refreshLifePanelAfterSync() {
+    try {
+      const refresh = lifeSyncChain.then(() => syncLifeButler());
+      lifeSyncChain = refresh.catch(() => {});
+      await refresh;
+    } catch (error) {
+      log(`[life] 生活管家排程刷新失败：${error?.message ?? error}`);
+    }
+    return lifePanelSnapshot();
+  }
+
   // ── 认知升级（七个独立开关，默认全关） ───────────────────────────────────
   function cognitionSettings() {
     const c = cfg.simulation?.cognition;
@@ -18613,6 +19319,13 @@ async function main() {
     const cognitionReunion = cognitionReunionLine(key, st);
     const cognitionFish = cognitionFishLine(key, st);
     const cognitionTiers = cognitionTierLine(key, st);
+    // 生活管家：默认关闭；只在主人私聊注入，≤300 tokens，只含时间/标题/状态。
+    const lifeBriefSection = lifeButlerInstance?.started
+      && cfg.simulation?.lifeButler?.promptSection?.enabled === true
+      && key === ownerChatKey()
+      ? lifeButlerInstance.promptSection({ maxTokens: 300 })
+      : null;
+    const lifeButlerLine = lifeBriefSection?.text ? `${lifeBriefSection.text}\n\n` : '';
     const riceLine = ricePromptLine();
     // 按需手册：默认关闭；开启后按本轮来信/唤醒原因挑 1~2 篇，关闭时 sections 原样。
     const pbCfg = playbookSettings();
@@ -18716,6 +19429,7 @@ async function main() {
       { id: 'digest', text: digestLine, priority: 99, trim: true },
       { id: 'longTerm', text: longTermLine, priority: 75, trim: true },
       { id: 'rice', text: riceLine, priority: 44, trim: true },
+      { id: 'lifeButlerBrief', text: lifeButlerLine, priority: 46, trim: true },
       { id: 'playbookHint', text: playbookHintLine, priority: 90 },
       { id: 'cognitionTiers', text: cognitionTiers, priority: 74, trim: true },
       { id: 'cognitionReunion', text: cognitionReunion, priority: 84, trim: true },
@@ -18734,7 +19448,7 @@ async function main() {
     const budget = assembleSections(plannedSections, {
       maxTokens: Number(cfg.simulation?.context?.wakeBudgetTokens) || 10000,
       dropOrder: ['esports', 'capability', 'search', 'timeCheck',
-        ...playbookSectionIds, 'playbookHint', 'rice',
+        ...playbookSectionIds, 'playbookHint', 'rice', 'lifeButlerBrief',
         'mediaReaction', 'participation', 'groupStyle', 'cognitionTiers', 'cognitionReunion', 'cognitionFish', 'relationships', 'longTerm', 'imageRead', 'life', 'imageCadence', 'stickerCadence', 'voiceOpp', 'image', 'sticker', 'persona', 'personaKernel']
     });
     const injectedPlaybookIds = playbooksOn ? survivingPlaybooks(playbookIds, budget) : [];
@@ -21342,6 +22056,7 @@ async function main() {
     if (outerAt) log(`[outerWorld] 下次出门见闻约 ${new Date(outerAt).toLocaleString('zh-CN', { hour12: false })}`);
     const sleepAt = syncCognitionSleepJob();
     if (sleepAt) log(`[cognition] 下次睡眠巩固约 ${new Date(sleepAt).toLocaleString('zh-CN', { hour12: false })}`);
+    await syncLifeButler();
     jobQueue.start();
   }
   // 启动重放放在连接建立之后：DSH/SnowLuma 没就绪时排队，不丢消息。

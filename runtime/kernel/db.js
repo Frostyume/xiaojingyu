@@ -249,7 +249,8 @@ const MIGRATIONS = [
       // 旧列 affinity 之前被新写入逻辑误写成 0~100；统一恢复成 0~1，避免以后误读。
       db.exec('UPDATE member_relationships SET affinity = affinity / 100.0 WHERE affinity > 1');
     }
-  }
+  },
+
 ];
 
 function ensureDir(file) {

@@ -48,6 +48,7 @@ const h = await bridgeHarness({
     simulation: {
       nightQuiet: { enabled: false },
       voice: { enabled: true },
+      lifeButler: { enabled: true },
       innerLife: {
         enabled: true,
         qzone: { enabled: true, commentReply: { enabled: true } },
@@ -89,15 +90,15 @@ try {
     handleOwnerCommand: async () => false
   });
 
-  // ── 1. 端点快照：8 板块 / 35 卡片 / 群聊剧场与分享引擎总闸 ─────────────
+  // ── 1. 端点快照：9 板块 / 43 卡片 / 群聊剧场与分享引擎总闸 ─────────────
   const snap = await call('/api/features/control');
   assert.equal(snap.status, 200, 'GET /api/features/control 应成功');
   assert.equal(snap.json.ok, true);
-  assert.deepEqual(snap.json.boards.map((b) => b.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'cognition', 'ops', 'owner', 'console']);
+  assert.deepEqual(snap.json.boards.map((b) => b.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'life', 'cognition', 'ops', 'owner', 'console']);
   assert.equal(snap.json.boards.find((b) => b.id === 'chat').master, 'groupChat');
   assert.equal(snap.json.boards.find((b) => b.id === 'shareEngine').master, 'shareModule');
   assert.deepEqual(snap.json.modules.map((m) => m.id).sort(), FEATURE_CARDS.map((c) => c.id).sort());
-  assert.equal(snap.json.modules.length, 35);
+  assert.equal(snap.json.modules.length, 43);
   for (const module of snap.json.modules) {
     assert.equal(typeof module.enabled, 'boolean', `${module.id} 必须只有一个布尔主开关`);
     assert.ok(module.board, `${module.id} 必须归属板块`);
@@ -125,7 +126,7 @@ try {
     assert.equal(module.board, 'shareEngine', `${id} 应归入分享引擎板块`);
     assert.ok(module.dependencies.some((d) => d.key === 'features.shareModule' && d.ok), `${id} 应声明分享引擎总闸依赖`);
   }
-  console.log('OK 快照：8 板块 / 35 模块 / 群聊剧场与分享引擎总闸');
+  console.log('OK 快照：9 板块 / 43 模块 / 群聊剧场与分享引擎总闸');
 
   // ── 2. 关闭空间说说：配置落盘 + HTTP 入口拒绝 ──────────────────────────
   const offQzone = await call('/api/features/control', { method: 'POST', body: { id: 'qzone', enabled: false } });

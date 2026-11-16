@@ -376,6 +376,88 @@
         "playbookMaxTokens": 1200
       }
     },
+    "lifeButler": {
+      "enabled": false,
+      "promptSection": {
+        "enabled": false
+      },
+      "digest": {
+        "enabled": false,
+        "morning": "08:00",
+        "evening": "22:30",
+        "sections": {
+          "calendar": true,
+          "reminders": true,
+          "paper": false,
+          "github": false
+        }
+      },
+      "modules": {
+        "paper": {
+          "enabled": false,
+          "topics": [
+            "cs.AI",
+            "cs.CL",
+            "cs.CV",
+            "cs.LG"
+          ],
+          "keywords": [],
+          "frequency": "daily",
+          "time": "09:00",
+          "weekday": 1,
+          "intervalDays": 3,
+          "count": 5,
+          "source": "openalex",
+          "windowDays": 7
+        },
+        "github": {
+          "enabled": false,
+          "repos": [],
+          "metrics": {
+            "stars": true,
+            "forks": true,
+            "issues": true,
+            "pulls": true,
+            "releases": true
+          },
+          "frequency": "daily",
+          "time": "09:00",
+          "weekday": 1,
+          "intervalDays": 1,
+          "notifyNoChanges": false
+        },
+        "calendarMorning": {
+          "enabled": false,
+          "time": "07:30",
+          "weekdaysOnly": false,
+          "lookaheadDays": 1,
+          "showConflicts": true,
+          "tomorrowPreview": true
+        },
+        "rssDigest": {
+          "enabled": false,
+          "feeds": [],
+          "frequency": "daily",
+          "time": "08:00",
+          "weekday": 1,
+          "intervalDays": 3,
+          "count": 8,
+          "perFeedLimit": 3,
+          "showSummary": true
+        },
+        "weeklyReview": {
+          "enabled": false,
+          "weekday": 7,
+          "time": "20:00",
+          "sections": {
+            "paper": true,
+            "github": true,
+            "reminders": true,
+            "digest": true
+          }
+        }
+      }
+    },
     "dailyReport": {
       "enabled": false,
       "at": "21:30",

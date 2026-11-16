@@ -1,0 +1,18 @@
+[
+  {
+    "id": "fixture-gh-1",
+    "unread": true,
+    "reason": "review_requested",
+    "updated_at": "2026-11-01T02:30:00Z",
+    "subject": { "title": "Add life butler kernel", "type": "PullRequest" },
+    "repository": { "full_name": "owner/qq-bridge" }
+  },
+  {
+    "id": "fixture-gh-2",
+    "unread": true,
+    "reason": "ci_activity",
+    "updated_at": "2026-11-01T03:10:00Z",
+    "subject": { "title": "CI failed on main", "type": "CheckSuite" },
+    "repository": { "full_name": "owner/qq-bridge" }
+  }
+]

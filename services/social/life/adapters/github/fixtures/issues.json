@@ -1,0 +1,27 @@
+[
+  {
+    "number": 101,
+    "title": "Life butler loses cursor after restart",
+    "state": "open",
+    "user": { "login": "alice" },
+    "updated_at": "2026-11-01T02:30:00Z",
+    "html_url": "https://github.com/owner/example/issues/101"
+  },
+  {
+    "number": 102,
+    "title": "Add remind command docs",
+    "state": "open",
+    "user": { "login": "bob" },
+    "updated_at": "2026-11-01T03:10:00Z",
+    "html_url": "https://github.com/owner/example/issues/102"
+  },
+  {
+    "number": 103,
+    "title": "Refactor scheduler (PR)",
+    "state": "open",
+    "user": { "login": "carol" },
+    "updated_at": "2026-11-01T04:10:00Z",
+    "html_url": "https://github.com/owner/example/pull/103",
+    "pull_request": { "url": "https://api.github.com/repos/owner/example/pulls/103" }
+  }
+]

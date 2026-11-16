@@ -1,0 +1,18 @@
+[
+  {
+    "number": 103,
+    "title": "Refactor scheduler (PR)",
+    "state": "open",
+    "user": { "login": "carol" },
+    "updated_at": "2026-11-01T04:10:00Z",
+    "html_url": "https://github.com/owner/example/pull/103"
+  },
+  {
+    "number": 104,
+    "title": "Fix reminder timezone parsing",
+    "state": "open",
+    "user": { "login": "dave" },
+    "updated_at": "2026-11-01T05:00:00Z",
+    "html_url": "https://github.com/owner/example/pull/104"
+  }
+]

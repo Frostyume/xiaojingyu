@@ -1,0 +1,61 @@
+{
+  "results": [
+    {
+      "id": "https://openalex.org/W1000000001",
+      "doi": "https://doi.org/10.1234/example.2026.001",
+      "title": "Efficient Retrieval-Augmented Generation for Long Documents",
+      "publication_date": "2026-10-30",
+      "publication_year": 2026,
+      "primary_location": {
+        "landing_page_url": "https://doi.org/10.1234/example.2026.001",
+        "source": { "display_name": "Conference on Example Systems" }
+      },
+      "authorships": [
+        { "author": { "display_name": "A. Sample" }, "institutions": [{ "display_name": "Example University" }, { "display_name": "Sample Lab" }] },
+        { "author": { "display_name": "B. Example" }, "institutions": [{ "display_name": "Example University" }] }
+      ],
+      "abstract_inverted_index": {
+        "Long": [0], "documents": [1], "make": [2], "retrieval": [3], "expensive.": [4],
+        "We": [5], "introduce": [6], "a": [7], "chunked": [8], "index": [9],
+        "that": [10], "reuses": [11], "attention": [12], "state": [13], "across": [14], "passages.": [15]
+      },
+      "locations": [{ "landing_page_url": "https://example.org/paper/1" }]
+    },
+    {
+      "id": "https://openalex.org/W1000000002",
+      "doi": null,
+      "title": "A Study of Example Agents",
+      "publication_date": "2026-10-29",
+      "publication_year": 2026,
+      "primary_location": {
+        "landing_page_url": "https://arxiv.org/abs/2610.12345",
+        "source": { "display_name": "arXiv" }
+      },
+      "authorships": [
+        { "author": { "display_name": "C. Test" }, "institutions": [] }
+      ],
+      "abstract_inverted_index": null,
+      "locations": [{ "landing_page_url": "https://arxiv.org/abs/2610.12345", "pdf_url": "https://arxiv.org/pdf/2610.12345.pdf" }]
+    },
+    {
+      "id": "https://openalex.org/W1000000003",
+      "doi": null,
+      "title": "Efficient Retrieval-Augmented Generation for Long Documents",
+      "publication_date": "2026-10-28",
+      "publication_year": 2026,
+      "primary_location": {
+        "landing_page_url": "https://arxiv.org/abs/2610.00001",
+        "source": { "display_name": "arXiv" }
+      },
+      "authorships": [
+        { "author": { "display_name": "A. Sample" }, "institutions": [] }
+      ],
+      "abstract_inverted_index": {
+        "Long": [0], "documents": [1], "make": [2], "retrieval": [3], "expensive.": [4],
+        "We": [5], "introduce": [6], "a": [7], "chunked": [8], "index": [9],
+        "for": [10], "long": [11], "inputs.": [12]
+      },
+      "locations": [{ "landing_page_url": "https://arxiv.org/abs/2610.00001" }]
+    }
+  ]
+}

@@ -50,6 +50,8 @@ import * as cognitionFish from '../runtime/persona/cognition/fish-memory.js';
 import * as cognitionSleep from '../runtime/persona/cognition/sleep-consolidation.js';
 import * as coreRice from '../runtime/persona/rice.js';
 import * as corePromptRegistry from '../runtime/persona/prompt-registry.js';
+import * as lifeIndex from '../services/social/life/index.js';
+import * as lifeBridgePort from '../services/social/life/ports/bridge-port.js';
 import * as coreSessionMap from '../runtime/kernel/session-map.js';
 import * as coreRelationships from '../runtime/persona/relationships.js';
 import * as coreRelationshipModel from '../runtime/persona/relationship-model.js';
@@ -219,6 +221,8 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     signatureState,
     runOuterWorld, outerWorldStatus, stopOuterWorld, syncOuterWorldJob,
     getJobQueue: () => jobQueue,
+    getLifeButler: () => lifeButlerInstance,
+    syncLifeButler,
     handleSignatureJob,
     handleSignatureOwnerCommand,
     handleDailyReportJob,
@@ -293,6 +297,8 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     selectPlaybooks: corePromptRegistry.selectPlaybooks,
     planSections: corePromptRegistry.planSections,
     survivingPlaybooks: corePromptRegistry.survivingPlaybooks,
+    ...lifeIndex,
+    ...lifeBridgePort,
     ...coreSessionMap, ...coreRelationships, ...coreRelationshipModel, ...coreRichCard, ...corePersonaPack, ...coreStyleContext, ...coreDailyReport,
     relationshipStageLabel: coreRelationshipModel.stageLabel,
     relationshipAxisWords: coreRelationshipModel.axisWords,

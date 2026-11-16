@@ -984,6 +984,347 @@
             }
           }
         },
+        "lifeButler": {
+          "type": "object",
+          "properties": {
+            "modules": {
+              "type": "object",
+              "properties": {
+                "calendarMorning": {
+                  "type": "object",
+                  "properties": {
+                    "lookaheadDays": {
+                      "title": "Lookahead Days",
+                      "type": "number",
+                      "default": 1
+                    },
+                    "showConflicts": {
+                      "title": "Show Conflicts",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "tomorrowPreview": {
+                      "title": "Tomorrow Preview",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "weekdaysOnly": {
+                      "title": "Weekdays Only",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "enabled": {
+                      "title": "日历晨报",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "time": {
+                      "title": "晨报发送时间",
+                      "type": "string",
+                      "default": "07:30"
+                    }
+                  }
+                },
+                "github": {
+                  "type": "object",
+                  "properties": {
+                    "frequency": {
+                      "title": "Frequency",
+                      "type": "string",
+                      "default": "daily"
+                    },
+                    "intervalDays": {
+                      "title": "Interval Days",
+                      "type": "number",
+                      "default": 1
+                    },
+                    "metrics": {
+                      "type": "object",
+                      "properties": {
+                        "forks": {
+                          "title": "Forks",
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "issues": {
+                          "title": "Issues",
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "pulls": {
+                          "title": "Pulls",
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "releases": {
+                          "title": "Releases",
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "stars": {
+                          "title": "Stars",
+                          "type": "boolean",
+                          "default": true
+                        }
+                      }
+                    },
+                    "notifyNoChanges": {
+                      "title": "Notify No Changes",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "time": {
+                      "title": "Time",
+                      "type": "string",
+                      "default": "09:00"
+                    },
+                    "weekday": {
+                      "title": "Weekday",
+                      "type": "number",
+                      "default": 1
+                    },
+                    "enabled": {
+                      "title": "GitHub 监控",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "repos": {
+                      "title": "监控仓库（owner/repo）",
+                      "type": "array",
+                      "default": []
+                    }
+                  }
+                },
+                "paper": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "title": "Count",
+                      "type": "number",
+                      "default": 5
+                    },
+                    "intervalDays": {
+                      "title": "Interval Days",
+                      "type": "number",
+                      "default": 3
+                    },
+                    "keywords": {
+                      "title": "Keywords",
+                      "type": "array",
+                      "default": []
+                    },
+                    "weekday": {
+                      "title": "Weekday",
+                      "type": "number",
+                      "default": 1
+                    },
+                    "windowDays": {
+                      "title": "Window Days",
+                      "type": "number",
+                      "default": 7
+                    },
+                    "enabled": {
+                      "title": "论文推送",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "frequency": {
+                      "title": "论文推送频率",
+                      "type": "string",
+                      "default": "daily",
+                      "enum": [
+                        "daily",
+                        "weekly",
+                        "interval"
+                      ]
+                    },
+                    "source": {
+                      "title": "论文数据源",
+                      "type": "string",
+                      "default": "openalex",
+                      "enum": [
+                        "openalex",
+                        "arxiv"
+                      ]
+                    },
+                    "time": {
+                      "title": "论文推送时间",
+                      "type": "string",
+                      "default": "09:00"
+                    },
+                    "topics": {
+                      "title": "论文主题",
+                      "type": "array",
+                      "default": [
+                        "cs.AI",
+                        "cs.CL",
+                        "cs.CV",
+                        "cs.LG"
+                      ]
+                    }
+                  }
+                },
+                "rssDigest": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "title": "Count",
+                      "type": "number",
+                      "default": 8
+                    },
+                    "frequency": {
+                      "title": "Frequency",
+                      "type": "string",
+                      "default": "daily"
+                    },
+                    "intervalDays": {
+                      "title": "Interval Days",
+                      "type": "number",
+                      "default": 3
+                    },
+                    "perFeedLimit": {
+                      "title": "Per Feed Limit",
+                      "type": "number",
+                      "default": 3
+                    },
+                    "showSummary": {
+                      "title": "Show Summary",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "weekday": {
+                      "title": "Weekday",
+                      "type": "number",
+                      "default": 1
+                    },
+                    "enabled": {
+                      "title": "RSS / 播客摘要",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "feeds": {
+                      "title": "RSS 订阅源",
+                      "type": "array",
+                      "default": []
+                    },
+                    "time": {
+                      "title": "RSS 摘要时间",
+                      "type": "string",
+                      "default": "08:00"
+                    }
+                  }
+                },
+                "weeklyReview": {
+                  "type": "object",
+                  "properties": {
+                    "sections": {
+                      "type": "object",
+                      "properties": {
+                        "digest": {
+                          "title": "Digest",
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "github": {
+                          "title": "Github",
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "paper": {
+                          "title": "Paper",
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "reminders": {
+                          "title": "Reminders",
+                          "type": "boolean",
+                          "default": true
+                        }
+                      }
+                    },
+                    "enabled": {
+                      "title": "每周回顾",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "time": {
+                      "title": "周报时间",
+                      "type": "string",
+                      "default": "20:00"
+                    },
+                    "weekday": {
+                      "title": "周报星期几",
+                      "type": "number",
+                      "default": 7
+                    }
+                  }
+                }
+              }
+            },
+            "digest": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "早晚生活简报",
+                  "type": "boolean",
+                  "default": false
+                },
+                "evening": {
+                  "title": "晚报时间",
+                  "type": "string",
+                  "default": "22:30"
+                },
+                "morning": {
+                  "title": "早报时间",
+                  "type": "string",
+                  "default": "08:00"
+                },
+                "sections": {
+                  "type": "object",
+                  "properties": {
+                    "calendar": {
+                      "title": "简报包含日程",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "github": {
+                      "title": "简报包含 GitHub",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "paper": {
+                      "title": "简报包含论文",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "reminders": {
+                      "title": "简报包含提醒",
+                      "type": "boolean",
+                      "default": true
+                    }
+                  }
+                }
+              }
+            },
+            "enabled": {
+              "title": "生活管家总闸",
+              "type": "boolean",
+              "default": false,
+              "description": "默认关闭；关闭时不排任务、不读外部源、不写生活表"
+            },
+            "promptSection": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "把日程写进提示词",
+                  "type": "boolean",
+                  "default": false,
+                  "description": "默认关闭；仅主人私聊注入 ≤300 tokens 的小节"
+                }
+              }
+            }
+          }
+        },
         "memory": {
           "type": "object",
           "properties": {
@@ -4929,6 +5270,238 @@
       "advanced": false
     },
     {
+      "key": "simulation.lifeButler.modules.calendarMorning.lookaheadDays",
+      "label": "Lookahead Days",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.calendarMorning.showConflicts",
+      "label": "Show Conflicts",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.calendarMorning.tomorrowPreview",
+      "label": "Tomorrow Preview",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.calendarMorning.weekdaysOnly",
+      "label": "Weekdays Only",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.frequency",
+      "label": "Frequency",
+      "group": "群聊剧场",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.intervalDays",
+      "label": "Interval Days",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.metrics.forks",
+      "label": "Forks",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.metrics.issues",
+      "label": "Issues",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.metrics.pulls",
+      "label": "Pulls",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.metrics.releases",
+      "label": "Releases",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.metrics.stars",
+      "label": "Stars",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.notifyNoChanges",
+      "label": "Notify No Changes",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.time",
+      "label": "Time",
+      "group": "群聊剧场",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.weekday",
+      "label": "Weekday",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.count",
+      "label": "Count",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.intervalDays",
+      "label": "Interval Days",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.keywords",
+      "label": "Keywords",
+      "group": "群聊剧场",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.weekday",
+      "label": "Weekday",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.windowDays",
+      "label": "Window Days",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.rssDigest.count",
+      "label": "Count",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.rssDigest.frequency",
+      "label": "Frequency",
+      "group": "群聊剧场",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.rssDigest.intervalDays",
+      "label": "Interval Days",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.rssDigest.perFeedLimit",
+      "label": "Per Feed Limit",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.rssDigest.showSummary",
+      "label": "Show Summary",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.rssDigest.weekday",
+      "label": "Weekday",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.weeklyReview.sections.digest",
+      "label": "Digest",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.weeklyReview.sections.github",
+      "label": "Github",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.weeklyReview.sections.paper",
+      "label": "Paper",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.weeklyReview.sections.reminders",
+      "label": "Reminders",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "simulation.memory.personalMaxChars",
       "label": "Personal Max Chars",
       "group": "群聊剧场",
@@ -5879,6 +6452,207 @@
       "label": "Timeout Ms",
       "group": "群聊剧场",
       "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.digest.enabled",
+      "label": "早晚生活简报",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.digest.evening",
+      "label": "晚报时间",
+      "group": "生活管家",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.digest.morning",
+      "label": "早报时间",
+      "group": "生活管家",
+      "type": "string",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.digest.sections.calendar",
+      "label": "简报包含日程",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.digest.sections.github",
+      "label": "简报包含 GitHub",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.digest.sections.paper",
+      "label": "简报包含论文",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.digest.sections.reminders",
+      "label": "简报包含提醒",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.enabled",
+      "label": "生活管家总闸",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.calendarMorning.enabled",
+      "label": "日历晨报",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.calendarMorning.time",
+      "label": "晨报发送时间",
+      "group": "生活管家",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.enabled",
+      "label": "GitHub 监控",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.github.repos",
+      "label": "监控仓库（owner/repo）",
+      "group": "生活管家",
+      "type": "array",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.enabled",
+      "label": "论文推送",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.frequency",
+      "label": "论文推送频率",
+      "group": "生活管家",
+      "type": "string",
+      "restart": "none",
+      "advanced": true,
+      "enum": [
+        "daily",
+        "weekly",
+        "interval"
+      ]
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.source",
+      "label": "论文数据源",
+      "group": "生活管家",
+      "type": "string",
+      "restart": "none",
+      "advanced": true,
+      "enum": [
+        "openalex",
+        "arxiv"
+      ]
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.time",
+      "label": "论文推送时间",
+      "group": "生活管家",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.modules.paper.topics",
+      "label": "论文主题",
+      "group": "生活管家",
+      "type": "array",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.modules.rssDigest.enabled",
+      "label": "RSS / 播客摘要",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.rssDigest.feeds",
+      "label": "RSS 订阅源",
+      "group": "生活管家",
+      "type": "array",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.modules.rssDigest.time",
+      "label": "RSS 摘要时间",
+      "group": "生活管家",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.modules.weeklyReview.enabled",
+      "label": "每周回顾",
+      "group": "生活管家",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeButler.modules.weeklyReview.time",
+      "label": "周报时间",
+      "group": "生活管家",
+      "type": "string",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.modules.weeklyReview.weekday",
+      "label": "周报星期几",
+      "group": "生活管家",
+      "type": "number",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.lifeButler.promptSection.enabled",
+      "label": "把日程写进提示词",
+      "group": "生活管家",
+      "type": "boolean",
       "restart": "none",
       "advanced": false
     },
