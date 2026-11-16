@@ -43,7 +43,9 @@ export function featureVoiceInstruction(tts, mood = '', { customRole = false } =
   return [base, delivery, moodText, override ? `这一句的表演以最后这段为准：${override}` : ''].filter(Boolean).join(' ');
 }
 
-export async function synthesizeFeatureVoice({ text, mood = '', cfg, outDir, customRole = false }) {
+// seed/fresh 是可选参数：不传时与旧行为逐字一致（同一文本命中同一个 6 小时缓存文件）。
+// 心情语音传 fresh:true + 每次随机 seed，保证同一句也能听到不同语气、不会重发同一个 OGG。
+export async function synthesizeFeatureVoice({ text, mood = '', cfg, outDir, customRole = false, seed = null, fresh = false }) {
   const b = cfg?.tts?.breeze || {};
   if (b.enabled === false || !b.opusUrl) throw new Error('Breeze 语音未启用');
   const clean = String(text || '').trim();
@@ -53,19 +55,26 @@ export async function synthesizeFeatureVoice({ text, mood = '', cfg, outDir, cus
   const instruction = featureVoiceInstruction(cfg.tts, effectiveMood, { customRole });
   const ttsText = shapeText(clean, effectiveMood);
   const cfgScale = Number(b.moodCfgScale?.[effectiveMood]) > 0 ? Number(b.moodCfgScale[effectiveMood]) : (Number(b.cfgScale) || 3.5);
-  const hash = crypto.createHash('sha1')
-    .update(`feature|${effectiveMood}|${instruction}|${ttsText}|cfg=${cfgScale}`)
-    .digest('hex').slice(0, 16);
+  const explicitSeed = Number.isFinite(Number(seed)) && Number(seed) > 0 ? Math.trunc(Number(seed)) : null;
+  const useSeed = explicitSeed ?? (Number(b.seed) || 12345);
+  const wantFresh = fresh === true;
+  // 没有 seed/fresh 时哈希必须与旧版完全一致，既有的缓存文件继续命中；
+  // 传了 seed 或要求 fresh 时把 seed/一次性 nonce 折进去，各生成各的文件。
+  const hashBase = `feature|${effectiveMood}|${instruction}|${ttsText}|cfg=${cfgScale}`;
+  const hashInput = (explicitSeed || wantFresh)
+    ? `${hashBase}|seed=${useSeed}${wantFresh ? `|nonce=${crypto.randomUUID()}` : ''}`
+    : hashBase;
+  const hash = crypto.createHash('sha1').update(hashInput).digest('hex').slice(0, 16);
   fs.mkdirSync(outDir, { recursive: true });
   const outFile = path.join(outDir, `feature-${hash}.ogg`);
-  if (fs.existsSync(outFile) && Date.now() - fs.statSync(outFile).mtimeMs < 6 * 3600 * 1000) {
+  if (!wantFresh && fs.existsSync(outFile) && Date.now() - fs.statSync(outFile).mtimeMs < 6 * 3600 * 1000) {
     return { path: outFile, mood: effectiveMood, cached: true };
   }
   const fd = new FormData();
   fd.append('text', ttsText);
   fd.append('instruction', instruction);
   fd.append('cfg_scale', String(cfgScale));
-  fd.append('seed', String(Number(b.seed) || 12345));
+  fd.append('seed', String(useSeed));
   fd.append('bitrate', String(b.opusBitrate || '32k'));
   const res = await fetch(`${String(b.opusUrl).replace(/\/+$/, '')}/v1/audio/speech_opus`, {
     method: 'POST',

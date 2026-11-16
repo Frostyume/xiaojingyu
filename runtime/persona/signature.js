@@ -12,6 +12,8 @@
 const MAX_DEFAULT = 40;
 const HISTORY_MAX = 20;
 const MIN_CHARS = 22;
+const REJECTED_MAX = 50;
+const BANNED_THEMES_MAX = 100;
 const SIMILARITY_LIMIT = 0.55;
 
 // 编码损坏标记：GBK 字节被按 UTF-8 解码等有损转换会留下 U+FFFD。
@@ -83,47 +85,32 @@ const TEMPLATES = Object.freeze({
   ]
 });
 
-// 自定义角色没有「小鲸鱼」的身体和生活，签名用这套中性模板，避免串味。
+// 自定义角色的签名池：不含「小鲸鱼」的物种/生活记号（尾巴、水里游、摸鱼、米饭）。
+// 语气仍按时段/精力分组，保持和默认人格一样的节奏，只去掉身份专属意象。
 const NEUTRAL_TEMPLATES = Object.freeze({
   bright: [
     '今天精神不错，想多说几句话，谁有话题都可以抛过来',
-    '刚晒过太阳，心情亮亮的，今天想多聊几句，别嫌我话多就好',
-    '电量满格，谁来都能接住，今天适合热闹一点，也适合认真听人说话',
-    '今天状态挺好，慢慢来，等你们把话题抛过来，我接着就好',
-    '有件小事让我高兴了半天，想分你一点好心情，今天看什么都顺眼',
-    '今天话会多一点，但不会抢别人的话头，想聊随时开口',
-    '心情挺轻快，今天不打算潜水，遇到有意思的就接一句',
-    '状态在线，适合把攒着的话说开，也适合认真听人讲话'
+    '刚晒过太阳，心情亮亮的，今天想认真听人说话',
+    '电量满格，谁来都能接住，今天适合热闹一点',
+    '有件小事让我高兴了半天，想分你一点好心情'
   ],
   calm: [
-    '慢慢来，慢慢想，今天也不急着给答案，事情一件一件来就好',
-    '安静待着，偶尔说一句证明我还在，想聊就叫一声',
-    '今天安静听大家说话，想到什么再接一句，不想抢别人的话头',
-    '不急，事情一件一件来，话也一句一句说，今天想把节奏放慢',
-    '今天话不多，耳朵一直开着，慢慢来就好，不用急着找话题',
-    '在整理最近听到的零碎，攒够了再讲给你，现在先安静待一会儿',
-    '今天适合把听到的故事慢慢理一理，理清楚了再讲给你',
-    '安安静静也挺好，不妨碍接梗，想聊就叫我，我一直在'
+    '不急，事情一件一件来，话也一句一句说',
+    '今天安静听大家说话，想到什么再接一句',
+    '安静待着，想聊就叫我，我一直在听着',
+    '今天话不多，耳朵一直开着，慢慢来就好'
   ],
   low: [
     '今天电量不太够，说话会慢一点，但你说的话我都在听',
-    '有点困，先歇一会儿，有急事就戳我一下，缓过来我就回',
-    '状态一般，脑子转得慢，但不妨碍听你说，重要的事不会漏掉',
-    '给自己放个慢速档，急事请多等我一会儿，缓过来就正常说话',
-    '今天慢半拍，别催我，重要的事不会忘，只是回得没那么快',
-    '没力气说漂亮话，但你说的话我都记着，等我缓过来再慢慢聊',
-    '先躺一会儿，晚点再聊，今天想把自己调成静音',
-    '今天想少说两句，不是不理你，等缓过来再好好聊'
+    '状态一般，脑子转得慢，但不妨碍听你说',
+    '给自己放个慢速档，急事请多等我一会儿',
+    '没力气说漂亮话，但你说的话我都记着'
   ],
   late: [
-    '夜里安静，适合想事情，也适合小声聊天，不用急着把话说完',
-    '这个点还没睡，醒着，顺便看看还有谁醒着',
+    '夜里安静，适合想事情，也适合小声聊天',
+    '这个点还没睡，等困意自己来，顺便看看还有谁醒着',
     '夜深了，声音放轻一点，有什么话慢慢说',
-    '半夜很适合把没想完的事想完，想不完就留到明天',
-    '睡不着，出来冒个泡，看看还有谁醒着，没人的话就继续待着',
-    '夜里的问题先记下，白天脑子清楚了再答，晚上不钻牛角尖',
-    '灯关了，脑子还亮着，过一会儿就睡，明天再接着想',
-    '这个点适合说点真心话，说完就去睡，不留到第二天反悔'
+    '夜里的问题先记下，白天脑子清楚了再答'
   ]
 });
 
@@ -145,15 +132,25 @@ function cleanInstruction(text) {
 
 const VOICE_RE = /尾巴|鲸鱼|米饭|摸鱼|懒|嘴硬|水里|游|饭/;
 
+// 生活记号去重：与 VOICE_RE 同口径拆成词表，用来统计最近几条签名里反复出现的记号。
+// 单个记号在最近窗口里出现太频繁，下一条就不要再带它，避免「换措辞不换意象」的同质化。
+const MARK_TOKENS = Object.freeze(['水里', '米饭', '摸鱼', '尾巴', '鲸鱼', '嘴硬', '懒', '饭', '游']);
+const MARK_WINDOW = 4;
+const MARK_MIN_HITS = 2;
+// 开头词去重：句式总用「今天/这个点/最近」起手同样算同质化。
+const OPENER_CHARS = 2;
+const OPENER_WINDOW = 3;
+
 function hourInShanghai(now) {
   return new Date(Number(now) + 8 * 3600 * 1000).getUTCHours();
 }
 
+/** 主题/文本归一化：去空白、大小写与标点符号。 */
 export function normalizeSignatureTheme(text) {
   return String(text ?? '').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
 }
 
-/** 从候选句里提取命中的兴趣主题（取最长命中），供主题级去重/封禁使用。 */
+/** 用当前兴趣主题做包含匹配；命中多个时取最长的那个，未命中返回空串。 */
 export function signatureTheme(text, topics = []) {
   const hay = normalizeSignatureTheme(text);
   if (!hay) return '';
@@ -177,6 +174,54 @@ function charBigrams(text) {
   return grams;
 }
 
+/** 签名正文归一化：去多余空白、去末尾句号，不做截断（超长由调用方判不合格）。 */
+export function sanitizeSignatureText(text) {
+  return String(text ?? '').replace(/\s+/g, ' ').trim().replace(/[。．.]+$/u, '').trim();
+}
+
+/** 一句签名里用到的生活记号（尾巴/米饭/摸鱼/水里游…），按词表顺序返回。 */
+export function signatureMarks(text) {
+  const hay = normalizeSignatureTheme(text);
+  if (!hay) return [];
+  return MARK_TOKENS.filter((token) => hay.includes(token));
+}
+
+/** 开头词：归一化后的前两个字，用来识别「今天…/这个点…/最近…」这类同一开头。 */
+export function signatureOpener(text) {
+  const hay = normalizeSignatureTheme(text);
+  return hay.length >= OPENER_CHARS ? hay.slice(0, OPENER_CHARS) : '';
+}
+
+/**
+ * 从最近已用签名里提炼「这次要避开」的线索：
+ *   marks    最近窗口里出现过的生活记号（给提示词要求这次别再提）
+ *   blockedMarks 出现得足够频繁、下一条硬性不能再带的记号（去重判不合格）
+ *   openers  最近用过的开头词（同样要求避开，且硬性判不合格）
+ */
+export function signatureRecentCues({
+  history = [],
+  markWindow = MARK_WINDOW,
+  openerWindow = OPENER_WINDOW
+} = {}) {
+  const texts = (Array.isArray(history) ? history : [])
+    .map((h) => clean(typeof h === 'string' ? h : h?.text, 200))
+    .filter(Boolean);
+  const markWin = texts.slice(-Math.max(1, Math.floor(Number(markWindow) || MARK_WINDOW)));
+  const counts = new Map();
+  for (const text of markWin) {
+    for (const mark of signatureMarks(text)) counts.set(mark, (counts.get(mark) || 0) + 1);
+  }
+  const marks = [...counts.keys()];
+  const blockedMarks = [...counts.entries()]
+    .filter(([, n]) => n >= MARK_MIN_HITS)
+    .map(([mark]) => mark);
+  const openers = [...new Set(texts.slice(-Math.max(1, Math.floor(Number(openerWindow) || OPENER_WINDOW)))
+    .map(signatureOpener)
+    .filter(Boolean))];
+  return { marks, blockedMarks, openers };
+}
+
+/** 字符 2-gram Jaccard 相似度，用来识别废案的近似改写。 */
 export function signatureSimilarity(a, b) {
   const left = charBigrams(a);
   const right = charBigrams(b);
@@ -197,7 +242,8 @@ function signatureFilter({
   interests = [],
   bannedThemes = [],
   avoidTexts = [],
-  recentThemeWindow = HISTORY_MAX
+  recentThemeWindow = HISTORY_MAX,
+  roleName = ''
 } = {}) {
   const hist = Array.isArray(history) ? history : [];
   const recent = new Set(hist.map((h) => clean(typeof h === 'string' ? h : h?.text, maxChars)));
@@ -220,17 +266,35 @@ function signatureFilter({
     const theme = themeOf(text);
     return Boolean(theme) && recentThemes.has(theme);
   };
+  // 自定义角色不套用默认人格的鲸鱼生活记号规则（开头词去重对所有角色都适用）。
+  const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
+  const cues = signatureRecentCues({ history: hist });
+  const recentMarks = new Set(cues.blockedMarks);
+  const recentOpeners = new Set(cues.openers);
+  const markBlocked = (text) => {
+    if (customRole || !recentMarks.size) return false;
+    return signatureMarks(text).some((mark) => recentMarks.has(mark));
+  };
+  const openerBlocked = (text) => {
+    const opener = signatureOpener(text);
+    return Boolean(opener) && recentOpeners.has(opener);
+  };
   const bannedText = (text) => {
     if (!text) return true;
     if (avoidSet.has(text)) return true;
     if (bannedSet.size && bannedSet.has(themeOf(text))) return true;
     if (recentThemeBlocked(text)) return true;
+    if (markBlocked(text)) return true;
+    if (openerBlocked(text)) return true;
     for (const avoid of avoidSet) {
       if (signatureSimilarity(text, avoid) >= SIMILARITY_LIMIT) return true;
     }
     return false;
   };
-  return { recent, avoidSet, bannedSet, topics, themeOf, recentThemes, recentThemeBlocked, bannedText };
+  return {
+    recent, avoidSet, bannedSet, topics, themeOf, recentThemes, recentThemeBlocked,
+    recentMarks, recentOpeners, markBlocked, openerBlocked, bannedText
+  };
 }
 
 /**
@@ -239,11 +303,38 @@ function signatureFilter({
  */
 export function isSignatureTextAllowed(text, options = {}) {
   const maxChars = Math.max(1, Number(options.maxChars) || MAX_DEFAULT);
-  const value = clean(text, maxChars);
-  if (!value || CORRUPT_RE.test(value)) return false;
+  // 超长直接判不合格，交给上层带提示重试；截断加「…」会造出断气句。
+  const value = sanitizeSignatureText(text);
+  if (!value || value.length > maxChars || CORRUPT_RE.test(value)) return false;
   const { recent, bannedText } = signatureFilter({ ...options, maxChars });
   if (recent.has(value)) return false;
   return !bannedText(value);
+}
+
+/** 上海时区的日期键，例如 2026-11-02。 */
+export function shanghaiDayKey(now = Date.now()) {
+  const d = new Date(Number(now) + 8 * 3600 * 1000);
+  const pad = (v) => String(v).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+/** 次日上海 00:00（不含随机延迟）。 */
+export function nextShanghaiMidnight(now = Date.now()) {
+  const offset = 8 * 3600 * 1000;
+  const local = Number(now) + offset;
+  return Math.floor(local / 86400000) * 86400000 + 86400000 - offset;
+}
+
+export function normalizeSignatureUsage(raw, now = Date.now()) {
+  const obj = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const day = shanghaiDayKey(now);
+  const sameDay = String(obj.day || '') === day;
+  const count = (value) => Math.max(0, Math.min(10000, Math.floor(Number(value) || 0)));
+  return {
+    day,
+    drafts: sameDay ? count(obj.drafts) : 0,
+    applied: sameDay ? count(obj.applied) : 0
+  };
 }
 
 export function generateSignature({
@@ -262,15 +353,13 @@ export function generateSignature({
   const valence = Number.isFinite(Number(mood.valence)) ? Number(mood.valence) : 0.15;
   const energy = Number.isFinite(Number(state.energy)) ? Number(state.energy) : 0.6;
   const hour = hourInShanghai(now);
-  // 自定义角色不套用默认鲸鱼生活记号，整池换成中性模板。
+  // 自定义角色不套用默认鲸鱼生活记号；连备用兜底链也不能把 identity 混回来。
   const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
   const source = customRole ? NEUTRAL_TEMPLATES : TEMPLATES;
   const resolvedInterests = Array.isArray(interests) && interests.length ? interests : (state.interests || []);
   const { recent, avoidSet, bannedSet, topics, themeOf, recentThemeBlocked, bannedText } = signatureFilter({
-    maxChars, history, interests: resolvedInterests, bannedThemes, avoidTexts, recentThemeWindow
+    maxChars, history, interests: resolvedInterests, bannedThemes, avoidTexts, recentThemeWindow, roleName
   });
-  // 出口只 clean：不再硬补「尾巴还在」之类的固定尾巴（生活记号靠选句偏好保证）。
-  const finish = (text) => clean(text, maxChars);
   const pool = [];
   if (hour >= 23 || hour < 6) pool.push(...source.late);
   if (energy <= 0.35 || valence <= -0.25) pool.push(...source.low);
@@ -280,6 +369,8 @@ export function generateSignature({
   if (!customRole) pool.push(...TEMPLATES.identity);
   // 心情普通时也混入 calm，避免只有一句
   if (!pool.length) pool.push(...source.calm);
+  // 出口只 clean：不再硬补「尾巴还在」之类的固定尾巴（生活记号靠选句偏好保证）。
+  const finish = (text) => clean(text, maxChars);
 
   if (topics.length) {
     for (const t of topics.slice(0, 2)) {
@@ -295,9 +386,7 @@ export function generateSignature({
     .filter((t) => !bannedText(t));
   if (!candidates.length) {
     // 全用过时用「长句 + 短尾」组合，避免退化回几个字的短签名
-    const tails = customRole
-      ? ['，慢慢来就好', '，想到什么再补', '，今天也不急', '，先缓一缓再说']
-      : ['，慢慢来就好', '，想到什么再补', '，今天也不急', '，先游一圈再说'];
+    const tails = ['，慢慢来就好', '，想到什么再补', '，今天也不急', '，先游一圈再说'];
     for (const base of source.calm) {
       for (const tail of tails) {
         const t = clean(`${base}${tail}`, maxChars);
@@ -305,8 +394,12 @@ export function generateSignature({
       }
     }
     // 仍被过滤空时放宽相似度，但绝不返回废案原文，也不碰被封的主题。
-    const fallback = [...new Set(pool.map((t) => clean(t, maxChars)).filter(Boolean))]
-      .filter((t) => !recent.has(t) && !avoidSet.has(t)
+    const fallbackPool = customRole
+      ? [...NEUTRAL_TEMPLATES.bright, ...NEUTRAL_TEMPLATES.calm, ...NEUTRAL_TEMPLATES.low, ...NEUTRAL_TEMPLATES.late]
+      : [...TEMPLATES.bright, ...TEMPLATES.calm, ...TEMPLATES.low, ...TEMPLATES.late, ...TEMPLATES.identity];
+    const fallback = fallbackPool
+      .map((t) => clean(t, maxChars))
+      .filter((t) => t && !recent.has(t) && !avoidSet.has(t)
         && !(bannedSet.size && bannedSet.has(themeOf(t))) && !recentThemeBlocked(t));
     if (fallback.length) {
       const day = Math.floor(Number(now) / 86400000);
@@ -322,7 +415,7 @@ export function generateSignature({
     const base = clean((customRole ? NEUTRAL_TEMPLATES.calm : TEMPLATES.calm)[0], maxChars);
     return avoidSet.has(base) ? '' : base;
   }
-  // 优先长句；如果配置把上限压得很短，则至少不要选最短的那批。
+  // 优先 18 字以上；如果配置把上限压得很短，则至少不要选最短的那批。
   const minChars = Math.min(MIN_CHARS, maxChars);
   const preferred = candidates.filter((t) => t.length >= minChars);
   let usable = preferred.length
@@ -370,6 +463,22 @@ export function normalizeSignatureState(raw, now = Date.now()) {
   const pendingMessageIds = Array.isArray(pendingRaw?.messageIds)
     ? pendingRaw.messageIds.map((id) => String(id || '')).filter(Boolean).slice(-5)
     : [];
+  const rejected = (Array.isArray(obj.rejected) ? obj.rejected : [])
+    .map((item) => ({
+      text: clean(typeof item === 'string' ? item : item?.text, 200),
+      at: Number(typeof item === 'object' ? item?.at : 0) || 0,
+      theme: String(typeof item === 'object' ? item?.theme || '' : '').slice(0, 20),
+      reason: (typeof item === 'object' && item?.reason === 'expired') ? 'expired' : 'reject'
+    }))
+    .filter((item) => item.text && !CORRUPT_RE.test(item.text))
+    .slice(-REJECTED_MAX);
+  const bannedThemes = (Array.isArray(obj.bannedThemes) ? obj.bannedThemes : [])
+    .map((item) => ({
+      theme: clean(typeof item === 'string' ? item : item?.theme, 20),
+      at: Number(typeof item === 'object' ? item?.at : 0) || 0
+    }))
+    .filter((item) => item.theme && !CORRUPT_RE.test(item.theme))
+    .slice(-BANNED_THEMES_MAX);
   const lastTextRaw = clean(obj.lastText ?? history.at(-1)?.text ?? '', 200);
   const lastText = CORRUPT_RE.test(lastTextRaw) ? (history.at(-1)?.text ?? '') : lastTextRaw;
   return {
@@ -377,6 +486,9 @@ export function normalizeSignatureState(raw, now = Date.now()) {
     lastAppliedAt: Number(obj.lastAppliedAt) || 0,
     nextAt: Number(obj.nextAt) || 0,
     history,
+    rejected,
+    bannedThemes,
+    usage: normalizeSignatureUsage(obj.usage, now),
     lastError: String(obj.lastError || '').slice(0, 300),
     pending: pendingText ? {
       text: pendingText,
