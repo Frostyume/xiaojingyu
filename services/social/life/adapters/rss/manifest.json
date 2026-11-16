@@ -1,0 +1,19 @@
+{
+  "id": "rss",
+  "name": "RSS 订阅",
+  "version": "0.1.0",
+  "sourceType": "A",
+  "description": "只读 RSS/Atom 订阅，生成内容条目（标题/时间），不存正文",
+  "auth": { "type": "url-secret", "scopes": [], "secretRef": "life/rss/url" },
+  "capabilities": ["read:feed"],
+  "schedule": { "sync": "*/30 * * * *", "jitterSec": 180, "catchUp": "once", "timeoutMs": 15000 },
+  "actions": [],
+  "risk": { "default": "L0", "max": "L0" },
+  "rateLimit": { "perMinute": 4, "perDay": 200 },
+  "retention": { "rawDays": 0, "itemDays": 30 },
+  "health": { "authErrorStops": false, "failuresToOpen": 3, "openMs": 1800000 },
+  "configSchema": {
+    "url": { "type": "secret", "required": true, "label": "RSS/Atom 地址" },
+    "allowedHosts": { "type": "array", "required": false, "label": "额外允许的域名" }
+  }
+}

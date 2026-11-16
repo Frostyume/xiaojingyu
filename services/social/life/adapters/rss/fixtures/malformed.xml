@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Broken feed</title>
+    <item>
+      <title></title>
+      <description>missing title and link</description>
+    </item>
+  </channel>
+</rss>

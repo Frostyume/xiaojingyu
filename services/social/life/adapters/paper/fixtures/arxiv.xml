@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <title>Example feed</title>
+  <entry>
+    <id>http://arxiv.org/abs/2610.54321v1</id>
+    <updated>2026-10-31T01:02:03Z</updated>
+    <published>2026-10-31T01:02:03Z</published>
+    <title>Chunked Attention for Example Retrieval</title>
+    <summary>Retrieval over long inputs is slow. We reuse attention state between chunks to cut recomputation while keeping the same recall.</summary>
+    <link href="http://arxiv.org/abs/2610.54321v1" rel="alternate" type="text/html"/>
+    <arxiv:doi>10.1234/example.2026.002</arxiv:doi>
+    <author><name>D. Fixture</name></author>
+    <author><name>E. Fixture</name></author>
+  </entry>
+</feed>

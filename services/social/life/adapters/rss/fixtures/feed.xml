@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Fixture Feed</title>
+    <link>https://example.invalid/feed</link>
+    <item>
+      <title><![CDATA[<b>Read-only agents</b> &amp; privacy]]></title>
+      <link>https://example.invalid/posts/1</link>
+      <guid>fixture-post-1</guid>
+      <pubDate>Sat, 01 Nov 2026 01:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Budget-aware tool use</title>
+      <link>https://example.invalid/posts/2</link>
+      <guid>fixture-post-2</guid>
+      <pubDate>Fri, 31 Oct 2026 09:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

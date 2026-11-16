@@ -1,0 +1,27 @@
+{
+  "id": "paper",
+  "name": "论文推送",
+  "version": "0.1.0",
+  "sourceType": "A",
+  "description": "只读 OpenAlex / arXiv 检索，按主题与时间窗生成论文条目和中文速读，不搬运全文",
+  "auth": { "type": "none", "scopes": [] },
+  "capabilities": ["read:paper"],
+  "schedule": { "sync": "0 9 * * *", "jitterSec": 0, "catchUp": "none", "timeoutMs": 45000 },
+  "actions": [],
+  "risk": { "default": "L0", "max": "L0" },
+  "rateLimit": { "perMinute": 10, "perDay": 500 },
+  "retention": { "rawDays": 0, "itemDays": 60 },
+  "health": { "authErrorStops": false, "failuresToOpen": 3, "openMs": 1800000 },
+  "configSchema": {
+    "enabled": { "type": "boolean", "required": false, "label": "启用" },
+    "topics": { "type": "array", "required": false, "label": "主题（arXiv 分类或检索词）" },
+    "keywords": { "type": "array", "required": false, "label": "自由关键词" },
+    "frequency": { "type": "string", "required": false, "enum": ["daily", "weekly", "interval"], "label": "频率" },
+    "time": { "type": "string", "required": false, "label": "推送时间 HH:MM" },
+    "weekday": { "type": "number", "required": false, "min": 1, "max": 7, "label": "星期（1=周一）" },
+    "intervalDays": { "type": "number", "required": false, "min": 1, "max": 30, "label": "间隔天数" },
+    "count": { "type": "number", "required": false, "min": 1, "max": 20, "label": "每次篇数" },
+    "source": { "type": "string", "required": false, "enum": ["openalex", "arxiv"], "label": "数据源" },
+    "windowDays": { "type": "number", "required": false, "min": 1, "max": 30, "label": "时间窗天数" }
+  }
+}

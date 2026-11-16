@@ -1,0 +1,21 @@
+{
+  "id": "calendar-ics",
+  "name": "日历订阅",
+  "version": "0.1.0",
+  "sourceType": "B",
+  "description": "只读订阅 ICS 日历，生成日程条目；P0 不写日历",
+  "auth": { "type": "url-secret", "scopes": [], "secretRef": "life/calendar-ics/url" },
+  "capabilities": ["read:calendar"],
+  "schedule": { "sync": "*/30 * * * *", "jitterSec": 120, "catchUp": "once", "timeoutMs": 20000 },
+  "actions": [],
+  "risk": { "default": "L0", "max": "L0" },
+  "rateLimit": { "perMinute": 6, "perDay": 500 },
+  "retention": { "rawDays": 0, "itemDays": 90 },
+  "health": { "authErrorStops": true, "failuresToOpen": 3, "openMs": 1800000 },
+  "configSchema": {
+    "url": { "type": "secret", "required": true, "label": "ICS 地址" },
+    "lookaheadDays": { "type": "number", "required": false, "label": "向后看天数", "default": 14, "min": 1, "max": 60 },
+    "allowedHosts": { "type": "array", "required": false, "label": "额外允许的域名" },
+    "timezone": { "type": "string", "required": false, "label": "时区", "default": "Asia/Shanghai" }
+  }
+}

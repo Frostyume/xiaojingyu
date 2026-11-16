@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>arXiv Query: search_query=cat:cs.AI</title>
+  <updated>2026-11-01T00:00:00Z</updated>
+  <entry>
+    <id>http://arxiv.org/abs/2610.00001v1</id>
+    <updated>2026-10-31T18:00:00Z</updated>
+    <published>2026-10-31T18:00:00Z</published>
+    <title>Tool-Using Agents under Budget Constraints</title>
+    <summary>We study budgeted tool use in agents.</summary>
+    <link href="http://arxiv.org/abs/2610.00001v1" rel="alternate" type="text/html"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2610.00002v1</id>
+    <updated>2026-10-30T09:00:00Z</updated>
+    <published>2026-10-30T09:00:00Z</published>
+    <title>Read-Only Personal Data Agents</title>
+    <summary>A study of privacy-preserving personal agents.</summary>
+    <link href="http://arxiv.org/abs/2610.00002v1" rel="alternate" type="text/html"/>
+  </entry>
+</feed>

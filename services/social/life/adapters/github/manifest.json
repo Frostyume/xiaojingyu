@@ -1,0 +1,25 @@
+{
+  "id": "github",
+  "name": "GitHub 监控",
+  "version": "0.2.0",
+  "sourceType": "A",
+  "description": "只读仓库监控：stars/forks/open issues/open PR/releases 变化，首次只建基线，不读正文、不写仓库",
+  "auth": { "type": "token-secret", "scopes": ["repo:read"], "secretRef": "life/github/token" },
+  "capabilities": ["read:code"],
+  "schedule": { "sync": "0 9 * * *", "jitterSec": 0, "catchUp": "none", "timeoutMs": 30000 },
+  "actions": [],
+  "risk": { "default": "L0", "max": "L0" },
+  "rateLimit": { "perMinute": 6, "perDay": 300 },
+  "retention": { "rawDays": 0, "itemDays": 60 },
+  "health": { "authErrorStops": true, "failuresToOpen": 3, "openMs": 1800000 },
+  "configSchema": {
+    "enabled": { "type": "boolean", "required": false, "label": "启用" },
+    "repos": { "type": "array", "required": false, "label": "仓库（owner/repo）" },
+    "frequency": { "type": "string", "required": false, "enum": ["daily", "weekly", "interval"], "label": "频率" },
+    "time": { "type": "string", "required": false, "label": "检查时间 HH:MM" },
+    "weekday": { "type": "number", "required": false, "min": 1, "max": 7, "label": "星期（1=周一）" },
+    "intervalDays": { "type": "number", "required": false, "min": 1, "max": 30, "label": "间隔天数" },
+    "notifyNoChanges": { "type": "boolean", "required": false, "label": "无变化也发一条" },
+    "token": { "type": "secret", "required": false, "label": "只读 GitHub Token（可选）" }
+  }
+}

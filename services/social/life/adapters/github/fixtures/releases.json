@@ -1,0 +1,16 @@
+[
+  {
+    "id": "fixture-release-2",
+    "tag_name": "v1.0.2",
+    "name": "Console feature switches",
+    "published_at": "2026-11-01T01:00:00Z",
+    "html_url": "https://github.com/owner/example/releases/tag/v1.0.2"
+  },
+  {
+    "id": "fixture-release-1",
+    "tag_name": "v1.0.1",
+    "name": null,
+    "published_at": "2026-10-20T01:00:00Z",
+    "html_url": "https://github.com/owner/example/releases/tag/v1.0.1"
+  }
+]

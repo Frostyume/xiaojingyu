@@ -1,0 +1,18 @@
+{
+  "id": "arxiv",
+  "name": "arXiv 论文",
+  "version": "0.1.0",
+  "sourceType": "A",
+  "description": "只读 arXiv Atom 订阅，生成论文条目（标题/时间/链接标识），不搬运全文",
+  "auth": { "type": "none", "scopes": [] },
+  "capabilities": ["read:paper"],
+  "schedule": { "sync": "0 */6 * * *", "jitterSec": 300, "catchUp": "once", "timeoutMs": 20000 },
+  "actions": [],
+  "risk": { "default": "L0", "max": "L0" },
+  "rateLimit": { "perMinute": 3, "perDay": 50 },
+  "retention": { "rawDays": 0, "itemDays": 60 },
+  "health": { "authErrorStops": false, "failuresToOpen": 3, "openMs": 1800000 },
+  "configSchema": {
+    "url": { "type": "string", "required": false, "label": "Atom 查询地址" }
+  }
+}
