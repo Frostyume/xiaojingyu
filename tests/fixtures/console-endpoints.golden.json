@@ -4,6 +4,8 @@
     "/api/authorize/read",
     "/api/blacklist",
     "/api/budget",
+    "/api/cognition/proposals",
+    "/api/cognition/proposals/decide",
     "/api/config/apply",
     "/api/config/schema",
     "/api/config/validate",

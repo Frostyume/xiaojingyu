@@ -212,10 +212,19 @@ const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers'
 const CONSOLE_CARDS = ['consoleLanAccess'];
 // 安全板块卡片：拉黑名单复用 simulation.safety.* 配置键，默认开、显式 false 才关。
 const SAFETY_CARDS = ['blacklist'];
-assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS, ...SAFETY_CARDS].sort());
-assert.equal(FEATURE_CARDS.length, 26);
+// 认知板块卡片：七个 simulation.cognition.* 开关，默认关、显式 true 才开。
+const COGNITION_CARDS = ['memoryStrength', 'invalidation', 'contextTiers', 'sleepConsolidation', 'reunion', 'fishMemory', 'moodDrift'];
+assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS, ...SAFETY_CARDS, ...COGNITION_CARDS].sort());
+assert.equal(FEATURE_CARDS.length, 33);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
-assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner', 'console']);
+assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'cognition', 'ops', 'owner', 'console']);
+// 认知卡片的假开关防护：配置没写时必须判成关，切换时写回严格 true/false。
+for (const id of COGNITION_CARDS) {
+  const card = cardFor(id);
+  assert.equal(cardEnabled(card, { simulation: { cognition: {} } }), false, `${id} 未配置时必须判成关`);
+  assert.equal(cardSwitchValue(card, true), true, `${id} 打开时必须写入 true`);
+  assert.equal(cardSwitchValue(card, false), false, `${id} 关闭时必须写入 false`);
+}
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'chat').master, 'groupChat');
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'shareEngine').master, 'shareModule');
 for (const board of FEATURE_BOARDS) {

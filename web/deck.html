@@ -5172,6 +5172,11 @@ button.active,.primary {
       <div class="meta">被拉黑的人的消息在入库/唤醒前就被丢弃，直到解封；主人也可在群/私聊说「别理某某」「拉黑 QQ号 / 解封 QQ号」，完整名单只私聊发。</div>
       <div id="blacklistBox" class="meta" style="margin-top:8px">（读取中…）</div>
     </section>
+<section id="section-cognition" data-page="access" class="card">
+      <h2>睡眠巩固与删除提案</h2>
+      <div class="meta">睡眠期巩固会把零散对话整理成可追溯的观察；它永不自动删除记忆，删除只生成待审批提案，必须由你在这里或主人私聊里显式批准。</div>
+      <div id="cognitionBox" class="meta" style="margin-top:8px">（读取中…）</div>
+    </section>
 <section id="section-token" data-page="access" class="card">
       <h2>控制台访问令牌</h2>
       <div class="meta">用于打开本控制台 / 调用管理 API 的令牌。可手动输入新令牌保存，或留空生成随机令牌。修改后当前页面会自动使用新令牌。</div>
@@ -10119,6 +10124,34 @@ document.getElementById('blacklistBox')?.addEventListener('click', async (ev) =>
 });
 loadBlacklist();
 setInterval(loadBlacklist, 30000);
+
+// 睡眠巩固：只读待审批删除提案；批准/拒绝都要显式点击，绝不自动删。
+function loadCognitionProposals() {
+  const box = document.getElementById('cognitionBox');
+  if (!box) return;
+  api('/api/cognition/proposals').then(r => {
+    const pending = Array.isArray(r.pending) ? r.pending : [];
+    const head = r.enabled ? '睡眠巩固已开启' : '睡眠巩固未开启（在「功能」页的认知升级板块打开）';
+    const counts = r.counts || {};
+    box.innerHTML = `<div class="muted small">${head}；待审批 ${pending.length} 条，已批准 ${Number(counts.approved) || 0} 条。</div>`
+      + (pending.length
+        ? pending.map(p => `<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line,#e6ebf3)"><span><b>${esc(String(p.targetId || '').slice(0, 12))}</b> <span class="muted small">${esc(p.evidence || '')}</span></span><span style="margin-left:auto;display:flex;gap:6px"><button class="small" data-cognition-decide="approve" data-id="${esc(p.id)}">批准删除</button><button class="small" data-cognition-decide="reject" data-id="${esc(p.id)}">保留</button></span></div>`).join('')
+        : '<div class="muted small">没有待审批的删除提案。</div>');
+  }).catch(e => { box.textContent = '读取认知提案失败：' + e.message; });
+}
+document.getElementById('cognitionBox')?.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('[data-cognition-decide]');
+  if (!b) return;
+  b.disabled = true;
+  try {
+    await api('/api/cognition/proposals/decide', 'POST', { id: b.dataset.id, decision: b.dataset.cognitionDecide });
+  } catch (e) {
+    alert('处理失败：' + e.message);
+  }
+  loadCognitionProposals();
+});
+loadCognitionProposals();
+setInterval(loadCognitionProposals, 60000);
 
 async function changeConsoleToken(generate) {
   const input = document.getElementById('consoleTokenInput');

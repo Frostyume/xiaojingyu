@@ -71,7 +71,21 @@ export const MOOD_V3_DEFAULTS = Object.freeze({
   autoEvent: { enabled: true, intensity: 3, maxPerHour: 1, maxPerDay: 4, scanMs: 60000 },
   causeTtlH: 12,
   causeClearDelta: 0.15,
-  history: { enabled: true, keepDays: 180 }
+  history: { enabled: true, keepDays: 180 },
+  // 目标值限速漂移（默认关闭）：事件先改目标，现值按实际时间追随。
+  moodDrift: {
+    enabled: false,
+    windowH: 6,
+    maxScore: 15,
+    maxStep: 0.15,
+    lower: -0.3,
+    upper: 0.5,
+    risePerHour: 0.12,
+    fallPerHour: 0.08,
+    credibilityMin: 0.5,
+    credibilityMax: 1,
+    maxPending: 20
+  }
 });
 
 export const PERSONA_LIMITS = Object.freeze({
@@ -185,6 +199,9 @@ export function defaultPersonaState(now = Date.now()) {
       cause: '',
       causeAt: 0,
       setPoint: DEFAULT_SETPOINT,
+      target: DEFAULT_SETPOINT,
+      targetUpdatedAt: 0,
+      pending: [],
       lastEventAt: 0,
       lastNegativeAt: 0,
       lastDecayAt: now,
@@ -257,6 +274,21 @@ function normalizeEventType(raw) {
   return MOOD_EVENT_WEIGHTS[type] ? type : 'other';
 }
 
+function normalizePending(raw) {
+  const out = [];
+  for (const item of Array.isArray(raw) ? raw : []) {
+    const key = String(item?.key ?? '').trim();
+    const direction = item?.direction === 'positive' || item?.direction === 'negative' ? item.direction : '';
+    const count = Math.min(99, Math.round(Number(item?.count) || 0));
+    const firstAt = Number(item?.firstAt) || 0;
+    const lastAt = Number(item?.lastAt) || 0;
+    if (!key || !direction || count < 1 || !firstAt || !lastAt) continue;
+    out.push({ key, direction, count, firstAt, lastAt });
+  }
+  out.sort((a, b) => a.lastAt - b.lastAt);
+  return out.slice(-MOOD_V3_DEFAULTS.moodDrift.maxPending);
+}
+
 export function normalizePersonaState(raw, now = Date.now()) {
   const base = raw && typeof raw === 'object' ? raw : {};
   const mood = base.mood && typeof base.mood === 'object' ? base.mood : {};
@@ -286,6 +318,9 @@ export function normalizePersonaState(raw, now = Date.now()) {
       cause,
       causeAt: cause ? (Number(mood.causeAt) || lastEventAt || now) : 0,
       setPoint,
+      target: Number.isFinite(Number(mood.target)) ? clamp(mood.target, -1, 1, valence) : valence,
+      targetUpdatedAt: Number(mood.targetUpdatedAt) || 0,
+      pending: normalizePending(mood.pending),
       lastEventAt,
       lastNegativeAt: Number(mood.lastNegativeAt) || 0,
       lastDecayAt,
@@ -387,7 +422,9 @@ function normalizeEvents(reflection) {
       energy,
       auto: item?.auto === true,
       cause: cleanText(item?.cause, 12),
-      sourceMessageId: item?.sourceMessageId ?? null
+      sourceMessageId: item?.sourceMessageId ?? null,
+      sourceKey: item?.sourceKey != null && String(item.sourceKey).trim() ? String(item.sourceKey).trim() : null,
+      credibility: Number.isFinite(Number(item?.credibility)) ? Number(item.credibility) : (Number.isFinite(Number(item?.confidence)) ? Number(item.confidence) : NaN)
     };
   }).filter((item) => item.what || item.cause);
 }
@@ -521,6 +558,99 @@ function decayMood(state, now, cfg) {
 }
 
 /**
+ * 心情目标值限速：
+ *   事件先算 score（百分点，clamp ±15），同来源同方向 6h 内第 2 次起才改目标；
+ *   现值按实际 elapsed 以固定每小时升降速率追向目标。
+ * 关闭时这些函数不会被调用，旧路径逐字不变。
+ */
+function moodDriftCfg(cfg) {
+  const raw = cfg?.moodDrift && typeof cfg.moodDrift === 'object'
+    ? cfg.moodDrift
+    : (cfg?.cognition?.moodDrift && typeof cfg.cognition.moodDrift === 'object' ? cfg.cognition.moodDrift : {});
+  const d = { ...MOOD_V3_DEFAULTS.moodDrift, ...raw };
+  d.enabled = raw.enabled === true;
+  d.windowH = clamp(d.windowH, 1, 168, MOOD_V3_DEFAULTS.moodDrift.windowH);
+  d.maxScore = clamp(d.maxScore, 1, 100, MOOD_V3_DEFAULTS.moodDrift.maxScore);
+  d.maxStep = clamp(d.maxStep, 0, 1, MOOD_V3_DEFAULTS.moodDrift.maxStep);
+  d.lower = clamp(d.lower, -1, 0, MOOD_V3_DEFAULTS.moodDrift.lower);
+  d.upper = clamp(d.upper, 0, 1, MOOD_V3_DEFAULTS.moodDrift.upper);
+  d.risePerHour = clamp(d.risePerHour, 0, 1, MOOD_V3_DEFAULTS.moodDrift.risePerHour);
+  d.fallPerHour = clamp(d.fallPerHour, 0, 1, MOOD_V3_DEFAULTS.moodDrift.fallPerHour);
+  d.credibilityMin = clamp(d.credibilityMin, 0.1, 1, MOOD_V3_DEFAULTS.moodDrift.credibilityMin);
+  d.credibilityMax = clamp(d.credibilityMax, d.credibilityMin, 1, MOOD_V3_DEFAULTS.moodDrift.credibilityMax);
+  d.maxPending = clamp(d.maxPending, 5, 100, MOOD_V3_DEFAULTS.moodDrift.maxPending);
+  return d;
+}
+
+function driftValence(current, target, elapsedMs, drift) {
+  const v = Number(current);
+  const t = Number(target);
+  if (!Number.isFinite(v) || !Number.isFinite(t)) return v;
+  const dtH = Math.max(0, Math.min(7 * 24 * HOUR_MS, Number(elapsedMs) || 0)) / HOUR_MS;
+  const diff = t - v;
+  if (Math.abs(diff) < 1e-9 || dtH <= 0) return v;
+  const step = (diff > 0 ? drift.risePerHour : -drift.fallPerHour) * dtH;
+  return Math.abs(step) >= Math.abs(diff) ? t : clamp(v + step, -1, 1, v);
+}
+
+function evidenceKey(event) {
+  const explicit = event?.sourceKey ?? event?.sessionKey ?? event?.personId ?? event?.key;
+  if (explicit != null && String(explicit).trim()) return String(explicit).trim();
+  const id = event?.sourceMessageId;
+  if (id != null && String(id).trim()) {
+    const match = String(id).match(/^(group|private):[^:]+/);
+    return match ? match[0] : `msg:${String(id).trim()}`;
+  }
+  return 'unknown';
+}
+
+function scoreValenceEvent(baseDelta, credibility, drift) {
+  const cred = clamp(credibility, drift.credibilityMin, drift.credibilityMax, 1);
+  const points = clamp(Number(baseDelta) * 100 * cred, -drift.maxScore, drift.maxScore, 0);
+  return { points, value: points / 100, credibility: cred };
+}
+
+function evaluatePending(state, event, direction, now, drift) {
+  const key = evidenceKey(event);
+  const windowMs = drift.windowH * HOUR_MS;
+  const list = (Array.isArray(state.mood.pending) ? state.mood.pending : [])
+    .filter((item) => now - (Number(item.lastAt) || 0) <= windowMs);
+  const idx = list.findIndex((item) => item.key === key);
+  if (idx < 0) {
+    list.push({ key, direction, count: 1, firstAt: now, lastAt: now });
+    state.mood.pending = list.slice(-drift.maxPending);
+    return { key, direction, count: 1, allowed: false, reset: '' };
+  }
+  const entry = list[idx];
+  if (entry.direction !== direction) {
+    entry.direction = direction;
+    entry.count = 1;
+    entry.firstAt = now;
+    entry.lastAt = now;
+    state.mood.pending = list;
+    return { key, direction, count: 1, allowed: false, reset: 'direction' };
+  }
+  entry.count = Math.min(99, entry.count + 1);
+  entry.lastAt = now;
+  state.mood.pending = list;
+  return { key, direction, count: entry.count, allowed: entry.count >= 2, reset: '' };
+}
+
+function applyDriftTarget(state, value, now, drift) {
+  const m = state.mood;
+  const lower = Math.max(-1, Math.min(1, m.setPoint + drift.lower));
+  const upper = Math.max(lower, Math.min(1, m.setPoint + drift.upper));
+  const step = clamp(value, -drift.maxStep, drift.maxStep, 0);
+  const next = clamp(m.target + step, lower, upper, m.target);
+  const delta = next - m.target;
+  if (Math.abs(delta) >= 1e-9) {
+    m.target = next;
+    m.targetUpdatedAt = now;
+  }
+  return delta;
+}
+
+/**
  * 读取态预览：按真实时间结算衰减，但不写回状态文件。
  * 反思仍然从 lastDecayAt 结算；这里只保证 live/提示词看到的是“此刻”的精力与心情。
  */
@@ -529,8 +659,12 @@ export function previewPersonaState(previous, { now = Date.now(), cfg = {} } = {
   const moodCfg = { ...MOOD_V3_DEFAULTS, ...(cfg || {}) };
   expireCause(state, now, moodCfg);
   const decayed = decayMood(state, now, moodCfg);
-  const label = chooseMoodLabel(decayed.v, decayed.a, state.mood.labelRaw || '');
-  state.mood.valence = decayed.v;
+  const drift = moodDriftCfg(moodCfg);
+  const v = drift.enabled
+    ? driftValence(state.mood.valence, state.mood.target, now - state.mood.lastDecayAt, drift)
+    : decayed.v;
+  const label = chooseMoodLabel(v, decayed.a, state.mood.labelRaw || '');
+  state.mood.valence = v;
   state.mood.arousal = decayed.a;
   state.energy = decayed.e;
   state.mood.label = label.label;
@@ -563,9 +697,12 @@ export function applyReflectionV3(previous, reflection, { now = Date.now(), cfg 
   const changes = [];
 
   const moodCfg = { ...MOOD_V3_DEFAULTS, ...(cfg || {}) };
+  const drift = moodDriftCfg(moodCfg);
   expireCause(state, now, moodCfg);
   const decayed = decayMood(state, now, moodCfg);
-  let v = decayed.v;
+  let v = drift.enabled
+    ? driftValence(state.mood.valence, state.mood.target, now - state.mood.lastDecayAt, drift)
+    : decayed.v;
   let a = decayed.a;
   let e = decayed.e;
 
@@ -574,6 +711,8 @@ export function applyReflectionV3(previous, reflection, { now = Date.now(), cfg 
   let vDelta = 0;
   let aDelta = 0;
   let eventEnergy = 0;
+  let driftApplied = 0;
+  const evidence = [];
   let cause = cleanText(input.moodCause, 20) || state.mood.cause;
   let causeIsNew = Boolean(cleanText(input.moodCause, 20));
 
@@ -584,7 +723,19 @@ export function applyReflectionV3(previous, reflection, { now = Date.now(), cfg 
       let base = mapIntensity(event.intensity, event.valence, VALENCE_DELTA) * weight.valence;
       if (event.type === 'other' && event.valence === 'negative') base *= 1.1;
       base = clamp(base, -MOOD_V3_DEFAULTS.maxReflectionDelta, MOOD_V3_DEFAULTS.maxReflectionDelta, 0);
-      vDelta += applyValenceBudget(state, base, moodCfg, now, event.type);
+      if (drift.enabled) {
+        const scored = scoreValenceEvent(base, event.credibility, drift);
+        const direction = scored.value >= 0 ? 'positive' : 'negative';
+        const check = evaluatePending(state, event, direction, now, drift);
+        let applied = 0;
+        if (check.allowed) {
+          applied = applyValenceBudget(state, scored.value, moodCfg, now, event.type);
+          driftApplied += applyDriftTarget(state, applied, now, drift);
+        }
+        evidence.push({ key: check.key, count: check.count, allowed: check.allowed, score: scored.points, reset: check.reset, applied });
+      } else {
+        vDelta += applyValenceBudget(state, base, moodCfg, now, event.type);
+      }
       if (event.arousal !== 'none') {
         aDelta += mapIntensity(event.intensity, event.arousal === 'down' ? 'down' : 'positive', AROUSAL_DELTA) * Math.abs(weight.arousal || 1);
       }
@@ -601,12 +752,25 @@ export function applyReflectionV3(previous, reflection, { now = Date.now(), cfg 
     // 旧格式：仍接受小数增量，但套用同样的每小时/每天上限。
     const rawV = clamp(input.mood.valence, -PERSONA_LIMITS.maxDelta, PERSONA_LIMITS.maxDelta, 0);
     const rawA = clamp(input.mood.arousal, -PERSONA_LIMITS.maxDelta, PERSONA_LIMITS.maxDelta, 0);
-    vDelta = applyValenceBudget(state, rawV, moodCfg, now, 'other');
+    if (drift.enabled) {
+      const scored = scoreValenceEvent(rawV, 1, drift);
+      const direction = scored.value >= 0 ? 'positive' : 'negative';
+      const check = evaluatePending(state, { sourceKey: 'legacy' }, direction, now, drift);
+      let applied = 0;
+      if (check.allowed) {
+        applied = applyValenceBudget(state, scored.value, moodCfg, now, 'other');
+        driftApplied += applyDriftTarget(state, applied, now, drift);
+      }
+      evidence.push({ key: check.key, count: check.count, allowed: check.allowed, score: scored.points, reset: check.reset, applied });
+    } else {
+      vDelta = applyValenceBudget(state, rawV, moodCfg, now, 'other');
+    }
     aDelta = rawA;
     source = 'legacy';
   }
 
-  v = clamp(v + vDelta, -1, 1, v);
+  if (drift.enabled) vDelta = driftApplied;
+  if (!drift.enabled) v = clamp(v + vDelta, -1, 1, v);
   a = clamp(a + aDelta, 0, 1, a);
   const energyDelta = clamp(eventEnergy, -0.20, 0.20) + normalizeEnergyInput(input.energy);
   e = clamp(e + energyDelta + (rested ? 0.06 : 0), 0, 1, e);
@@ -627,6 +791,11 @@ export function applyReflectionV3(previous, reflection, { now = Date.now(), cfg 
     const min = clamp(moodCfg.setPoint?.min, 0.10, 0.3, 0.10);
     const max = clamp(moodCfg.setPoint?.max, min, 0.3, 0.3);
     state.mood.setPoint = clamp(state.mood.setPoint + alpha * (v - state.mood.setPoint), min, max, state.mood.setPoint);
+  }
+  if (drift.enabled) {
+    const lower = Math.max(-1, state.mood.setPoint + drift.lower);
+    const upper = Math.max(lower, Math.min(1, state.mood.setPoint + drift.upper));
+    state.mood.target = clamp(state.mood.target, lower, upper, state.mood.target);
   }
 
   const labelInfo = chooseMoodLabel(v, a, input.moodCause || input.mood?.label || '');

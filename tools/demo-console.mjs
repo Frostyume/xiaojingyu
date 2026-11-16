@@ -553,6 +553,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
             limits: ['离线示例：这是只读功能清单。'],
           });
           case '/api/features/control': return json(featureControlFixture(state));
+          case '/api/cognition/proposals': return json({ ok: true, enabled: false, pending: [], counts: { pending: 0, approved: 0, rejected: 0, total: 0 } });
           // 开源版没有生活管家后台，但控制台仍保留旧面板入口；离线夹具给一份空快照，
           // 避免打开页面时出现 404 控制台错误（真实桥接没有这个路由）。
           case '/api/features/life-panel': return json({

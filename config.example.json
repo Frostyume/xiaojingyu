@@ -324,6 +324,45 @@
       "personalTopK": 6,
       "personalMaxChars": 600
     },
+    "cognition": {
+      "memoryStrength": {
+        "enabled": false,
+        "minEffective": 0.15
+      },
+      "invalidation": {
+        "enabled": false
+      },
+      "contextTiers": {
+        "enabled": false,
+        "surfaceMaxChars": 900,
+        "thermoclineMaxChars": 900,
+        "deepMaxChars": 600
+      },
+      "sleepConsolidation": {
+        "enabled": false,
+        "hour": 4,
+        "idleMs": 1800000,
+        "maxEpisodes": 20,
+        "maxLlmCalls": 3
+      },
+      "reunion": {
+        "enabled": false,
+        "gapDays": 7,
+        "cooldownHours": 72
+      },
+      "fishMemory": {
+        "enabled": false,
+        "probability": 0.08,
+        "minSessionMs": 180000,
+        "maxSessionMs": 420000
+      },
+      "moodDrift": {
+        "enabled": false,
+        "windowH": 6,
+        "risePerHour": 0.12,
+        "fallPerHour": 0.08
+      }
+    },
     "dailyReport": {
       "enabled": false,
       "at": "21:30",

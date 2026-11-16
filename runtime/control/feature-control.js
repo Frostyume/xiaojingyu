@@ -29,6 +29,7 @@ export const FEATURE_BOARDS = Object.freeze([
   },
   { id: 'social', label: '聊天与社交', description: '说说、评论回复、签名和语音：她对外说话的方式。' },
   { id: 'outerWorld', label: '出门见闻', description: '自主阅读与见闻：按排程读小说或取视频字幕，整理成见闻卡片，并记住读到哪。' },
+  { id: 'cognition', label: '认知升级', description: '记忆、心情、关系的七个进阶行为，默认全关、彼此独立：开哪个只动哪个。' },
   { id: 'ops', label: '群运营', description: '面向整个群的固定推送，比如每日群日报。' },
   { id: 'owner', label: '主人能力', description: '你在主人私聊里创建的功能中心任务。' },
   { id: 'console', label: '控制台访问', description: '控制台与实时状态页的访问范围：默认只允许本机回环；局域网开启后强制令牌鉴权，需重启桥接生效。' }
@@ -462,6 +463,136 @@ const CARD_LIST = [
       { key: 'simulation.safety.blacklist.auto.enabled', label: '自行拉黑判定', type: 'boolean', default: true },
       { key: 'simulation.safety.blacklist.auto.insultCount', label: '窗口内辱骂次数阈值', type: 'number', min: 1, max: 20, default: 3 },
       { key: 'simulation.safety.blacklist.auto.affectionFloor', label: '好感度触发线', type: 'number', min: 0, max: 10, default: 5 }
+    ]
+  },
+
+  // ── 认知升级板块 ────────────────────────────────────────────────────────
+  // 七个开关运行期一律 `=== true` 才生效，卡片必须显式声明 enabledValue/disabledValue，
+  // 否则「配置里没写」会被 cardEnabled 判成开，造出显示开着、实际关着的假开关。
+  {
+    id: 'memoryStrength',
+    board: 'cognition',
+    configKey: 'simulation.cognition.memoryStrength.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '记忆强度',
+    keywords: '记忆强度 半衰期 变淡 加亮 回忆 memoryStrength',
+    description: '共同经历按类型有半衰期：越久没被提起越淡，被重新提起时加亮一次；排序按有效强度而不是单纯按时间。',
+    onEffect: '按有效强度挑选和排序经历，更亮的顶上来；低于门槛的弱记忆默认不再写进提示词，被重新提起时给这条加亮一次。',
+    offEffect: '回到只按发生时间新旧排序取候选，弱记忆照样进上下文，被重提也不加亮；已有经历数据不动。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.cognition.memoryStrength.minEffective', label: '弱记忆隐藏门槛（0-1）', type: 'number', min: 0, max: 1, step: 0.01, default: 0.15 }
+    ]
+  },
+  {
+    id: 'invalidation',
+    board: 'cognition',
+    configKey: 'simulation.cognition.invalidation.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '事实失效不删除',
+    keywords: '事实 失效 覆盖 历史 as-of 有效区间 invalidation',
+    description: '和旧说法冲突的新事实只把旧的标成失效（写入 valid_to），不覆盖正文、不删行。',
+    onEffect: '同一话题换了说法时旧行只标失效；检索默认只看有效行，需要时可按时间点回看「当时为真」的版本。',
+    offEffect: '回到旧的覆盖式写入：冲突的事实直接改写，历史上说过的版本找不回来。',
+    dangerousOff: false,
+    dependencies: []
+  },
+  {
+    id: 'contextTiers',
+    board: 'cognition',
+    configKey: 'simulation.cognition.contextTiers.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '水层召回',
+    keywords: '水层 表层 温跃层 深海 分层 摘要 配额 contextTiers',
+    description: '上下文按表层／温跃层／深海分层注入：先给摘要，确实相关才展开，各层有固定字数配额。',
+    onEffect: '近况与共同经历分层拼装，先摘要后展开，总字数按配额走，不再把所有内容一次性摊开。',
+    offEffect: '回到不分层的旧拼法：内容与现在完全一致。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.cognition.contextTiers.surfaceMaxChars', label: '表层字数配额', type: 'number', min: 100, max: 4000, default: 900 },
+      { key: 'simulation.cognition.contextTiers.thermoclineMaxChars', label: '温跃层字数配额', type: 'number', min: 100, max: 4000, default: 900 },
+      { key: 'simulation.cognition.contextTiers.deepMaxChars', label: '深海字数配额', type: 'number', min: 100, max: 4000, default: 600 }
+    ]
+  },
+  {
+    id: 'sleepConsolidation',
+    board: 'cognition',
+    configKey: 'simulation.cognition.sleepConsolidation.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '睡眠期巩固',
+    keywords: '睡眠 巩固 离线 整理 观察 删除提案 待审 sleepConsolidation',
+    description: '趁没人说话的时段离线整理经历，把零散对话沉淀成可追溯的观察条目。',
+    onEffect: '每夜固定时间或连续空闲后整理经历；新证据只精化旧观察、不覆盖，删除只生成待审批提案，永不自动删。',
+    offEffect: '不再排夜间任务；已整理的观察与提案记录都保留。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.cognition.sleepConsolidation.hour', label: '每夜整理时间（北京时间）', type: 'number', min: 0, max: 23, default: 4 },
+      { key: 'simulation.cognition.sleepConsolidation.idleMs', label: '空闲多久后整理（分钟）', type: 'number', min: 1, max: 1440, scale: 60000, default: 1800000 },
+      { key: 'simulation.cognition.sleepConsolidation.maxEpisodes', label: '单次整理经历数上限', type: 'number', min: 1, max: 200, default: 20 },
+      { key: 'simulation.cognition.sleepConsolidation.maxLlmCalls', label: '单次整理模型调用上限', type: 'number', min: 0, max: 20, default: 3 }
+    ]
+  },
+  {
+    id: 'reunion',
+    board: 'cognition',
+    configKey: 'simulation.cognition.reunion.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '重逢唤醒',
+    keywords: '重逢 久别 破冰 7 天 共同经历 reunion',
+    description: '好久没说话的人再次开口时，先想起一段高强度共同经历，用来破冰。',
+    onEffect: '距上次互动达到门槛后对方第一次说话，注入一条共同经历当破冰提示；每个久别周期一次、冷却期内最多一次，不会主动发消息。',
+    offEffect: '不再记录久别周期、也不注入破冰提示；久别重逢按普通对话回复。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.cognition.reunion.gapDays', label: '久别天数门槛', type: 'number', min: 1, max: 365, default: 7 },
+      { key: 'simulation.cognition.reunion.cooldownHours', label: '最短再次提示间隔（小时）', type: 'number', min: 1, max: 720, default: 72 }
+    ]
+  },
+  {
+    id: 'fishMemory',
+    board: 'cognition',
+    configKey: 'simulation.cognition.fishMemory.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '鱼的记忆',
+    keywords: '鱼的记忆 走神 忘了 提示词 彩蛋 fishMemory',
+    description: '极低频地表现一次「刚才我走神了」的可爱感，只往提示词里加一句提示，不动记忆也不动心情。',
+    onEffect: '在不用急着回复、也没在吵架或安慰人的那轮对话里，按很低的概率注入一次走神提示；同一轮会话最多一次。',
+    offEffect: '不再注入走神提示，提示词与现在逐字一致；记忆的记录和检索不受任何影响。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.cognition.fishMemory.probability', label: '触发概率', type: 'number', min: 0, max: 1, step: 0.01, default: 0.08 },
+      { key: 'simulation.cognition.fishMemory.minSessionMs', label: '会话最短持续（分钟）', type: 'number', min: 1, max: 60, scale: 60000, default: 180000 },
+      { key: 'simulation.cognition.fishMemory.maxSessionMs', label: '会话最长持续（分钟）', type: 'number', min: 1, max: 60, scale: 60000, default: 420000 }
+    ]
+  },
+  {
+    id: 'moodDrift',
+    board: 'cognition',
+    configKey: 'simulation.cognition.moodDrift.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '心情目标值限速',
+    keywords: '心情 漂移 目标值 限速 上头 moodDrift',
+    description: '事件先给心情定一个目标值，当前心情再按每小时的升降速率慢慢追上去，不再一步跳到位。',
+    onEffect: '事件只改目标值，现值按速率追随；同一来源同方向要窗口期内第二次才计入，一次口角不会让她情绪失控。',
+    offEffect: '回到旧逻辑：事件直接改当前心情值，之后按原有衰减自然回落；已存的目标值不再参与计算。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.cognition.moodDrift.windowH', label: '同源同向判定窗口（小时）', type: 'number', min: 1, max: 168, default: 6 },
+      { key: 'simulation.cognition.moodDrift.risePerHour', label: '向好后每小时上升上限', type: 'number', min: 0, max: 1, step: 0.01, default: 0.12 },
+      { key: 'simulation.cognition.moodDrift.fallPerHour', label: '向坏每小时下降上限', type: 'number', min: 0, max: 1, step: 0.01, default: 0.08 }
     ]
   },
 
