@@ -2123,6 +2123,25 @@
               "default": 2,
               "minimum": 1,
               "maximum": 20
+            },
+            "turnWindowMs": {
+              "title": "贴纸/表情包同回合互斥窗口（ms，0=关）",
+              "type": "number",
+              "default": 600000,
+              "minimum": 0,
+              "maximum": 1800000,
+              "description": "同一回合内像素贴纸与表情包只发一种；新回合开始自动复位，窗口是漏掉回合事件时的兜底"
+            }
+          }
+        },
+        "sceneSticker": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "场景贴纸（主动分享附图）",
+              "type": "boolean",
+              "default": false,
+              "description": "主动分享/出门见闻按活动推断附 chibi 场景插图；不用于回复顶替表情包，也不进同回合互斥计数"
             }
           }
         },
@@ -2141,6 +2160,12 @@
               "default": 1800000,
               "minimum": 60000,
               "maximum": 86400000
+            },
+            "llm": {
+              "title": "按真实状态现写",
+              "type": "boolean",
+              "default": true,
+              "description": "开=每次按当前心情/精力/近况现写一句，不合格退回模板池；关=只用模板池轮换（回滚开关）"
             },
             "maxPerDay": {
               "title": "每天最多几条",
@@ -2163,10 +2188,19 @@
               "minimum": 0,
               "maximum": 1
             },
+            "tailChance": {
+              "title": "发完补一句的概率",
+              "type": "number",
+              "default": 0.6,
+              "minimum": 0,
+              "maximum": 1,
+              "description": "语音发出后顺着再补一条很短文字（不超过20字）的概率；0=不补，默认 0.6"
+            },
             "targets": {
-              "title": "发送目标（留空=主人私聊）",
+              "title": "只在哪些群发（留空=全部白名单群）",
               "type": "array",
-              "default": []
+              "default": [],
+              "description": "填 group:群号，可多个；private:* 会被忽略——心情语音不发私聊"
             }
           }
         },
@@ -7074,6 +7108,24 @@
       "max": 20
     },
     {
+      "key": "simulation.pixelSticker.turnWindowMs",
+      "label": "贴纸/表情包同回合互斥窗口（ms，0=关）",
+      "group": "表情与图片",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 1800000
+    },
+    {
+      "key": "simulation.sceneSticker.enabled",
+      "label": "场景贴纸（主动分享附图）",
+      "group": "表情与图片",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "simulation.sticker.collect.compress",
       "label": "超过上限自动压缩 GIF",
       "group": "表情与图片",
@@ -7142,6 +7194,14 @@
       "max": 86400000
     },
     {
+      "key": "simulation.moodVoice.llm",
+      "label": "按真实状态现写",
+      "group": "语音",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
       "key": "simulation.moodVoice.maxPerDay",
       "label": "每天最多几条",
       "group": "语音",
@@ -7172,8 +7232,18 @@
       "max": 1
     },
     {
+      "key": "simulation.moodVoice.tailChance",
+      "label": "发完补一句的概率",
+      "group": "语音",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 0,
+      "max": 1
+    },
+    {
       "key": "simulation.moodVoice.targets",
-      "label": "发送目标（留空=主人私聊）",
+      "label": "只在哪些群发（留空=全部白名单群）",
       "group": "语音",
       "type": "array",
       "restart": "none",

@@ -29,6 +29,7 @@ import { postQzone, listQzone, deleteQzone, qzoneHasContent, qzoneItemTid, qzone
 import { DEFAULT_QUIET_HOURS, normalizeQuietHours, isQuietNow, quietEndAt } from './quiet-hours.js';
 import { SENSITIVE_RE } from '../../runtime/kernel/sensitive.js';
 import { parseBlacklistIntentOutput } from '../../runtime/control/blacklist.js';
+import { cleanMoodVoiceTail, MOOD_VOICE_TAIL_MAX_CHARS } from '../media/mood-voice-cadence.js';
 import { AI_TIP_CATEGORIES, categoryById, inWindow, isDuplicateTip, nextSlotAt, pickCategory, pickTipLinks, parseTipOutput, rollDailyTarget } from '../../runtime/persona/ai-tips.js';
 import { normalizeShareConfig, normalizeShareModule, moduleFacets, engineFacets, hasEngineFacets, facetRuntime, pickShareFacet, parseShareOutput, validateShareOutput, verificationPending, moduleDayTarget, nextFacetAt, inWindowAt, topicTooSimilar, recentShareUrls, urlAlreadyShared, SHARE_TEMPLATES } from '../../runtime/share/share-modules.js';
 import { loadShareState, saveShareState, groupBudgetCheck, recordGroupSend, recordModuleSend, recordModuleFailure, setVerification, migrateAiTipsState, localDayKey as shareDayKey, globalBudgetCheck, recordGlobalSend, nextGlobalWindowAt } from '../../runtime/share/share-state.js';
@@ -123,6 +124,7 @@ export function createInnerLife(deps) {
     onebotSend,
     lastSendSucceeded,
     getSimulationState,
+    sendSceneSticker,
     getEsportsFeed,
     isSessionAllowedInCurrentMode,
     ensureChatModel,
@@ -1252,6 +1254,16 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
     return text.length > maxChars ? `${text.slice(0, maxChars - 1).trimEnd()}…` : text;
   }
 
+  // 签名候选：超长整句作废（绝不截断加「…」），交给桥接带提示重试或退回模板。
+  function cleanSignatureCandidate(raw, maxChars) {
+    let text = mdToPlain(stripFence(raw)).trim();
+    text = text.replace(/^【?签名】?[:：]\s*/, '').replace(/^["'“”‘’「」]+|["'“”‘’「」]+$/g, '');
+    text = text.replace(/\s+/g, ' ').trim().replace(/[。．.]+$/u, '').trim();
+    if (!text || SENSITIVE_RE.test(text)) return '';
+    if (text.length > maxChars) return '';
+    return text;
+  }
+
   async function sendOwner(text) {
     if (!cfg.ownerQQ) return null;
     try {
@@ -1302,6 +1314,7 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
         return false;
       }
     }
+    try { await sendSceneSticker?.(key, shareText); } catch {}
     state.counts.groupShare += 1;
     state.lastShareAt = now;
     state.lastShareByTarget = { ...(state.lastShareByTarget || {}), [key]: now };
@@ -3533,6 +3546,7 @@ ${share.text}${share.item?.url ? `
         }
       }
     }
+    try { await sendSceneSticker?.(target, `${parsed.title || ''} ${parsed.text}`); } catch {}
     recordGroupSend(state, target, Date.now());
     recordGlobalSend(state, Date.now(), conf.limits);
     recordModuleSend(state, moduleId, facet.id, Date.now(), {
@@ -4164,7 +4178,16 @@ ${formatTipCaption(item)}`;
    * 所以签名跟着真实近况走，而不是轮模板。只产出正文，是否采用由桥接按去重规则决定。
    * 失败/为空时抛错，由桥接退回干净模板兜底（绝不换字造病句）。
    */
-  async function generateSignatureText({ maxChars = 40, avoidTexts = [], bannedThemes = [], interests = [], hint = '', roleName = '' } = {}) {
+  async function generateSignatureText({
+    maxChars = 40,
+    avoidTexts = [],
+    bannedThemes = [],
+    interests = [],
+    hint = '',
+    roleName = '',
+    avoidMarks = [],
+    avoidOpeners = []
+  } = {}) {
     const limit = Math.max(8, Math.min(60, Number(maxChars) || 40));
     const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
     const recent = (Array.isArray(avoidTexts) ? avoidTexts : [])
@@ -4179,22 +4202,112 @@ ${formatTipCaption(item)}`;
       .map((i) => String(typeof i === 'string' ? i : i?.topic ?? '').trim())
       .filter(Boolean)
       .slice(0, 4);
+    const marks = (Array.isArray(avoidMarks) ? avoidMarks : [])
+      .map((m) => String(m ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 8);
+    const openers = (Array.isArray(avoidOpeners) ? avoidOpeners : [])
+      .map((o) => String(o ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 4);
     const task = [
       '写一句你现在的 QQ 个性签名：像随手挂在资料页的一行生活状态，不是说说、不是群消息、不是标题。',
-      '必须基于【当前状态】里你真实的心情/精力/最近在迷的东西/最近学到或发生的小事来写，写出此刻具体的你；不要空泛口号，不要万能模板句，不要总结升华。',
+      '写法：从【当前状态】里你真实的心情/精力/最近在迷的东西/最近学到或发生的小事出发，写一件此刻真实、具体、别人一读就懂的小事/小感受/小想法，让人能想象出画面——时间、动作、结果里至少有一个落点；不要抽象碎碎念，不要含糊比喻，不要绕，不要口号，不要总结升华。',
       topics.length ? `可以自然带到你最近在迷的：${topics.join('、')}（只在真的贴合状态时提，别硬塞）。` : '',
-      `只输出签名正文一行，最多 ${limit} 字；不要引号、不要 emoji、不要解释、不要标题，末尾不要句号。`,
+      `只输出签名正文一行，最多 ${limit} 字，宁可短一点也别超（超了整句作废）；不要引号、不要 emoji、不要解释、不要标题，末尾不要句号。`,
+      '【反例与正例】反例是空洞、绕或不知所云；正例是具体、一读就懂。学正例的具体程度，不要照抄句子。',
+      '反例：这个点适合说点真心话，说完就去睡，慢慢来嘛',
+      '正例：刚把昨晚没看完那篇看完，结局比想的干脆',
+      '反例：在整理最近听到的零碎，攒够了再讲给你',
+      '正例：楼下花坛新开了两朵，我蹲那儿看了半分钟才想起要回消息',
+      '反例：最近总在想鲸类叫声与语言，想得太入神，尾巴都忘了摇',
+      '正例：查了半天才分清鲸歌和鲸叫，原来不是一回事',
+      '别用这些说法填字数：慢慢来、先…一会儿、真心话、零碎、攒够了、在整理、慢速档、脑子往…跑。',
+      openers.length ? `别再用这些开头：${openers.join('、')}；换一种自然的起手。` : '别总用「今天/这个点/最近」开头，换一种起手。',
       customRole
         ? '保持当前角色的口吻，不要出现鲸鱼/尾巴/米饭/摸鱼/水里游这类不属于这个角色的生活记号。'
-        : '可以带一点小鲸鱼自己的生活记号（尾巴、米饭、摸鱼、水里游），但最多一个，别堆砌。',
+        : (marks.length
+          ? `生活记号（尾巴/鲸鱼/米饭/摸鱼/水里游/懒/嘴硬）最多一个；这些最近刚用过，这次一个都别提：${marks.join('、')}。`
+          : '可以带一点小鲸鱼自己的生活记号（尾巴、米饭、摸鱼、水里游），但最多一个，别堆砌。'),
       recent.length ? `这些是最近用过或被否掉的签名，别和它们雷同（换措辞也算雷同）：\n${recent.map((t) => `- ${t}`).join('\n')}` : '',
       bans.length ? `这些主题最近被封了，别再写：${bans.join('、')}。` : '',
       hint ? `【重写要求】${hint}` : ''
     ].filter(Boolean).join('\n\n');
     const output = await runTurn(buildBasePrompt(task, `${contentVoiceBlock(roleStyle())}\n`), 120000);
+    const cleaned = cleanSignatureCandidate(output, limit);
+    if (!cleaned) throw new Error(`签名生成不合格（为空、含敏感信息或超过 ${limit} 字）`);
+    return cleaned;
+  }
+
+  /**
+   * 按她此刻的真实心情/精力/近况，现写一句会主动冒出来说的短语音。
+   * 与签名共用内心会话（buildBasePrompt 自带【当前状态】【现在】【最近群聊】【最近群里在聊】），
+   * 所以「由头」来自真实近况，而不是干巴巴报心情；同一心情也不会天天同一句。
+   * 只产出正文；是否采用、是否与最近重复由桥接校验，失败/为空/含敏感时抛错让桥接退回模板池。
+   */
+  async function generateMoodVoiceText({ moodLabel = '', valence = 0, energy = 0.6, cause = '', avoidTexts = [], hint = '', roleName = '', maxChars = 24, targetKey = '' } = {}) {
+    const limit = Math.max(6, Math.min(30, Number(maxChars) || 24));
+    const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
+    const recent = (Array.isArray(avoidTexts) ? avoidTexts : [])
+      .map((t) => String(typeof t === 'string' ? t : t?.text ?? '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .slice(-10);
+    const mood = String(moodLabel || '').trim() || '平稳';
+    const v = Math.max(-1, Math.min(1, Number(valence) || 0));
+    const e = Math.max(0, Math.min(1, Number(energy) || 0));
+    const causeText = cleanLine(cause, 40);
+    const task = [
+      '写一句你此刻会主动冒出来说的话，做成一小段语音：像对着熟人随口搭一句，不是群公告、不是说说、不是标题。',
+      '硬性要求：开口前必须先挂一个真实由头——从【当前状态】【现在】【最近群聊】【最近群里在聊】里挑一个此刻真实、具体的：你心情的起因（熬夜/被夸/刚忙完/刚睡醒之类）、最近在迷的东西、刚做完的一件小事（刚读完/刚忙完/刚游完），或者现在这个时间点的氛围。让人听得出你「为什么这会儿开口」。',
+      `这些是给你找由头用的近况：现在心情「${mood}」，心情值 ${v.toFixed(2)}（-1 最低，1 最高），精力 ${e.toFixed(2)}（0 最累，1 最足）${causeText ? `，起因：${causeText}` : ''}。别直接报这些数值或状态。`,
+      '严禁干巴巴裸报心情/状态：像「脑子有点木，但心情挺好的」「睡少了，人倒不闷」这种没有来由的句子，一句都不要写。',
+      '实在挑不出贴切的由头，就写一句轻社交的主动搭话（有点想你们了 / 忙完来唠两句 / 冒个泡看看你们在聊啥），让人感觉你是「有由头才开口」，而不是在汇报状态。',
+      `口语、自然、短，最多 ${limit} 字，宁可短一点也别超（超了整句作废）；不要引号、不要 emoji、不要标题、不要解释。`,
+      '【反例与正例】反例是没来由的裸报心情；正例是先挂由头再开口，或自然的轻社交。学正例的思路，不要照抄句子。',
+      '反例：睡少了，人倒不闷',
+      '正例：熬夜欠的，脑子还没醒，来跟你们说两句',
+      '反例：脑子有点木，但心情挺好的',
+      '正例：刚把那篇讲鲸歌的看完，来唠两句',
+      '反例：今天心情不错',
+      '正例：忙完这阵了，冒个泡看看你们在聊啥',
+      targetKey ? '这条语音是发给一个具体的群：如果【最近群聊】【最近群里在聊】里有能自然带上的话题，就顺着提一句（比如「你们刚说的那个」），别硬凑，也别把群名念出来。' : '',
+      customRole
+        ? '保持当前角色的口吻，不要出现鲸鱼/尾巴/米饭/摸鱼/水里游这类不属于这个角色的生活记号。'
+        : '可以带一个她自己的生活记号（尾巴、米饭、摸鱼、水里游），但最多一个，别堆砌。',
+      recent.length ? `最近已经说过这些语音，别和它们雷同（换措辞也算雷同）：\n${recent.map((t) => `- ${t}`).join('\n')}` : '',
+      hint ? `【重写要求】${hint}` : ''
+    ].filter(Boolean).join('\n\n');
+    const output = await runTurn(buildBasePrompt(task, `${contentVoiceBlock(roleStyle())}\n`, targetKey), 120000);
     const cleaned = cleanPost(output, limit);
-    if (!cleaned) throw new Error('签名生成为空或含敏感信息');
-    return cleaned.replace(/[。．.]+$/u, '').trim();
+    if (!cleaned) throw new Error('心情语音生成为空或含敏感信息');
+    return cleaned;
+  }
+
+  /**
+   * 语音发出去之后顺手补的半句：顺着刚才那句往下讲，不另起话题。
+   * 单独一次小生成；为空/失败就返回 ''，桥接那边只发语音、不报错。
+   */
+  async function generateMoodVoiceTail({ voiceText = '', moodLabel = '', roleName = '', targetKey = '', maxChars = MOOD_VOICE_TAIL_MAX_CHARS } = {}) {
+    const limit = Math.max(6, Math.min(30, Number(maxChars) || MOOD_VOICE_TAIL_MAX_CHARS));
+    const said = cleanLine(voiceText, 60);
+    if (!said) return '';
+    const customRole = Boolean(String(roleName || '').trim()) && String(roleName).trim() !== '小鲸鱼';
+    const task = [
+      `你刚在这个群发了一条语音，原话是：「${said}」。现在顺口再补一句很短的话，接在它后面继续往下讲。`,
+      '硬性要求：必须顺着刚才那句的意思或话题，不换话题、不复述那句、不重新打招呼、不另起话头。',
+      `口语、自然、短，最多 ${limit} 字，宁可更短；不要引号、不要 emoji、不要链接、不要 @ 任何人、不要解释。只输出这一句话。`,
+      customRole
+        ? '保持当前角色的口吻，不要出现鲸鱼/尾巴/米饭/摸鱼/水里游这类不属于这个角色的生活记号。'
+        : '可以带一个她自己的生活记号，但最多一个。'
+    ].filter(Boolean).join('\n\n');
+    try {
+      const output = await runTurn(buildBasePrompt(task, `${contentVoiceBlock(roleStyle())}\n`, targetKey), 120000);
+      const tail = cleanMoodVoiceTail(output, limit);
+      return tail && !SENSITIVE_RE.test(tail) ? tail : '';
+    } catch (error) {
+      log(`[moodVoice] 续句生成失败（只发语音）：${error?.message ?? error}`);
+      return '';
+    }
   }
 
   /**
@@ -4824,6 +4937,8 @@ ${formatTipCaption(item)}`;
     personaInfo,
     refineText,
     generateSignatureText,
+    generateMoodVoiceText,
+    generateMoodVoiceTail,
     extractBlacklistIntent,
     handleOwnerCommand,
     ownerPublishQzone,

@@ -20,6 +20,7 @@ import * as tokenLedger from '../services/social/token-ledger.js';
 import * as voiceLib from '../services/media/send-voice-lib.js';
 import * as imageLib from '../services/media/image-lib.js';
 import * as corePixelStickers from '../services/media/pixel-stickers.js';
+import * as coreSceneStickers from '../services/media/scene-stickers.js';
 import * as coreMoodVoice from '../services/media/mood-voice-cadence.js';
 import * as presetPrompt from '../services/persona/preset-prompt.js';
 import * as roleCard from '../services/persona/role-card.js';
@@ -185,6 +186,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
   return {
     ensureSession, ensureSlangLearnerSession, resolvePresetName, deliverPrompt, drainPromptQueue,
     sendToQQ, sendSticker, handleIncoming, startConsoleServer, cfg, state, api, promptQueues,
+    maybeSendPixelSticker, noteStickerSent, claimStickerTurn, sendSceneStickerToKey, maybeSendMoodVoice,
     getSimulationState, appendSimulationMessage, recordSentMessages,
     globalActivityMode, isDeepDive, resyncActivityControl,
     appendMemory, formatMemory,
@@ -266,7 +268,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     SnowLumaWebSocketClient: FakeBot, text: (s) => s,
     discoverDshLaunchToken: () => '', unwrap, createTurnCollector,
     ...markdown, ...sensitive, ...wait, ...safeFetch, ...forward, ...slang, ...sticker,
-    ...modelPrices, ...tokenLedger, ...voiceLib, ...imageLib, ...corePixelStickers, ...coreMoodVoice, ...stateAcl, ...presetPrompt, ...quietHours, ...roleCard,
+    ...modelPrices, ...tokenLedger, ...voiceLib, ...imageLib, ...corePixelStickers, ...coreSceneStickers, ...coreMoodVoice, ...stateAcl, ...presetPrompt, ...quietHours, ...roleCard,
     ...coreDb, ...coreOutbox, ...coreJobs, ...coreInbox, ...coreConfigSchema, ...coreConfigStore, ...coreStateFile, ...coreLogger,
     ...coreControllerCli,
     ...consoleAuth, ...consolePolicy, ...consoleLive,

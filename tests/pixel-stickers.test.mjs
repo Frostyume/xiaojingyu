@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { loadPixelStickers, pixelStickerCount, pickPixelSticker, pixelStickerMoods } from '../services/media/pixel-stickers.js';
+import { loadPixelStickers, pixelStickerCount, pickPixelSticker, pixelStickerMoods, stickerTurnGate, STICKER_TURN_WINDOW_MS, assertOnModelEntry } from '../services/media/pixel-stickers.js';
 import { moodVoiceCadenceOk, MOOD_VOICE_DEFAULTS } from '../services/media/mood-voice-cadence.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -45,7 +45,7 @@ test('red: 像素贴纸库保持人设（原色/无挂饰）且透明（旧改�
   assert.ok(fs.existsSync(path.join(LIB, 'manifest.json')), '锚点：manifest 存在');
   const all = loadPixelStickers();
   const n = all.length;
-  assert.ok(n >= 20, `库应>=20 张保持人设变体，实际 ${n}`);
+  assert.ok(n >= 120, `库应>=120 张保持人设变体，实际 ${n}`);
   // 人设护栏：绝不允许改色(hue)或加挂饰(accessory)；只允许翻转+裁剪。
   for (const s of all) {
     assert.ok(s.hue === undefined || s.hue === 0, `不得改色：${s.file}`);
@@ -57,6 +57,30 @@ test('red: 像素贴纸库保持人设（原色/无挂饰）且透明（旧改�
   const pick = pickPixelSticker('happy', () => 0);
   assert.ok(pick && fs.existsSync(pick.path));
   assert.equal(cornerAlpha(pick.path), 0, '变体背景必须透明');
+});
+
+test('red: 人设护栏拒绝改色/挂饰条目（注入 hue/accessory 变体必须被拒）', () => {
+  const ok = { file: 'happy-n-full.png', mood: 'happy', crop: 'full', flip: false };
+  assert.equal(assertOnModelEntry(ok), true);
+  assert.throws(() => assertOnModelEntry({ ...ok, hue: 30 }), /不得改色/);
+  assert.throws(() => assertOnModelEntry({ ...ok, accessory: 'bow' }), /不得加挂饰/);
+  assert.throws(() => assertOnModelEntry({ ...ok, crop: 'recolor' }), /裁剪类型非法/);
+  assert.throws(() => assertOnModelEntry({ ...ok, mood: '' }), /心情标签/);
+});
+
+test('stickerTurnGate：同回合谁先发另一个让路；窗口过期/关闸放行', () => {
+  const now = 1_000_000_000;
+  assert.deepEqual(stickerTurnGate({ now }), { allowPixel: true, allowMeme: true, reason: null });
+  const meme = stickerTurnGate({ lastMemeStickerAt: now - 1000, now });
+  assert.equal(meme.allowPixel, false);
+  assert.equal(meme.allowMeme, true);
+  const pixel = stickerTurnGate({ lastPixelStickerAt: now - 1000, now });
+  assert.equal(pixel.allowMeme, false);
+  assert.equal(pixel.allowPixel, true);
+  assert.equal(stickerTurnGate({ lastMemeStickerAt: now - STICKER_TURN_WINDOW_MS - 1, now }).allowPixel, true);
+  const off = stickerTurnGate({ lastMemeStickerAt: now - 1000, now, windowMs: 0 });
+  assert.equal(off.allowPixel, true);
+  assert.equal(off.allowMeme, true);
 });
 
 test('pickPixelSticker：按心情挑、未知心情退回全库、空库返回 null', () => {
@@ -89,6 +113,10 @@ test('moodVoiceCadenceOk：不是每天一条也不是天天一堆（每日上�
 test('console 同步：配置/卡片/FIELD_META/快照键都登记', () => {
   const example = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.example.json'), 'utf8'));
   assert.ok(example.simulation.pixelSticker && example.simulation.moodVoice, 'example 应有两功能默认');
+  assert.equal(example.simulation.pixelSticker.turnWindowMs, 600000, 'example 应暴露同回合互斥窗口');
+  assert.ok(example.simulation.sceneSticker, 'example 应有场景贴纸默认');
+  assert.equal(example.simulation.moodVoice.llm, true, 'example 应暴露心情语音 llm 开关');
+  assert.equal(example.simulation.moodVoice.tailChance, 0.6, 'example 应暴露续句概率');
   const fc = fs.readFileSync(path.join(ROOT, 'runtime', 'control', 'feature-control.js'), 'utf8');
   assert.ok(fc.includes('chatPixelSticker') && fc.includes('chatMoodVoice'), '功能卡应登记');
   const schema = fs.readFileSync(path.join(ROOT, 'runtime', 'kernel', 'config-schema.js'), 'utf8');
@@ -96,5 +124,8 @@ test('console 同步：配置/卡片/FIELD_META/快照键都登记', () => {
   const bridge = fs.readFileSync(path.join(ROOT, 'app', 'whale.js'), 'utf8');
   assert.ok(bridge.includes('pixelSticker: {') && bridge.includes('moodVoice: {'), 'live 快照应暴露两功能状态');
   assert.ok(bridge.includes('maybeSendPixelSticker(st, key)'), '文字回复后应挂像素贴纸钩子');
-  assert.ok(bridge.includes('noteStickerSent(st);'), '像素贴纸应复用表情包计数');
+  assert.ok(bridge.includes("noteStickerSent(st, 'pixel')"), '像素贴纸应复用表情包计数并登记像素时间戳');
+  assert.ok(bridge.includes("noteStickerSent(st, 'meme')"), '表情包工具应登记表情包时间戳');
+  assert.ok(bridge.includes('claimStickerTurn'), '应有同步占坑函数');
+  assert.ok(bridge.includes('sceneSticker: {'), 'live 快照应暴露场景贴纸状态');
 });

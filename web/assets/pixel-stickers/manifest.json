@@ -1,10 +1,11 @@
 {
- "version": 2,
- "count": 20,
+ "version": 3,
+ "count": 120,
  "stickers": [
   {
    "file": "excited-n-full.png",
    "mood": "excited",
+   "scene": "none",
    "base": "whale-pixel-excited.png",
    "flip": false,
    "crop": "full"
@@ -12,6 +13,7 @@
   {
    "file": "excited-n-head.png",
    "mood": "excited",
+   "scene": "none",
    "base": "whale-pixel-excited.png",
    "flip": false,
    "crop": "head"
@@ -19,6 +21,7 @@
   {
    "file": "excited-f-full.png",
    "mood": "excited",
+   "scene": "none",
    "base": "whale-pixel-excited.png",
    "flip": true,
    "crop": "full"
@@ -26,6 +29,7 @@
   {
    "file": "excited-f-head.png",
    "mood": "excited",
+   "scene": "none",
    "base": "whale-pixel-excited.png",
    "flip": true,
    "crop": "head"
@@ -33,6 +37,7 @@
   {
    "file": "happy-n-full.png",
    "mood": "happy",
+   "scene": "none",
    "base": "whale-pixel-wave.png",
    "flip": false,
    "crop": "full"
@@ -40,6 +45,7 @@
   {
    "file": "happy-n-head.png",
    "mood": "happy",
+   "scene": "none",
    "base": "whale-pixel-wave.png",
    "flip": false,
    "crop": "head"
@@ -47,6 +53,7 @@
   {
    "file": "happy-f-full.png",
    "mood": "happy",
+   "scene": "none",
    "base": "whale-pixel-wave.png",
    "flip": true,
    "crop": "full"
@@ -54,6 +61,7 @@
   {
    "file": "happy-f-head.png",
    "mood": "happy",
+   "scene": "none",
    "base": "whale-pixel-wave.png",
    "flip": true,
    "crop": "head"
@@ -61,6 +69,7 @@
   {
    "file": "idle-n-full.png",
    "mood": "idle",
+   "scene": "none",
    "base": "whale-pixel-idle.png",
    "flip": false,
    "crop": "full"
@@ -68,6 +77,7 @@
   {
    "file": "idle-n-head.png",
    "mood": "idle",
+   "scene": "none",
    "base": "whale-pixel-idle.png",
    "flip": false,
    "crop": "head"
@@ -75,6 +85,7 @@
   {
    "file": "idle-f-full.png",
    "mood": "idle",
+   "scene": "none",
    "base": "whale-pixel-idle.png",
    "flip": true,
    "crop": "full"
@@ -82,6 +93,7 @@
   {
    "file": "idle-f-head.png",
    "mood": "idle",
+   "scene": "none",
    "base": "whale-pixel-idle.png",
    "flip": true,
    "crop": "head"
@@ -89,6 +101,7 @@
   {
    "file": "tired-n-full.png",
    "mood": "tired",
+   "scene": "none",
    "base": "whale-pixel-sit.png",
    "flip": false,
    "crop": "full"
@@ -96,6 +109,7 @@
   {
    "file": "tired-n-head.png",
    "mood": "tired",
+   "scene": "none",
    "base": "whale-pixel-sit.png",
    "flip": false,
    "crop": "head"
@@ -103,6 +117,7 @@
   {
    "file": "tired-f-full.png",
    "mood": "tired",
+   "scene": "none",
    "base": "whale-pixel-sit.png",
    "flip": true,
    "crop": "full"
@@ -110,6 +125,7 @@
   {
    "file": "tired-f-head.png",
    "mood": "tired",
+   "scene": "none",
    "base": "whale-pixel-sit.png",
    "flip": true,
    "crop": "head"
@@ -117,6 +133,7 @@
   {
    "file": "pout-n-full.png",
    "mood": "pout",
+   "scene": "none",
    "base": "whale-pixel-pout.png",
    "flip": false,
    "crop": "full"
@@ -124,6 +141,7 @@
   {
    "file": "pout-n-head.png",
    "mood": "pout",
+   "scene": "none",
    "base": "whale-pixel-pout.png",
    "flip": false,
    "crop": "head"
@@ -131,6 +149,7 @@
   {
    "file": "pout-f-full.png",
    "mood": "pout",
+   "scene": "none",
    "base": "whale-pixel-pout.png",
    "flip": true,
    "crop": "full"
@@ -138,7 +157,808 @@
   {
    "file": "pout-f-head.png",
    "mood": "pout",
+   "scene": "none",
    "base": "whale-pixel-pout.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "sleepy-n-full.png",
+   "mood": "sleepy",
+   "scene": "none",
+   "base": "bases/whale-pixel-sleepy.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "sleepy-n-head.png",
+   "mood": "sleepy",
+   "scene": "none",
+   "base": "bases/whale-pixel-sleepy.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "sleepy-f-full.png",
+   "mood": "sleepy",
+   "scene": "none",
+   "base": "bases/whale-pixel-sleepy.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "sleepy-f-head.png",
+   "mood": "sleepy",
+   "scene": "none",
+   "base": "bases/whale-pixel-sleepy.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "angry-n-full.png",
+   "mood": "angry",
+   "scene": "none",
+   "base": "bases/whale-pixel-angry.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "angry-n-head.png",
+   "mood": "angry",
+   "scene": "none",
+   "base": "bases/whale-pixel-angry.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "angry-f-full.png",
+   "mood": "angry",
+   "scene": "none",
+   "base": "bases/whale-pixel-angry.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "angry-f-head.png",
+   "mood": "angry",
+   "scene": "none",
+   "base": "bases/whale-pixel-angry.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "cry-n-full.png",
+   "mood": "cry",
+   "scene": "none",
+   "base": "bases/whale-pixel-cry.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "cry-n-head.png",
+   "mood": "cry",
+   "scene": "none",
+   "base": "bases/whale-pixel-cry.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "cry-f-full.png",
+   "mood": "cry",
+   "scene": "none",
+   "base": "bases/whale-pixel-cry.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "cry-f-head.png",
+   "mood": "cry",
+   "scene": "none",
+   "base": "bases/whale-pixel-cry.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "shy-n-full.png",
+   "mood": "shy",
+   "scene": "none",
+   "base": "bases/whale-pixel-shy.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "shy-n-head.png",
+   "mood": "shy",
+   "scene": "none",
+   "base": "bases/whale-pixel-shy.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "shy-f-full.png",
+   "mood": "shy",
+   "scene": "none",
+   "base": "bases/whale-pixel-shy.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "shy-f-head.png",
+   "mood": "shy",
+   "scene": "none",
+   "base": "bases/whale-pixel-shy.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "surprised-n-full.png",
+   "mood": "surprised",
+   "scene": "none",
+   "base": "bases/whale-pixel-surprised.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "surprised-n-head.png",
+   "mood": "surprised",
+   "scene": "none",
+   "base": "bases/whale-pixel-surprised.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "surprised-f-full.png",
+   "mood": "surprised",
+   "scene": "none",
+   "base": "bases/whale-pixel-surprised.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "surprised-f-head.png",
+   "mood": "surprised",
+   "scene": "none",
+   "base": "bases/whale-pixel-surprised.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "smug-n-full.png",
+   "mood": "smug",
+   "scene": "none",
+   "base": "bases/whale-pixel-smug.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "smug-n-head.png",
+   "mood": "smug",
+   "scene": "none",
+   "base": "bases/whale-pixel-smug.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "smug-f-full.png",
+   "mood": "smug",
+   "scene": "none",
+   "base": "bases/whale-pixel-smug.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "smug-f-head.png",
+   "mood": "smug",
+   "scene": "none",
+   "base": "bases/whale-pixel-smug.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "love-n-full.png",
+   "mood": "love",
+   "scene": "none",
+   "base": "bases/whale-pixel-love.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "love-n-head.png",
+   "mood": "love",
+   "scene": "none",
+   "base": "bases/whale-pixel-love.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "love-f-full.png",
+   "mood": "love",
+   "scene": "none",
+   "base": "bases/whale-pixel-love.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "love-f-head.png",
+   "mood": "love",
+   "scene": "none",
+   "base": "bases/whale-pixel-love.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "aggrieved-n-full.png",
+   "mood": "aggrieved",
+   "scene": "none",
+   "base": "bases/whale-pixel-aggrieved.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "aggrieved-n-head.png",
+   "mood": "aggrieved",
+   "scene": "none",
+   "base": "bases/whale-pixel-aggrieved.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "aggrieved-f-full.png",
+   "mood": "aggrieved",
+   "scene": "none",
+   "base": "bases/whale-pixel-aggrieved.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "aggrieved-f-head.png",
+   "mood": "aggrieved",
+   "scene": "none",
+   "base": "bases/whale-pixel-aggrieved.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "cheer-n-full.png",
+   "mood": "excited",
+   "scene": "cheer",
+   "base": "bases/whale-pixel-cheer.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "cheer-n-head.png",
+   "mood": "excited",
+   "scene": "cheer",
+   "base": "bases/whale-pixel-cheer.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "cheer-f-full.png",
+   "mood": "excited",
+   "scene": "cheer",
+   "base": "bases/whale-pixel-cheer.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "cheer-f-head.png",
+   "mood": "excited",
+   "scene": "cheer",
+   "base": "bases/whale-pixel-cheer.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "calm-n-full.png",
+   "mood": "calm",
+   "scene": "none",
+   "base": "bases/whale-pixel-calm.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "calm-n-head.png",
+   "mood": "calm",
+   "scene": "none",
+   "base": "bases/whale-pixel-calm.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "calm-f-full.png",
+   "mood": "calm",
+   "scene": "none",
+   "base": "bases/whale-pixel-calm.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "calm-f-head.png",
+   "mood": "calm",
+   "scene": "none",
+   "base": "bases/whale-pixel-calm.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "reading-n-full.png",
+   "mood": "idle",
+   "scene": "reading",
+   "base": "bases/whale-pixel-reading.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "reading-n-head.png",
+   "mood": "idle",
+   "scene": "reading",
+   "base": "bases/whale-pixel-reading.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "reading-f-full.png",
+   "mood": "idle",
+   "scene": "reading",
+   "base": "bases/whale-pixel-reading.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "reading-f-head.png",
+   "mood": "idle",
+   "scene": "reading",
+   "base": "bases/whale-pixel-reading.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "gaming-n-full.png",
+   "mood": "excited",
+   "scene": "gaming",
+   "base": "bases/whale-pixel-gaming.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "gaming-n-head.png",
+   "mood": "excited",
+   "scene": "gaming",
+   "base": "bases/whale-pixel-gaming.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "gaming-f-full.png",
+   "mood": "excited",
+   "scene": "gaming",
+   "base": "bases/whale-pixel-gaming.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "gaming-f-head.png",
+   "mood": "excited",
+   "scene": "gaming",
+   "base": "bases/whale-pixel-gaming.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "eating-n-full.png",
+   "mood": "happy",
+   "scene": "eating",
+   "base": "bases/whale-pixel-eating.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "eating-n-head.png",
+   "mood": "happy",
+   "scene": "eating",
+   "base": "bases/whale-pixel-eating.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "eating-f-full.png",
+   "mood": "happy",
+   "scene": "eating",
+   "base": "bases/whale-pixel-eating.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "eating-f-head.png",
+   "mood": "happy",
+   "scene": "eating",
+   "base": "bases/whale-pixel-eating.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "sleeping-n-full.png",
+   "mood": "sleepy",
+   "scene": "sleeping",
+   "base": "bases/whale-pixel-sleeping.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "sleeping-n-head.png",
+   "mood": "sleepy",
+   "scene": "sleeping",
+   "base": "bases/whale-pixel-sleeping.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "sleeping-f-full.png",
+   "mood": "sleepy",
+   "scene": "sleeping",
+   "base": "bases/whale-pixel-sleeping.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "sleeping-f-head.png",
+   "mood": "sleepy",
+   "scene": "sleeping",
+   "base": "bases/whale-pixel-sleeping.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "writing-n-full.png",
+   "mood": "idle",
+   "scene": "writing",
+   "base": "bases/whale-pixel-writing.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "writing-n-head.png",
+   "mood": "idle",
+   "scene": "writing",
+   "base": "bases/whale-pixel-writing.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "writing-f-full.png",
+   "mood": "idle",
+   "scene": "writing",
+   "base": "bases/whale-pixel-writing.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "writing-f-head.png",
+   "mood": "idle",
+   "scene": "writing",
+   "base": "bases/whale-pixel-writing.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "music-n-full.png",
+   "mood": "happy",
+   "scene": "music",
+   "base": "bases/whale-pixel-music.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "music-n-head.png",
+   "mood": "happy",
+   "scene": "music",
+   "base": "bases/whale-pixel-music.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "music-f-full.png",
+   "mood": "happy",
+   "scene": "music",
+   "base": "bases/whale-pixel-music.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "music-f-head.png",
+   "mood": "happy",
+   "scene": "music",
+   "base": "bases/whale-pixel-music.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "daydream-n-full.png",
+   "mood": "idle",
+   "scene": "daydream",
+   "base": "bases/whale-pixel-daydream.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "daydream-n-head.png",
+   "mood": "idle",
+   "scene": "daydream",
+   "base": "bases/whale-pixel-daydream.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "daydream-f-full.png",
+   "mood": "idle",
+   "scene": "daydream",
+   "base": "bases/whale-pixel-daydream.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "daydream-f-head.png",
+   "mood": "idle",
+   "scene": "daydream",
+   "base": "bases/whale-pixel-daydream.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "hug-n-full.png",
+   "mood": "love",
+   "scene": "hug",
+   "base": "bases/whale-pixel-hug.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "hug-n-head.png",
+   "mood": "love",
+   "scene": "hug",
+   "base": "bases/whale-pixel-hug.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "hug-f-full.png",
+   "mood": "love",
+   "scene": "hug",
+   "base": "bases/whale-pixel-hug.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "hug-f-head.png",
+   "mood": "love",
+   "scene": "hug",
+   "base": "bases/whale-pixel-hug.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "lying-n-full.png",
+   "mood": "idle",
+   "scene": "lying",
+   "base": "bases/whale-pixel-lying.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "lying-n-head.png",
+   "mood": "idle",
+   "scene": "lying",
+   "base": "bases/whale-pixel-lying.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "lying-f-full.png",
+   "mood": "idle",
+   "scene": "lying",
+   "base": "bases/whale-pixel-lying.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "lying-f-head.png",
+   "mood": "idle",
+   "scene": "lying",
+   "base": "bases/whale-pixel-lying.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "tea-n-full.png",
+   "mood": "calm",
+   "scene": "tea",
+   "base": "bases/whale-pixel-tea.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "tea-n-head.png",
+   "mood": "calm",
+   "scene": "tea",
+   "base": "bases/whale-pixel-tea.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "tea-f-full.png",
+   "mood": "calm",
+   "scene": "tea",
+   "base": "bases/whale-pixel-tea.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "tea-f-head.png",
+   "mood": "calm",
+   "scene": "tea",
+   "base": "bases/whale-pixel-tea.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "sea-n-full.png",
+   "mood": "calm",
+   "scene": "sea",
+   "base": "bases/whale-pixel-sea.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "sea-n-head.png",
+   "mood": "calm",
+   "scene": "sea",
+   "base": "bases/whale-pixel-sea.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "sea-f-full.png",
+   "mood": "calm",
+   "scene": "sea",
+   "base": "bases/whale-pixel-sea.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "sea-f-head.png",
+   "mood": "calm",
+   "scene": "sea",
+   "base": "bases/whale-pixel-sea.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "stretch-n-full.png",
+   "mood": "tired",
+   "scene": "stretch",
+   "base": "bases/whale-pixel-stretch.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "stretch-n-head.png",
+   "mood": "tired",
+   "scene": "stretch",
+   "base": "bases/whale-pixel-stretch.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "stretch-f-full.png",
+   "mood": "tired",
+   "scene": "stretch",
+   "base": "bases/whale-pixel-stretch.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "stretch-f-head.png",
+   "mood": "tired",
+   "scene": "stretch",
+   "base": "bases/whale-pixel-stretch.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "peek-n-full.png",
+   "mood": "surprised",
+   "scene": "peek",
+   "base": "bases/whale-pixel-peek.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "peek-n-head.png",
+   "mood": "surprised",
+   "scene": "peek",
+   "base": "bases/whale-pixel-peek.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "peek-f-full.png",
+   "mood": "surprised",
+   "scene": "peek",
+   "base": "bases/whale-pixel-peek.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "peek-f-head.png",
+   "mood": "surprised",
+   "scene": "peek",
+   "base": "bases/whale-pixel-peek.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "sweat-n-full.png",
+   "mood": "awkward",
+   "scene": "none",
+   "base": "bases/whale-pixel-sweat.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "sweat-n-head.png",
+   "mood": "awkward",
+   "scene": "none",
+   "base": "bases/whale-pixel-sweat.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "sweat-f-full.png",
+   "mood": "awkward",
+   "scene": "none",
+   "base": "bases/whale-pixel-sweat.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "sweat-f-head.png",
+   "mood": "awkward",
+   "scene": "none",
+   "base": "bases/whale-pixel-sweat.png",
+   "flip": true,
+   "crop": "head"
+  },
+  {
+   "file": "slacking-n-full.png",
+   "mood": "idle",
+   "scene": "slacking",
+   "base": "bases/whale-pixel-slacking.png",
+   "flip": false,
+   "crop": "full"
+  },
+  {
+   "file": "slacking-n-head.png",
+   "mood": "idle",
+   "scene": "slacking",
+   "base": "bases/whale-pixel-slacking.png",
+   "flip": false,
+   "crop": "head"
+  },
+  {
+   "file": "slacking-f-full.png",
+   "mood": "idle",
+   "scene": "slacking",
+   "base": "bases/whale-pixel-slacking.png",
+   "flip": true,
+   "crop": "full"
+  },
+  {
+   "file": "slacking-f-head.png",
+   "mood": "idle",
+   "scene": "slacking",
+   "base": "bases/whale-pixel-slacking.png",
    "flip": true,
    "crop": "head"
   }

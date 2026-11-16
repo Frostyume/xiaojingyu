@@ -207,13 +207,13 @@ const sharePreview = await inner.runShareModule('ai_tips', { dryRun: true, force
 assert.notEqual(sharePreview.status, 'disabled', '分享模块 dryRun 预览不应被主开关拦住');
 
 // 9. 控制台信息架构：群聊剧场总闸 + 15 个 features 模块各一张卡
-const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatPixelSticker', 'chatMoodVoice', 'chatNightQuiet'];
+const CHAT_CARDS = ['groupChat', 'chatActivity', 'chatProactive', 'chatStickers', 'chatPixelSticker', 'chatSceneSticker', 'chatMoodVoice', 'chatNightQuiet'];
 // 控制台访问板块：局域网开关默认关，显式 true 才开（与配置键卡片同一套防假开关口径）。
 const CONSOLE_CARDS = ['consoleLanAccess'];
 // 安全板块卡片：拉黑名单复用 simulation.safety.* 配置键，默认开、显式 false 才关。
 const SAFETY_CARDS = ['blacklist'];
 assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS, ...SAFETY_CARDS].sort());
-assert.equal(FEATURE_CARDS.length, 25);
+assert.equal(FEATURE_CARDS.length, 26);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
 assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'ops', 'owner', 'console']);
 assert.equal(FEATURE_BOARDS.find((board) => board.id === 'chat').master, 'groupChat');
@@ -222,7 +222,7 @@ for (const board of FEATURE_BOARDS) {
   assert(FEATURE_CARDS.some((card) => card.board === board.id), `板块 ${board.id} 必须至少有一个模块`);
 }
 const chatChildren = FEATURE_CARDS.filter((card) => card.board === 'chat' && !card.boardMaster).map((card) => card.id);
-assert.deepEqual(chatChildren, ['chatActivity', 'chatProactive', 'chatStickers', 'chatPixelSticker', 'chatMoodVoice', 'chatNightQuiet']);
+assert.deepEqual(chatChildren, ['chatActivity', 'chatProactive', 'chatStickers', 'chatPixelSticker', 'chatSceneSticker', 'chatMoodVoice', 'chatNightQuiet']);
 const shareEngineChildren = FEATURE_CARDS.filter((card) => card.board === 'shareEngine' && !card.boardMaster).map((card) => card.id);
 assert.deepEqual(shareEngineChildren.sort(), ['aiTips', 'customShare', 'esportsFeed', 'financeTips', 'lifeFun', 'llmTips', 's16Share', 'share'].sort());
 for (const card of FEATURE_CARDS) {

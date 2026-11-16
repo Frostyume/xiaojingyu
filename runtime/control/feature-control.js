@@ -129,7 +129,22 @@ const CARD_LIST = [
     advanced: [
       { key: 'simulation.pixelSticker.afterText', label: '说完话顺手丢一张', type: 'boolean', default: true },
       { key: 'simulation.pixelSticker.minTextsSince', label: '至少隔几次文字才丢', type: 'number', min: 1, max: 20, default: 2 },
-      { key: 'simulation.pixelSticker.minGapMs', label: '两张最小间隔（ms）', type: 'number', min: 60000, max: 86400000, default: 1200000 }
+      { key: 'simulation.pixelSticker.minGapMs', label: '两张最小间隔（ms）', type: 'number', min: 60000, max: 86400000, default: 1200000 },
+      { key: 'simulation.pixelSticker.turnWindowMs', label: '同回合互斥窗口（ms，0=关）', type: 'number', min: 0, max: 1800000, default: 600000 }
+    ]
+  },
+  {
+    id: 'chatSceneSticker',
+    board: 'chat',
+    configKey: 'simulation.sceneSticker.enabled',
+    label: '场景贴纸',
+    keywords: '场景 贴纸 scene sticker 分享 见闻',
+    description: '主动分享/出门见闻时按活动内容附一张 chibi 场景插图；不用于回复、不参与表情包互斥。',
+    onEffect: '分享正文命中活动词时附一张匹配的场景插图；无匹配不附。',
+    offEffect: '分享只发正文，不再附场景插图；回复贴纸与表情包不受影响。',
+    dangerousOff: false,
+    dependencies: [
+      dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })
     ]
   },
   {
@@ -148,7 +163,9 @@ const CARD_LIST = [
     advanced: [
       { key: 'simulation.moodVoice.maxPerDay', label: '每天最多几条', type: 'number', min: 1, max: 10, default: 3 },
       { key: 'simulation.moodVoice.minGapMs', label: '两条最小间隔（ms）', type: 'number', min: 60000, max: 86400000, default: 18000000 },
-      { key: 'simulation.moodVoice.skipChance', label: '随机跳过概率（0-1）', type: 'number', min: 0, max: 1, default: 0.4 }
+      { key: 'simulation.moodVoice.skipChance', label: '随机跳过概率（0-1）', type: 'number', min: 0, max: 1, default: 0.4 },
+      { key: 'simulation.moodVoice.llm', label: '按真实状态现写（关=只用模板池）', type: 'boolean', default: true },
+      { key: 'simulation.moodVoice.tailChance', label: '发完补一句的概率（0-1）', type: 'number', min: 0, max: 1, default: 0.6 }
     ]
   },
   {
