@@ -6,6 +6,7 @@
 const DAY = 24 * 60 * 60 * 1000;
 
 export function createRetention({ db, config, clock, logger = () => {}, audit = null }) {
+  ensureLifeSchema(db);
   function run(nowMs = Number(clock.now()), { adapterIds = [] } = {}) {
     const itemDays = Math.max(1, Number(config?.retention?.itemDays) || 90);
     const healthDays = Math.max(1, Number(config?.retention?.healthDays) || 30);
@@ -37,3 +38,4 @@ export function createRetention({ db, config, clock, logger = () => {}, audit = 
 
   return { run };
 }
+import { ensureLifeSchema } from './schema.js';

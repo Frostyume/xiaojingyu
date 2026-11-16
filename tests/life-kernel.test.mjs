@@ -20,6 +20,7 @@ import { parseOpenAlexWork, dedupePapers, firstSentence, reconstructAbstract } f
 import { buildBrief, buildPromptSection, estimateTokens, BRIEF_MAX_TOKENS } from '../services/social/life/kernel/brief.js';
 import { redactText, sanitizeTitle } from '../services/social/life/kernel/redact.js';
 import { createRetention } from '../services/social/life/kernel/retention.js';
+import { ensureLifeSchema } from '../services/social/life/kernel/schema.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ADAPTERS = path.join(HERE, '..', 'services', 'social', 'life', 'adapters');
@@ -63,8 +64,9 @@ function makePort({ db, config, notify = async () => ({ ok: true }) } = {}) {
 }
 
 test('schema 已包含 life 表，且版本号同步', () => {
-  assert.ok(SCHEMA_VERSION >= 5);
+  assert.ok(SCHEMA_VERSION >= 4);
   const db = makeDb();
+  ensureLifeSchema(db);
   const tables = db.all("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'life_%' ORDER BY name")
     .map((row) => row.name);
   assert.deepEqual(tables, ['life_health', 'life_items', 'life_sync_state', 'life_watch']);

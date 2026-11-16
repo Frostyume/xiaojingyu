@@ -7,6 +7,7 @@
 // 状态落 life_sync_state（调度用）与 life_health（展示用），重启后仍然生效。
 
 import { redactText } from './redact.js';
+import { ensureLifeSchema } from './schema.js';
 
 const BACKOFF_MS = [60 * 1000, 5 * 60 * 1000, 15 * 60 * 1000, 60 * 60 * 1000];
 
@@ -16,6 +17,7 @@ function parseJson(text, fallback = null) {
 }
 
 export function createHealth({ db, clock, logger = () => {}, audit = null }) {
+  ensureLifeSchema(db);
   const now = () => Number(clock.now());
 
   function ensure(adapterId) {

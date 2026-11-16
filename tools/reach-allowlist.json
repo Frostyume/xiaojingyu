@@ -46,10 +46,6 @@
       "reason": "默认值只出现在 app/whale.js:1284 与 runtime/kernel/config-schema.js:470；outerWorldFetchText 只读 policy/allowlist/blockedDomains（app/whale.js:3505-3509），该路径下的 readOnly 零消费。"
     },
     {
-      "key": "simulation.outerWorld.digest.enabled",
-      "reason": "app/whale.js:1285 与 runtime/kernel/config-schema.js:471 只写默认值；出门见闻生成后是否私聊只读 digest.pushToOwner（app/whale.js:3648），digest.enabled 无人读。"
-    },
-    {
       "key": "simulation.outerWorld.digest.mentionPolicy",
       "reason": "app/whale.js:1285 与 runtime/kernel/config-schema.js:471 只写默认值；digest 段唯一被读的字段是 pushToOwner（app/whale.js:3648），mentionPolicy 零消费。"
     },

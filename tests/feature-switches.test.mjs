@@ -216,10 +216,12 @@ const SAFETY_CARDS = ['blacklist'];
 const COGNITION_CARDS = ['memoryStrength', 'invalidation', 'contextTiers', 'sleepConsolidation', 'reunion', 'fishMemory', 'moodDrift'];
 // B2 社交板块：白饭感知与按需手册，默认关。
 const B2_CARDS = ['rice', 'playbooks'];
-assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS, ...SAFETY_CARDS, ...COGNITION_CARDS, ...B2_CARDS].sort());
-assert.equal(FEATURE_CARDS.length, 35);
+// B3 生活管家：总闸 + 7 个子卡（提醒为既有能力，默认开）。
+const LIFE_CARDS = ['lifeButler', 'paper', 'github', 'calendar', 'rss', 'weekly', 'digest', 'reminder'];
+assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS, ...SAFETY_CARDS, ...COGNITION_CARDS, ...B2_CARDS, ...LIFE_CARDS].sort());
+assert.equal(FEATURE_CARDS.length, 43);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
-assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'cognition', 'ops', 'owner', 'console']);
+assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'life', 'cognition', 'ops', 'owner', 'console']);
 // 认知卡片的假开关防护：配置没写时必须判成关，切换时写回严格 true/false。
 for (const id of [...COGNITION_CARDS, ...B2_CARDS]) {
   const card = cardFor(id);

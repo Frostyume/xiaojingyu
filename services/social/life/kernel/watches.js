@@ -2,6 +2,7 @@
 // 唯一键 (adapter, kind, target)；重复添加返回已有记录，不产生重复行。
 
 import crypto from 'node:crypto';
+import { ensureLifeSchema } from './schema.js';
 import { LIFE_KINDS } from './pipeline.js';
 
 function watchId(adapter, kind, target) {
@@ -23,6 +24,7 @@ function rowToWatch(row) {
 }
 
 export function createWatches({ db, clock, adapterIds = [], audit = null }) {
+  ensureLifeSchema(db);
   const known = new Set(adapterIds);
 
   function add({ adapter, kind = 'feed', target, options = null } = {}) {

@@ -4,6 +4,7 @@
 
 import crypto from 'node:crypto';
 import { sanitizeTitle } from './redact.js';
+import { ensureLifeSchema } from './schema.js';
 
 export const LIFE_KINDS = Object.freeze(['calendar', 'parcel', 'bill', 'subscription', 'paper', 'todo', 'feed', 'health']);
 const LIFE_STATUSES = new Set(['open', 'done', 'dismissed', 'expired']);
