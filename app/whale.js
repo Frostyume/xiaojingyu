@@ -22364,6 +22364,14 @@ async function main() {
   setInterval(() => void ensureBreezeTunnel(), 60 * 1000).unref?.();
   refreshLiveUsage();
   setInterval(refreshLiveUsage, 30 * 1000).unref?.();
+  // 社会记忆巩固：只在总闸开启时把 episode 沉淀成画像/边；关闭时一个空转都不做。
+  setInterval(() => {
+    try {
+      if (socialMemory?.enabled === true) socialMemory.consolidate({ limit: 100 });
+    } catch (error) {
+      log(`[social] 巩固失败（忽略）：${error?.message ?? error}`);
+    }
+  }, Math.max(60 * 1000, Number(cfg.simulation?.socialMemory?.consolidate?.intervalMs) || 30 * 60 * 1000)).unref?.();
   // 睡眠巩固的排程自愈 + 空闲触发：关闭时每轮只读一次配置，不建表。
   setInterval(() => {
     try {
