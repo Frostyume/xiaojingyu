@@ -230,10 +230,61 @@
             }
           }
         },
+        "addressing": {
+          "type": "object",
+          "properties": {
+            "selfCallNames": {
+              "title": "Self Call Names",
+              "type": "array",
+              "default": []
+            },
+            "shadow": {
+              "title": "Shadow",
+              "type": "boolean",
+              "default": true
+            },
+            "enabled": {
+              "title": "收件人归因（shadow）",
+              "type": "boolean",
+              "default": false,
+              "description": "默认关闭；只做观测与提示，不拦消息"
+            }
+          }
+        },
         "agentPreset": {
           "title": "仿真预设",
           "type": "string",
           "default": "qq-chat"
+        },
+        "attention": {
+          "type": "object",
+          "properties": {
+            "recentWindowMs": {
+              "title": "Recent Window Ms",
+              "type": "number",
+              "default": 900000
+            },
+            "enabled": {
+              "title": "注意力提示",
+              "type": "boolean",
+              "default": false,
+              "description": "默认关闭；只读提示线程/谁在接话/建议回不回"
+            },
+            "maxTargets": {
+              "title": "最多分别回几个人",
+              "type": "number",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 6
+            },
+            "promptMaxChars": {
+              "title": "注意力片段字数上限",
+              "type": "number",
+              "default": 320,
+              "minimum": 80,
+              "maximum": 800
+            }
+          }
         },
         "autoReplyCheckMs": {
           "title": "回复检查间隔（ms）",
@@ -1826,6 +1877,124 @@
             }
           }
         },
+        "socialMemory": {
+          "type": "object",
+          "properties": {
+            "bootstrap": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "chatEpisodes": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": true
+                },
+                "dailyLimit": {
+                  "title": "每群每天最多经历",
+                  "type": "number",
+                  "default": 40,
+                  "minimum": 1,
+                  "maximum": 200
+                },
+                "minSpeakers": {
+                  "title": "至少几个发言人",
+                  "type": "number",
+                  "default": 2,
+                  "minimum": 2,
+                  "maximum": 6
+                },
+                "windowMs": {
+                  "title": "对话经历聚合窗口（ms）",
+                  "type": "number",
+                  "default": 600000,
+                  "minimum": 60000,
+                  "maximum": 3600000
+                }
+              }
+            },
+            "consolidate": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": true
+                },
+                "intervalMs": {
+                  "title": "Interval Ms",
+                  "type": "number",
+                  "default": 1800000
+                }
+              }
+            },
+            "episodes": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "graph": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "enabled": {
+              "title": "社会记忆总闸",
+              "type": "boolean",
+              "default": false,
+              "description": "默认关闭；开启后才建表、记录共同经历与注入人物档案；只在本机聚合"
+            },
+            "prompt": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "title": "注入社会上下文",
+                  "type": "boolean",
+                  "default": true
+                },
+                "maxChars": {
+                  "title": "上下文片段字数上限",
+                  "type": "number",
+                  "default": 700,
+                  "minimum": 120,
+                  "maximum": 2000
+                },
+                "maxEpisodes": {
+                  "title": "最多列几段经历",
+                  "type": "number",
+                  "default": 2,
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                "maxPeople": {
+                  "title": "最多列几个人",
+                  "type": "number",
+                  "default": 3,
+                  "minimum": 1,
+                  "maximum": 6
+                }
+              }
+            }
+          }
+        },
         "speech": {
           "type": "object",
           "properties": {
@@ -2298,6 +2467,17 @@
               "title": "天气",
               "type": "boolean",
               "default": true
+            }
+          }
+        },
+        "register": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "语域提示",
+              "type": "boolean",
+              "default": false,
+              "description": "默认关闭；按场景与熟悉度补一小段语气边界"
             }
           }
         },
@@ -4378,11 +4558,35 @@
       "advanced": false
     },
     {
+      "key": "simulation.addressing.selfCallNames",
+      "label": "Self Call Names",
+      "group": "群聊剧场",
+      "type": "array",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.addressing.shadow",
+      "label": "Shadow",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "simulation.agentPreset",
       "label": "仿真预设",
       "group": "群聊剧场",
       "type": "string",
       "restart": "dsh",
+      "advanced": false
+    },
+    {
+      "key": "simulation.attention.recentWindowMs",
+      "label": "Recent Window Ms",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
       "advanced": false
     },
     {
@@ -5892,6 +6096,54 @@
       "advanced": false
     },
     {
+      "key": "simulation.socialMemory.bootstrap.enabled",
+      "label": "Enabled",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.socialMemory.chatEpisodes.enabled",
+      "label": "Enabled",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.socialMemory.consolidate.enabled",
+      "label": "Enabled",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.socialMemory.consolidate.intervalMs",
+      "label": "Interval Ms",
+      "group": "群聊剧场",
+      "type": "number",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.socialMemory.episodes.enabled",
+      "label": "Enabled",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.socialMemory.graph.enabled",
+      "label": "Enabled",
+      "group": "群聊剧场",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
       "key": "simulation.speech.asr.provider",
       "label": "Provider",
       "group": "群聊剧场",
@@ -6655,6 +6907,126 @@
       "type": "boolean",
       "restart": "none",
       "advanced": false
+    },
+    {
+      "key": "simulation.addressing.enabled",
+      "label": "收件人归因（shadow）",
+      "group": "社会记忆",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.attention.enabled",
+      "label": "注意力提示",
+      "group": "社会记忆",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.attention.maxTargets",
+      "label": "最多分别回几个人",
+      "group": "社会记忆",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 6
+    },
+    {
+      "key": "simulation.attention.promptMaxChars",
+      "label": "注意力片段字数上限",
+      "group": "社会记忆",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 80,
+      "max": 800
+    },
+    {
+      "key": "simulation.register.enabled",
+      "label": "语域提示",
+      "group": "社会记忆",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.socialMemory.chatEpisodes.dailyLimit",
+      "label": "每群每天最多经历",
+      "group": "社会记忆",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 200
+    },
+    {
+      "key": "simulation.socialMemory.chatEpisodes.minSpeakers",
+      "label": "至少几个发言人",
+      "group": "社会记忆",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 2,
+      "max": 6
+    },
+    {
+      "key": "simulation.socialMemory.chatEpisodes.windowMs",
+      "label": "对话经历聚合窗口（ms）",
+      "group": "社会记忆",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 60000,
+      "max": 3600000
+    },
+    {
+      "key": "simulation.socialMemory.enabled",
+      "label": "社会记忆总闸",
+      "group": "社会记忆",
+      "type": "boolean",
+      "restart": "bridge",
+      "advanced": false
+    },
+    {
+      "key": "simulation.socialMemory.prompt.enabled",
+      "label": "注入社会上下文",
+      "group": "社会记忆",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": true
+    },
+    {
+      "key": "simulation.socialMemory.prompt.maxChars",
+      "label": "上下文片段字数上限",
+      "group": "社会记忆",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 120,
+      "max": 2000
+    },
+    {
+      "key": "simulation.socialMemory.prompt.maxEpisodes",
+      "label": "最多列几段经历",
+      "group": "社会记忆",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 0,
+      "max": 5
+    },
+    {
+      "key": "simulation.socialMemory.prompt.maxPeople",
+      "label": "最多列几个人",
+      "group": "社会记忆",
+      "type": "number",
+      "restart": "none",
+      "advanced": true,
+      "min": 1,
+      "max": 6
     },
     {
       "key": "simulation.cognition.contextTiers.deepMaxChars",

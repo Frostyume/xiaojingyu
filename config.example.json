@@ -759,6 +759,48 @@
     "ownerFeatures": {
       "enabled": false,
       "modules": {}
+    },
+    "socialMemory": {
+      "enabled": false,
+      "graph": {
+        "enabled": true
+      },
+      "episodes": {
+        "enabled": true
+      },
+      "chatEpisodes": {
+        "enabled": true,
+        "windowMs": 600000,
+        "minSpeakers": 2,
+        "dailyLimit": 40
+      },
+      "prompt": {
+        "enabled": true,
+        "maxChars": 700,
+        "maxPeople": 3,
+        "maxEpisodes": 2
+      },
+      "consolidate": {
+        "enabled": true,
+        "intervalMs": 1800000
+      },
+      "bootstrap": {
+        "enabled": true
+      }
+    },
+    "attention": {
+      "enabled": false,
+      "recentWindowMs": 900000,
+      "maxTargets": 3,
+      "promptMaxChars": 320
+    },
+    "addressing": {
+      "enabled": false,
+      "shadow": true,
+      "selfCallNames": []
+    },
+    "register": {
+      "enabled": false
     }
   },
   "webSearch": {

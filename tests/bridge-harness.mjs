@@ -52,6 +52,11 @@ import * as coreRice from '../runtime/persona/rice.js';
 import * as corePromptRegistry from '../runtime/persona/prompt-registry.js';
 import * as lifeIndex from '../services/social/life/index.js';
 import * as lifeBridgePort from '../services/social/life/ports/bridge-port.js';
+import * as socialMemoryModule from '../services/social/social-memory.js';
+import * as attentionModule from '../runtime/persona/attention.js';
+import * as addressednessModule from '../runtime/persona/addressedness.js';
+import * as addressingModule from '../runtime/persona/addressing.js';
+import * as registerModule from '../runtime/persona/register.js';
 import * as coreSessionMap from '../runtime/kernel/session-map.js';
 import * as coreRelationships from '../runtime/persona/relationships.js';
 import * as coreRelationshipModel from '../runtime/persona/relationship-model.js';
@@ -222,6 +227,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     runOuterWorld, outerWorldStatus, stopOuterWorld, syncOuterWorldJob,
     getJobQueue: () => jobQueue,
     getLifeButler: () => lifeButlerInstance,
+    getSocialMemory: () => socialMemory,
     syncLifeButler,
     handleSignatureJob,
     handleSignatureOwnerCommand,
@@ -299,6 +305,11 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
     survivingPlaybooks: corePromptRegistry.survivingPlaybooks,
     ...lifeIndex,
     ...lifeBridgePort,
+    ...socialMemoryModule,
+    ...attentionModule,
+    ...addressednessModule,
+    ...addressingModule,
+    ...registerModule,
     ...coreSessionMap, ...coreRelationships, ...coreRelationshipModel, ...coreRichCard, ...corePersonaPack, ...coreStyleContext, ...coreDailyReport,
     relationshipStageLabel: coreRelationshipModel.stageLabel,
     relationshipAxisWords: coreRelationshipModel.axisWords,

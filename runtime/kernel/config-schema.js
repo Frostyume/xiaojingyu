@@ -22,6 +22,7 @@ const GROUP_LABELS = {
   social: '旧版仿真（reserved）',
   simulation: '群聊剧场',
   life: '生活管家',
+  socialMemory: '社会记忆',
   cognition: '认知升级',
   features: '功能总开关',
   webSearch: '联网搜索',
@@ -250,6 +251,21 @@ const FIELD_META = {
   'simulation.cognition.moodDrift.windowH': { label: '同源同向判定窗口（小时）', group: '认知升级', restart: 'none', min: 1, max: 168, advanced: true },
   'simulation.cognition.moodDrift.risePerHour': { label: '向好后每小时上升上限', group: '认知升级', restart: 'none', min: 0, max: 1, advanced: true },
   'simulation.cognition.moodDrift.fallPerHour': { label: '向坏每小时下降上限', group: '认知升级', restart: 'none', min: 0, max: 1, advanced: true },
+
+  // ── 社会记忆 / 注意力 / 收件人 / 语域（默认关闭） ────────────────────────
+  'simulation.socialMemory.enabled': { label: '社会记忆总闸', group: '社会记忆', restart: 'bridge', description: '默认关闭；开启后才建表、记录共同经历与注入人物档案；只在本机聚合' },
+  'simulation.socialMemory.prompt.enabled': { label: '注入社会上下文', group: '社会记忆', restart: 'none', advanced: true },
+  'simulation.socialMemory.prompt.maxChars': { label: '上下文片段字数上限', group: '社会记忆', restart: 'none', min: 120, max: 2000, advanced: true },
+  'simulation.socialMemory.prompt.maxPeople': { label: '最多列几个人', group: '社会记忆', restart: 'none', min: 1, max: 6, advanced: true },
+  'simulation.socialMemory.prompt.maxEpisodes': { label: '最多列几段经历', group: '社会记忆', restart: 'none', min: 0, max: 5, advanced: true },
+  'simulation.socialMemory.chatEpisodes.windowMs': { label: '对话经历聚合窗口（ms）', group: '社会记忆', restart: 'none', min: 60000, max: 3600000, advanced: true },
+  'simulation.socialMemory.chatEpisodes.minSpeakers': { label: '至少几个发言人', group: '社会记忆', restart: 'none', min: 2, max: 6, advanced: true },
+  'simulation.socialMemory.chatEpisodes.dailyLimit': { label: '每群每天最多经历', group: '社会记忆', restart: 'none', min: 1, max: 200, advanced: true },
+  'simulation.attention.enabled': { label: '注意力提示', group: '社会记忆', restart: 'none', description: '默认关闭；只读提示线程/谁在接话/建议回不回' },
+  'simulation.attention.promptMaxChars': { label: '注意力片段字数上限', group: '社会记忆', restart: 'none', min: 80, max: 800, advanced: true },
+  'simulation.attention.maxTargets': { label: '最多分别回几个人', group: '社会记忆', restart: 'none', min: 1, max: 6, advanced: true },
+  'simulation.addressing.enabled': { label: '收件人归因（shadow）', group: '社会记忆', restart: 'none', description: '默认关闭；只做观测与提示，不拦消息' },
+  'simulation.register.enabled': { label: '语域提示', group: '社会记忆', restart: 'none', description: '默认关闭；按场景与熟悉度补一小段语气边界' },
 
   // ── 生活管家（默认关闭；外部源由用户自配） ──────────────────────────────
   'simulation.lifeButler.enabled': { label: '生活管家总闸', group: '生活管家', restart: 'none', description: '默认关闭；关闭时不排任务、不读外部源、不写生活表' },
