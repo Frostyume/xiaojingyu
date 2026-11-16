@@ -448,6 +448,71 @@ const CARD_LIST = [
   },
 
   {
+    id: 'socialMemory',
+    board: 'social',
+    configKey: 'simulation.socialMemory.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '社会记忆（共同经历/人物志）',
+    keywords: '社会记忆 socialMemory 共同经历 episode 人物志 图谱',
+    description: '把群里的共同经历压成摘要、按可见性拼进上下文；人物志只本地聚合，标 observed/inferred。',
+    onEffect: '记录群/私聊 episode，按群可见性注入人物档案与最近经历；首次开启只补已有身份，不新建事实。',
+    offEffect: '不建表、不记录、不注入；旧行为与现在完全一致。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.socialMemory.prompt.maxChars', label: '上下文片段字数上限', type: 'number', min: 120, max: 2000, default: 700 },
+      { key: 'simulation.socialMemory.prompt.maxPeople', label: '最多列几个人', type: 'number', min: 1, max: 6, default: 3 },
+      { key: 'simulation.socialMemory.prompt.maxEpisodes', label: '最多列几段经历', type: 'number', min: 0, max: 5, default: 2 }
+    ]
+  },
+  {
+    id: 'attention',
+    board: 'social',
+    configKey: 'simulation.attention.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '注意力（谁在跟谁说话）',
+    keywords: '注意力 attention 线程 参与者 抢话',
+    description: '只读判断当前线程、谁在接话、这句话是否对她说，产出一小段提示。',
+    onEffect: '唤醒提示里带线程与建议（回/可接/先不回），不改硬性回复规则。',
+    offEffect: '不注入任何注意力片段。',
+    dangerousOff: false,
+    dependencies: [],
+    advanced: [
+      { key: 'simulation.attention.promptMaxChars', label: '片段字数上限', type: 'number', min: 80, max: 800, default: 320 },
+      { key: 'simulation.attention.maxTargets', label: '最多分别回几个人', type: 'number', min: 1, max: 6, default: 3 }
+    ]
+  },
+  {
+    id: 'addressing',
+    board: 'social',
+    configKey: 'simulation.addressing.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '收件人归因（shadow）',
+    keywords: '收件人 addressing 在对谁说 shadow 观测',
+    description: '判断这句话在对谁说；只做 shadow 观测与一小段提示，不拦消息、不下硬判决。',
+    onEffect: '每会话维护内存线程，提示词里附一条“这句话更像在对谁说”的观测。',
+    offEffect: '不做归因、不写内存线程。',
+    dangerousOff: false,
+    dependencies: []
+  },
+  {
+    id: 'register',
+    board: 'social',
+    configKey: 'simulation.register.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    label: '语域（场景亲密度）',
+    keywords: '语域 register 主人私聊 家人群 普通群 亲密度',
+    description: '按主人私聊/家人群/普通群/普通私聊与关系熟悉度，补一小段语气边界。',
+    onEffect: '提示词里带场景语域与熟悉度档位；不改变人格卡本身。',
+    offEffect: '不注入语域片段。',
+    dangerousOff: false,
+    dependencies: []
+  },
+  {
     id: 'rice',
     board: 'social',
     configKey: 'simulation.rice.enabled',

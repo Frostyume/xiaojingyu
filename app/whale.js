@@ -91,6 +91,11 @@ import { SleepConsolidator, nextSleepAt, isIdleSince } from '../runtime/persona/
 import { RelationshipStore } from '../runtime/persona/relationships.js';
 import { createLifeButler, normalizeLifeConfig } from '../services/social/life/index.js';
 import { createBridgeLifePort } from '../services/social/life/ports/bridge-port.js';
+import { SocialMemory } from '../services/social/social-memory.js';
+import { decideAttention, attentionPromptFragment } from '../runtime/persona/attention.js';
+import { classifyAddressedness } from '../runtime/persona/addressedness.js';
+import { normalizeThread, attributeMessage } from '../runtime/persona/addressing.js';
+import { selectRegister, renderRegister } from '../runtime/persona/register.js';
 import { normalizeRiceConfig, riceBucket, loadRiceBonus, addPokeBonus, saveRiceBonus, buildRiceLine } from '../runtime/persona/rice.js';
 import {
   loadPlaybook,
@@ -1455,6 +1460,51 @@ function loadConfig() {
     cfg.simulation.lifeButler = normalizeLifeConfig({ ...raw, adapters });
     cfg.simulation.life = { ...at(cfg.simulation?.life), adapters };
   }
+  // 社会记忆 / 注意力 / 收件人 / 语域：全部默认关闭，关闭时不建表、不改旧提示词。
+  {
+    const at = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
+    const raw = at(cfg.simulation?.socialMemory);
+    const chatEpisodes = at(raw.chatEpisodes);
+    const prompt = at(raw.prompt);
+    cfg.simulation.socialMemory = {
+      ...raw,
+      enabled: raw.enabled === true,
+      graph: { enabled: true, ...at(raw.graph) },
+      episodes: { enabled: true, ...at(raw.episodes) },
+      chatEpisodes: {
+        enabled: true,
+        windowMs: 10 * 60 * 1000,
+        minSpeakers: 2,
+        dailyLimit: 40,
+        ...chatEpisodes
+      },
+      prompt: {
+        enabled: true,
+        maxChars: 700,
+        maxPeople: 3,
+        maxEpisodes: 2,
+        ...prompt
+      },
+      consolidate: { enabled: true, intervalMs: 30 * 60 * 1000, ...at(raw.consolidate) },
+      bootstrap: { enabled: true, ...at(raw.bootstrap) }
+    };
+    const attn = at(cfg.simulation?.attention);
+    cfg.simulation.attention = {
+      enabled: attn.enabled === true,
+      recentWindowMs: Number(attn.recentWindowMs) || 15 * 60 * 1000,
+      maxTargets: Math.max(1, Math.min(6, Number(attn.maxTargets) || 3)),
+      promptMaxChars: Math.max(80, Math.min(800, Number(attn.promptMaxChars) || 320))
+    };
+    const addr = at(cfg.simulation?.addressing);
+    cfg.simulation.addressing = {
+      enabled: addr.enabled === true,
+      shadow: true,
+      selfCallNames: Array.isArray(addr.selfCallNames)
+        ? addr.selfCallNames.map((name) => String(name ?? '').trim()).filter(Boolean).slice(0, 8)
+        : []
+    };
+    cfg.simulation.register = { enabled: at(cfg.simulation?.register).enabled === true };
+  }
   // 群日报：默认关闭，按群开启（groups 列表或 groupProfiles[key].dailyReport=true）。
   cfg.simulation.dailyReport = {
     enabled: false,
@@ -1678,6 +1728,10 @@ let lastSleepRunAt = 0;
 let lifeButlerInstance = null;
 let lifeButlerSignature = '';
 let lifeSyncChain = Promise.resolve();
+// 社会记忆（默认关闭）：实例只在开启时创建；addressing 的 shadow 线程只存内存。
+let socialMemory = null;
+const addressingThreads = new Map();
+const addressingLast = new Map();
 let relationshipStore = null;
 let relationshipsEnabledForKey = () => false;
 let budgetStore = null;
@@ -2150,6 +2204,25 @@ async function main() {
         logger: (message) => log(`[relation] ${message}`)
       });
       budgetStore = new BudgetStore({ db, logger: (message) => log(`[budget] ${message}`) });
+      // 社会记忆：默认关闭；开启时才建表并补图。关闭时不碰任何 social_* 表。
+      if (cfg.simulation?.socialMemory?.enabled === true) {
+        socialMemory = new SocialMemory({
+          db,
+          cfg,
+          logger: (message) => log(`[social] ${message}`),
+          ownerQQ: cfg.ownerQQ ?? '',
+          relationshipStore,
+          memoryStore,
+          stageLabel: relationshipStageLabel
+        });
+        try {
+          socialMemory.bootstrap({ memoryStore });
+        } catch (error) {
+          log(`[social] 启动补图失败（忽略）：${error?.message ?? error}`);
+        }
+      } else {
+        socialMemory = null;
+      }
       // 群友关系只对群聊生效；家人群默认排除，可按群显式覆盖。
       relationshipsEnabledForKey = (key) => {
         const rc = cfg.simulation?.relationships ?? {};
@@ -4678,6 +4751,30 @@ async function main() {
         return remindersEnabled()
           ? { line: `${active} 条待触发 · 夜间免打扰顺延`, tone: 'ok' }
           : { line: '提醒功能已关闭', tone: 'muted' };
+      }
+      if (id === 'socialMemory') {
+        if (cfg.simulation?.socialMemory?.enabled !== true) return { line: '未开启；开启后只在本机聚合，不做外部 enrichment', tone: 'muted' };
+        try {
+          const st = socialMemoryStatus();
+          const people = Number(st.counts.persons) || 0;
+          const eps = Number(st.counts.episodes) || 0;
+          return { line: `${people} 人 · ${eps} 段共同经历（仅本地）`, tone: 'ok' };
+        } catch { return { line: '已开启', tone: 'ok' }; }
+      }
+      if (id === 'attention') {
+        return cfg.simulation?.attention?.enabled === true
+          ? { line: '只读提示线程与发言权，不改变回复硬规则', tone: 'ok' }
+          : { line: '未开启', tone: 'muted' };
+      }
+      if (id === 'addressing') {
+        return cfg.simulation?.addressing?.enabled === true
+          ? { line: 'shadow 观测：只记录收件人，不拦消息', tone: 'ok' }
+          : { line: '未开启', tone: 'muted' };
+      }
+      if (id === 'register') {
+        return cfg.simulation?.register?.enabled === true
+          ? { line: '按场景与熟悉度补语域片段', tone: 'ok' }
+          : { line: '未开启', tone: 'muted' };
       }
       if (id === 'rice') {
         if (!riceAwarenessOn()) return { line: '未开启；开启后只给档位话术，不把数字交给模型', tone: 'muted' };
@@ -8306,6 +8403,22 @@ async function main() {
             panel,
             note: applied.requiresRestart.length ? '标注为 bridge 的项需重启桥接后生效' : '已热更新'
           });
+          return;
+        }
+
+        // ── 社会记忆（本地聚合）：状态与显式清空 ─────────────────────────
+        if (req.method === 'GET' && url.pathname === '/api/social-memory') {
+          sendJson(socialMemoryStatus());
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/social-memory') {
+          const body = await readBody();
+          const action = String(body.action ?? '');
+          if (action !== 'clear') { sendJson({ ok: false, error: '未知操作' }, 400); return; }
+          if (body.confirm !== 'clear') { sendJson({ ok: false, error: '清空需要 confirm="clear"' }, 400); return; }
+          const result = clearSocialMemory();
+          log(`控制台：社会记忆${result.ok ? '已清空' : '清空失败'}`);
+          sendJson(result, result.ok ? 200 : 500);
           return;
         }
 
@@ -18019,6 +18132,158 @@ async function main() {
     return lifePanelSnapshot();
   }
 
+  // ── 社会记忆 / 注意力 / 收件人 / 语域（默认关闭） ───────────────────────
+  const socialOption = (name) => cfg.simulation?.[name] || {};
+
+  function socialPromptLine(key, st, triggerUserId = '') {
+    if (!socialMemory || socialMemory.enabled !== true) return '';
+    const contextTiersOn = cfg.simulation?.cognition?.contextTiers?.enabled === true;
+    try {
+      return socialMemory.buildContextLine(key, st, {
+        triggerUserId,
+        ...(contextTiersOn ? { tiers: { enabled: true } } : {})
+      }) || '';
+    } catch (error) {
+      log(`[social] 上下文生成失败（忽略）：${error?.message ?? error}`);
+      return '';
+    }
+  }
+
+  function attentionPromptLine(key, st) {
+    const conf = socialOption('attention');
+    if (conf.enabled !== true) return '';
+    try {
+      const last = [...(Array.isArray(st.recentMessages) ? st.recentMessages : [])].reverse().find((m) => m && !m.isSelf);
+      const decision = decideAttention({
+        messages: st.recentMessages,
+        session: {
+          key,
+          isPrivate: key.startsWith('private:'),
+          globalActivity: typeof globalActivityMode === 'function' && globalActivityMode() === 'active' ? 'active' : 'diving',
+          activeTopics: Array.isArray(st.activeTopics) ? st.activeTopics : []
+        },
+        now: Date.now(),
+        config: { maxTargets: Number(conf.maxTargets) || 3 }
+      });
+      const text = attentionPromptFragment(decision, { maxChars: Number(conf.promptMaxChars) || 320 });
+      // 只有确实有来信时才注入；空会话不占提示词。
+      return text && last ? `${text}\n\n` : '';
+    } catch (error) {
+      log(`[attention] 生成失败（忽略）：${error?.message ?? error}`);
+      return '';
+    }
+  }
+
+  function addressingObservationLine(key) {
+    if (socialOption('addressing').enabled !== true) return '';
+    const rec = addressingLast.get(key);
+    if (!rec) return '';
+    return `【收件人观测】这条更像在对「${rec.label}」说（仅记录，不改变回复策略）。\n\n`;
+  }
+
+  function registerPromptLine(key, st) {
+    if (socialOption('register').enabled !== true) return '';
+    try {
+      const last = [...(Array.isArray(st.recentMessages) ? st.recentMessages : [])].reverse().find((m) => m && !m.isSelf);
+      const userId = String(last?.userId || st.lastIncomingUserId || '');
+      const rel = userId && relationshipStore ? relationshipStore.get(key, userId) : null;
+      const profile = cfg.simulation?.groupProfiles?.[key];
+      const family = /家人|家庭|family/i.test(String(profile?.label || ''));
+      let mode = '';
+      try {
+        const persona = normalizePersonaState(readJsonSafe(path.join(STATE_DIR, 'persona-state.json'), {}));
+        mode = derivePersonaMode(persona, { now: Date.now(), quiet: false }).id;
+      } catch { mode = ''; }
+      const register = selectRegister({
+        key,
+        ownerQQ: cfg.ownerQQ ?? '',
+        family,
+        mode,
+        familiarity: rel?.familiarity ?? null,
+        now: Date.now()
+      });
+      return renderRegister(register);
+    } catch (error) {
+      log(`[register] 生成失败（忽略）：${error?.message ?? error}`);
+      return '';
+    }
+  }
+
+  /** shadow 收件人归因：只写内存线程与观测摘要，不下判决、不拦消息。 */
+  function observeAddressing(key, msg) {
+    if (socialOption('addressing').enabled !== true || !msg) return;
+    try {
+      const thread = addressingThreads.get(key) || normalizeThread(null, key);
+      const { thread: next, result } = attributeMessage(thread, {
+        seq: msg.seq,
+        userId: msg.userId,
+        sender: msg.sender,
+        plain: msg.plain,
+        atSelf: msg.atSelf === true,
+        quoteSelf: msg.quoteTargetIsSelf === true,
+        atOthers: Array.isArray(msg.atOthers) ? msg.atOthers : [],
+        atAll: msg.atAll === true,
+        quoted: msg.quoted
+          ? { isSelf: msg.quoted.isSelf === true, userId: msg.quoted.userId, sender: msg.quoted.sender, seq: msg.quoted.seq }
+          : null
+      }, {
+        isPrivate: key.startsWith('private:'),
+        selfNames: [selfDisplayName, selfNickname].filter(Boolean),
+        selfCallNames: Array.isArray(socialOption('addressing').selfCallNames) ? socialOption('addressing').selfCallNames : [],
+        now: Date.now()
+      });
+      addressingThreads.set(key, next);
+      const addressee = String(result?.addressee || '');
+      let label = '不明确的对象';
+      if (addressee === 'self') label = '你';
+      else if (addressee === 'all') label = '群里所有人';
+      else if (addressee === 'group') label = '群里没有明确对象';
+      else if (addressee.startsWith('user:')) {
+        const id = addressee.slice('user:'.length);
+        label = next.alias?.[id]?.slice(-1)?.[0] || String(msg.sender || '某位群友');
+      }
+      addressingLast.set(key, { label, at: Date.now() });
+    } catch (error) {
+      log(`[addressing] 观测失败（忽略）：${error?.message ?? error}`);
+    }
+  }
+
+  const SOCIAL_TABLES = Object.freeze(['persons', 'identities', 'person_profiles', 'social_edges', 'episodes', 'episode_participants', 'person_alias_history']);
+
+  function socialMemoryStatus() {
+    const enabled = cfg.simulation?.socialMemory?.enabled === true;
+    const counts = {};
+    for (const table of SOCIAL_TABLES) {
+      try { counts[table] = Number(db?.get(`SELECT COUNT(*) AS n FROM ${table}`)?.n ?? 0); } catch { counts[table] = 0; }
+    }
+    return {
+      ok: true,
+      enabled,
+      attention: cfg.simulation?.attention?.enabled === true,
+      addressing: cfg.simulation?.addressing?.enabled === true,
+      register: cfg.simulation?.register?.enabled === true,
+      counts,
+      note: '仅本地聚合；不联网、不做外部 enrichment。关闭总闸后不再写入，可用清空删除本地数据。'
+    };
+  }
+
+  function clearSocialMemory() {
+    if (!db) return { ok: false, error: '存储不可用' };
+    const removed = {};
+    try {
+      db.transaction(() => {
+        for (const table of ['episode_participants', 'episodes', 'person_alias_history', 'social_edges', 'person_profiles', 'identities', 'persons']) {
+          try { removed[table] = Number(db.run(`DELETE FROM ${table}`)?.changes) || 0; } catch { removed[table] = 0; }
+        }
+      });
+    } catch (error) {
+      return { ok: false, error: String(error?.message ?? error) };
+    }
+    addressingThreads.clear();
+    addressingLast.clear();
+    return { ok: true, removed, status: socialMemoryStatus() };
+  }
+
   // ── 认知升级（七个独立开关，默认全关） ───────────────────────────────────
   function cognitionSettings() {
     const c = cfg.simulation?.cognition;
@@ -18307,6 +18572,7 @@ async function main() {
       plain: truncateText(String(plainContent ?? textContent), 200),
       tail: truncateTextTail(String(plainContent ?? textContent), 200),
       quoteTargetIsSelf: !!quoteTargetIsSelf,
+      ...(key.startsWith('private:') || quoteTargetIsSelf || relationContext?.directed === true ? { addressedTo: 'self' } : {}),
       atSelf: relationContext?.isAt === true,
       directed: relationContext?.directed === true,
       quotedMessageId: quotedId || null,
@@ -18340,6 +18606,7 @@ async function main() {
     }
     resetClingy(key, st);
     // 关系模型：熟悉度小步上升；主人固定。失败不影响消息处理。
+    let socialRelation = null;
     if (relationshipStore && userId != null && relationshipsEnabledForKey(key)) {
       try {
         // 重逢唤醒：observe() 会立刻刷新 lastInteractionAt，先记下这次回归隔了多久。
@@ -18363,6 +18630,7 @@ async function main() {
           displayName: sender,
           context: { ...relationContext, isPrivate: key.startsWith('private:') }
         });
+        socialRelation = result;
         st.lastIncomingUserId = String(userId);
         st.lastIncomingSenderName = String(sender || '').slice(0, 40);
         // 自行拉黑：窗口内多次辱骂/攻击，或好感跌到门槛以下且仍有攻击。
@@ -18414,6 +18682,22 @@ async function main() {
         log(`[relation] 观察失败（忽略）：${error?.message ?? error}`);
       }
     }
+    // 社会记忆：只在总开关开启时写 episode/图谱；关闭时不碰任何 social_* 表。
+    if (socialMemory?.enabled === true && userId != null) {
+      try {
+        socialMemory.handleIncoming({
+          key,
+          userId,
+          sender,
+          messageId,
+          relationResult: socialRelation,
+          recentMessages: st.recentMessages
+        });
+      } catch (error) {
+        log(`[social] 入站写入失败（忽略）：${error?.message ?? error}`);
+      }
+    }
+    observeAddressing(key, msg);
     saveSimulationState();
     // 有人问到赛程/开赛时间时，顺手刷新一次结构化赛程（函数内部有节流，不会每条消息都打百度）。
     if (/S16|世界赛|全球总决赛|赛程|开赛|几点|几号|对阵|比赛时间/i.test(lowerPlain)
@@ -19327,6 +19611,11 @@ async function main() {
       : null;
     const lifeButlerLine = lifeBriefSection?.text ? `${lifeBriefSection.text}\n\n` : '';
     const riceLine = ricePromptLine();
+    // 社会记忆/注意力/收件人/语域：默认关闭，关闭时都返回空串且不查询图谱。
+    const socialLine = socialPromptLine(key, st, String(lastMsg?.userId || ''));
+    const attentionLine = attentionPromptLine(key, st);
+    const addressingLine = addressingObservationLine(key);
+    const registerLine = registerPromptLine(key, st);
     // 按需手册：默认关闭；开启后按本轮来信/唤醒原因挑 1~2 篇，关闭时 sections 原样。
     const pbCfg = playbookSettings();
     const playbooksOn = pbCfg.enabled === true;
@@ -19429,6 +19718,10 @@ async function main() {
       { id: 'digest', text: digestLine, priority: 99, trim: true },
       { id: 'longTerm', text: longTermLine, priority: 75, trim: true },
       { id: 'rice', text: riceLine, priority: 44, trim: true },
+      { id: 'socialMemory', text: socialLine, priority: 69, trim: true },
+      { id: 'attention', text: attentionLine, priority: 72, trim: true },
+      { id: 'addressing', text: addressingLine, priority: 71, trim: true },
+      { id: 'register', text: registerLine, priority: 68, trim: true },
       { id: 'lifeButlerBrief', text: lifeButlerLine, priority: 46, trim: true },
       { id: 'playbookHint', text: playbookHintLine, priority: 90 },
       { id: 'cognitionTiers', text: cognitionTiers, priority: 74, trim: true },
@@ -19448,7 +19741,7 @@ async function main() {
     const budget = assembleSections(plannedSections, {
       maxTokens: Number(cfg.simulation?.context?.wakeBudgetTokens) || 10000,
       dropOrder: ['esports', 'capability', 'search', 'timeCheck',
-        ...playbookSectionIds, 'playbookHint', 'rice', 'lifeButlerBrief',
+        ...playbookSectionIds, 'playbookHint', 'rice', 'lifeButlerBrief', 'attention', 'addressing', 'socialMemory', 'register',
         'mediaReaction', 'participation', 'groupStyle', 'cognitionTiers', 'cognitionReunion', 'cognitionFish', 'relationships', 'longTerm', 'imageRead', 'life', 'imageCadence', 'stickerCadence', 'voiceOpp', 'image', 'sticker', 'persona', 'personaKernel']
     });
     const injectedPlaybookIds = playbooksOn ? survivingPlaybooks(playbookIds, budget) : [];
@@ -22071,6 +22364,14 @@ async function main() {
   setInterval(() => void ensureBreezeTunnel(), 60 * 1000).unref?.();
   refreshLiveUsage();
   setInterval(refreshLiveUsage, 30 * 1000).unref?.();
+  // 社会记忆巩固：只在总闸开启时把 episode 沉淀成画像/边；关闭时一个空转都不做。
+  setInterval(() => {
+    try {
+      if (socialMemory?.enabled === true) socialMemory.consolidate({ limit: 100 });
+    } catch (error) {
+      log(`[social] 巩固失败（忽略）：${error?.message ?? error}`);
+    }
+  }, Math.max(60 * 1000, Number(cfg.simulation?.socialMemory?.consolidate?.intervalMs) || 30 * 60 * 1000)).unref?.();
   // 睡眠巩固的排程自愈 + 空闲触发：关闭时每轮只读一次配置，不建表。
   setInterval(() => {
     try {

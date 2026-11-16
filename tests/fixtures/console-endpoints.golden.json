@@ -168,6 +168,7 @@
     "/api/slang/extract",
     "/api/slang/research",
     "/api/social",
+    "/api/social-memory",
     "/api/social/flush",
     "/api/social/state",
     "/api/status",
