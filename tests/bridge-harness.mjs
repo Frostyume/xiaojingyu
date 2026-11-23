@@ -200,7 +200,7 @@ export async function bridgeHarness({ config = {}, savedState, files = {}, globa
   return {
     ensureSession, ensureSlangLearnerSession, resolvePresetName, deliverPrompt, drainPromptQueue,
     sendToQQ, sendSticker, handleIncoming, startConsoleServer, cfg, state, api, promptQueues,
-    maybeSendPixelSticker, noteStickerSent, claimStickerTurn, sendSceneStickerToKey, maybeSendMoodVoice,
+    maybeSendPixelSticker, noteStickerSent, noteTextSent, buildStickerCadenceLine, claimStickerTurn, sendSceneStickerToKey, maybeSendMoodVoice,
     getSimulationState, appendSimulationMessage, recordSentMessages,
     globalActivityMode, isDeepDive, resyncActivityControl,
     appendMemory, formatMemory,

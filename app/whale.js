@@ -1272,16 +1272,17 @@ function loadConfig() {
     }
   };
 
-  // 像素贴纸：说完一句话顺手丢一张透明像素贴纸；频率与表情包共用同一套计数/间隔。
+  // 像素贴纸：说完一句话顺手丢一张透明像素贴纸。计数/间隔独立于表情包
+  // （表情包发得多不再饿死像素），同回合仍互斥（allowPixel 闸）。
   cfg.simulation.pixelSticker = {
     enabled: true,
     afterText: true,
-    minTextsSince: 2,
-    minGapMs: 20 * 60 * 1000,
+    minTextsSince: 1,
+    minGapMs: 10 * 60 * 1000,
     turnWindowMs: STICKER_TURN_WINDOW_MS,
     ...(cfg.simulation?.pixelSticker ?? {})
   };
-  // 场景贴纸：只随主动分享/见闻按活动附图，不用于回复顶替表情包，也不进互斥计数。
+  // 场景贴纸：只随主动分享/心情语音/见闻按活动附图，不用于回复顶替表情包，也不进互斥计数。
   cfg.simulation.sceneSticker = {
     enabled: false,
     ...(cfg.simulation?.sceneSticker ?? {})
@@ -5422,22 +5423,29 @@ async function main() {
     saveSimulationState();
   }
 
-  // 表情节奏：只统计“成功发出的文字回复”，发表情时清零。
-  // 唤醒提示据此判断要不要提醒模型“该想起来发一张了”。
+  // 表情节奏：只统计“成功发出的文字回复”。
+  // textSendsSinceSticker 只由像素贴纸清零（像素节奏计数）；
+  // textSendsSinceAnySticker 任一贴纸都清零（唤醒提示据此判断“该想起来发一张了”）。
   function noteTextSent(st) {
     if (!st) return;
     st.textSendsSinceSticker = Math.min(999, (Number(st.textSendsSinceSticker) || 0) + 1);
+    st.textSendsSinceAnySticker = Math.min(999, (Number(st.textSendsSinceAnySticker) || 0) + 1);
     st.textSendsSinceImage = Math.min(999, (Number(st.textSendsSinceImage) || 0) + 1);
     st.textSendsSinceMedia = Math.min(999, (Number(st.textSendsSinceMedia) || 0) + 1);
   }
   function noteStickerSent(st, kind = 'meme') {
     if (!st) return;
     st.lastStickerAt = Date.now();
-    st.textSendsSinceSticker = 0;
+    st.textSendsSinceAnySticker = 0;
     st.textSendsSinceMedia = 0;
     // 同回合互斥闸的时间戳：表情包与像素贴纸谁先发，另一个本回合就让路。
-    if (kind === 'pixel') st.lastPixelStickerAt = Date.now();
-    else st.lastMemeStickerAt = Date.now();
+    if (kind === 'pixel') {
+      // 只有像素贴纸清零像素计数：表情包发得多不再把像素的门槛饿死。
+      st.textSendsSinceSticker = 0;
+      st.lastPixelStickerAt = Date.now();
+    } else {
+      st.lastMemeStickerAt = Date.now();
+    }
   }
   // 同回合互斥同步占坑：决定发送的那一刻先写时间戳再 await 发送，并发后来者
   // 查闸必让路（旧码「发送完成后才记」会让两条路径都在对方记录前过闸→同回合双发）。
@@ -5456,14 +5464,15 @@ async function main() {
     st.textSendsSinceMedia = 0;
   }
 
-  // 像素贴纸：文字回复后顺手丢一张透明像素贴纸。频率与表情包共用
-  // lastStickerAt / textSendsSinceSticker（noteStickerSent），不另开一套计数。
+  // 像素贴纸：文字回复后顺手丢一张透明像素贴纸。节奏独立于表情包：
+  // 计数看 textSendsSinceSticker（只有像素清零），间隔看 lastPixelStickerAt；
+  // 同回合不双发仍由互斥闸（allowPixel）保证。
   async function maybeSendPixelSticker(st, key) {
     const pc = cfg.simulation?.pixelSticker ?? {};
     if (pc.enabled === false || pc.afterText === false || !st || !key) return;
-    if ((Number(st.textSendsSinceSticker) || 0) < Math.max(1, Number(pc.minTextsSince) || 2)) return;
-    const last = Number(st.lastStickerAt) || 0;
-    if (last && Date.now() - last < Math.max(60000, Number(pc.minGapMs) || 20 * 60 * 1000)) return;
+    if ((Number(st.textSendsSinceSticker) || 0) < Math.max(1, Number(pc.minTextsSince) || 1)) return;
+    const last = Number(st.lastPixelStickerAt) || 0;
+    if (last && Date.now() - last < Math.max(60000, Number(pc.minGapMs) || 10 * 60 * 1000)) return;
     const turnWindowMs = pc.turnWindowMs == null ? STICKER_TURN_WINDOW_MS : Number(pc.turnWindowMs);
     const gateNow = () => stickerTurnGate({
       lastMemeStickerAt: Number(st.lastMemeStickerAt) || 0,
@@ -5521,7 +5530,7 @@ async function main() {
     } catch { releasePixelClaim(); }
   }
 
-  // 场景贴纸：主动分享/见闻的附图。与回复贴纸体系完全分开——不查互斥闸、
+  // 场景贴纸：主动分享/心情语音/见闻的附图。与回复贴纸体系完全分开——不查互斥闸、
   // 不记 lastPixelStickerAt/lastMemeStickerAt，分享节奏已由分享引擎/见闻配额约束。
   async function sendSceneStickerToKey(key, text, { scene = null } = {}) {
     const sc = cfg.simulation?.sceneSticker ?? {};
@@ -5662,6 +5671,8 @@ async function main() {
       // 把这条语音的话写进该群上下文：有人回这句语音时，她接得住、能顺着说。
       try { recordVoiceSent(key, sent, `[语音] ${text}`); }
       catch (error) { log(`[moodVoice] 语音入上下文失败（已发出）：${error?.message ?? error}`); }
+      // 语音文本命中活动场景时附一张场景插图（同分享链路：无匹配不附、不进互斥计数）。
+      try { await sendSceneStickerToKey(key, text); } catch {}
       // 发完顺着补一句很短的话（概率由 tailChance 控制）：续句空/失败就只留语音。
       const tailChance = Number(mv.tailChance ?? MOOD_VOICE_DEFAULTS.tailChance);
       if (llmEnabled && typeof innerLife?.generateMoodVoiceTail === 'function'
@@ -11093,7 +11104,8 @@ async function main() {
               strategy: cfg.simulation?.sticker?.includeInPrompt !== false ? buildStickerStrategyHint() : '',
               cadence: {
                 lastStickerAt: Number(st.lastStickerAt) || 0,
-                textSendsSinceSticker: Number(st.textSendsSinceSticker) || 0
+                // 模型侧语义不变：距上次任一贴纸后的文字数（像素专用计数另存）。
+                textSendsSinceSticker: Number(st.textSendsSinceAnySticker) || 0
               }
             },
             // 语音库摘要：让 AI 一开始就知道有哪些语音可发（真发之前用 qq_list_voices 看详情）。
@@ -16032,6 +16044,7 @@ async function main() {
         lastActionAt: 0,
         lastStickerAt: 0,
         textSendsSinceSticker: 0,
+        textSendsSinceAnySticker: 0,
         lastMemeStickerAt: 0,
         lastPixelStickerAt: 0,
         lastImageAt: 0,
@@ -16121,6 +16134,8 @@ async function main() {
             lastActionAt: Number(val.lastActionAt) || 0,
             lastStickerAt: Number(val.lastStickerAt) || 0,
             textSendsSinceSticker: Math.max(0, Number(val.textSendsSinceSticker) || 0),
+            // 旧状态文件没有这个字段：用旧的“距上次任一贴纸”计数续上，表情节奏提示不跳变。
+            textSendsSinceAnySticker: Math.max(0, Number(val.textSendsSinceAnySticker ?? val.textSendsSinceSticker) || 0),
             lastMemeStickerAt: Number(val.lastMemeStickerAt) || 0,
             lastPixelStickerAt: Number(val.lastPixelStickerAt) || 0,
             lastImageAt: Number(val.lastImageAt) || 0,
@@ -16238,6 +16253,7 @@ async function main() {
           lastActionAt: st.lastActionAt,
           lastStickerAt: st.lastStickerAt || 0,
           textSendsSinceSticker: st.textSendsSinceSticker || 0,
+          textSendsSinceAnySticker: st.textSendsSinceAnySticker || 0,
           lastMemeStickerAt: st.lastMemeStickerAt || 0,
           lastPixelStickerAt: st.lastPixelStickerAt || 0,
           lastImageAt: st.lastImageAt || 0,
@@ -19205,9 +19221,10 @@ async function main() {
   }
 
   // 表情节奏提示：主动表达是常态，隔了 1 次文字就给轻提醒，3 次没发就明确建议。
+  // 用 textSendsSinceAnySticker（任一贴纸都清零）：刚发过表情包就不催，语义与旧版一致。
   function buildStickerCadenceLine(st, stickerCfg) {
     if (stickerCfg.enabled === false || stickerCfg.includeInPrompt === false) return '';
-    const since = Math.max(0, Number(st.textSendsSinceSticker) || 0);
+    const since = Math.max(0, Number(st.textSendsSinceAnySticker) || 0);
     if (since < 1) return '';
     const last = Number(st.lastStickerAt) || 0;
     const mins = last ? Math.max(0, Math.round((Date.now() - last) / 60000)) : null;

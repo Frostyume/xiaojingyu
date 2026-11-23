@@ -121,8 +121,8 @@ const CARD_LIST = [
     configKey: 'simulation.pixelSticker.enabled',
     label: '像素心情贴纸',
     keywords: '像素 贴纸 pixel sticker 心情 透明',
-    description: '说完一句话顺手丢一张自己的透明像素贴纸，按心情挑图；频率与表情包共用同一套控制。',
-    onEffect: '文字回复后按节奏补一张保持人设的透明像素贴纸（原色、无挂饰），不刷屏。',
+    description: '说完一句话顺手丢一张自己的透明像素贴纸，按心情挑图；节奏独立于表情包，同回合仍只发一种。',
+    onEffect: '文字回复后按节奏补一张保持人设的透明像素贴纸（原色、无挂饰），不刷屏；同一回合内与表情包互斥，只发一种。',
     offEffect: '不再自动丢像素贴纸；文字与表情包不受影响。',
     dangerousOff: false,
     dependencies: [
@@ -130,8 +130,8 @@ const CARD_LIST = [
     ],
     advanced: [
       { key: 'simulation.pixelSticker.afterText', label: '说完话顺手丢一张', type: 'boolean', default: true },
-      { key: 'simulation.pixelSticker.minTextsSince', label: '至少隔几次文字才丢', type: 'number', min: 1, max: 20, default: 2 },
-      { key: 'simulation.pixelSticker.minGapMs', label: '两张最小间隔（ms）', type: 'number', min: 60000, max: 86400000, default: 1200000 },
+      { key: 'simulation.pixelSticker.minTextsSince', label: '至少隔几次文字才丢', type: 'number', min: 1, max: 20, default: 1 },
+      { key: 'simulation.pixelSticker.minGapMs', label: '两张最小间隔（ms）', type: 'number', min: 60000, max: 86400000, default: 600000 },
       { key: 'simulation.pixelSticker.turnWindowMs', label: '同回合互斥窗口（ms，0=关）', type: 'number', min: 0, max: 1800000, default: 600000 }
     ]
   },
@@ -141,7 +141,7 @@ const CARD_LIST = [
     configKey: 'simulation.sceneSticker.enabled',
     label: '场景贴纸',
     keywords: '场景 贴纸 scene sticker 分享 见闻',
-    description: '主动分享/出门见闻时按活动内容附一张 chibi 场景插图；不用于回复、不参与表情包互斥。',
+    description: '主动分享/心情语音/出门见闻时按活动内容附一张 chibi 场景插图；不用于回复、不参与表情包互斥。',
     onEffect: '分享正文命中活动词时附一张匹配的场景插图；无匹配不附。',
     offEffect: '分享只发正文，不再附场景插图；回复贴纸与表情包不受影响。',
     dangerousOff: false,
