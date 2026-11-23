@@ -27,6 +27,7 @@
     "/api/inner-life/candidates",
     "/api/inner-life/candidates/refresh",
     "/api/inner-life/collect-stickers",
+    "/api/inner-life/life-share",
     "/api/inner-life/owner-features",
     "/api/inner-life/qzone",
     "/api/inner-life/qzone-comments/check",

@@ -2730,6 +2730,31 @@
             }
           }
         },
+        "lifeShare": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "生活分享",
+              "type": "boolean",
+              "default": false,
+              "description": "随机 1–7 天随手分享一句生活日常，配一张场景贴纸；生成后先私聊/控制台审核，批准才发群或空间"
+            },
+            "maxDays": {
+              "title": "最长间隔（天）",
+              "type": "number",
+              "default": 7,
+              "minimum": 1,
+              "maximum": 30
+            },
+            "minDays": {
+              "title": "最短间隔（天）",
+              "type": "number",
+              "default": 1,
+              "minimum": 1,
+              "maximum": 30
+            }
+          }
+        },
         "controlTiers": {
           "type": "object",
           "properties": {
@@ -8403,6 +8428,34 @@
       "type": "boolean",
       "restart": "none",
       "advanced": false
+    },
+    {
+      "key": "simulation.lifeShare.enabled",
+      "label": "生活分享",
+      "group": "内心生活",
+      "type": "boolean",
+      "restart": "none",
+      "advanced": false
+    },
+    {
+      "key": "simulation.lifeShare.maxDays",
+      "label": "最长间隔（天）",
+      "group": "内心生活",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 30
+    },
+    {
+      "key": "simulation.lifeShare.minDays",
+      "label": "最短间隔（天）",
+      "group": "内心生活",
+      "type": "number",
+      "restart": "none",
+      "advanced": false,
+      "min": 1,
+      "max": 30
     },
     {
       "key": "simulation.outerWorld.browse.policy",

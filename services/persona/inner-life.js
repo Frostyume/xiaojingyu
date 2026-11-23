@@ -36,6 +36,8 @@ import { loadShareState, saveShareState, groupBudgetCheck, recordGroupSend, reco
 import { buildShareTask } from '../../runtime/share/share-prompts.js';
 import { formatShareCaption, formatShareLinksText, formatAiTipLinks, formatTipCaption, splitShareComments, stripShareUrls } from '../../runtime/share/share-format.js';
 import { featureEnabled, featureForInnerJob, featureForShareModule, shareEngineEnabled, shareModuleEnabled } from '../../runtime/control/feature-switches.js';
+import { SCENE_STICKER_DIR, pickSceneSticker } from '../media/scene-stickers.js';
+import { normalizeLifeShareConfig, nextLifeShareAt, pickLifeScene, pickLifeShareTarget, resolveLifeShareLine, buildLifeShareDraft, normalizePendingLifeShare, normalizeLifeShareState, lifeShareTargetKind, LIFE_SHARE_LINE_MAX } from '../../runtime/persona/life-share.js';
 
 const DEFAULTS = {
   reflection: { enabled: true, minIntervalMs: 1 * 3600 * 1000, maxIntervalMs: 8 * 3600 * 1000 },
@@ -139,7 +141,9 @@ export function createInnerLife(deps) {
     appendActivity,
     imageLibrary,
     collectImageStickers,
-    relationshipStore
+    relationshipStore,
+    listChatTargets,
+    noteSelfSent
   } = deps;
 
   const files = {
@@ -201,6 +205,12 @@ export function createInnerLife(deps) {
       qzone: merge(DEFAULTS.qzone, raw.qzone),
       mood
     };
+  }
+
+  // 生活分享（生活日常）独立于内心生活的「好奇/群分享/说说」：随机 1–7 天一次，
+  // 生成一句话 + 场景贴纸，先给主人私聊/控制台审，批准后才发群或空间。
+  function lifeShareConfig() {
+    return normalizeLifeShareConfig(cfg.simulation?.lifeShare);
   }
 
   // 主动分享可以有多个目标群：targets 是首选，旧配置的 target 仍兼容。
@@ -388,16 +398,20 @@ export function createInnerLife(deps) {
       counts: {
         curiosity: Number(counts.curiosity) || 0,
         groupShare: Number(counts.groupShare) || 0,
-        qzone: Number(counts.qzone) || 0
+        qzone: Number(counts.qzone) || 0,
+        lifeShare: Number(counts.lifeShare) || 0
       },
       next: {
         reflection: Number(next.reflection) || 0,
         curiosity: Number(next.curiosity) || 0,
         qzone: Number(next.qzone) || 0,
-        aiTips: Number(next.aiTips) || 0
+        aiTips: Number(next.aiTips) || 0,
+        lifeShare: Number(next.lifeShare) || 0
       },
       pendingDraft: raw.pendingDraft && typeof raw.pendingDraft === 'object' ? raw.pendingDraft : null,
       pendingShare: raw.pendingShare && typeof raw.pendingShare === 'object' ? raw.pendingShare : null,
+      pendingLifeShare: normalizePendingLifeShare(raw.pendingLifeShare),
+      lifeShare: normalizeLifeShareState(raw.lifeShare),
       qzone: {
         approvedCount: Number(qzone.approvedCount) || 0,
         auto: qzone.auto === true,
@@ -415,7 +429,7 @@ export function createInnerLife(deps) {
     };
     if (state.day !== day) {
       state.day = day;
-      state.counts = { curiosity: 0, groupShare: 0, qzone: 0 };
+      state.counts = { curiosity: 0, groupShare: 0, qzone: 0, lifeShare: 0 };
     }
     return state;
   }
@@ -864,6 +878,23 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
       return { images: [`base64://${buffer.toString('base64')}`], name: entry.note || entry.name || '' };
     } finally {
       if (temp) { try { fs.rmSync(temp, { force: true }); } catch {} }
+    }
+  }
+
+  /** 生活分享的场景贴纸直接作为空间配图：只认库内 PNG 文件名，不接受任意外部路径。 */
+  async function buildSceneQzoneImage(scene) {
+    const empty = { images: [], name: '' };
+    const file = String(scene?.sceneFile || '');
+    if (!file || !/^[A-Za-z0-9._-]+\.png$/.test(file)) return empty;
+    const abs = path.join(SCENE_STICKER_DIR, file);
+    if (!abs.startsWith(SCENE_STICKER_DIR) || !fs.existsSync(abs)) return empty;
+    try {
+      const buffer = fs.readFileSync(abs);
+      const maxBytes = Number(cfg.simulation?.imageLibrary?.maxBytes) || 20 * 1024 * 1024;
+      if (buffer.length > maxBytes) return empty;
+      return { images: [`base64://${buffer.toString('base64')}`], name: `场景：${scene.sceneLabel || scene.scene}` };
+    } catch {
+      return empty;
     }
   }
 
@@ -1411,14 +1442,14 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
     log(`[inner] 空间草稿已按主人要求修改：${refined.slice(0, 80)}`);
   }
 
-  async function postQzoneNow(text, { manual = false, imageRef = '', notify = true } = {}) {
+  async function postQzoneNow(text, { manual = false, imageRef = '', notify = true, scene = null } = {}) {
     const il = ilCfg();
     // 发布是唯一真正写空间的动作：主开关关闭时，自动排期、主人审核通过、
     // 控制台直发都必须在这里被拦住，不能靠调用方各自记得判断。
     if (!featureEnabled(cfg, 'qzone')) return { status: 'disabled', reason: 'features.qzone=false' };
     const state = loadInner();
     if (state.qzone.paused) return { status: 'paused' };
-    const { images, name: imageName } = await buildQzoneImages(imageRef);
+    const { images, name: imageName } = scene ? await buildSceneQzoneImage(scene) : await buildQzoneImages(imageRef);
     if (il.dryRun) {
       state.history.qzonePosts.unshift({ at: Date.now(), text, image: imageName, status: 'dryRun' });
       state.history.qzonePosts = state.history.qzonePosts.slice(0, 60);
@@ -1483,6 +1514,167 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
       log(`[inner] 空间已发布，但通知主人失败：${notifyError?.message ?? notifyError}`);
     }
     return { status: 'posted', tid: result.tid || '', raw: result.raw };
+  }
+
+  // ── 生活分享（生活日常）────────────────────────────────────────────────────
+  // 随机 1–7 天一次：挑场景 → 生成一句 → 建待审草稿 → 私聊主人。
+  // 只有主人回「发生活」或控制台点通过才真的发群/空间，过期或拒绝就丢弃。
+
+  function lifeShareGroupTargets() {
+    try {
+      const targets = listChatTargets?.();
+      if (Array.isArray(targets?.groups)) return targets.groups.map((item) => item.key);
+    } catch {}
+    return (Array.isArray(cfg.allow?.groups) ? cfg.allow.groups : [])
+      .map((raw) => `group:${String(raw).replace(/^group:/, '')}`);
+  }
+
+  function lifeShareTargetLabel(target) {
+    if (target === 'qzone') return '空间说说';
+    try {
+      const hit = (listChatTargets?.()?.groups || []).find((item) => item.key === target);
+      if (hit?.name) return `群「${hit.name}」（${target}）`;
+    } catch {}
+    return `群 ${target}`;
+  }
+
+  function lifeShareSceneLabel(scene) {
+    return String(scene?.label || scene?.scene || '生活');
+  }
+
+  function lifeShareTargetKindGuard(target) {
+    // buildBasePrompt 的 targetKeyOverride 只认 group 会话；空间目标不注入某个群的近聊。
+    return /^group:\d+$/.test(String(target || '')) ? String(target) : '';
+  }
+
+  function lifeSharePrompt(scene, target) {
+    const label = lifeShareSceneLabel(scene);
+    const tags = (scene?.tags || []).slice(0, 3).join('、');
+    const override = lifeShareTargetKindGuard(target);
+    return buildBasePrompt(
+      `写一句你此刻真实的生活分享，最多 ${LIFE_SHARE_LINE_MAX} 字。要具体、生活化、第一人称，像随口跟人说自己刚做的事；不要解释、不要引号、不要 emoji、不要写“今天/刚才”以外的虚指。只输出这一句。`,
+      `【这次的生活场景】${label}${tags ? `（${tags}）` : ''}\n这张场景图会和你这句话一起发出去，文字要和画面合得上。如果要提时间，必须和上面的【现在】一致；拿不准就别写具体钟点。\n${CONTENT_VOICE_HINT}`,
+      override
+    );
+  }
+
+  function recordLifeShareEntry(state, entry) {
+    const recent = [...((state.lifeShare && Array.isArray(state.lifeShare.recent)) ? state.lifeShare.recent : []), entry];
+    state.lifeShare = {
+      ...(state.lifeShare && typeof state.lifeShare === 'object' ? state.lifeShare : {}),
+      recent: recent.slice(-12)
+    };
+  }
+
+  function markLifeShareRecord(state, draft, status) {
+    const recent = [...((state.lifeShare && Array.isArray(state.lifeShare.recent)) ? state.lifeShare.recent : [])];
+    const idx = recent.findIndex((item) => item && item.at === Number(draft.createdAt) && item.text === draft.text && item.status === 'pending');
+    if (idx >= 0) recent[idx] = { ...recent[idx], status };
+    else recent.push({ at: Number(draft.createdAt) || Date.now(), scene: draft.scene, text: draft.text, target: draft.target, status });
+    state.lifeShare = {
+      ...(state.lifeShare && typeof state.lifeShare === 'object' ? state.lifeShare : {}),
+      recent: recent.slice(-12)
+    };
+  }
+
+  async function runLifeShare(il, { force = false, dryRun = false } = {}) {
+    const ls = lifeShareConfig();
+    if (ls.enabled !== true && !dryRun) return { status: 'disabled', reason: 'simulation.lifeShare.enabled=false' };
+    if (cfg.simulation?.sceneSticker?.enabled === false && !dryRun) {
+      return { status: 'disabled', reason: 'simulation.sceneSticker.enabled=false' };
+    }
+    const state = loadInner();
+    if (state.pendingLifeShare) {
+      if (Date.now() < Number(state.pendingLifeShare.expiresAt || 0)) return { status: 'pending-approval' };
+      markLifeShareRecord(state, state.pendingLifeShare, 'expired');
+      state.pendingLifeShare = null;
+      saveInner(state);
+      return { status: 'expired' };
+    }
+    if (!force && isQuiet(il)) return { status: 'quiet' };
+    const groups = lifeShareGroupTargets();
+    const qzone = featureEnabled(cfg, 'qzone') && il.qzone?.enabled !== false;
+    if (!groups.length && !qzone) return { status: 'no-target' };
+    const recentScenes = ((state.lifeShare && state.lifeShare.recent) || []).map((item) => item.scene).filter(Boolean);
+    const interests = (() => {
+      try { return loadPersona().interests || []; } catch { return []; }
+    })();
+    const scene = pickLifeScene({ now: Date.now(), interests, recentScenes });
+    if (!scene) return { status: 'no-scene' };
+    const targetPick = pickLifeShareTarget({
+      groups,
+      qzone,
+      cursor: Number(state.lifeShare?.cursor) || 0,
+      lastTarget: String(state.lifeShare?.lastTarget || '')
+    });
+    if (!targetPick.target) return { status: 'no-target' };
+    let raw = '';
+    try {
+      raw = await runTurn(lifeSharePrompt(scene, targetPick.target), 120000);
+    } catch (error) {
+      log(`[lifeShare] 生成失败，改用场景模板：${error?.message ?? error}`);
+    }
+    const recentTexts = ((state.lifeShare && state.lifeShare.recent) || []).map((item) => item.text).filter(Boolean);
+    const line = resolveLifeShareLine({ raw, scene: scene.scene, recentTexts, maxChars: LIFE_SHARE_LINE_MAX });
+    if (!line.text) return { status: 'no-line' };
+    const sticker = pickSceneSticker(scene.scene);
+    const draft = buildLifeShareDraft({
+      text: line.text,
+      scene: scene.scene,
+      sceneLabel: lifeShareSceneLabel(scene),
+      sceneFile: sticker?.file || '',
+      target: targetPick.target,
+      now: Date.now(),
+      ttlMs: Number(il.approvalTimeoutMs) || DEFAULTS.approvalTimeoutMs
+    });
+    if (!draft) return { status: 'invalid' };
+    if (dryRun) {
+      log(`[lifeShare][dryRun] 草稿：${draft.text}（${draft.scene} → ${draft.target}，${line.source}）`);
+      return { status: 'dry-run', text: draft.text, scene: draft.scene, target: draft.target };
+    }
+    if (!cfg.ownerQQ) return { status: 'no-owner' };
+    const timeoutMin = Math.round((draft.expiresAt - draft.createdAt) / 60000);
+    state.pendingLifeShare = draft;
+    state.lifeShare = {
+      ...(state.lifeShare && typeof state.lifeShare === 'object' ? state.lifeShare : {}),
+      cursor: targetPick.cursor
+    };
+    recordLifeShareEntry(state, { at: draft.createdAt, scene: draft.scene, text: draft.text, target: draft.target, status: 'pending' });
+    saveInner(state);
+    let previewSent = false;
+    if (sticker) {
+      try { previewSent = Boolean(await sendSceneSticker?.(`private:${cfg.ownerQQ}`, draft.text, { scene: draft.scene })); } catch {}
+    }
+    await sendOwner(`【生活分享草稿】\n内容：${draft.text}\n场景：${draft.sceneLabel || draft.scene}${previewSent ? '（贴纸预览在上方）' : ''}\n目标：${lifeShareTargetLabel(draft.target)}\n\n回复「发生活」发布，回复「不发生活」放弃（${timeoutMin} 分钟内有效）`);
+    log(`[lifeShare] 草稿已发主人审核（${line.source}）：${draft.text.slice(0, 60)} → ${draft.target}`);
+    return { status: 'pending-approval', text: draft.text, scene: draft.scene, target: draft.target };
+  }
+
+  async function sendLifeShareDraft(draft) {
+    if (draft.targetKind === 'qzone') {
+      const result = await postQzoneNow(draft.text, {
+        manual: true,
+        notify: false,
+        scene: { sceneFile: draft.sceneFile, sceneLabel: draft.sceneLabel, scene: draft.scene }
+      });
+      return result;
+    }
+    if (!isSessionAllowedInCurrentMode(draft.target)) {
+      return { status: 'not-allowed', error: `${draft.target} 不在当前模式的白名单里` };
+    }
+    await sendToQQ(draft.target, draft.text);
+    if (lastSendSucceeded && lastSendSucceeded(draft.target) === false) {
+      return { status: 'send-failed', error: '文字发送失败' };
+    }
+    try { await sendSceneSticker?.(draft.target, draft.text, { scene: draft.scene }); } catch (error) {
+      log(`[lifeShare] 场景贴纸发送失败（文字已发）：${error?.message ?? error}`);
+    }
+    if (typeof noteSelfSent === 'function') {
+      try { noteSelfSent(draft.target, draft.text); } catch (error) {
+        log(`[lifeShare] 入上下文失败（已发出）：${error?.message ?? error}`);
+      }
+    }
+    return { status: 'sent' };
   }
 
   async function searchCuriosityCandidates(il) {
@@ -3870,6 +4062,22 @@ ${formatTipCaption(item)}`;
       } else {
         state.next.qzone = now + (Number(il.qzone.minGapMs) || DEFAULTS.qzone.minGapMs) + rand(20 * 60 * 1000, 90 * 60 * 1000);
       }
+    } else if (name === 'lifeShare') {
+      const ls = lifeShareConfig();
+      if (ls.enabled !== true) state.next.lifeShare = 0;
+      else if (state.pendingLifeShare) {
+        state.next.lifeShare = now + Math.min(2 * 3600 * 1000, Math.max(5 * 60 * 1000, Number(state.pendingLifeShare.expiresAt || now) - now));
+      } else if (result?.status === 'pending-approval' || result?.status === 'draft') {
+        state.next.lifeShare = now + Math.min(2 * 3600 * 1000, Math.max(5 * 60 * 1000, Number(state.pendingLifeShare?.expiresAt || now) - now));
+      } else if (result?.status === 'quiet') {
+        state.next.lifeShare = nextQuietEnd(il, now);
+      } else if (result?.status === 'error' || result?.status === 'invalid' || result?.status === 'no-line') {
+        state.next.lifeShare = now + rand(30 * 60 * 1000, 90 * 60 * 1000);
+      } else if (result?.status === 'no-target' || result?.status === 'no-scene' || result?.status === 'skip') {
+        state.next.lifeShare = now + rand(2 * 3600 * 1000, 6 * 3600 * 1000);
+      } else {
+        state.next.lifeShare = nextLifeShareAt(now, ls);
+      }
     } else if (name === 'aiTips') {
       const tips = loadAiTips();
       if (!aiTipsReady(il) || tips.paused) {
@@ -3921,6 +4129,7 @@ ${formatTipCaption(item)}`;
         result = await runCuriosity(il, { force, preferS16, forceApproval, dryRun });
       }
       else if (name === 'qzone') result = await runQzone(il, { force });
+      else if (name === 'lifeShare') result = await runLifeShare(il, { force, dryRun });
       else return { status: 'unknown' };
     } catch (error) {
       result = { status: 'error', error: error?.message ?? String(error) };
@@ -3987,7 +4196,9 @@ ${formatTipCaption(item)}`;
   }
 
   function legacyInnerJobNames() {
-    return ['reflection', 'curiosity', 'qzone'].filter((name) => {
+    return ['reflection', 'curiosity', 'qzone', 'lifeShare'].filter((name) => {
+      // 生活分享是配置键开关（simulation.lifeShare.enabled），不是 features.* 总开关。
+      if (name === 'lifeShare') return lifeShareConfig().enabled === true;
       if (name === 'curiosity' && curiosityOwnedByEngine()) return false;
       if (name === 'curiosity' && !shareEngineEnabled(cfg)) return false;
       const featureId = featureForInnerJob(name);
@@ -4000,6 +4211,15 @@ ${formatTipCaption(item)}`;
     const il = ilCfg();
     if (!il.enabled) return;
     const state = loadInner();
+    // 配置热切换：刚开启时补上第一次排期；刚关闭时清掉旧时间点，避免关了还触发。
+    const ls = lifeShareConfig();
+    if (ls.enabled !== true && state.next.lifeShare) {
+      state.next.lifeShare = 0;
+      saveInner(state);
+    } else if (ls.enabled === true && !state.next.lifeShare) {
+      state.next.lifeShare = nextLifeShareAt(Date.now(), ls);
+      saveInner(state);
+    }
     if (state.next.aiTips) {
       // AI 知识已迁入通用模块，旧的 aiTips 时间点不再单独调度。
       state.next.aiTips = 0;
@@ -4091,6 +4311,10 @@ ${formatTipCaption(item)}`;
     if (!state.next.reflection || state.next.reflection > reflectionMax) state.next.reflection = nextReflectionAt(il, now);
     if (!state.next.curiosity) state.next.curiosity = now + rand(5 * 60 * 1000, 15 * 60 * 1000);
     if (!state.next.qzone) state.next.qzone = now + rand(30 * 60 * 1000, 90 * 60 * 1000);
+    const lsStart = lifeShareConfig();
+    state.next.lifeShare = lsStart.enabled === true
+      ? (state.next.lifeShare || nextLifeShareAt(now, lsStart))
+      : 0;
     state.next.aiTips = 0;
     // 通用分享模块：迁移 ai-tips 状态并确保每个模块有下一次时间。
     shareScheduleEntries();
@@ -4105,7 +4329,7 @@ ${formatTipCaption(item)}`;
       state.next.qzone = now + rand(20 * 60 * 1000, 60 * 60 * 1000);
       log('[inner] 空间说说上限已放宽，提前下一次尝试');
     }
-    for (const name of ['reflection', 'curiosity', 'qzone']) {
+    for (const name of ['reflection', 'curiosity', 'qzone', 'lifeShare']) {
       if (state.next[name] && state.next[name] < now) state.next[name] = now + rand(2 * 60 * 1000, 10 * 60 * 1000);
     }
     saveInner(state);
@@ -4150,7 +4374,7 @@ ${formatTipCaption(item)}`;
       `今天：好奇 ${state.counts.curiosity} 次 / 群分享 ${state.counts.groupShare} 条 / 空间 ${state.counts.qzone} 条`,
       `空间：${state.qzone.paused ? '已暂停' : '开'}，已审核通过 ${state.qzone.approvedCount} 条，${il.qzone.requireApproval !== false ? '每条发布前需主人审核' : (state.qzone.auto ? '自动发布' : `前 ${il.qzone.approvalFirst} 条需审核`)}`,
       `夜间静默：${il.quiet.enabled ? `${il.quiet.start}-${il.quiet.end}（只回应被喊）` : '关闭'}`,
-      `下次：反思 ${fmt(state.next.reflection)}；好奇 ${fmt(state.next.curiosity)}；空间 ${fmt(state.next.qzone)}；AI小知识 ${fmt(state.next.aiTips)}`,
+      `下次：反思 ${fmt(state.next.reflection)}；好奇 ${fmt(state.next.curiosity)}；空间 ${fmt(state.next.qzone)}；生活分享 ${fmt(state.next.lifeShare)}；AI小知识 ${fmt(state.next.aiTips)}`,
       `候选池：${loadCuriosity().candidates.length} 条；最近抓取：${loadCuriosity().fetchedAt ? new Date(loadCuriosity().fetchedAt).toLocaleTimeString('zh-CN', { hour12: false }) : '还没抓过'}`,
       aiTipsStatusLine(),
       `待审核：${pending}`
@@ -4463,6 +4687,89 @@ ${formatTipCaption(item)}`;
       state.next.qzone = Date.now() + rand(10 * 60 * 1000, 30 * 60 * 1000);
       saveInner(state);
       await sendOwner('好，这条不发了，我过一会儿重新写一条。');
+      return true;
+    }
+
+    const pendingLifeShare = state.pendingLifeShare;
+    const lifeShareApprove = /^(发生活|发布生活)$/.test(command);
+    const lifeShareReject = /^(不发生活|取消生活)$/.test(command);
+    if (pendingLifeShare && (lifeShareApprove || lifeShareReject)) {
+      if (Date.now() > Number(pendingLifeShare.expiresAt || 0)) {
+        const latest = loadInner();
+        if (latest.pendingLifeShare) markLifeShareRecord(latest, latest.pendingLifeShare, 'expired');
+        latest.pendingLifeShare = null;
+        latest.next.lifeShare = nextLifeShareAt(Date.now(), lifeShareConfig());
+        saveInner(latest);
+        await sendOwner('这条生活分享草稿已经过期了，这次不发');
+        scheduleNext();
+        return true;
+      }
+      if (lifeShareReject) {
+        const latest = loadInner();
+        if (latest.pendingLifeShare) markLifeShareRecord(latest, latest.pendingLifeShare, 'rejected');
+        latest.pendingLifeShare = null;
+        latest.next.lifeShare = nextLifeShareAt(Date.now(), lifeShareConfig());
+        saveInner(latest);
+        await sendOwner('好，这条生活分享不发了');
+        scheduleNext();
+        return true;
+      }
+      const draft = pendingLifeShare;
+      if (il.dryRun) {
+        const latest = loadInner();
+        markLifeShareRecord(latest, draft, 'dryRun');
+        latest.pendingLifeShare = null;
+        saveInner(latest);
+        await sendOwner(`演练模式：这条生活分享没有真的发出去。\n${draft.text}\n目标：${lifeShareTargetLabel(draft.target)}`);
+        return true;
+      }
+      let result;
+      try {
+        result = await sendLifeShareDraft(draft);
+      } catch (error) {
+        result = { status: 'error', error: error?.message ?? String(error) };
+      }
+      if (result?.status === 'sent' || result?.status === 'posted') {
+        const latest = loadInner();
+        const record = latest.pendingLifeShare || draft;
+        markLifeShareRecord(latest, record, 'sent');
+        latest.pendingLifeShare = null;
+        latest.lifeShare = {
+          ...latest.lifeShare,
+          lastTarget: record.target,
+          lastSentAt: Date.now()
+        };
+        latest.counts.lifeShare = (Number(latest.counts.lifeShare) || 0) + 1;
+        latest.next.lifeShare = nextLifeShareAt(Date.now(), lifeShareConfig());
+        saveInner(latest);
+        await sendOwner(record.targetKind === 'qzone'
+          ? `生活分享已发空间${result.tid ? `（tid=${result.tid}）` : ''}：${record.text}`
+          : `生活分享已发到 ${lifeShareTargetLabel(record.target)}：${record.text}`);
+        scheduleNext();
+      } else if (result?.status === 'dryRun') {
+        const latest = loadInner();
+        markLifeShareRecord(latest, draft, 'dryRun');
+        latest.pendingLifeShare = null;
+        saveInner(latest);
+        await sendOwner(`演练模式：这条生活分享没有真的发出去。\n${draft.text}\n目标：${lifeShareTargetLabel(draft.target)}`);
+      } else {
+        await sendOwner(`这次没发出去（${result?.error || result?.reason || result?.status || '未知原因'}），草稿还留着`);
+      }
+      return true;
+    }
+    if ((lifeShareApprove || lifeShareReject) && !pendingLifeShare) {
+      await sendOwner('现在没有待审的生活分享草稿。想先写一条就回「写生活」');
+      return true;
+    }
+
+    if (/^(写生活|写条生活|来条生活分享)$/.test(command)) {
+      await sendOwner('好，我去想想刚过去的这段时间，写好先发你审');
+      void enqueue(() => runLifeShare(ilCfg(), { force: true }))
+        .then((result) => {
+          if (!result || result.status === 'pending-approval' || result.status === 'dry-run') return null;
+          return sendOwner(`这次没写成生活分享（${result.status}${result.reason ? `：${result.reason}` : ''}）`);
+        })
+        .catch((error) => log(`[lifeShare] 手动生成失败：${error?.message ?? error}`));
       return true;
     }
 
