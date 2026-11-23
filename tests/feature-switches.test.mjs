@@ -220,8 +220,10 @@ const B2_CARDS = ['rice', 'playbooks'];
 const LIFE_CARDS = ['lifeButler', 'paper', 'github', 'calendar', 'rss', 'weekly', 'digest', 'reminder'];
 // Phase A：社会记忆/注意力/收件人/语域，默认关。
 const SOCIAL_MEMORY_CARDS = ['socialMemory', 'attention', 'addressing', 'register'];
-assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS, ...SAFETY_CARDS, ...COGNITION_CARDS, ...B2_CARDS, ...LIFE_CARDS, ...SOCIAL_MEMORY_CARDS].sort());
-assert.equal(FEATURE_CARDS.length, 47);
+// 生活分享：配置键 simulation.lifeShare.*，默认关、发送前必须审批。
+const LIFE_SHARE_CARDS = ['lifeShare'];
+assert.deepEqual([...new Set(FEATURE_CARDS.map((card) => card.id))].sort(), [...EXPECTED, ...CHAT_CARDS, ...CONSOLE_CARDS, ...SAFETY_CARDS, ...COGNITION_CARDS, ...B2_CARDS, ...LIFE_CARDS, ...SOCIAL_MEMORY_CARDS, ...LIFE_SHARE_CARDS].sort());
+assert.equal(FEATURE_CARDS.length, 48);
 assert.equal(FEATURE_MODULES.length, EXPECTED.length);
 assert.deepEqual(FEATURE_BOARDS.map((board) => board.id), ['chat', 'shareEngine', 'social', 'outerWorld', 'life', 'cognition', 'ops', 'owner', 'console']);
 // 认知卡片的假开关防护：配置没写时必须判成关，切换时写回严格 true/false。

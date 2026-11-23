@@ -973,6 +973,7 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
     addTl('反思', '整理今天的见识', next.reflection);
     addTl('好奇', '刷一刷候选见闻', next.curiosity);
     addTl('空间说说', inner.qzone?.paused ? '已暂停' : '随缘发一条', next.qzone);
+    addTl('生活分享', '一句日常 + 场景贴纸（先审）', next.lifeShare);
     const counts = $('innerCounts'); clear(counts);
     const addCount = (n, label) => { const d = el('div', 'count'); d.appendChild(el('b', null, fmtInt(n))); d.appendChild(el('span', null, label)); counts.appendChild(d); };
     addCount(inner.counts?.curiosity, '好奇');
@@ -988,6 +989,8 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
     if (inner.pendingDraft) bits.push('待审草稿' + (inner.pendingDraft.imageName ? ' · 配图 ' + inner.pendingDraft.imageName : '') + '：' + (inner.pendingDraft.text || '').slice(0, 46));
     else if (inner.lastQzone) bits.push('最近说说（' + ago(inner.lastQzone.at) + '）：' + (inner.lastQzone.text || '').slice(0, 46));
     else bits.push('还没有说说记录');
+    if (inner.pendingLifeShare) bits.push('待审生活分享（' + (inner.pendingLifeShare.sceneLabel || inner.pendingLifeShare.scene || '生活') + '）：' + (inner.pendingLifeShare.text || '').slice(0, 46));
+    else if (inner.lastLifeShare) bits.push('最近生活分享（' + ago(inner.lastLifeShare.at) + '）：' + (inner.lastLifeShare.text || '').slice(0, 46));
     note.textContent = bits.join(' · ');
 
     const readingItems = (Array.isArray(data.reading) ? data.reading : []).filter((item) => item && typeof item === 'object');
@@ -1130,6 +1133,8 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
     addSignal('主动分享', `今日 ${sh.today ?? 0}/${sh.maxPerDay || 0} 条${inner.pendingShare ? ' · 待审核' : ''}`, `${sh.targets?.length ? sh.targets.length + ' 个群轮流' : '单群'}${sh.last ? ` · 上次 ${ago(sh.last.at)}：${String(sh.last.text || '').slice(0, 70)}` : ' · 还没有分享记录'}`);
     const qzSig = inner.qzone || {};
     addSignal('空间说说', qzSig.paused ? '已暂停' : (inner.pendingDraft ? '待审核' : '随缘发'), `今日 ${inner.counts?.qzone ?? 0} 条${inner.lastQzone ? ` · 最近 ${ago(inner.lastQzone.at)}：${String(inner.lastQzone.text || '').slice(0, 60)}` : ''}${inner.pendingDraft ? ' · 草稿等你确认' : ''}`);
+    const lsSig = c.lifeShare || {};
+    addSignal('生活分享', lsSig.pending ? '待审核' : (lsSig.enabled === false ? '已关闭' : '随缘写一条'), `${lsSig.minDays ?? 1}–${lsSig.maxDays ?? 7} 天一次${lsSig.pending ? ` · 待审：${String(lsSig.pending.text || '').slice(0, 50)}（${lsSig.pending.target === 'qzone' ? '空间' : lsSig.pending.target || ''}）` : (inner.lastLifeShare ? ` · 最近 ${ago(inner.lastLifeShare.at)}：${String(inner.lastLifeShare.text || '').slice(0, 50)}` : ' · 还没分享过')}${lsSig.nextAt ? ` · 下次 ${countdown(lsSig.nextAt)}` : ''}`);
     const cw = c.qzone?.commentWatch || {};
     addSignal('空间评论', `今日已回 ${cw.repliedToday ?? 0}/${cw.maxPerDay ?? c.qzone?.commentReplyMaxPerDay ?? 5} 条 · @ ${cw.mentionRepliedToday ?? 0}/${cw.mentionMaxPerDay ?? 5}${cw.pendingReply ? ' · 待确认' : ''}`, cw.pendingReply ? `拟回复 ${cw.pendingReply.commentName || '说说正文'}：${String(cw.pendingReply.reply || '').slice(0, 60)} · 私聊回「发回复」确认` : (cw.lastCheckAt ? `上次检查 ${ago(cw.lastCheckAt)}${cw.lastResult ? ' · ' + cw.lastResult : ''}` : '尚未检查'));
     const ai = c.aiTips || {};

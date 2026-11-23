@@ -134,8 +134,9 @@ import { parseScheduleMatches, parseOfficialSchedule, mergeScheduleMatches, buil
 import { dayStatsFromAudit, decideBroadcast, pruneAuditLines, resultMatchKey, createSkipAuditThrottle } from '../services/social/broadcast-limits.js';
 import { webSearch } from '../services/social/web-search.js';
 import { isQVersionWhaleSticker } from '../services/media/vision.js';
-import { pickPixelSticker, pixelStickerCount, stickerTurnGate, STICKER_TURN_WINDOW_MS } from '../services/media/pixel-stickers.js';
+import { pickPixelSticker, pixelStickerCount, stickerTurnGate, STICKER_TURN_WINDOW_MS, normalizeRecentPixelBases, mergeRecentPixelBases } from '../services/media/pixel-stickers.js';
 import { inferSceneFromText, pickSceneSticker, sceneStickerCount, sceneStickerScenes } from '../services/media/scene-stickers.js';
+import { normalizeLifeShareConfig } from '../runtime/persona/life-share.js';
 import { moodVoiceCadenceOk, MOOD_VOICE_DEFAULTS, MOOD_VOICE_MAX_CHARS, MOOD_VOICE_RECENT_LIMIT, MOOD_VOICE_TAIL_MAX_CHARS, normalizeMoodVoiceRecent, mergeMoodVoiceRecent, resolveMoodVoiceLine, pickMoodVoiceGroup, normalizeMoodVoiceGroups, moodVoiceTailDue, cleanMoodVoiceTail } from '../services/media/mood-voice-cadence.js';
 import { loadReminderStore, saveReminderStore, addReminder, listReminders, cancelReminder, dueReminders } from '../services/social/reminders.js';
 import { getWeather } from '../services/social/weather.js';
@@ -1287,6 +1288,9 @@ function loadConfig() {
     enabled: false,
     ...(cfg.simulation?.sceneSticker ?? {})
   };
+  // 生活分享（生活日常）：随机 1–7 天一次的一句话 + 场景贴纸；生成后先私聊主人审核，
+  // 批准才发群或空间。默认关；开启后发送仍被审批闸拦住，不会自动发。
+  cfg.simulation.lifeShare = normalizeLifeShareConfig(cfg.simulation?.lifeShare);
   // 心情语音：主动、状态匹配、节奏适中（不是每天只一条，也不是天天一堆）。
   // 默认目标走配置（targets 为空=全部白名单群，私聊不发），不硬编码任何真实号码。
   cfg.simulation.moodVoice = {
@@ -4112,6 +4116,7 @@ async function main() {
       && !touches('simulation.innerLife')
       && !touches('simulation.shareModules')
       && !touches('simulation.signature')
+      && !touches('simulation.lifeShare')
       && !touches('simulation.outerWorld')
       && !touches('simulation.dailyReport')
       && !touches('simulation.lifeButler')
@@ -4414,6 +4419,27 @@ async function main() {
         nextAt: Number(signatureState.nextAt) || 0,
         lastError: signatureState.lastError || ''
       },
+      lifeShare: {
+        enabled: cfg.simulation?.lifeShare?.enabled === true,
+        minDays: Number(cfg.simulation?.lifeShare?.minDays) || 1,
+        maxDays: Number(cfg.simulation?.lifeShare?.maxDays) || 7,
+        nextAt: Number(inner?.next?.lifeShare) || 0,
+        lastSentAt: Number(inner?.lifeShare?.lastSentAt) || 0,
+        pending: inner?.pendingLifeShare && typeof inner.pendingLifeShare === 'object' ? {
+          text: String(inner.pendingLifeShare.text || '').slice(0, 60),
+          scene: String(inner.pendingLifeShare.scene || ''),
+          sceneLabel: String(inner.pendingLifeShare.sceneLabel || ''),
+          sceneFile: String(inner.pendingLifeShare.sceneFile || ''),
+          target: String(inner.pendingLifeShare.target || ''),
+          createdAt: Number(inner.pendingLifeShare.createdAt) || 0,
+          expiresAt: Number(inner.pendingLifeShare.expiresAt) || 0
+        } : null,
+        last: (() => {
+          const recent = Array.isArray(inner?.lifeShare?.recent) ? inner.lifeShare.recent : [];
+          const sent = [...recent].reverse().find((item) => item && item.status === 'sent');
+          return sent ? { at: Number(sent.at) || 0, text: String(sent.text || '').slice(0, 60), scene: String(sent.scene || ''), target: String(sent.target || '') } : null;
+        })()
+      },
       search: {
         provider: String(searchCfg.provider || 'auto'),
         model: String(searchCfg.model || ''),
@@ -4630,6 +4656,12 @@ async function main() {
         if (cw.pendingReply) return { line: `有 1 条回复草稿等你确认${cw.pendingReply.expiresAt ? `（${fmt(cw.pendingReply.expiresAt)} 前有效）` : ''}`, tone: 'warn', attention: true };
         if (cw.lastCheckAt) return { line: `今日已回 ${cw.repliedToday ?? 0}/${cw.maxPerDay ?? 5} · 上次检查 ${fmt(cw.lastCheckAt)}`, tone: 'ok' };
         return { line: '还没有检查过评论', tone: 'muted' };
+      }
+      if (id === 'lifeShare') {
+        const ls = snap.lifeShare || {};
+        if (ls.pending) return { line: `有 1 条生活分享草稿等你审核${ls.pending.expiresAt ? `（${fmt(ls.pending.expiresAt)} 前有效）` : ''}`, tone: 'warn', attention: true };
+        if (ls.lastSentAt) return { line: `每 ${ls.minDays ?? 1}–${ls.maxDays ?? 7} 天一次 · 上次 ${fmt(ls.lastSentAt)}${ls.nextAt ? ` · 下次 ${fmt(ls.nextAt)}` : ''}`, tone: 'ok' };
+        return { line: `每 ${ls.minDays ?? 1}–${ls.maxDays ?? 7} 天一次 · 等待第一次`, tone: 'muted' };
       }
       if (id === 'signature') {
         if (sig.pending) return { line: '有 1 条签名草稿等你确认', tone: 'warn', attention: true };
@@ -4946,6 +4978,18 @@ async function main() {
           target: String(inner.pendingShare.target || ''),
           expiresAt: Number(inner.pendingShare.expiresAt) || 0
         } : null,
+        pendingLifeShare: inner.pendingLifeShare ? {
+          text: String(inner.pendingLifeShare.text || '').slice(0, 80),
+          scene: String(inner.pendingLifeShare.scene || ''),
+          sceneLabel: String(inner.pendingLifeShare.sceneLabel || '').slice(0, 20),
+          target: String(inner.pendingLifeShare.target || ''),
+          expiresAt: Number(inner.pendingLifeShare.expiresAt) || 0
+        } : null,
+        lastLifeShare: (() => {
+          const recent = Array.isArray(inner.lifeShare?.recent) ? inner.lifeShare.recent : [];
+          const sent = [...recent].reverse().find((item) => item && item.status === 'sent');
+          return sent ? { text: String(sent.text || '').slice(0, 60), at: Number(sent.at) || 0, target: String(sent.target || ''), scene: String(sent.scene || '') } : null;
+        })(),
         lastQzone: (() => {
           const post = (inner.history?.qzonePosts || []).find((p) => p && p.status !== 'dryRun');
           return post ? {
@@ -5001,7 +5045,8 @@ async function main() {
         enabled: cfg.simulation?.pixelSticker?.enabled !== false,
         afterText: cfg.simulation?.pixelSticker?.afterText !== false,
         turnWindowMs: cfg.simulation?.pixelSticker?.turnWindowMs == null ? STICKER_TURN_WINDOW_MS : Number(cfg.simulation?.pixelSticker?.turnWindowMs),
-        count: pixelStickerCount()
+        count: pixelStickerCount(),
+        recentBases: [...pixelStickerRecentBases]
       },
       sceneSticker: {
         enabled: cfg.simulation?.sceneSticker?.enabled !== false,
@@ -5464,6 +5509,19 @@ async function main() {
     st.textSendsSinceMedia = 0;
   }
 
+  // 像素贴纸底图多样性：全局记住最近发过哪些底图，挑图时先排掉它们，
+  // 缓解“换来换去还是同一张”的观感。文件损坏/缺失都不影响发送（按空列表处理）。
+  const pixelVarietyFile = path.join(STATE_DIR, 'pixel-stickers.json');
+  let pixelStickerRecentBases = (() => {
+    try {
+      const raw = coreReadJsonSafe(pixelVarietyFile, {}) ?? {};
+      return normalizeRecentPixelBases(raw.recentBases);
+    } catch { return []; }
+  })();
+  function savePixelVarietyState() {
+    try { coreAtomicWriteJson(pixelVarietyFile, { recentBases: pixelStickerRecentBases }); } catch {}
+  }
+
   // 像素贴纸：文字回复后顺手丢一张透明像素贴纸。节奏独立于表情包：
   // 计数看 textSendsSinceSticker（只有像素清零），间隔看 lastPixelStickerAt；
   // 同回合不双发仍由互斥闸（allowPixel）保证。
@@ -5493,7 +5551,7 @@ async function main() {
       const e = Number(s.energy ?? 0.6);
       mood = v >= 0.4 ? 'happy' : v <= -0.25 ? 'pout' : e <= 0.35 ? 'tired' : 'idle';
     } catch {}
-    const pick = pickPixelSticker(mood);
+    const pick = pickPixelSticker(mood, Math.random, null, pixelStickerRecentBases);
     if (!pick || !fs.existsSync(pick.path)) return;
     // 同步占坑：先登记再排队/await，排队期间表情包工具查闸即让路；失败回滚。
     const releasePixelClaim = claimStickerTurn(st, 'pixel');
@@ -5526,6 +5584,8 @@ async function main() {
       });
       if (!sentData) { releasePixelClaim(); return; }
       noteStickerSent(st, 'pixel');
+      pixelStickerRecentBases = mergeRecentPixelBases(pixelStickerRecentBases, pick.base);
+      savePixelVarietyState();
       saveSimulationState();
     } catch { releasePixelClaim(); }
   }
@@ -9271,11 +9331,36 @@ async function main() {
           sendJson({ ok: Boolean(handled), action });
           return;
         }
+        if (req.method === 'POST' && url.pathname === '/api/inner-life/life-share') {
+          if (!innerLife) { sendJson({ ok: false, error: '内心生活未初始化' }, 503); return; }
+          const body = await readBody();
+          const action = String(body.action ?? '').trim();
+          if (!['approve', 'cancel', 'draft'].includes(action)) {
+            sendJson({ ok: false, error: 'action 必须是 approve/cancel/draft' }, 400);
+            return;
+          }
+          if (action === 'draft') {
+            const qzoneUsable = featureEnabled(cfg, 'qzone') && cfg.simulation?.innerLife?.qzone?.enabled !== false;
+            if (!qzoneUsable && !(Array.isArray(cfg.allow?.groups) && cfg.allow.groups.length)) {
+              sendJson({ ok: false, error: '没有可发送的目标（白名单群与空间都不可用）' }, 409);
+              return;
+            }
+            void innerLife.runJob('lifeShare', { force: true })
+              .then((result) => log(`[inner] 控制台手动生活分享 → ${result?.status ?? 'done'}`))
+              .catch((error) => log(`[inner] 控制台手动生活分享 异常：${error?.message ?? error}`));
+            sendJson({ ok: true, action, started: true });
+            return;
+          }
+          const command = action === 'approve' ? '发生活' : '不发生活';
+          const handled = await innerLife.handleOwnerCommand(command, { kind: 'private', isOwner: true });
+          sendJson({ ok: Boolean(handled), action });
+          return;
+        }
         if (req.method === 'POST' && url.pathname === '/api/inner-life/run') {
           const body = await readBody();
           const job = String(body.job ?? '').trim();
-          if (!['reflection', 'curiosity', 'qzone', 'aiTips'].includes(job)) {
-            sendJson({ ok: false, error: 'job 必须是 reflection / curiosity / qzone / aiTips' }, 400);
+          if (!['reflection', 'curiosity', 'qzone', 'aiTips', 'lifeShare'].includes(job)) {
+            sendJson({ ok: false, error: 'job 必须是 reflection / curiosity / qzone / aiTips / lifeShare' }, 400);
             return;
           }
           if (!innerLife) { sendJson({ ok: false, error: '内心生活未初始化' }, 503); return; }
@@ -9284,9 +9369,13 @@ async function main() {
           const forceApproval = body.forceApproval === true;
           const dryRun = body.dryRun === true;
           const featureId = job === 'qzone' ? 'qzone' : (job === 'aiTips' ? 'aiTips' : (job === 'curiosity' ? 'share' : ''));
-          const previewOnly = dryRun && job === 'curiosity';
+          const previewOnly = dryRun && (job === 'curiosity' || job === 'lifeShare');
           if ((job === 'curiosity' || job === 'aiTips') && !shareEngineEnabled(cfg) && !previewOnly) {
             sendJson({ ok: false, disabled: true, reason: 'features.shareModule=false', error: '分享引擎总闸已关闭' }, 403);
+            return;
+          }
+          if (job === 'lifeShare' && cfg.simulation?.lifeShare?.enabled !== true && !previewOnly) {
+            sendJson({ ok: false, disabled: true, reason: 'simulation.lifeShare.enabled=false', error: '生活分享已关闭' }, 403);
             return;
           }
           if (featureId && !featureEnabled(cfg, featureId) && !previewOnly) {
@@ -18783,6 +18872,35 @@ async function main() {
     return msg;
   }
 
+  /**
+   * 主动分享（生活分享等）已经真发出去后，把这句话写回该会话上下文：
+   * 有人接着回这句时她接得住。只入上下文，不触发关系记账/地址归因等回复副作用。
+   */
+  function noteProactiveTextSent(key, text) {
+    const value = String(text ?? '').trim();
+    const match = /^(group|private):(\d+)$/.exec(String(key ?? ''));
+    if (!value || !match) return false;
+    try {
+      const st = getSimulationState(key);
+      const recentLimit = Number(cfg.simulation?.context?.recentLimit) || 100;
+      st.recentMessages.push({
+        sender: '我',
+        text: value.slice(0, 200),
+        plain: value.slice(0, 200),
+        quoteTargetIsSelf: false,
+        isOwner: true,
+        ownerLabel: '我',
+        isSelf: true,
+        time: Date.now()
+      });
+      if (st.recentMessages.length > recentLimit) st.recentMessages.splice(0, st.recentMessages.length - recentLimit);
+      saveSimulationState();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function recordSentMessages(key, messages) {
     const st = getSimulationState(key);
     const now = Date.now();
@@ -22254,6 +22372,8 @@ async function main() {
     lastSendSucceeded,
     getSimulationState,
     sendSceneSticker: (key, text, opts) => sendSceneStickerToKey(key, text, opts),
+    listChatTargets,
+    noteSelfSent: (key, text) => noteProactiveTextSent(key, text),
     getEsportsFeed: () => esportsFeed,
     isSessionAllowedInCurrentMode,
     ensureChatModel: (sessionId) => ensureChatModel(sessionId, 'reflection'),

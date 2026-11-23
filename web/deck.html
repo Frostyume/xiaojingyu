@@ -5405,6 +5405,22 @@ button.active,.primary {
         <div id="qzoneBox" class="meta content-history">（读取中…）</div>
       </details>
 
+      <details class="content-feature" data-feature-panel="lifeShare">
+        <summary><b>生活分享</b><span class="meta" id="lifeShareSummary">读取中…</span></summary>
+        <div class="meta" style="margin-bottom:8px">随机 1–7 天主动分享一句真实的生活日常，配一张对应的场景贴纸。生成后先发你审核，回「发生活」或在这里点通过才发送；拒绝/过期就丢弃。</div>
+        <div class="content-controls">
+          <label>最短间隔（天）<input type="number" id="lifeShareMinDays" min="1" max="30"></label>
+          <label>最长间隔（天）<input type="number" id="lifeShareMaxDays" min="1" max="30"></label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="lifeShareSave" class="small">保存间隔</button>
+          <button id="lifeShareRun" class="small">立即写一条</button>
+          <span class="meta" id="lifeShareMsg"></span>
+        </div>
+        <div id="lifeShareDraft" class="meta content-history"></div>
+        <div id="lifeShareBox" class="meta content-history">（读取中…）</div>
+      </details>
+
       <details class="content-feature" data-feature-panel="paper">
         <summary><b>论文推送</b><span class="meta" id="lifePaperSummary">读取中…</span></summary>
         <div class="meta" style="margin-bottom:8px">按主题抓取新论文，附中文速读；只私聊发给主人，不会发到群里。面板里的「预览」也只在本页显示，不发送任何 QQ 消息。</div>
@@ -7778,6 +7794,18 @@ async function refreshContent() {
       ? `<b>待审草稿</b>（${esc(contentTime(draft.createdAt))}，${esc(contentTime(draft.expiresAt))} 过期）<div style="margin-top:4px">${esc(draft.text || '')}${draft.imageName ? `<div class="muted small">配图：${esc(draft.imageName)}</div>` : ''}</div><div class="row" style="margin-top:8px"><button class="small" data-qzone-action="approve">通过并发布</button><button class="small" data-qzone-action="cancel">放弃</button></div>`
       : '<div class="muted small">当前没有待审草稿</div>';
 
+    // ── 生活分享 ──────────────────────────────────────────────────────────
+    const ls = r.lifeShare || {};
+    document.getElementById('lifeShareMinDays').value = String(ls.minDays ?? 1);
+    document.getElementById('lifeShareMaxDays').value = String(ls.maxDays ?? 7);
+    document.getElementById('lifeShareSummary').textContent = `${ls.enabled === false ? '已关闭' : '已开启'} · 每 ${ls.minDays ?? 1}–${ls.maxDays ?? 7} 天一次${ls.pending ? ' · 有待审草稿' : ''}`;
+    document.getElementById('lifeShareBox').innerHTML = `<div>下次可能触发：${ls.nextAt ? esc(contentTime(ls.nextAt)) : '未排期'} · 上次发送：${ls.lastSentAt ? esc(contentTime(ls.lastSentAt)) : '还没有'}${ls.last ? ` · 最近：${esc(ls.last.text || '')}` : ''}</div>`
+      + '<div class="muted small">目标在「空间说说」和白名单群之间轮换；每次只发一个地方，且必须先经过审核。</div>';
+    const lsDraft = ls.pending;
+    document.getElementById('lifeShareDraft').innerHTML = lsDraft
+      ? `<b>待审生活分享</b>（${esc(contentTime(lsDraft.createdAt))}，${esc(contentTime(lsDraft.expiresAt))} 过期）<div style="margin-top:4px">${esc(lsDraft.text || '')}</div><div class="muted small">场景：${esc(lsDraft.sceneLabel || lsDraft.scene || '')} · 目标：${esc(lsDraft.target === 'qzone' ? '空间说说' : lsDraft.target || '')}</div><div class="row" style="margin-top:8px"><button class="small" data-lifeshare-action="approve">通过并发送</button><button class="small" data-lifeshare-action="cancel">放弃</button></div>`
+      : '<div class="muted small">当前没有待审的生活分享草稿</div>';
+
     // ── 联网搜索 ──────────────────────────────────────────────────────────
     document.getElementById('searchProvider').value = ['auto', 'deepseek', 'bing', 'chatanywhere'].includes(se.provider) ? se.provider : 'auto';
     document.getElementById('searchModel').value = se.model || '';
@@ -8505,6 +8533,49 @@ document.getElementById('qzoneDraft')?.addEventListener('click', async (event) =
   try {
     const r = await api('/api/inner-life/qzone', 'POST', { action });
     msg.textContent = r.ok ? (action === 'approve' ? '已通过并发布' : '已放弃这条草稿') : (r.error || '操作失败');
+    msg.className = r.ok ? 'meta ok' : 'meta err';
+    setTimeout(refreshContent, 1200);
+  } catch (error) {
+    msg.textContent = '操作失败：' + (error?.message ?? error);
+    msg.className = 'meta err';
+  }
+});
+
+// 生活分享：保存间隔 / 立即写一条 / 待审草稿通过或放弃。通过会真的发群或空间，先确认。
+document.getElementById('lifeShareSave')?.addEventListener('click', () => contentApplyConfig({
+  'simulation.lifeShare.minDays': Math.max(1, contentNumber('lifeShareMinDays', 1)),
+  'simulation.lifeShare.maxDays': Math.max(1, contentNumber('lifeShareMaxDays', 7))
+}, document.getElementById('lifeShareMsg'), '生活分享间隔已保存'));
+
+document.getElementById('lifeShareRun')?.addEventListener('click', async () => {
+  const msg = document.getElementById('lifeShareMsg');
+  const button = document.getElementById('lifeShareRun');
+  if (button) button.disabled = true;
+  msg.textContent = '正在写一条生活分享…';
+  msg.className = 'meta';
+  try {
+    const r = await api('/api/inner-life/life-share', 'POST', { action: 'draft' });
+    msg.textContent = r.ok ? '已开始生成，写好会先私聊你审核' : (r.error || '触发失败');
+    msg.className = r.ok ? 'meta ok' : 'meta err';
+    setTimeout(refreshContent, 3000);
+    setTimeout(refreshContent, 15000);
+  } catch (error) {
+    msg.textContent = '触发失败：' + (error?.message ?? error);
+    msg.className = 'meta err';
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
+
+document.getElementById('lifeShareDraft')?.addEventListener('click', async (event) => {
+  const btn = event.target.closest('button[data-lifeshare-action]');
+  if (!btn) return;
+  const action = btn.dataset.lifeshareAction;
+  if (action === 'approve' && !confirm('通过后会立即发到目标群或空间，确定吗？')) return;
+  const msg = document.getElementById('lifeShareMsg');
+  try {
+    const r = await api('/api/inner-life/life-share', 'POST', { action });
+    msg.textContent = r.ok ? (action === 'approve' ? '已通过并发送' : '已放弃这条生活分享') : (r.error || '操作失败');
     msg.className = r.ok ? 'meta ok' : 'meta err';
     setTimeout(refreshContent, 1200);
   } catch (error) {

@@ -569,6 +569,29 @@ const CARD_LIST = [
     ]
   },
 
+  {
+    id: 'lifeShare',
+    board: 'social',
+    configKey: 'simulation.lifeShare.enabled',
+    enabledValue: true,
+    disabledValue: false,
+    customPanel: 'lifeShare',
+    label: '生活分享',
+    keywords: '生活 分享 日常 场景 贴纸 生活分享 lifeShare',
+    description: '随机 1–7 天主动分享一句真实的生活日常，配一张对应的场景贴纸；发之前一定先给你审核。',
+    onEffect: '按随机间隔挑一个场景（按时段/兴趣加权，避开最近用过的），写一句最多 30 字的第一人称生活话，生成待审草稿私聊你；你在私聊回「发生活」或控制台点通过后才发到目标群或空间。',
+    offEffect: '不再生成草稿，也不排期；已有的待审草稿不能发布。',
+    dangerousOff: false,
+    dependencies: [
+      dep('simulation.innerLife.enabled', '内心生活总开关', { enableValue: true, fallback: false }),
+      dep('simulation.sceneSticker.enabled', '场景贴纸', { enableValue: true })
+    ],
+    advanced: [
+      { key: 'simulation.lifeShare.minDays', label: '最短间隔（天）', type: 'number', min: 1, max: 30, default: 1 },
+      { key: 'simulation.lifeShare.maxDays', label: '最长间隔（天）', type: 'number', min: 1, max: 30, default: 7 }
+    ]
+  },
+
   // ── 生活管家板块 ────────────────────────────────────────────────────────
   // 总闸默认关；子模块默认关且未配源时安全跳过。提醒是既有能力，保持默认开、不挂在总闸下。
   {

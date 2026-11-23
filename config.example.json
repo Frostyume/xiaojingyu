@@ -263,6 +263,11 @@
     "sceneSticker": {
       "enabled": false
     },
+    "lifeShare": {
+      "enabled": false,
+      "minDays": 1,
+      "maxDays": 7
+    },
     "voice": {
       "enabled": false,
       "dir": "audio",
