@@ -2853,19 +2853,19 @@
               "title": "像素心情贴纸",
               "type": "boolean",
               "default": true,
-              "description": "文字回复后按节奏丢一张透明像素贴纸；频率与表情包共用同一套计数/间隔"
+              "description": "文字回复后按节奏丢一张透明像素贴纸；计数/间隔独立于表情包，同回合仍只发一种"
             },
             "minGapMs": {
               "title": "两张最小间隔（ms）",
               "type": "number",
-              "default": 1200000,
+              "default": 600000,
               "minimum": 60000,
               "maximum": 86400000
             },
             "minTextsSince": {
               "title": "至少隔几次文字才丢",
               "type": "number",
-              "default": 2,
+              "default": 1,
               "minimum": 1,
               "maximum": 20
             },
@@ -2886,7 +2886,7 @@
               "title": "场景贴纸（主动分享附图）",
               "type": "boolean",
               "default": false,
-              "description": "主动分享/出门见闻按活动推断附 chibi 场景插图；不用于回复顶替表情包，也不进同回合互斥计数"
+              "description": "主动分享/心情语音/出门见闻按活动推断附 chibi 场景插图；不用于回复顶替表情包，也不进同回合互斥计数"
             }
           }
         },

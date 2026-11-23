@@ -225,4 +225,86 @@ test('接线锁：分享两条链路都附图，回复链路不附图', () => {
   assert.ok(bridge.includes('出门见闻'), '出门见闻应保留');
   assert.ok(inner.includes('sendSceneSticker?.(key, shareText)'), '主动分享应附图');
   assert.ok(inner.includes('sendSceneSticker?.(target'), '分享模块应附图');
+  assert.ok(bridge.includes('try { await sendSceneStickerToKey(key, text); } catch {}'), '心情语音发完应接场景附图');
+});
+
+// ── 心情语音接线：发完语音按文本推断场景附图（无匹配不附、不进互斥计数） ──
+function moodVoiceSceneCfg(overrides = {}) {
+  return {
+    ownerQQ: 123,
+    allow: { private: ['123'], groups: ['456'] },
+    simulation: {
+      nightQuiet: { enabled: false },
+      sceneSticker: { enabled: true },
+      voice: { enabled: true, maxPerMinute: 50, maxPerHour: 50 },
+      moodVoice: { enabled: true, maxPerDay: 10, minGapMs: 0, skipChance: 0, tailChance: 0, llm: true, targets: [] },
+      ...overrides
+    }
+  };
+}
+function synthStub() {
+  let n = 0;
+  return async ({ mood, outDir }) => {
+    n += 1;
+    fs.mkdirSync(outDir, { recursive: true });
+    const file = path.join(outDir, `feature-fixture-${n}.ogg`);
+    fs.writeFileSync(file, Buffer.alloc(512, 3));
+    return { path: file, mood, cached: false };
+  };
+}
+function voiceInner(voiceText) {
+  return {
+    personaInfo: () => ({ state: { energy: 0.6, mood: { valence: 0.1, cause: '' } } }),
+    generateMoodVoiceText: async () => voiceText
+  };
+}
+const recordSends = (h) => h.calls.http.filter((c) => /send_(group|private)_msg$/.test(c.url)
+  && Array.isArray(c.body?.message) && c.body.message.some((s) => s.type === 'record'));
+
+test('red: 心情语音文本命中场景 → 发完语音附一张场景图（旧码没接线 → 红）', async () => {
+  const h = await bridgeHarness({
+    config: moodVoiceSceneCfg(),
+    globals: { synthesizeFeatureVoice: synthStub() }
+  });
+  try {
+    h.setMode('simulation');
+    h.setSnowlumaConnected(true);
+    h.setInnerLife(voiceInner('刚读完那本小说，来跟你们说说'));
+    await h.maybeSendMoodVoice({ now: 1_800_000_000_000, rng: () => 0.99 });
+    assert.equal(recordSends(h).length, 1, '锚点：语音发出');
+    const scenes = sceneSends(h);
+    assert.equal(scenes.length, 1, '命中活动词应附一张场景贴纸');
+    assert.equal(scenes[0].body.group_id, 456, '场景图发到语音同一个群');
+    const st = h.getSimulationState('group:456');
+    assert.equal(st.lastPixelStickerAt || 0, 0, '场景附图不登记像素互斥时间戳');
+    assert.equal(st.lastMemeStickerAt || 0, 0, '场景附图不登记表情包互斥时间戳');
+    assert.equal(st.lastStickerAt || 0, 0, '场景附图不记回复贴纸时间戳');
+  } finally { await h.close(); }
+});
+
+test('red: 心情语音无匹配场景 → 只发语音不附图；开关关闭同样不附', async () => {
+  const h = await bridgeHarness({
+    config: moodVoiceSceneCfg(),
+    globals: { synthesizeFeatureVoice: synthStub() }
+  });
+  try {
+    h.setMode('simulation');
+    h.setSnowlumaConnected(true);
+    h.setInnerLife(voiceInner('忙完这阵了，过来跟你们说两句'));
+    await h.maybeSendMoodVoice({ now: 1_800_000_000_000, rng: () => 0.99 });
+    assert.equal(recordSends(h).length, 1, '锚点：语音照发');
+    assert.equal(sceneSends(h).length, 0, '无匹配词不附场景图');
+  } finally { await h.close(); }
+  const off = await bridgeHarness({
+    config: moodVoiceSceneCfg({ sceneSticker: { enabled: false } }),
+    globals: { synthesizeFeatureVoice: synthStub() }
+  });
+  try {
+    off.setMode('simulation');
+    off.setSnowlumaConnected(true);
+    off.setInnerLife(voiceInner('刚读完那本小说，来跟你们说说'));
+    await off.maybeSendMoodVoice({ now: 1_800_000_000_000, rng: () => 0.99 });
+    assert.equal(recordSends(off).length, 1);
+    assert.equal(sceneSends(off).length, 0, '开关关闭不附');
+  } finally { await off.close(); }
 });

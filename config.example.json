@@ -256,8 +256,8 @@
     "pixelSticker": {
       "enabled": true,
       "afterText": true,
-      "minTextsSince": 2,
-      "minGapMs": 1200000,
+      "minTextsSince": 1,
+      "minGapMs": 600000,
       "turnWindowMs": 600000
     },
     "sceneSticker": {
