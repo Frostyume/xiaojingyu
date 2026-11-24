@@ -2875,10 +2875,10 @@
               "default": true
             },
             "enabled": {
-              "title": "像素心情贴纸",
+              "title": "心情贴纸（像素/二次元）",
               "type": "boolean",
               "default": true,
-              "description": "文字回复后按节奏丢一张透明像素贴纸；计数/间隔独立于表情包，同回合仍只发一种"
+              "description": "文字回复后按节奏丢一张透明心情贴纸；计数/间隔独立于表情包，同回合仍只发一种"
             },
             "minGapMs": {
               "title": "两张最小间隔（ms）",
@@ -2893,6 +2893,15 @@
               "default": 1,
               "minimum": 1,
               "maximum": 20
+            },
+            "style": {
+              "title": "心情贴纸风格",
+              "type": "string",
+              "default": "pixel",
+              "enum": [
+                "pixel",
+                "anime"
+              ]
             },
             "turnWindowMs": {
               "title": "贴纸/表情包同回合互斥窗口（ms，0=关）",
@@ -2911,7 +2920,16 @@
               "title": "场景贴纸（主动分享附图）",
               "type": "boolean",
               "default": false,
-              "description": "主动分享/心情语音/出门见闻按活动推断附 chibi 场景插图；不用于回复顶替表情包，也不进同回合互斥计数"
+              "description": "主动分享/心情语音/出门见闻按活动推断附场景插图；不用于回复顶替表情包，也不进同回合互斥计数"
+            },
+            "style": {
+              "title": "场景贴纸风格",
+              "type": "string",
+              "default": "pixel",
+              "enum": [
+                "pixel",
+                "anime"
+              ]
             }
           }
         },
@@ -8779,7 +8797,7 @@
     },
     {
       "key": "simulation.pixelSticker.enabled",
-      "label": "像素心情贴纸",
+      "label": "心情贴纸（像素/二次元）",
       "group": "表情与图片",
       "type": "boolean",
       "restart": "none",
@@ -8806,6 +8824,18 @@
       "max": 20
     },
     {
+      "key": "simulation.pixelSticker.style",
+      "label": "心情贴纸风格",
+      "group": "表情与图片",
+      "type": "string",
+      "restart": "none",
+      "advanced": true,
+      "enum": [
+        "pixel",
+        "anime"
+      ]
+    },
+    {
       "key": "simulation.pixelSticker.turnWindowMs",
       "label": "贴纸/表情包同回合互斥窗口（ms，0=关）",
       "group": "表情与图片",
@@ -8822,6 +8852,18 @@
       "type": "boolean",
       "restart": "none",
       "advanced": false
+    },
+    {
+      "key": "simulation.sceneSticker.style",
+      "label": "场景贴纸风格",
+      "group": "表情与图片",
+      "type": "string",
+      "restart": "none",
+      "advanced": true,
+      "enum": [
+        "pixel",
+        "anime"
+      ]
     },
     {
       "key": "simulation.sticker.collect.compress",

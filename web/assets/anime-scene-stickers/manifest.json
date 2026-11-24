@@ -1,0 +1,756 @@
+{
+ "version": 1,
+ "kind": "scene",
+ "style": "anime",
+ "count": 60,
+ "stickers": [
+  {
+   "file": "anime-scene-bath-01.png",
+   "scene": "bath",
+   "label": "洗澡",
+   "tags": [
+    "洗澡",
+    "泡澡",
+    "沐浴",
+    "浴缸"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-beach-01.png",
+   "scene": "beach",
+   "label": "沙滩",
+   "tags": [
+    "沙滩",
+    "海滩",
+    "海边",
+    "玩沙"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-bored-01.png",
+   "scene": "bored",
+   "label": "无聊",
+   "tags": [
+    "无聊",
+    "好闲",
+    "发闷",
+    "闲得"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-bus-01.png",
+   "scene": "bus",
+   "label": "通勤",
+   "tags": [
+    "公交",
+    "坐车",
+    "通勤",
+    "巴士",
+    "地铁"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-cafe-01.png",
+   "scene": "cafe",
+   "label": "咖啡馆",
+   "tags": [
+    "咖啡馆",
+    "咖啡店",
+    " cafe",
+    "探店"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-camping-01.png",
+   "scene": "camping",
+   "label": "露营",
+   "tags": [
+    "露营",
+    "帐篷",
+    "野营",
+    "篝火"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-cat-01.png",
+   "scene": "cat",
+   "label": "撸猫",
+   "tags": [
+    "撸猫",
+    "逗猫",
+    "猫咪",
+    "撸猫",
+    "宠物"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-cleaning-01.png",
+   "scene": "cleaning",
+   "label": "打扫",
+   "tags": [
+    "打扫",
+    "扫地",
+    "清洁",
+    "大扫除"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-coding-01.png",
+   "scene": "coding",
+   "label": "写代码",
+   "tags": [
+    "写代码",
+    "编程",
+    "敲代码",
+    "代码",
+    "程序"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-coffee-01.png",
+   "scene": "coffee",
+   "label": "咖啡",
+   "tags": [
+    "咖啡",
+    "喝咖啡",
+    "拿铁",
+    "美式"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-cooking-01.png",
+   "scene": "cooking",
+   "label": "做饭",
+   "tags": [
+    "做饭",
+    "下厨",
+    "炒菜",
+    "煮饭",
+    "做菜",
+    "厨房"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-cycling-01.png",
+   "scene": "cycling",
+   "label": "骑车",
+   "tags": [
+    "骑车",
+    "骑行",
+    "自行车",
+    "单车"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-daydream-01.png",
+   "scene": "daydream",
+   "label": "发呆",
+   "tags": [
+    "发呆",
+    "放空",
+    "走神",
+    "出神"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-diary-01.png",
+   "scene": "diary",
+   "label": "写日记",
+   "tags": [
+    "写日记",
+    "日记",
+    "手账",
+    "记录"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-dishes-01.png",
+   "scene": "dishes",
+   "label": "洗碗",
+   "tags": [
+    "洗碗",
+    "洗盘子",
+    "刷碗"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-drawing-01.png",
+   "scene": "drawing",
+   "label": "画画",
+   "tags": [
+    "画画",
+    "绘画",
+    "涂鸦",
+    "画图"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-eating-01.png",
+   "scene": "eating",
+   "label": "吃饭",
+   "tags": [
+    "吃饭",
+    "用餐",
+    "干饭",
+    "吃早餐",
+    "吃午餐",
+    "吃晚餐"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-excited-01.png",
+   "scene": "excited",
+   "label": "兴奋",
+   "tags": [
+    "兴奋",
+    "激动",
+    "开心",
+    "太棒",
+    "欢呼"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-fishing-01.png",
+   "scene": "fishing",
+   "label": "钓鱼",
+   "tags": [
+    "钓鱼",
+    "垂钓",
+    "渔获"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-gaming-01.png",
+   "scene": "gaming",
+   "label": "打游戏",
+   "tags": [
+    "打游戏",
+    "游戏",
+    "开黑",
+    "上分",
+    "电竞",
+    "玩游戏"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-gardening-01.png",
+   "scene": "gardening",
+   "label": "园艺",
+   "tags": [
+    "园艺",
+    "浇花",
+    "种花",
+    "养花",
+    "浇水"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-hotpot-01.png",
+   "scene": "hotpot",
+   "label": "火锅",
+   "tags": [
+    "火锅",
+    "吃火锅",
+    "涮锅",
+    "麻辣烫"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-hug-01.png",
+   "scene": "hug",
+   "label": "抱抱",
+   "tags": [
+    "抱抱",
+    "拥抱",
+    "抱一个",
+    "求抱"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-kite-01.png",
+   "scene": "kite",
+   "label": "放风筝",
+   "tags": [
+    "放风筝",
+    "风筝"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-laundry-01.png",
+   "scene": "laundry",
+   "label": "晾衣",
+   "tags": [
+    "晾衣",
+    "洗衣服",
+    "洗衣",
+    "晾晒"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-library-01.png",
+   "scene": "library",
+   "label": "图书馆",
+   "tags": [
+    "图书馆",
+    "自习室",
+    "借阅"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-milktea-01.png",
+   "scene": "milktea",
+   "label": "奶茶",
+   "tags": [
+    "奶茶",
+    "喝奶茶",
+    "珍珠奶茶",
+    "茶饮"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-movie-01.png",
+   "scene": "movie",
+   "label": "看电影",
+   "tags": [
+    "看电影",
+    "影院",
+    "电影院",
+    "观影"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-music-01.png",
+   "scene": "music",
+   "label": "听歌",
+   "tags": [
+    "听歌",
+    "听音乐",
+    "耳机",
+    "听曲"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-nap-01.png",
+   "scene": "nap",
+   "label": "午睡",
+   "tags": [
+    "午睡",
+    "午休",
+    "小睡",
+    "打盹",
+    "眯一会"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-park-01.png",
+   "scene": "park",
+   "label": "公园",
+   "tags": [
+    "公园",
+    "逛公园",
+    "绿地"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-phone-01.png",
+   "scene": "phone",
+   "label": "玩手机",
+   "tags": [
+    "玩手机",
+    "刷手机",
+    "手机",
+    "刷屏"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-photo-01.png",
+   "scene": "photo",
+   "label": "拍照",
+   "tags": [
+    "拍照",
+    "摄影",
+    "照相",
+    "拍照片"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-picnic-01.png",
+   "scene": "picnic",
+   "label": "野餐",
+   "tags": [
+    "野餐",
+    "郊游",
+    "野餐垫"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-rain-01.png",
+   "scene": "rain",
+   "label": "听雨",
+   "tags": [
+    "下雨",
+    "听雨",
+    "雨天",
+    "雨声"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-reading-01.png",
+   "scene": "reading",
+   "label": "读书",
+   "tags": [
+    "读书",
+    "看书",
+    "阅读",
+    "小说",
+    "书本",
+    "啃书"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-reading-02.png",
+   "scene": "reading",
+   "label": "读书",
+   "tags": [
+    "读书",
+    "看书",
+    "阅读",
+    "小说",
+    "书本",
+    "啃书"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-reading-03.png",
+   "scene": "reading",
+   "label": "读书",
+   "tags": [
+    "读书",
+    "看书",
+    "阅读",
+    "小说",
+    "书本",
+    "啃书"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-running-01.png",
+   "scene": "running",
+   "label": "跑步",
+   "tags": [
+    "跑步",
+    "慢跑",
+    "晨跑",
+    "夜跑"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-sea-01.png",
+   "scene": "sea",
+   "label": "看海",
+   "tags": [
+    "看海",
+    "海边",
+    "大海",
+    "海洋"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-shopping-01.png",
+   "scene": "shopping",
+   "label": "购物",
+   "tags": [
+    "购物",
+    "逛街",
+    "买东西",
+    "超市",
+    "采购"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-sick-01.png",
+   "scene": "sick",
+   "label": "生病",
+   "tags": [
+    "生病",
+    "感冒",
+    "发烧",
+    "不舒服",
+    "病了"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-slacking-01.png",
+   "scene": "slacking",
+   "label": "摸鱼",
+   "tags": [
+    "摸鱼",
+    "偷懒",
+    "划水",
+    "摸鱼"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-sleeping-01.png",
+   "scene": "sleeping",
+   "label": "睡觉",
+   "tags": [
+    "睡觉",
+    "睡了",
+    "晚安",
+    "入睡",
+    "就寝"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-snack-01.png",
+   "scene": "snack",
+   "label": "零食",
+   "tags": [
+    "零食",
+    "吃零食",
+    "薯片",
+    "小吃"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-snowman-01.png",
+   "scene": "snowman",
+   "label": "堆雪人",
+   "tags": [
+    "堆雪人",
+    "下雪",
+    "雪天",
+    "玩雪"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-stars-01.png",
+   "scene": "stars",
+   "label": "星空",
+   "tags": [
+    "星空",
+    "星星",
+    "看星星",
+    "夜空",
+    "银河"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-studying-01.png",
+   "scene": "studying",
+   "label": "学习",
+   "tags": [
+    "学习",
+    "复习",
+    "功课",
+    "自习",
+    "读书"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-sunbathing-01.png",
+   "scene": "sunbathing",
+   "label": "晒太阳",
+   "tags": [
+    "晒太阳",
+    "晒背",
+    "日光浴",
+    "晒太阳"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-swimming-01.png",
+   "scene": "swimming",
+   "label": "游泳",
+   "tags": [
+    "游泳",
+    "泳池",
+    "戏水"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-tea-01.png",
+   "scene": "tea",
+   "label": "喝茶",
+   "tags": [
+    "喝茶",
+    "泡茶",
+    "品茶",
+    "茶饮"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-tired-01.png",
+   "scene": "tired",
+   "label": "累",
+   "tags": [
+    "好累",
+    "累了",
+    "疲惫",
+    "累趴",
+    "疲倦"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-travel-01.png",
+   "scene": "travel",
+   "label": "旅行",
+   "tags": [
+    "旅行",
+    "旅游",
+    "出行",
+    "度假",
+    "出游"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-video-01.png",
+   "scene": "video",
+   "label": "看视频",
+   "tags": [
+    "看视频",
+    "视频",
+    "追剧",
+    "看剧",
+    "看片",
+    "追番",
+    "看番"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-video-02.png",
+   "scene": "video",
+   "label": "看视频",
+   "tags": [
+    "看视频",
+    "视频",
+    "追剧",
+    "看剧",
+    "看片",
+    "追番",
+    "看番"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-video-03.png",
+   "scene": "video",
+   "label": "看视频",
+   "tags": [
+    "看视频",
+    "视频",
+    "追剧",
+    "看剧",
+    "看片",
+    "追番",
+    "看番"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-waking-01.png",
+   "scene": "waking",
+   "label": "起床",
+   "tags": [
+    "起床",
+    "醒来",
+    "早安",
+    "闹钟"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-walking-01.png",
+   "scene": "walking",
+   "label": "散步",
+   "tags": [
+    "散步",
+    "走路",
+    "遛弯",
+    "漫步"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-wave-01.png",
+   "scene": "wave",
+   "label": "挥手",
+   "tags": [
+    "挥手",
+    "打招呼",
+    "你好",
+    "嗨",
+    "招手"
+   ],
+   "style": "anime"
+  },
+  {
+   "file": "anime-scene-yoga-01.png",
+   "scene": "yoga",
+   "label": "运动",
+   "tags": [
+    "瑜伽",
+    "拉伸",
+    "运动",
+    "健身",
+    "锻炼"
+   ],
+   "style": "anime"
+  }
+ ]
+}

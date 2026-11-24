@@ -8,6 +8,9 @@ import { roleCharStats, roleSectionReport } from '../services/persona/role-card.
 import { pickBucketMs } from '../services/social/token-ledger.js';
 import { manualDirCommand } from '../runtime/kernel/state-acl.mjs';
 import { FEATURE_BOARDS, FEATURE_CARDS, advancedFieldsFor, cardDefaultKeys } from '../runtime/control/feature-control.js';
+import { ANIME_STICKER_DIR, PIXEL_STICKER_DIR, loadReplyStickers, replyStickerCount, replyStickerMoods, replyStickerScenes } from '../services/media/pixel-stickers.js';
+import { ANIME_SCENE_STICKER_DIR, SCENE_STICKER_DIR, loadSceneStickers, sceneStickerCount, sceneStickerScenes } from '../services/media/scene-stickers.js';
+import { CONSOLE_SECURITY_HEADERS } from '../console/auth.js';
 
 export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const timestamp = '2026-09-20T08:30:00.000Z';
@@ -340,13 +343,63 @@ function featureControlFixture(state) {
   };
 }
 
+function stickerLibraryFixture() {
+  const moodLibrary = (style) => ({
+    style,
+    count: replyStickerCount(style),
+    moods: replyStickerMoods(style),
+    scenes: replyStickerScenes(style),
+    stickers: loadReplyStickers(style).map((s) => ({ file: s.file, mood: s.mood, scene: s.scene, style: s.style }))
+  });
+  const sceneLibrary = (style) => ({
+    style,
+    count: sceneStickerCount(style),
+    scenes: sceneStickerScenes(style),
+    stickers: loadSceneStickers(style).map((s) => ({ file: s.file, scene: s.scene, label: s.label || s.scene, style: s.style }))
+  });
+  return {
+    ok: true,
+    mood: moodLibrary('pixel'),
+    pixel: moodLibrary('pixel'),
+    anime: moodLibrary('anime'),
+    scene: sceneLibrary('pixel'),
+    scenePixel: sceneLibrary('pixel'),
+    sceneAnime: sceneLibrary('anime')
+  };
+}
+
 // 内容快照：字段口径与 /api/content 保持一致，离线预览走同一套渲染路径。
 function contentFixture(state) {
+  const pixelSticker = state.simulation?.pixelSticker ?? {};
+  const sceneSticker = state.simulation?.sceneSticker ?? {};
+  const pixelStyle = pixelSticker.style === 'anime' ? 'anime' : 'pixel';
+  const sceneStyle = sceneSticker.style === 'anime' ? 'anime' : 'pixel';
   return {
     ok: true,
     serverNow: Date.parse(timestamp),
     features: { ...state.featureEnabled },
     allowGroups: state.whitelist.allow.groups.map((id) => `group:${id}`),
+    pixelSticker: {
+      enabled: pixelSticker.enabled !== false,
+      afterText: pixelSticker.afterText !== false,
+      turnWindowMs: pixelSticker.turnWindowMs ?? 600000,
+      style: pixelStyle,
+      count: replyStickerCount(pixelStyle),
+      scenes: replyStickerScenes(pixelStyle),
+      libraries: Object.fromEntries(['pixel', 'anime'].map((style) => [style, {
+        count: replyStickerCount(style), moods: replyStickerMoods(style), scenes: replyStickerScenes(style)
+      }])),
+      recentBases: []
+    },
+    sceneSticker: {
+      enabled: sceneSticker.enabled !== false,
+      style: sceneStyle,
+      count: sceneStickerCount(sceneStyle),
+      scenes: sceneStickerScenes(sceneStyle),
+      libraries: Object.fromEntries(['pixel', 'anime'].map((style) => [style, {
+        count: sceneStickerCount(style), scenes: sceneStickerScenes(style)
+      }]))
+    },
     esports: {
       title: '离线示例赛程',
       updatedAt: Date.parse(timestamp),
@@ -457,7 +510,11 @@ export function makeFixtureState() {
       proactiveCheckMaxMs: 900000, proactiveProbability: 0.2,
     },
     socialStates: { 'group:123456789': { phase: 'active' }, 'group:100003': { phase: 'idle' } },
-    simulation: { enabled: true, agentPreset: 'qq-chat', provideRecommendations: true, tools: {} },
+    simulation: {
+      enabled: true, agentPreset: 'qq-chat', provideRecommendations: true, tools: {},
+      pixelSticker: { enabled: true, afterText: true, style: 'pixel', turnWindowMs: 600000 },
+      sceneSticker: { enabled: false, style: 'pixel' }
+    },
     groupProfiles: { 'group:123456789': { label: '演示群', proactive: true, style: '轻松一点，多接梗。' } },
     // 会话初始提示词（离线示例）：整段内容都是虚构的演示文本。
     initPrompt: '离线示例：这是一个演示用的群聊环境说明，不会写进任何真实配置。',
@@ -516,7 +573,7 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
     const path = url.pathname;
     const method = req.method || 'GET';
     const json = (value, status = 200) => {
-      res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+      res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', ...CONSOLE_SECURITY_HEADERS, 'Cache-Control': 'private, no-store' });
       res.end(JSON.stringify(value));
     };
     try {
@@ -540,7 +597,38 @@ export async function startConsoleFixture({ port = 0, original = false, htmlPath
         if (logWrites) console.log(`[mock write] ${method} ${path} ${JSON.stringify(body)}`);
       }
       if (method === 'GET') {
+        if (path === '/api/sticker-library') return json(stickerLibraryFixture());
+        if (path.startsWith('/api/sticker-library/image/')) {
+          const notFound = () => json({ ok: false, error: '未知贴纸' }, 404);
+          let parts;
+          try {
+            parts = decodeURIComponent(path.slice('/api/sticker-library/image/'.length)).split('/');
+          } catch { return notFound(); }
+          const kind = parts.shift() || '';
+          let style = 'pixel';
+          if ((kind === 'mood' || kind === 'scene') && parts.length >= 2) {
+            style = parts.shift();
+            if (!['pixel', 'anime'].includes(style)) return notFound();
+          }
+          const file = parts.join('/');
+          if (!/^[A-Za-z0-9._-]+\.png$/.test(file)) return notFound();
+          const entries = kind === 'mood' ? loadReplyStickers(style) : kind === 'scene' ? loadSceneStickers(style) : [];
+          if (!entries.some((entry) => entry.file === file)) return notFound();
+          const dir = kind === 'mood'
+            ? style === 'anime' ? ANIME_STICKER_DIR : PIXEL_STICKER_DIR
+            : style === 'anime' ? ANIME_SCENE_STICKER_DIR : SCENE_STICKER_DIR;
+          const abs = resolve(dir, file);
+          if (dirname(abs) !== dir) return notFound();
+          try {
+            const buffer = await readFile(abs);
+            res.writeHead(200, { 'content-type': 'image/png', 'content-length': buffer.length, ...CONSOLE_SECURITY_HEADERS, 'Cache-Control': 'private, no-store' });
+            res.end(buffer);
+          } catch { return notFound(); }
+          return;
+        }
         switch (path) {
+          case '/api/stickers': return json({ ok: true, stickers: [], total: 0, matched: 0 });
+          case '/api/library/images': return json({ ok: true, entries: [], total: 0 });
           case '/api/status': return json({ ok: true, dshReady: true, mode: state.mode, role: state.role, roleMode: state.roleMode, closedAgentPreset: state.closedAgentPreset, ownerQQ: state.whitelist.ownerQQ, allowGroups: state.whitelist.allow.groups, allowPrivate: state.whitelist.allow.private, snowluma: { connected: true, degraded: false, good: true, lastPacketAgoMs: 12000, lastPacketKind: 'message' }, activity: '[08:30:00] 演示桥接已连接\n[08:30:12] group:123456789 · 已处理一条消息\n[08:30:20] 群聊剧场正在运行\n以上均为离线模拟数据。' });
           case '/api/features': return json({
             ok: true,

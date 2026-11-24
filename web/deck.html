@@ -5659,6 +5659,21 @@ button.active,.primary {
         <span class="meta" id="libImageMeta"></span>
       </div>
       <div id="libImages" class="media-grid">（读取中…）</div>
+      <h2 style="margin-top:28px">贴纸库（心情 / 场景）</h2>
+      <div class="meta">心情与场景贴纸都分为像素、二次元独立库，动作/情景一致。心情贴纸随回复按当前风格发送，与表情包同回合互斥；场景贴纸只随主动分享、心情语音和出门见闻附图。</div>
+      <div class="row" style="margin-top:10px"><span class="meta" id="libStickerLibMeta"></span></div>
+      <div class="meta" style="margin-top:8px">心情（像素 · <span id="libPixelStickerCount">0</span> 张）</div>
+      <div id="libMoodStickers" class="media-grid">（读取中…）</div>
+      <details style="margin-top:8px">
+        <summary class="meta">心情（二次元 · <span id="libAnimeStickerCount">0</span> 张）</summary>
+        <div id="libAnimeStickers" class="media-grid">（读取中…）</div>
+      </details>
+      <div class="meta" style="margin-top:8px">场景（像素 · <span id="libPixelSceneStickerCount">0</span> 张）</div>
+      <div id="libSceneStickers" class="media-grid">（读取中…）</div>
+      <details style="margin-top:8px">
+        <summary class="meta">场景（二次元 · <span id="libAnimeSceneStickerCount">0</span> 张）</summary>
+        <div id="libAnimeSceneStickers" class="media-grid">（读取中…）</div>
+      </details>
     </section>
 <section id="section-notify" data-page="operations" class="card span-all">
       <h2>后台控制端引导</h2>
@@ -6294,6 +6309,14 @@ function renderAdvancedFields(module) {
     const domId = `feature-adv-${module.id}-${String(field.key).replace(/[^a-zA-Z0-9_-]+/g, '-')}`;
     if (field.type === 'boolean') {
       return `<label class="feature-adv-check" for="${domId}"><input id="${domId}" type="checkbox" data-advanced-key="${esc(field.key)}"${field.value === true ? ' checked' : ''}> ${esc(field.label)}</label>`;
+    }
+    if (field.type === 'select') {
+      const options = (Array.isArray(field.options) ? field.options : []).map((option) => {
+        const value = typeof option === 'string' ? option : option?.value;
+        const label = typeof option === 'string' ? option : option?.label ?? value;
+        return `<option value="${esc(value ?? '')}"${String(field.value ?? '') === String(value ?? '') ? ' selected' : ''}>${esc(label ?? '')}</option>`;
+      }).join('');
+      return `<label for="${domId}">${esc(field.label)}<select id="${domId}" data-advanced-key="${esc(field.key)}">${options}</select></label>`;
     }
     if (field.type === 'time') {
       return `<label for="${domId}">${esc(field.label)}<input id="${domId}" type="time" data-advanced-key="${esc(field.key)}" value="${esc(field.value ?? '')}"></label>`;
@@ -8671,14 +8694,16 @@ function libraryCardHtml({ imageUrl, title, lines, eager = false }) {
 async function refreshLibrary() {
   const stickerMeta = document.getElementById('libStickerMeta');
   const imageMeta = document.getElementById('libImageMeta');
+  const stickerLibMeta = document.getElementById('libStickerLibMeta');
   const stickerBox = document.getElementById('libStickers');
   const imageBox = document.getElementById('libImages');
   const stickerQuery = document.getElementById('libStickerSearch').value.trim();
   const imageQuery = document.getElementById('libImageSearch').value.trim();
   try {
-    const [stickers, images] = await Promise.all([
+    const [stickers, images, stickerLib] = await Promise.all([
       api(`/api/stickers?query=${encodeURIComponent(stickerQuery)}&count=200`),
-      api(`/api/library/images?query=${encodeURIComponent(imageQuery)}&limit=200`)
+      api(`/api/library/images?query=${encodeURIComponent(imageQuery)}&limit=200`),
+      api('/api/sticker-library')
     ]);
     const stickerList = Array.isArray(stickers.stickers) ? stickers.stickers : [];
     stickerMeta.textContent = `${stickers.matched ?? stickerList.length}/${stickers.total ?? stickerList.length} 条${stickerQuery ? '（已筛选）' : ''}`;
@@ -8711,9 +8736,42 @@ async function refreshLibrary() {
         ].filter(Boolean)
       })).join('')
       : '<div class="media-empty">这个筛选下没有图片</div>';
+
+    const pixelLibrary = stickerLib.pixel || stickerLib.mood || {};
+    const animeLibrary = stickerLib.anime || {};
+    const moodList = Array.isArray(pixelLibrary.stickers) ? pixelLibrary.stickers : [];
+    const animeList = Array.isArray(animeLibrary.stickers) ? animeLibrary.stickers : [];
+    const scenePixelLibrary = stickerLib.scenePixel || stickerLib.scene || {};
+    const sceneAnimeLibrary = stickerLib.sceneAnime || {};
+    const sceneList = Array.isArray(scenePixelLibrary.stickers) ? scenePixelLibrary.stickers : [];
+    const animeSceneList = Array.isArray(sceneAnimeLibrary.stickers) ? sceneAnimeLibrary.stickers : [];
+    stickerLibMeta.textContent = `回复：二次元 ${animeLibrary.count ?? animeList.length} / 像素 ${pixelLibrary.count ?? moodList.length} 张 · 场景：二次元 ${sceneAnimeLibrary.count ?? animeSceneList.length} / 像素 ${scenePixelLibrary.count ?? sceneList.length} 张`;
+    document.getElementById('libPixelStickerCount').textContent = String(pixelLibrary.count ?? moodList.length);
+    document.getElementById('libAnimeStickerCount').textContent = String(animeLibrary.count ?? animeList.length);
+    document.getElementById('libPixelSceneStickerCount').textContent = String(scenePixelLibrary.count ?? sceneList.length);
+    document.getElementById('libAnimeSceneStickerCount').textContent = String(sceneAnimeLibrary.count ?? animeSceneList.length);
+    const moodCards = (entries, style) => entries.length
+      ? entries.map((e) => libraryCardHtml({
+        imageUrl: `/api/sticker-library/image/mood/${style}/${encodeURIComponent(e.file)}`,
+        title: `${e.mood}${e.scene && e.scene !== 'none' ? ' · ' + e.scene : ''}`,
+        lines: [`style: ${style}`, e.file]
+      })).join('')
+      : '<div class="media-empty">该风格暂无心情贴纸</div>';
+    const sceneCards = (entries, style) => entries.length
+      ? entries.map((e) => libraryCardHtml({
+        imageUrl: `/api/sticker-library/image/scene/${style}/${encodeURIComponent(e.file)}`,
+        title: e.label || e.scene,
+        lines: [`style: ${style}`, `场景：${e.scene}`, e.file]
+      })).join('')
+      : '<div class="media-empty">该风格暂无场景贴纸</div>';
+    document.getElementById('libMoodStickers').innerHTML = moodCards(moodList, 'pixel');
+    document.getElementById('libAnimeStickers').innerHTML = moodCards(animeList, 'anime');
+    document.getElementById('libSceneStickers').innerHTML = sceneCards(sceneList, 'pixel');
+    document.getElementById('libAnimeSceneStickers').innerHTML = sceneCards(animeSceneList, 'anime');
   } catch (error) {
     stickerMeta.textContent = '读取失败：' + (error?.message ?? error);
     imageMeta.textContent = '读取失败：' + (error?.message ?? error);
+    stickerLibMeta.textContent = '读取失败：' + (error?.message ?? error);
     stickerBox.innerHTML = '<div class="media-empty">表情库读取失败</div>';
     imageBox.innerHTML = '<div class="media-empty">图片库读取失败</div>';
   }

@@ -119,16 +119,17 @@ const CARD_LIST = [
     id: 'chatPixelSticker',
     board: 'chat',
     configKey: 'simulation.pixelSticker.enabled',
-    label: '像素心情贴纸',
-    keywords: '像素 贴纸 pixel sticker 心情 透明',
-    description: '说完一句话顺手丢一张自己的透明像素贴纸，按心情挑图；节奏独立于表情包，同回合仍只发一种。',
-    onEffect: '文字回复后按节奏补一张保持人设的透明像素贴纸（原色、无挂饰），不刷屏；同一回合内与表情包互斥，只发一种。',
-    offEffect: '不再自动丢像素贴纸；文字与表情包不受影响。',
+    label: '心情贴纸（像素/二次元）',
+    keywords: '像素 二次元 贴纸 pixel anime sticker 心情 透明',
+    description: '说完一句话顺手丢一张自己的透明心情贴纸，按心情挑图；节奏独立于表情包，同回合仍只发一种。',
+    onEffect: '文字回复后按节奏补一张保持人设的透明心情贴纸（原色、无挂饰），不刷屏；同一回合内与表情包互斥，只发一种。',
+    offEffect: '不再自动丢心情贴纸；文字与表情包不受影响。',
     dangerousOff: false,
     dependencies: [
       dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })
     ],
     advanced: [
+      { key: 'simulation.pixelSticker.style', label: '贴纸风格', type: 'select', options: [{ value: 'pixel', label: '像素' }, { value: 'anime', label: '二次元' }], default: 'pixel' },
       { key: 'simulation.pixelSticker.afterText', label: '说完话顺手丢一张', type: 'boolean', default: true },
       { key: 'simulation.pixelSticker.minTextsSince', label: '至少隔几次文字才丢', type: 'number', min: 1, max: 20, default: 1 },
       { key: 'simulation.pixelSticker.minGapMs', label: '两张最小间隔（ms）', type: 'number', min: 60000, max: 86400000, default: 600000 },
@@ -141,12 +142,15 @@ const CARD_LIST = [
     configKey: 'simulation.sceneSticker.enabled',
     label: '场景贴纸',
     keywords: '场景 贴纸 scene sticker 分享 见闻',
-    description: '主动分享/心情语音/出门见闻时按活动内容附一张 chibi 场景插图；不用于回复、不参与表情包互斥。',
-    onEffect: '分享正文命中活动词时附一张匹配的场景插图；无匹配不附。',
+    description: '主动分享/心情语音/出门见闻时按活动内容附一张像素或二次元场景插图；不用于回复、不参与表情包互斥。',
+    onEffect: '分享正文命中活动词时附一张当前风格匹配的场景插图；无匹配不附。',
     offEffect: '分享只发正文，不再附场景插图；回复贴纸与表情包不受影响。',
     dangerousOff: false,
     dependencies: [
       dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })
+    ],
+    advanced: [
+      { key: 'simulation.sceneSticker.style', label: '贴纸风格', type: 'select', options: [{ value: 'pixel', label: '像素' }, { value: 'anime', label: '二次元' }], default: 'pixel' }
     ]
   },
   {
@@ -1011,6 +1015,11 @@ export function advancedFieldsFor(card, cfg) {
 
 /** 把控制台提交的展示值换算回 config 原值。 */
 export function configValueFor(field, input) {
+  if (field.type === 'select') {
+    const value = String(input ?? '').trim();
+    const options = Array.isArray(field.options) ? field.options : [];
+    return options.some((option) => (typeof option === 'string' ? option : option?.value) === value) ? value : null;
+  }
   if (field.type === 'boolean') return input === true || input === 'true';
   if (field.type === 'number') {
     const n = Number(input);

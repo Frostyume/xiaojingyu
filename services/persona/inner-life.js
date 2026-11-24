@@ -36,7 +36,8 @@ import { loadShareState, saveShareState, groupBudgetCheck, recordGroupSend, reco
 import { buildShareTask } from '../../runtime/share/share-prompts.js';
 import { formatShareCaption, formatShareLinksText, formatAiTipLinks, formatTipCaption, splitShareComments, stripShareUrls } from '../../runtime/share/share-format.js';
 import { featureEnabled, featureForInnerJob, featureForShareModule, shareEngineEnabled, shareModuleEnabled } from '../../runtime/control/feature-switches.js';
-import { SCENE_STICKER_DIR, pickSceneSticker } from '../media/scene-stickers.js';
+import { ANIME_SCENE_STICKER_DIR, SCENE_STICKER_DIR, loadSceneStickers, pickSceneSticker } from '../media/scene-stickers.js';
+import { normalizeStickerStyle } from '../media/pixel-stickers.js';
 import { normalizeLifeShareConfig, nextLifeShareAt, pickLifeScene, pickLifeShareTarget, resolveLifeShareLine, buildLifeShareDraft, normalizePendingLifeShare, normalizeLifeShareState, lifeShareTargetKind, LIFE_SHARE_LINE_MAX } from '../../runtime/persona/life-share.js';
 
 const DEFAULTS = {
@@ -881,13 +882,16 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
     }
   }
 
-  /** 生活分享的场景贴纸直接作为空间配图：只认库内 PNG 文件名，不接受任意外部路径。 */
+  /** 生活分享的场景贴纸直接作为空间配图：只认所选风格 manifest 内的精确 PNG 文件名。 */
   async function buildSceneQzoneImage(scene) {
     const empty = { images: [], name: '' };
     const file = String(scene?.sceneFile || '');
     if (!file || !/^[A-Za-z0-9._-]+\.png$/.test(file)) return empty;
-    const abs = path.join(SCENE_STICKER_DIR, file);
-    if (!abs.startsWith(SCENE_STICKER_DIR) || !fs.existsSync(abs)) return empty;
+    const style = normalizeStickerStyle(scene?.style);
+    if (!loadSceneStickers(style).some((entry) => entry.file === file)) return empty;
+    const dir = style === 'anime' ? ANIME_SCENE_STICKER_DIR : SCENE_STICKER_DIR;
+    const abs = path.join(dir, file);
+    if (!abs.startsWith(dir + path.sep) || !fs.existsSync(abs)) return empty;
     try {
       const buffer = fs.readFileSync(abs);
       const maxBytes = Number(cfg.simulation?.imageLibrary?.maxBytes) || 20 * 1024 * 1024;
@@ -1599,7 +1603,8 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
     const interests = (() => {
       try { return loadPersona().interests || []; } catch { return []; }
     })();
-    const scene = pickLifeScene({ now: Date.now(), interests, recentScenes });
+    const style = normalizeStickerStyle(cfg.simulation?.sceneSticker?.style);
+    const scene = pickLifeScene({ now: Date.now(), interests, recentScenes, style });
     if (!scene) return { status: 'no-scene' };
     const targetPick = pickLifeShareTarget({
       groups,
@@ -1617,10 +1622,11 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
     const recentTexts = ((state.lifeShare && state.lifeShare.recent) || []).map((item) => item.text).filter(Boolean);
     const line = resolveLifeShareLine({ raw, scene: scene.scene, recentTexts, maxChars: LIFE_SHARE_LINE_MAX });
     if (!line.text) return { status: 'no-line' };
-    const sticker = pickSceneSticker(scene.scene);
+    const sticker = pickSceneSticker(scene.scene, Math.random, style);
     const draft = buildLifeShareDraft({
       text: line.text,
       scene: scene.scene,
+      style,
       sceneLabel: lifeShareSceneLabel(scene),
       sceneFile: sticker?.file || '',
       target: targetPick.target,
@@ -1630,7 +1636,7 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
     if (!draft) return { status: 'invalid' };
     if (dryRun) {
       log(`[lifeShare][dryRun] 草稿：${draft.text}（${draft.scene} → ${draft.target}，${line.source}）`);
-      return { status: 'dry-run', text: draft.text, scene: draft.scene, target: draft.target };
+      return { status: 'dry-run', text: draft.text, scene: draft.scene, style: draft.style, target: draft.target };
     }
     if (!cfg.ownerQQ) return { status: 'no-owner' };
     const timeoutMin = Math.round((draft.expiresAt - draft.createdAt) / 60000);
@@ -1643,11 +1649,11 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
     saveInner(state);
     let previewSent = false;
     if (sticker) {
-      try { previewSent = Boolean(await sendSceneSticker?.(`private:${cfg.ownerQQ}`, draft.text, { scene: draft.scene })); } catch {}
+      try { previewSent = Boolean(await sendSceneSticker?.(`private:${cfg.ownerQQ}`, draft.text, { scene: draft.scene, style: draft.style })); } catch {}
     }
     await sendOwner(`【生活分享草稿】\n内容：${draft.text}\n场景：${draft.sceneLabel || draft.scene}${previewSent ? '（贴纸预览在上方）' : ''}\n目标：${lifeShareTargetLabel(draft.target)}\n\n回复「发生活」发布，回复「不发生活」放弃（${timeoutMin} 分钟内有效）`);
     log(`[lifeShare] 草稿已发主人审核（${line.source}）：${draft.text.slice(0, 60)} → ${draft.target}`);
-    return { status: 'pending-approval', text: draft.text, scene: draft.scene, target: draft.target };
+    return { status: 'pending-approval', text: draft.text, scene: draft.scene, style: draft.style, target: draft.target };
   }
 
   async function sendLifeShareDraft(draft) {
@@ -1655,7 +1661,7 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
       const result = await postQzoneNow(draft.text, {
         manual: true,
         notify: false,
-        scene: { sceneFile: draft.sceneFile, sceneLabel: draft.sceneLabel, scene: draft.scene }
+        scene: { sceneFile: draft.sceneFile, sceneLabel: draft.sceneLabel, scene: draft.scene, style: draft.style }
       });
       return result;
     }
@@ -1666,7 +1672,7 @@ ${shareVoiceBlock(roleStyle())}${timeBlock}${toneBlock}\n【候选见闻】\n${f
     if (lastSendSucceeded && lastSendSucceeded(draft.target) === false) {
       return { status: 'send-failed', error: '文字发送失败' };
     }
-    try { await sendSceneSticker?.(draft.target, draft.text, { scene: draft.scene }); } catch (error) {
+    try { await sendSceneSticker?.(draft.target, draft.text, { scene: draft.scene, style: draft.style }); } catch (error) {
       log(`[lifeShare] 场景贴纸发送失败（文字已发）：${error?.message ?? error}`);
     }
     if (typeof noteSelfSent === 'function') {

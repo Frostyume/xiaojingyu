@@ -11,6 +11,7 @@
 //   · 默认关闭（开源新功能默认关），开启后仍受审批闸约束，不会自动打扰。
 
 import { loadSceneStickers } from '../../services/media/scene-stickers.js';
+import { normalizeStickerStyle } from '../../services/media/pixel-stickers.js';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const LIFE_SHARE_DEFAULTS = Object.freeze({ enabled: false, minDays: 1, maxDays: 7 });
@@ -171,9 +172,9 @@ const GENERIC_TEMPLATES = Object.freeze([
   '忙完一阵，终于能歇口气了'
 ]);
 
-function sceneCatalog() {
+function sceneCatalog(style = 'pixel') {
   const map = new Map();
-  for (const s of loadSceneStickers()) {
+  for (const s of loadSceneStickers(style)) {
     if (!s || typeof s !== 'object' || !s.scene) continue;
     if (!map.has(s.scene)) map.set(s.scene, { scene: s.scene, label: s.label || s.scene, tags: Array.isArray(s.tags) ? s.tags : [] });
   }
@@ -184,7 +185,7 @@ function sceneCatalog() {
  * 按「当前时段 + 她的兴趣」加权挑一个场景，并回避最近用过的场景。
  * 近期全被排掉时放宽为全库，保证还能挑出东西。
  */
-export function pickLifeScene({ now = Date.now(), interests = [], recentScenes = [], rng = Math.random, catalog = sceneCatalog() } = {}) {
+export function pickLifeScene({ now = Date.now(), interests = [], recentScenes = [], rng = Math.random, style = 'pixel', catalog = sceneCatalog(style) } = {}) {
   const all = Array.isArray(catalog) ? catalog.filter((s) => s && s.scene) : [];
   if (!all.length) return null;
   const hour = new Date(Number(now)).getHours();
@@ -364,6 +365,7 @@ export function normalizePendingLifeShare(raw) {
   return {
     text,
     scene,
+    style: normalizeStickerStyle(raw.style),
     sceneLabel: String(raw.sceneLabel ?? '').slice(0, 20),
     sceneFile,
     target,
@@ -374,12 +376,13 @@ export function normalizePendingLifeShare(raw) {
 }
 
 /** 组装待审草稿（纯数据，不发送）。 */
-export function buildLifeShareDraft({ text, scene, sceneLabel = '', sceneFile = '', target, now = Date.now(), ttlMs = 2 * 3600 * 1000 }) {
+export function buildLifeShareDraft({ text, scene, style = 'pixel', sceneLabel = '', sceneFile = '', target, now = Date.now(), ttlMs = 2 * 3600 * 1000 }) {
   const normalizedText = normalizeLifeShareLine(text);
   if (!normalizedText || !scene || !normalizeLifeShareTarget(target)) return null;
   return {
     text: normalizedText,
     scene: String(scene),
+    style: normalizeStickerStyle(style),
     sceneLabel: String(sceneLabel || '').slice(0, 20),
     sceneFile: /^[A-Za-z0-9._-]+\.png$/.test(String(sceneFile)) ? String(sceneFile) : '',
     target: normalizeLifeShareTarget(target),

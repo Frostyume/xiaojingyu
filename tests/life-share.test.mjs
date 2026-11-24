@@ -20,9 +20,11 @@ import {
   normalizePendingLifeShare,
   lifeShareTextSimilar,
   LIFE_SCENE_TEMPLATES,
-  normalizeLifeShareLine
+  normalizeLifeShareLine,
+  buildLifeShareDraft
 } from '../runtime/persona/life-share.js';
 import { pickPixelSticker, mergeRecentPixelBases, normalizeRecentPixelBases } from '../services/media/pixel-stickers.js';
+import { ANIME_SCENE_STICKER_DIR, SCENE_STICKER_DIR, loadSceneStickers } from '../services/media/scene-stickers.js';
 import { createInnerLife } from '../services/persona/inner-life.js';
 
 test('red: 间隔落在 [minDays,maxDays] 天（旧逻辑没有这个作业，锚点先证明区间）', () => {
@@ -92,6 +94,17 @@ test('目标轮换：空间与白名单群轮流，跳过上一个目标', () =>
 });
 
 // ── inner-life 夹具：假 DSH 回合 + 内存发送记录 ──────────────────────────────
+test('生活分享草稿冻结风格：非法/缺失风格回退像素', () => {
+  const now = Date.now();
+  const base = { text: '晒了会儿太阳', scene: 'sunbathing', target: 'group:456', now };
+  assert.equal(buildLifeShareDraft({ ...base, style: 'anime' }).style, 'anime');
+  assert.equal(buildLifeShareDraft(base).style, 'pixel');
+  assert.equal(buildLifeShareDraft({ ...base, style: 'chibi' }).style, 'pixel');
+  const pending = normalizePendingLifeShare({ ...buildLifeShareDraft(base), expiresAt: now + 3600000 });
+  assert.equal(pending.style, 'pixel');
+  assert.equal(normalizePendingLifeShare({ ...pending, style: 'unknown' }).style, 'pixel');
+});
+
 function makeInner(tmp, { output = '', cfgExtra = {} } = {}) {
   let innerRef = null;
   let currentOutput = output;
@@ -137,7 +150,7 @@ function makeInner(tmp, { output = '', cfgExtra = {} } = {}) {
     log: () => {},
     sendToQQ: async (key, msg) => { groupSends.push({ key, msg: String(msg) }); },
     onebotSend: async (kind, id, msg) => { ownerMessages.push({ kind, id, msg: String(msg) }); return { message_id: 'm1' }; },
-    sendSceneSticker: async (key, text, opts) => { sceneSends.push({ key, text, scene: opts?.scene }); return true; },
+    sendSceneSticker: async (key, text, opts) => { sceneSends.push({ key, text, scene: opts?.scene, style: opts?.style }); return true; },
     lastSendSucceeded: () => true,
     getSimulationState: () => ({ recentMessages: [], unread: [], lastIncomingAt: 0 }),
     isSessionAllowedInCurrentMode: () => true,
@@ -200,6 +213,31 @@ test('生成后不自动发送：草稿含 text+scene+target，等主人这句�
     assert.match(notice, /测试群/, '目标要说清是哪个群');
     assert.equal(h.sceneSends[0]?.key, 'private:999', '贴纸先作为预览发给主人');
     assert.equal(h.sceneSends[0]?.scene, state.pendingLifeShare.scene);
+  } finally {
+    h.inner.stop();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('二次元草稿：预览与批准群发都使用生成时冻结的风格', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'life-share-anime-'));
+  const h = makeInner(tmp, { output: '晒了会儿太阳，整个人暖乎乎的' });
+  try {
+    h.cfg.simulation.sceneSticker.style = 'anime';
+    const result = await h.inner.runJob('lifeShare', { force: true });
+    assert.equal(result.status, 'pending-approval');
+    assert.equal(result.style, 'anime');
+    assert.ok(result.scene);
+    const pending = h.inner.getState().pendingLifeShare;
+    assert.equal(pending.style, 'anime');
+    assert.ok(pending.sceneFile.startsWith('anime-'));
+    assert.equal(h.sceneSends[0]?.style, 'anime');
+
+    h.cfg.simulation.sceneSticker.style = 'pixel';
+    await h.inner.handleOwnerCommand('发生活', { kind: 'private', isOwner: true });
+    const groupSticker = h.sceneSends.find((item) => item.key === 'group:456');
+    assert.equal(groupSticker?.style, 'anime', '批准时热切换不能串库');
+    assert.equal(h.groupSends.length, 1);
   } finally {
     h.inner.stop();
     fs.rmSync(tmp, { recursive: true, force: true });
@@ -332,6 +370,62 @@ test('批准目标为空间 → 发一条带场景配图的说说（网关只在
     h.inner.stop();
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test('二次元空间分享：配图使用草稿冻结风格的精确资产字节', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'life-share-qzone-anime-'));
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    calls.push({ url: String(url), body: JSON.parse(String(init.body ?? '{}')) });
+    return { ok: true, status: 200, text: async () => JSON.stringify({ status: 'ok', retcode: 0, data: { tid: '123456789' } }) };
+  };
+  const h = makeInner(tmp);
+  h.cfg.features.qzone = true;
+  h.cfg.simulation.innerLife.qzone.enabled = true;
+  try {
+    writePending(tmp, {
+      target: 'qzone', style: 'anime', sceneFile: 'anime-scene-sunbathing-01.png',
+      text: '晒了会儿太阳，整个人暖乎乎的'
+    });
+    h.cfg.simulation.sceneSticker.style = 'pixel';
+    assert.equal(await h.inner.handleOwnerCommand('发生活', { kind: 'private', isOwner: true }), true);
+    assert.equal(calls.length, 1);
+    const png = Buffer.from(calls[0].body.images[0].slice('base64://'.length), 'base64');
+    assert.ok(png.equals(fs.readFileSync(path.join(ANIME_SCENE_STICKER_DIR, 'anime-scene-sunbathing-01.png'))));
+  } finally {
+    globalThis.fetch = originalFetch;
+    h.inner.stop();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('空间配图白名单：跨库文件与路径穿越都不进入 images', async () => {
+  assert.ok(fs.existsSync(path.join(SCENE_STICKER_DIR, 'scene-sunbathing-01.png')));
+  assert.ok(loadSceneStickers('pixel').some((entry) => entry.file === 'scene-sunbathing-01.png'));
+  const originalFetch = globalThis.fetch;
+  try {
+    for (const sceneFile of ['scene-sunbathing-01.png', '../anime-scene-sunbathing-01.png', 'not-listed.png']) {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'life-share-qzone-safe-'));
+      const calls = [];
+      globalThis.fetch = async (url, init = {}) => {
+        calls.push({ url: String(url), body: JSON.parse(String(init.body ?? '{}')) });
+        return { ok: true, status: 200, text: async () => JSON.stringify({ status: 'ok', retcode: 0, data: { tid: '123456789' } }) };
+      };
+      const h = makeInner(tmp);
+      h.cfg.features.qzone = true;
+      h.cfg.simulation.innerLife.qzone.enabled = true;
+      try {
+        writePending(tmp, { target: 'qzone', style: 'anime', sceneFile });
+        assert.equal(await h.inner.handleOwnerCommand('发生活', { kind: 'private', isOwner: true }), true);
+        assert.equal(calls.length, 1);
+        assert.deepEqual(calls[0].body.images || [], [], `${sceneFile} 不得作为空间配图`);
+      } finally {
+        h.inner.stop();
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    }
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 test('控制台可见：配置/卡片/FIELD_META/控制台面板/实时页/审批接口都登记', () => {

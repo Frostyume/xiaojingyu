@@ -173,6 +173,7 @@
     "/api/social/flush",
     "/api/social/state",
     "/api/status",
+    "/api/sticker-library",
     "/api/stickers",
     "/api/stickers/note",
     "/api/stickers/remark",
@@ -201,6 +202,7 @@
     "/api/send/",
     "/api/simulation/",
     "/api/slang/batch-",
+    "/api/sticker-library/image/",
     "/api/stickers/",
     "/api/tokens/",
     "/live-assets/"

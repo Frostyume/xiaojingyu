@@ -1172,6 +1172,15 @@ html{scrollbar-width:thin;scrollbar-color:var(--line2) var(--bg)}
     }
     const libSig = c.library || {};
     addSignal('资源库', libSig.enabled === false ? '已关闭' : `${libSig.stickers ?? 0} 表情 / ${libSig.images ?? 0} 图片`, libSig.enabled === false ? '表情包体系已关闭' : '收藏表情与配图库');
+    const moodSt = data.pixelSticker || {};
+    const sceneSt = data.sceneSticker || {};
+    const stickerStyle = moodSt.style === 'anime' ? '二次元' : '像素';
+    const animeCount = moodSt.libraries?.anime?.count ?? 0;
+    const pixelCount = moodSt.libraries?.pixel?.count ?? moodSt.count ?? 0;
+    const sceneStyle = sceneSt.style === 'anime' ? '二次元' : '像素';
+    const sceneAnimeCount = sceneSt.libraries?.anime?.count ?? 0;
+    const scenePixelCount = sceneSt.libraries?.pixel?.count ?? sceneSt.count ?? 0;
+    addSignal('贴纸库', `回复 二次元 ${animeCount} / 像素 ${pixelCount} · ${stickerStyle}`, `当前${stickerStyle}心情贴纸随回复顶替表情包${moodSt.enabled === false ? '（关）' : ''} · 场景 二次元 ${sceneAnimeCount} / 像素 ${scenePixelCount} · ${sceneStyle}，只随主动分享、心情语音或出门见闻附图${sceneSt.enabled === false ? '（关）' : ''}`);
     const stq = c.stickerCollect || {};
     addSignal('表情补收', stq.enabled === false ? '已关闭' : `${Number(stq.pending) || 0} 条待补`, stq.enabled === false ? '队列保留，重新打开后继续补收' : '网络抖动没存上的表情会自动重试');
     const cc = c.crossChat || {};

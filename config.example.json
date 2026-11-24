@@ -256,12 +256,14 @@
     "pixelSticker": {
       "enabled": true,
       "afterText": true,
+      "style": "pixel",
       "minTextsSince": 1,
       "minGapMs": 600000,
       "turnWindowMs": 600000
     },
     "sceneSticker": {
-      "enabled": false
+      "enabled": false,
+      "style": "pixel"
     },
     "lifeShare": {
       "enabled": false,
