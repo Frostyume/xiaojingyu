@@ -36,8 +36,8 @@
     },
     {
       "path": "companion/bilibili-public.mjs",
-      "bytes": 11461,
-      "sha256": "7c74ec2e15c449e86e88f751e7dedaee1f0bcf558cee9132199dce9ce44273e7"
+      "bytes": 11570,
+      "sha256": "f678ed8f218b07af2ab2838861f133a52dc37cbca66bccf879ce612f12285e40"
     },
     {
       "path": "companion/bilibili-speech.mjs",
@@ -271,8 +271,13 @@
     },
     {
       "path": "companion/tieba-claw.mjs",
-      "bytes": 21362,
-      "sha256": "b302636218f359d55a4c93d85e8d10f46c3d4ad1741e793f1c37a4932d1e52fe"
+      "bytes": 26661,
+      "sha256": "edcc1ce99c39616f8321c1d5359ba17d1b8907521290c39d2da76e9348bd58eb"
+    },
+    {
+      "path": "companion/tieba-crosspage.mjs",
+      "bytes": 5310,
+      "sha256": "bfdfcd349c2fa4f814dbffd83bdde3e077cd72c6c7c1dd7d8cdeb13364e220b9"
     },
     {
       "path": "companion/tool-feedback.mjs",
@@ -921,8 +926,8 @@
     },
     {
       "path": "migration/xi-a3/upstream/runtime/kernel/outbox.js",
-      "bytes": 12156,
-      "sha256": "b390ee5217c0a6d778607a4bbaf45804718558594300670c875f342e59837371"
+      "bytes": 13982,
+      "sha256": "b7aab7587f87670985ce62f44b2358b21f1e707ac232eaeb5caf7a22bf2caa2a"
     },
     {
       "path": "migration/xi-a3/upstream/runtime/kernel/prompt-budget.js",
@@ -1281,8 +1286,8 @@
     },
     {
       "path": "migration/xi-a3/web-runtime/catalog.mjs",
-      "bytes": 17637,
-      "sha256": "9da4e12b123fb434165f6549077fe74152aa135300fbf791728ed45c3284d636"
+      "bytes": 17654,
+      "sha256": "58ee3f272ffb406fbc1429f56f98e3be14e06b27f125bdda183434270112169f"
     },
     {
       "path": "migration/xi-a3/web-runtime/parent-proxy.mjs",
@@ -1296,8 +1301,8 @@
     },
     {
       "path": "migration/xi-a3/web-runtime/server.mjs",
-      "bytes": 3675,
-      "sha256": "17a4ba328f2bafdf991c940f34ef74c0a47857880e34d8ae1668662cc8076971"
+      "bytes": 4063,
+      "sha256": "ee1f06836ebf0f346b0c0727bed7a3c10ecc4afcda8f087ae07f06915ef053a0"
     },
     {
       "path": "migration/xi-a3/web-runtime/stdio.mjs",

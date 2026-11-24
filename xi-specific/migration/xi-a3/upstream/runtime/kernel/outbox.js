@@ -117,14 +117,18 @@ export class Outbox {
     if (claimed.changes !== 1) return 'skipped';
 
     const attempt = item.attempts + 1;
+    let timer;
+    const timeout = new Error(`投递超时（${this.sendTimeoutMs}ms，${crypto.randomUUID()}）`);
+    const delivery = Promise.resolve().then(() => this.deliver(item.payload, { ...item, attempts: attempt }));
     try {
       const result = await Promise.race([
-        Promise.resolve().then(() => this.deliver(item.payload, { ...item, attempts: attempt })),
+        delivery,
         new Promise((_, reject) => {
-          const timer = setTimeout(() => reject(new Error(`投递超时（${this.sendTimeoutMs}ms）`)), this.sendTimeoutMs);
-          timer.unref?.();
+          timer = setTimeout(() => reject(timeout), this.sendTimeoutMs);
         })
       ]);
+      if (item.kind === 'inner-group-share' && (!Number.isSafeInteger(result?.message_id) || result.message_id === 0))
+        throw new Error('Group share transport did not return a valid message ID');
       const done = this.now();
       this.db.run(
         `UPDATE outbox SET state = 'sent', sent_at = ?, updated_at = ?, locked_until = NULL,
@@ -137,7 +141,7 @@ export class Outbox {
       const detail = String(error?.message ?? error).slice(0, 500);
       const done = this.now();
       // 业务性「稍后再试」（例如静默模式）：不消耗重试次数，按调用方给的间隔挂起。
-      if (error?.holdMs) {
+      if (error?.holdMs && !error.qqDeliveryUnknown) {
         const hold = Math.max(1000, Number(error.holdMs) || 60000);
         this.db.run(
           `UPDATE outbox SET state = 'pending', updated_at = ?, locked_until = NULL,
@@ -146,6 +150,29 @@ export class Outbox {
         );
         this.logger(`outbox 暂缓 #${id}（${item.key}），${Math.round(hold / 1000)}s 后再试：${detail}`);
         return 'retry';
+      }
+      if (error === timeout || error?.qqDeliveryUnknown || (item.kind === 'inner-group-share' && !error?.beforeWire)) {
+        // This is the first persisted outcome after an ambiguous send. There
+        // must never be an intermediate retryable row, even across a crash.
+        this.db.run(
+          `UPDATE outbox SET state='uncertain', updated_at=?, locked_until=NULL, next_attempt_at=NULL,
+           last_error=? WHERE id=? AND state='sending'`, done, detail, id
+        );
+        if (error === timeout) {
+          // A manual retry clears last_error. Its later attempt cannot inherit this receipt.
+          delivery.then(receipt => {
+            if (!Number.isSafeInteger(receipt?.message_id) || receipt.message_id === 0) return;
+            const sentAt = this.now();
+            const update = this.db.run(
+              `UPDATE outbox SET state='sent', sent_at=?, updated_at=?, result_json=?, last_error=NULL
+               WHERE id=? AND state='uncertain' AND attempts=? AND last_error=?`,
+              sentAt, sentAt, JSON.stringify(receipt), id, attempt, detail
+            );
+            if (update.changes === 1) this._terminal({ ...item, attempts:attempt, state:'sent', sentAt, result:receipt }, 'sent');
+          }, () => {}).catch(err => this.logger(`outbox 迟到回执未写入 #${id}: ${err.message}`));
+        }
+        this._terminal({ ...item, attempts:attempt, state:'uncertain', lastError:detail }, 'uncertain');
+        return 'uncertain';
       }
       if (attempt >= this.maxAttempts || error?.permanent) {
         this.db.run(
@@ -164,6 +191,8 @@ export class Outbox {
       );
       this.logger(`outbox 投递失败 #${id}（${item.key}，第 ${attempt}/${this.maxAttempts} 次），${Math.round(backoff / 1000)}s 后重试：${detail}`);
       return 'retry';
+    } finally {
+      clearTimeout(timer);
     }
   }
 

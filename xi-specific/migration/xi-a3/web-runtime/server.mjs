@@ -38,6 +38,12 @@ function schemaFor(schema) {
       value = z.number(); if (spec.type === 'integer') value = value.int();
       if (spec.minimum !== undefined) value = value.min(spec.minimum); if (spec.maximum !== undefined) value = value.max(spec.maximum);
     } else if (spec.type === 'boolean') value = z.boolean();
+    else if (spec.type === 'array' && spec.items?.type === 'integer' &&
+        spec.items.minimum === 1 && spec.items.maximum === 100 &&
+        spec.minItems === 1 && spec.maxItems === 4 && spec.uniqueItems === true) {
+      value = z.array(z.number().int().min(1).max(100)).min(1).max(4)
+        .refine(pages => new Set(pages).size === pages.length, 'Expected distinct pages');
+    }
     else throw new Error('WEB_PRIMITIVE_SCHEMA_DRIFT');
     if (spec.enum) value = value.refine(item => spec.enum.includes(item), 'Value is outside original allowed values');
     shape[name] = required.has(name) ? value : value.optional();

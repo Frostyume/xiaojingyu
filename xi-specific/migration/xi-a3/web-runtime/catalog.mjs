@@ -9,7 +9,7 @@ import { rememberQzoneRead, rememberQzonePublication } from '../../../companion/
 import { createBilibiliFrames } from './bilibili-frames.mjs';
 
 export const WEB_TOOL_NAMES = Object.freeze(['bilibili_status', 'bilibili_read', 'bilibili_search', 'bilibili_comments', 'bilibili_listen', 'bilibili_frames',
-  'tieba_status', 'tieba_list', 'tieba_thread', 'tieba_floor',
+  'tieba_status', 'tieba_list', 'tieba_thread', 'tieba_floor', 'tieba_replyme',
   'qzone_status', 'qzone_read', 'qzone_reconcile', 'qzone_draft', 'qzone_drafts', 'qzone_publish']);
 
 function error(code) { return Object.assign(new Error(code), { code }); }
