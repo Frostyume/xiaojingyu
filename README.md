@@ -11,7 +11,7 @@
 没有消息时她也在过自己的日子：读小说、攒见闻、定时反思，心情跟着真实时间慢慢起落。你要是私聊吐槽一句「不好用」，她会整理成带验收标准的开发提案，交给你自己的 agent 实现，你点头才合并。
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.6.0-5B8DEF?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-1.7.0-5B8DEF?style=flat-square">
   <img alt="node" src="https://img.shields.io/badge/Node.js-%E2%89%A5%2022.13-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat-square&logo=windows&logoColor=white">
   <img alt="dsh" src="https://img.shields.io/badge/DSH-0.2.0--rc.2-1B1F3B?style=flat-square">
@@ -70,7 +70,7 @@
 | 她一直在 | 进程守护、断线重连、队列补投 |
 
 > [!NOTE]
-> 当前版本 **v1.6.0**，逐项适配 **DSH 0.2.0-rc.2**（`npm run verify:adaptation`）。本版把她更像一个「有记忆、有生活的伙伴」往前推进一大步：能记住和你、和群友一起经历过的具体小事，并建立只读的人物志（默认关闭、数据仅本机、可一键清空）；能在你配置来源后，每天汇总论文、代码库动态、资讯、日程与周报（生活管家）；对记忆与心情的管理也更细（自然淡忘、事实失效不删、分层召回、久别重逢）。同时把心情语音、个性签名、像素/场景贴纸打磨得更自然、更多样。所有新能力默认关闭，需要时在控制台自行开启。
+> 当前版本 **v1.7.0**，逐项适配 **DSH 0.2.0-rc.2**（`npm run verify:adaptation`）。本版新增「生活分享」：她会按 1–7 天的随机节奏，选一个符合时段和兴趣的生活场景，写一句短话并配场景贴纸；每次发送前都会先把文案和目的地交给主人确认，默认关闭、不会自动外发。像素贴纸的节奏也独立于普通表情包，并会避开最近用过的底图，减少「几乎不发」和连续同款。
 > 首个稳定版 `v1.0.0` 于 2026-11-03 发布；上游 [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge)
 > 的 `v0.1.x` / `v0.2.x` 标签与本仓库无关。
 

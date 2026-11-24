@@ -11,7 +11,7 @@ Hundreds of messages scroll past each day, and most of the time she just watches
 When the room is quiet she lives a life of her own: reading novels, collecting sights, reflecting on a schedule, her mood drifting with real time. Complain in a DM that something is broken and she turns it into a proposal with acceptance criteria, handed to your own coding agent — nothing merges until you approve.
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.6.0-5B8DEF?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-1.7.0-5B8DEF?style=flat-square">
   <img alt="node" src="https://img.shields.io/badge/Node.js-%E2%89%A5%2022.13-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat-square&logo=windows&logoColor=white">
   <img alt="dsh" src="https://img.shields.io/badge/DSH-0.2.0--rc.2-1B1F3B?style=flat-square">
@@ -71,7 +71,7 @@ She keeps a schedule of her own, too — reflecting, browsing out of curiosity, 
 | She is always there | Process supervision, reconnects, queued replay |
 
 > [!NOTE]
-> Current version **v1.6.0**, verified item by item against **DSH 0.2.0-rc.2**. This release moves her a big step closer to a companion with real memory and a life of her own: she can remember concrete shared experiences with you and group friends and keep a read-only dossier on familiar people (off by default, local-only, one-click clearable); once you configure sources, she can summarize papers, code activity, feeds, calendar, and a weekly review each day (life butler); and her memory and mood are managed more finely (natural fading, invalidation without deletion, tiered recall, reunion). Her mood voice, signature, and pixel/scene sticker libraries are also polished to feel more natural and varied. All new capabilities are off by default — enable what you want in the console.
+> Current version **v1.7.0**, verified item by item against **DSH 0.2.0-rc.2**. This release adds life sharing: on a random 1–7 day cadence, she picks a scene that fits the time and her interests, writes one short line and pairs it with a scene sticker. Every send still needs owner approval of both text and destination; the feature is off by default and never posts automatically. Pixel sticker cadence is now independent of ordinary emoji sends and avoids recently used bases, reducing both missed stickers and repetition.
 > (`npm run verify:adaptation`). The first stable release, `v1.0.0`, shipped on 2026-11-03;
 > the `v0.1.x` / `v0.2.x` tags belong to upstream
 > [Derpyu520/qq-bridge](https://github.com/Derpyu520/qq-bridge) and are unrelated to this project.
