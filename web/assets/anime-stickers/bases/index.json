@@ -1,0 +1,212 @@
+[
+ {
+  "file": "whale-anime-aggrieved.png",
+  "slug": "aggrieved",
+  "mood": "aggrieved",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-angry.png",
+  "slug": "angry",
+  "mood": "angry",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-calm.png",
+  "slug": "calm",
+  "mood": "calm",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-cheer.png",
+  "slug": "cheer",
+  "mood": "excited",
+  "scene": "cheer",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-cry.png",
+  "slug": "cry",
+  "mood": "cry",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-daydream.png",
+  "slug": "daydream",
+  "mood": "idle",
+  "scene": "daydream",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-eating.png",
+  "slug": "eating",
+  "mood": "happy",
+  "scene": "eating",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-excited.png",
+  "slug": "excited",
+  "mood": "excited",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-gaming.png",
+  "slug": "gaming",
+  "mood": "excited",
+  "scene": "gaming",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-hug.png",
+  "slug": "hug",
+  "mood": "love",
+  "scene": "hug",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-idle.png",
+  "slug": "idle",
+  "mood": "idle",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-love.png",
+  "slug": "love",
+  "mood": "love",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-lying.png",
+  "slug": "lying",
+  "mood": "idle",
+  "scene": "lying",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-music.png",
+  "slug": "music",
+  "mood": "happy",
+  "scene": "music",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-peek.png",
+  "slug": "peek",
+  "mood": "surprised",
+  "scene": "peek",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-pout.png",
+  "slug": "pout",
+  "mood": "pout",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-reading.png",
+  "slug": "reading",
+  "mood": "idle",
+  "scene": "reading",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-sea.png",
+  "slug": "sea",
+  "mood": "calm",
+  "scene": "sea",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-shy.png",
+  "slug": "shy",
+  "mood": "shy",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-sit.png",
+  "slug": "sit",
+  "mood": "tired",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-slacking.png",
+  "slug": "slacking",
+  "mood": "idle",
+  "scene": "slacking",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-sleeping.png",
+  "slug": "sleeping",
+  "mood": "sleepy",
+  "scene": "sleeping",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-sleepy.png",
+  "slug": "sleepy",
+  "mood": "sleepy",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-smug.png",
+  "slug": "smug",
+  "mood": "smug",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-stretch.png",
+  "slug": "stretch",
+  "mood": "tired",
+  "scene": "stretch",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-surprised.png",
+  "slug": "surprised",
+  "mood": "surprised",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-sweat.png",
+  "slug": "sweat",
+  "mood": "awkward",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-tea.png",
+  "slug": "tea",
+  "mood": "calm",
+  "scene": "tea",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-wave.png",
+  "slug": "wave",
+  "mood": "happy",
+  "scene": "none",
+  "style": "anime"
+ },
+ {
+  "file": "whale-anime-writing.png",
+  "slug": "writing",
+  "mood": "idle",
+  "scene": "writing",
+  "style": "anime"
+ }
+]

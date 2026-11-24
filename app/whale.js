@@ -134,8 +134,8 @@ import { parseScheduleMatches, parseOfficialSchedule, mergeScheduleMatches, buil
 import { dayStatsFromAudit, decideBroadcast, pruneAuditLines, resultMatchKey, createSkipAuditThrottle } from '../services/social/broadcast-limits.js';
 import { webSearch } from '../services/social/web-search.js';
 import { isQVersionWhaleSticker } from '../services/media/vision.js';
-import { pickPixelSticker, pixelStickerCount, stickerTurnGate, STICKER_TURN_WINDOW_MS, normalizeRecentPixelBases, mergeRecentPixelBases } from '../services/media/pixel-stickers.js';
-import { inferSceneFromText, pickSceneSticker, sceneStickerCount, sceneStickerScenes } from '../services/media/scene-stickers.js';
+import { ANIME_STICKER_DIR, PIXEL_STICKER_DIR, STICKER_STYLES, loadReplyStickers, normalizeStickerStyle, pickReplySticker, replyStickerCount, replyStickerMoods, replyStickerScenes, stickerTurnGate, STICKER_TURN_WINDOW_MS, normalizeRecentPixelBases, mergeRecentPixelBases } from '../services/media/pixel-stickers.js';
+import { ANIME_SCENE_STICKER_DIR, SCENE_STICKER_DIR, inferSceneFromText, loadSceneStickers, pickSceneSticker, sceneStickerCount, sceneStickerScenes } from '../services/media/scene-stickers.js';
 import { normalizeLifeShareConfig } from '../runtime/persona/life-share.js';
 import { moodVoiceCadenceOk, MOOD_VOICE_DEFAULTS, MOOD_VOICE_MAX_CHARS, MOOD_VOICE_RECENT_LIMIT, MOOD_VOICE_TAIL_MAX_CHARS, normalizeMoodVoiceRecent, mergeMoodVoiceRecent, resolveMoodVoiceLine, pickMoodVoiceGroup, normalizeMoodVoiceGroups, moodVoiceTailDue, cleanMoodVoiceTail } from '../services/media/mood-voice-cadence.js';
 import { loadReminderStore, saveReminderStore, addReminder, listReminders, cancelReminder, dueReminders } from '../services/social/reminders.js';
@@ -1278,6 +1278,7 @@ function loadConfig() {
   cfg.simulation.pixelSticker = {
     enabled: true,
     afterText: true,
+    style: 'pixel',
     minTextsSince: 1,
     minGapMs: 10 * 60 * 1000,
     turnWindowMs: STICKER_TURN_WINDOW_MS,
@@ -1286,6 +1287,7 @@ function loadConfig() {
   // 场景贴纸：只随主动分享/心情语音/见闻按活动附图，不用于回复顶替表情包，也不进互斥计数。
   cfg.simulation.sceneSticker = {
     enabled: false,
+    style: 'pixel',
     ...(cfg.simulation?.sceneSticker ?? {})
   };
   // 生活分享（生活日常）：随机 1–7 天一次的一句话 + 场景贴纸；生成后先私聊主人审核，
@@ -5045,13 +5047,25 @@ async function main() {
         enabled: cfg.simulation?.pixelSticker?.enabled !== false,
         afterText: cfg.simulation?.pixelSticker?.afterText !== false,
         turnWindowMs: cfg.simulation?.pixelSticker?.turnWindowMs == null ? STICKER_TURN_WINDOW_MS : Number(cfg.simulation?.pixelSticker?.turnWindowMs),
-        count: pixelStickerCount(),
+        style: normalizeStickerStyle(cfg.simulation?.pixelSticker?.style),
+        count: replyStickerCount(normalizeStickerStyle(cfg.simulation?.pixelSticker?.style)),
+        scenes: replyStickerScenes(normalizeStickerStyle(cfg.simulation?.pixelSticker?.style)),
+        libraries: Object.fromEntries(STICKER_STYLES.map((style) => [style, {
+          count: replyStickerCount(style),
+          moods: replyStickerMoods(style),
+          scenes: replyStickerScenes(style)
+        }])),
         recentBases: [...pixelStickerRecentBases]
       },
       sceneSticker: {
         enabled: cfg.simulation?.sceneSticker?.enabled !== false,
-        count: sceneStickerCount(),
-        scenes: sceneStickerScenes()
+        style: normalizeStickerStyle(cfg.simulation?.sceneSticker?.style),
+        count: sceneStickerCount(normalizeStickerStyle(cfg.simulation?.sceneSticker?.style)),
+        scenes: sceneStickerScenes(normalizeStickerStyle(cfg.simulation?.sceneSticker?.style)),
+        libraries: Object.fromEntries(STICKER_STYLES.map((style) => [style, {
+          count: sceneStickerCount(style),
+          scenes: sceneStickerScenes(style)
+        }]))
       },
       moodVoice: {
         enabled: cfg.simulation?.moodVoice?.enabled !== false,
@@ -5551,7 +5565,8 @@ async function main() {
       const e = Number(s.energy ?? 0.6);
       mood = v >= 0.4 ? 'happy' : v <= -0.25 ? 'pout' : e <= 0.35 ? 'tired' : 'idle';
     } catch {}
-    const pick = pickPixelSticker(mood, Math.random, null, pixelStickerRecentBases);
+    const style = normalizeStickerStyle(pc.style);
+    const pick = pickReplySticker(mood, Math.random, null, pixelStickerRecentBases, style);
     if (!pick || !fs.existsSync(pick.path)) return;
     // 同步占坑：先登记再排队/await，排队期间表情包工具查闸即让路；失败回滚。
     const releasePixelClaim = claimStickerTurn(st, 'pixel');
@@ -5592,12 +5607,13 @@ async function main() {
 
   // 场景贴纸：主动分享/心情语音/见闻的附图。与回复贴纸体系完全分开——不查互斥闸、
   // 不记 lastPixelStickerAt/lastMemeStickerAt，分享节奏已由分享引擎/见闻配额约束。
-  async function sendSceneStickerToKey(key, text, { scene = null } = {}) {
+  async function sendSceneStickerToKey(key, text, { scene = null, style = null } = {}) {
     const sc = cfg.simulation?.sceneSticker ?? {};
     if (sc.enabled === false || !key) return false;
-    const want = scene || inferSceneFromText(text);
+    const resolvedStyle = style == null ? normalizeStickerStyle(sc.style) : normalizeStickerStyle(style);
+    const want = scene || inferSceneFromText(text, Math.random, resolvedStyle);
     if (!want) return false;
-    const pick = pickSceneSticker(want);
+    const pick = pickSceneSticker(want, Math.random, resolvedStyle);
     if (!pick || !fs.existsSync(pick.path)) return false;
     try {
       const buffer = fs.readFileSync(pick.path);
@@ -8178,6 +8194,10 @@ async function main() {
         res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', ...SECURITY_HEADERS });
         res.end(JSON.stringify(obj, null, 2));
       };
+      const sendStickerLibraryJson = (obj, status = 200) => {
+        res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', ...SECURITY_HEADERS, 'Cache-Control': 'private, no-store' });
+        res.end(JSON.stringify(obj, null, 2));
+      };
       const readBody = () => new Promise((resolve, reject) => {
         const MAX_BODY_BYTES = 1_000_000;
         const chunks = [];
@@ -8293,7 +8313,7 @@ async function main() {
         if (req.method === 'GET' && url.pathname === '/') {
           res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS });
           try {
-            res.end(fs.readFileSync(path.join(ROOT, 'public', 'console.html'), 'utf8'));
+            res.end(fs.readFileSync(path.join(ROOT, 'web', 'deck.html'), 'utf8'));
           } catch {
             res.end('控制台页面缺失：web/deck.html');
           }
@@ -13105,6 +13125,67 @@ async function main() {
           imageEntries[idx] = next;
           saveImageStoreSafe();
           sendJson({ ok: true, image: { id: next.id, name: next.name, note: next.note, tags: next.tags } });
+          return;
+        }
+        if (req.method === 'GET' && url.pathname === '/api/sticker-library') {
+          const moodLibrary = (style) => ({
+            style,
+            count: replyStickerCount(style),
+            moods: replyStickerMoods(style),
+            scenes: replyStickerScenes(style),
+            stickers: loadReplyStickers(style).map((s) => ({ file: s.file, mood: s.mood, scene: s.scene, style: s.style }))
+          });
+          const sceneLibrary = (style) => ({
+            style,
+            count: sceneStickerCount(style),
+            scenes: sceneStickerScenes(style),
+            stickers: loadSceneStickers(style).map((s) => ({ file: s.file, scene: s.scene, label: s.label || s.scene, style: s.style }))
+          });
+          sendStickerLibraryJson({
+            ok: true,
+            mood: moodLibrary('pixel'),
+            pixel: moodLibrary('pixel'),
+            anime: moodLibrary('anime'),
+            scene: sceneLibrary('pixel'),
+            scenePixel: sceneLibrary('pixel'),
+            sceneAnime: sceneLibrary('anime')
+          });
+          return;
+        }
+        if (req.method === 'GET' && url.pathname.startsWith('/api/sticker-library/image/')) {
+          const notFound = () => { sendStickerLibraryJson({ ok: false, error: '未知贴纸' }, 404); };
+          let parts;
+          try {
+            parts = decodeURIComponent(url.pathname.slice('/api/sticker-library/image/'.length)).split('/');
+          } catch { notFound(); return; }
+          const kind = parts.shift() || '';
+          let style = 'pixel';
+          if ((kind === 'mood' || kind === 'scene') && parts.length >= 2) {
+            style = parts.shift();
+            if (!STICKER_STYLES.includes(style)) { notFound(); return; }
+          }
+          const file = parts.join('/');
+          if (!/^[A-Za-z0-9._-]+\.png$/.test(file)) { notFound(); return; }
+          const entries = kind === 'mood'
+            ? loadReplyStickers(style)
+            : kind === 'scene' ? loadSceneStickers(style) : [];
+          if (!entries.some((entry) => entry.file === file)) { notFound(); return; }
+          const dir = kind === 'mood'
+            ? style === 'anime' ? ANIME_STICKER_DIR : PIXEL_STICKER_DIR
+            : style === 'anime' ? ANIME_SCENE_STICKER_DIR : SCENE_STICKER_DIR;
+          try {
+            const realDir = fs.realpathSync(dir);
+            const realFile = fs.realpathSync(path.join(dir, file));
+            if (path.dirname(realFile) !== realDir) { notFound(); return; }
+            const buffer = fs.readFileSync(realFile);
+            res.writeHead(200, {
+              'content-type': 'image/png',
+              'content-length': buffer.length,
+              ...CONSOLE_SECURITY_HEADERS,
+              'Cache-Control': 'private, no-store'
+            });
+            res.end(buffer);
+          } catch { notFound(); }
           return;
         }
         if (req.method === 'GET' && url.pathname === '/api/library/images') {

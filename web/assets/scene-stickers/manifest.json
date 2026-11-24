@@ -1,9 +1,11 @@
 {
  "version": 3,
  "kind": "scene",
+ "style": "pixel",
  "count": 60,
  "stickers": [
   {
+   "style": "pixel",
    "file": "scene-bath-01.png",
    "scene": "bath",
    "label": "洗澡",
@@ -15,6 +17,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-beach-01.png",
    "scene": "beach",
    "label": "沙滩",
@@ -26,6 +29,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-bored-01.png",
    "scene": "bored",
    "label": "无聊",
@@ -37,6 +41,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-bus-01.png",
    "scene": "bus",
    "label": "通勤",
@@ -49,6 +54,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-cafe-01.png",
    "scene": "cafe",
    "label": "咖啡馆",
@@ -60,6 +66,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-camping-01.png",
    "scene": "camping",
    "label": "露营",
@@ -71,6 +78,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-cat-01.png",
    "scene": "cat",
    "label": "撸猫",
@@ -83,6 +91,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-cleaning-01.png",
    "scene": "cleaning",
    "label": "打扫",
@@ -94,6 +103,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-coding-01.png",
    "scene": "coding",
    "label": "写代码",
@@ -106,6 +116,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-coffee-01.png",
    "scene": "coffee",
    "label": "咖啡",
@@ -117,6 +128,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-cooking-01.png",
    "scene": "cooking",
    "label": "做饭",
@@ -130,6 +142,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-cycling-01.png",
    "scene": "cycling",
    "label": "骑车",
@@ -141,6 +154,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-daydream-01.png",
    "scene": "daydream",
    "label": "发呆",
@@ -152,6 +166,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-diary-01.png",
    "scene": "diary",
    "label": "写日记",
@@ -163,6 +178,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-dishes-01.png",
    "scene": "dishes",
    "label": "洗碗",
@@ -173,6 +189,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-drawing-01.png",
    "scene": "drawing",
    "label": "画画",
@@ -184,6 +201,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-eating-01.png",
    "scene": "eating",
    "label": "吃饭",
@@ -197,6 +215,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-excited-01.png",
    "scene": "excited",
    "label": "兴奋",
@@ -209,6 +228,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-fishing-01.png",
    "scene": "fishing",
    "label": "钓鱼",
@@ -219,6 +239,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-gaming-01.png",
    "scene": "gaming",
    "label": "打游戏",
@@ -232,6 +253,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-gardening-01.png",
    "scene": "gardening",
    "label": "园艺",
@@ -244,6 +266,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-hotpot-01.png",
    "scene": "hotpot",
    "label": "火锅",
@@ -255,6 +278,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-hug-01.png",
    "scene": "hug",
    "label": "抱抱",
@@ -266,6 +290,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-kite-01.png",
    "scene": "kite",
    "label": "放风筝",
@@ -275,6 +300,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-laundry-01.png",
    "scene": "laundry",
    "label": "晾衣",
@@ -286,6 +312,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-library-01.png",
    "scene": "library",
    "label": "图书馆",
@@ -296,6 +323,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-milktea-01.png",
    "scene": "milktea",
    "label": "奶茶",
@@ -307,6 +335,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-movie-01.png",
    "scene": "movie",
    "label": "看电影",
@@ -318,6 +347,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-music-01.png",
    "scene": "music",
    "label": "听歌",
@@ -329,6 +359,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-nap-01.png",
    "scene": "nap",
    "label": "午睡",
@@ -341,6 +372,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-park-01.png",
    "scene": "park",
    "label": "公园",
@@ -351,6 +383,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-phone-01.png",
    "scene": "phone",
    "label": "玩手机",
@@ -362,6 +395,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-photo-01.png",
    "scene": "photo",
    "label": "拍照",
@@ -373,6 +407,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-picnic-01.png",
    "scene": "picnic",
    "label": "野餐",
@@ -383,6 +418,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-rain-01.png",
    "scene": "rain",
    "label": "听雨",
@@ -394,6 +430,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-reading-01.png",
    "scene": "reading",
    "label": "读书",
@@ -407,6 +444,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-reading-02.png",
    "scene": "reading",
    "label": "读书",
@@ -420,6 +458,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-reading-03.png",
    "scene": "reading",
    "label": "读书",
@@ -433,6 +472,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-running-01.png",
    "scene": "running",
    "label": "跑步",
@@ -444,6 +484,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-sea-01.png",
    "scene": "sea",
    "label": "看海",
@@ -455,6 +496,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-shopping-01.png",
    "scene": "shopping",
    "label": "购物",
@@ -467,6 +509,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-sick-01.png",
    "scene": "sick",
    "label": "生病",
@@ -479,6 +522,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-slacking-01.png",
    "scene": "slacking",
    "label": "摸鱼",
@@ -490,6 +534,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-sleeping-01.png",
    "scene": "sleeping",
    "label": "睡觉",
@@ -502,6 +547,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-snack-01.png",
    "scene": "snack",
    "label": "零食",
@@ -513,6 +559,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-snowman-01.png",
    "scene": "snowman",
    "label": "堆雪人",
@@ -524,6 +571,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-stars-01.png",
    "scene": "stars",
    "label": "星空",
@@ -536,6 +584,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-studying-01.png",
    "scene": "studying",
    "label": "学习",
@@ -548,6 +597,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-sunbathing-01.png",
    "scene": "sunbathing",
    "label": "晒太阳",
@@ -559,6 +609,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-swimming-01.png",
    "scene": "swimming",
    "label": "游泳",
@@ -569,6 +620,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-tea-01.png",
    "scene": "tea",
    "label": "喝茶",
@@ -580,6 +632,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-tired-01.png",
    "scene": "tired",
    "label": "累",
@@ -592,6 +645,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-travel-01.png",
    "scene": "travel",
    "label": "旅行",
@@ -604,6 +658,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-video-01.png",
    "scene": "video",
    "label": "看视频",
@@ -618,6 +673,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-video-02.png",
    "scene": "video",
    "label": "看视频",
@@ -632,6 +688,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-video-03.png",
    "scene": "video",
    "label": "看视频",
@@ -646,6 +703,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-waking-01.png",
    "scene": "waking",
    "label": "起床",
@@ -657,6 +715,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-walking-01.png",
    "scene": "walking",
    "label": "散步",
@@ -668,6 +727,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-wave-01.png",
    "scene": "wave",
    "label": "挥手",
@@ -680,6 +740,7 @@
    ]
   },
   {
+   "style": "pixel",
    "file": "scene-yoga-01.png",
    "scene": "yoga",
    "label": "运动",

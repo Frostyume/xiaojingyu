@@ -16,6 +16,8 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LIVE_ASSET_NAMES } from '../console/policy.js';
+import { replyStickerCount, replyStickerScenes } from '../services/media/pixel-stickers.js';
+import { sceneStickerCount, sceneStickerScenes } from '../services/media/scene-stickers.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(here, '..');
@@ -108,6 +110,24 @@ function makeLiveFixture(now = Date.now()) {
     },
     usage: { tokens: 1234567, cost: 12.34, input: 900000, output: 334567, turns: 210, estimated: false },
     libraries: { stickers: 8, images: 3, slangTotal: 12, slangConfirmed: 5, voices: 2, qzonePosts: 4 },
+    pixelSticker: {
+      enabled: true,
+      style: 'pixel',
+      count: replyStickerCount('pixel'),
+      scenes: replyStickerScenes('pixel'),
+      libraries: Object.fromEntries(['pixel', 'anime'].map((style) => [style, {
+        count: replyStickerCount(style), scenes: replyStickerScenes(style)
+      }]))
+    },
+    sceneSticker: {
+      enabled: false,
+      style: 'pixel',
+      count: sceneStickerCount('pixel'),
+      scenes: sceneStickerScenes('pixel'),
+      libraries: Object.fromEntries(['pixel', 'anime'].map((style) => [style, {
+        count: sceneStickerCount(style), scenes: sceneStickerScenes(style)
+      }]))
+    },
     content: {
       signature: { enabled: true, lastText: '海底的风暴也会过去', minIntervalHours: 12, maxIntervalHours: 48, nextAt: now + 3600000 },
       voiceStyle: { effective: 'soft', mode: 'auto', valence: 0.42, transport: { mode: 'opus', bitrate: '32k', normalize: true, loudness: 'normal' } },
@@ -253,6 +273,12 @@ try {
     assert.ok(r.min >= 12, `最小字号 ${r.min}px @ ${r.minEl}`);
     assert.equal(r.body, 14, '基础字号 14px');
     assert.ok(r.speech >= 14, '气泡正文 ≥14px');
+  });
+
+  await check('手机：贴纸库信号显示当前风格与双库数量', async () => {
+    const text = await mp.locator('#signals .row').filter({ hasText: '贴纸库' }).textContent();
+    assert.match(text, /回复 二次元 120 \/ 像素 120 · 像素/);
+    assert.match(text, /场景 二次元 60 \/ 像素 60 · 像素/);
   });
 
   await check('手机：优先面板展开、次要面板默认折叠且数据仍在 DOM', async () => {
