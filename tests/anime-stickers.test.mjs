@@ -651,7 +651,10 @@ test('console/live/package 接线：四库分区、显式 style、顶层快照�
   assert.match(fixture, /scenePixel:\s*sceneLibrary\('pixel'\)/);
   assert.match(fixture, /sceneAnime:\s*sceneLibrary\('anime'\)/);
   const pkg = readJson('package.json');
-  assert.equal(pkg.version, '1.7.0');
+  const lock = readJson('package-lock.json');
+  assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(lock.version, pkg.version);
+  assert.equal(lock.packages[''].version, pkg.version);
   assert.equal(pkg.scripts['test:anime-stickers'], 'node tests/anime-stickers.test.mjs');
   assert.match(pkg.scripts.verify, /npm run test:anime-stickers/);
 });
