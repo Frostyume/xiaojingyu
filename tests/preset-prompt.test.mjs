@@ -63,6 +63,8 @@ test('抽出的是 YAML 解析后的真实字符串（折叠标量已展开）',
     assert.ok(originalPrefix.includes(marker), `内置提示词应包含安全基线段落：${marker}`);
   }
   assert.ok(originalPrefix.includes('{{model}}'), '应保留模板变量');
+  assert.match(originalPrefix, /普通聊天默认用 qq_send_sticker 发原生 QQ 收藏表情/);
+  assert.match(originalPrefix, /自定义心情\/场景贴纸只由系统/);
 });
 
 test('原样写回是幂等的，且不改变提示词语义', () => {

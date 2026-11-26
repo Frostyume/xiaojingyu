@@ -119,11 +119,13 @@ const CARD_LIST = [
     id: 'chatPixelSticker',
     board: 'chat',
     configKey: 'simulation.pixelSticker.enabled',
+    enabledValue: true,
+    disabledValue: false,
     label: '心情贴纸（像素/二次元）',
     keywords: '像素 二次元 贴纸 pixel anime sticker 心情 透明',
-    description: '说完一句话顺手丢一张自己的透明心情贴纸，按心情挑图；节奏独立于表情包，同回合仍只发一种。',
-    onEffect: '文字回复后按节奏补一张保持人设的透明心情贴纸（原色、无挂饰），不刷屏；同一回合内与表情包互斥，只发一种。',
-    offEffect: '不再自动丢心情贴纸；文字与表情包不受影响。',
+    description: '默认关闭的实验功能；普通聊天优先发原生 QQ 收藏表情，不自动追加透明心情贴纸。',
+    onEffect: '显式开启后，文字回复才按节奏补一张保持人设的透明心情贴纸（原色、无挂饰），不刷屏；同一回合内与表情包互斥，只发一种。',
+    offEffect: '不自动丢心情贴纸；普通聊天继续优先用原生 QQ 表情包，文字与表情包不受影响。',
     dangerousOff: false,
     dependencies: [
       dep('simulation.enabled', '群聊剧场总闸', { enableValue: true })

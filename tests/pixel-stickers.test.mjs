@@ -9,6 +9,8 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { loadPixelStickers, pixelStickerCount, pickPixelSticker, pixelStickerMoods, stickerTurnGate, STICKER_TURN_WINDOW_MS, assertOnModelEntry } from '../services/media/pixel-stickers.js';
 import { moodVoiceCadenceOk, MOOD_VOICE_DEFAULTS } from '../services/media/mood-voice-cadence.js';
+import { buildConfigSchema } from '../runtime/kernel/config-schema.js';
+import { cardEnabled, cardFor } from '../runtime/control/feature-control.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ASSETS = path.join(ROOT, 'web', 'assets');
@@ -113,7 +115,17 @@ test('moodVoiceCadenceOk：不是每天一条也不是天天一堆（每日上�
 test('console 同步：配置/卡片/FIELD_META/快照键都登记', () => {
   const example = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.example.json'), 'utf8'));
   assert.ok(example.simulation.pixelSticker && example.simulation.moodVoice, 'example 应有两功能默认');
+  assert.equal(example.simulation.pixelSticker.enabled, false, '回复贴纸默认关闭');
   assert.equal(example.simulation.pixelSticker.turnWindowMs, 600000, 'example 应暴露同回合互斥窗口');
+  const enabledField = buildConfigSchema({
+    ...example,
+    simulation: { ...example.simulation, pixelSticker: { ...example.simulation.pixelSticker, enabled: true } }
+  }).fields.find((field) => field.key === 'simulation.pixelSticker.enabled');
+  assert.equal(enabledField.default, false, 'FIELD_META 应固定回复贴纸默认值，不能被当前配置覆盖');
+  const generated = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.schema.json'), 'utf8'));
+  assert.equal(generated.properties.simulation.properties.pixelSticker.properties.enabled.default, false, '生成 schema 应记录默认关闭');
+  assert.equal(cardEnabled(cardFor('chatPixelSticker'), {}), false, '功能卡缺省关闭');
+  assert.equal(cardEnabled(cardFor('chatPixelSticker'), { simulation: { pixelSticker: { enabled: true } } }), true);
   assert.ok(example.simulation.sceneSticker, 'example 应有场景贴纸默认');
   assert.equal(example.simulation.moodVoice.llm, true, 'example 应暴露心情语音 llm 开关');
   assert.equal(example.simulation.moodVoice.tailChance, 0.6, 'example 应暴露续句概率');

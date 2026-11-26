@@ -73,7 +73,7 @@ test('pick：只挑指定场景，未知场景不回退全库', () => {
 });
 
 test('场景附图：主动分享文本命中 → 发一张场景图；不登记回复互斥时间戳', async () => {
-  const h = await bridgeHarness({ config: { simulation: { sceneSticker: { enabled: true }, pixelSticker: { minTextsSince: 1, minGapMs: 60000 } } } });
+  const h = await bridgeHarness({ config: { simulation: { sceneSticker: { enabled: true }, pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000 } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -94,6 +94,7 @@ test('red: 场景附图不受回复互斥闸限制（表情包在本回合也不
   const h = await bridgeHarness({ config: { simulation: { sceneSticker: { enabled: true } } } });
   try {
     h.setMode('simulation');
+    assert.equal(h.cfg.simulation.pixelSticker.enabled, false, '纯场景贴纸测试不依赖回复贴纸开启');
     const st = h.getSimulationState('group:456');
     h.noteStickerSent(st, 'meme');
     const ok = await h.sendSceneStickerToKey('group:456', '晚上开黑打游戏');
@@ -118,7 +119,7 @@ test('red: 无匹配词/开关关闭 → 不附场景图', async () => {
 });
 
 test('red: 回复链路只出像素贴纸，绝不出场景图（场景不顶替表情包）', async () => {
-  const h = await bridgeHarness({ config: { simulation: { sceneSticker: { enabled: true }, pixelSticker: { minTextsSince: 1, minGapMs: 60000 } } } });
+  const h = await bridgeHarness({ config: { simulation: { sceneSticker: { enabled: true }, pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000 } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');

@@ -2877,8 +2877,8 @@
             "enabled": {
               "title": "心情贴纸（像素/二次元）",
               "type": "boolean",
-              "default": true,
-              "description": "文字回复后按节奏丢一张透明心情贴纸；计数/间隔独立于表情包，同回合仍只发一种"
+              "default": false,
+              "description": "实验功能，默认关闭；显式开启后文字回复才按节奏丢透明心情贴纸，计数/间隔独立于表情包，同回合仍只发一种"
             },
             "minGapMs": {
               "title": "两张最小间隔（ms）",

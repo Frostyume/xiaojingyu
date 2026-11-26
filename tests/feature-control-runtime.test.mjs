@@ -106,6 +106,15 @@ try {
     assert.equal(module.dependencies.every((d) => d.ok === true), true, `${module.id} 依赖应就绪`);
   }
   assert.equal(snap.json.modules.find((m) => m.id === 'qzone').enabled, true);
+  assert.equal(snap.json.modules.find((m) => m.id === 'chatPixelSticker').enabled, false, '回复贴纸功能卡默认关闭');
+  const pixelOn = await call('/api/features/control', { method: 'POST', body: { id: 'chatPixelSticker', enabled: true } });
+  assert.equal(pixelOn.json.ok, true);
+  assert.ok(pixelOn.json.applied.includes('simulation.pixelSticker.enabled'));
+  assert.equal(h.cfg.simulation.enabled, true, '开启子卡片应自动补齐群聊剧场总闸');
+  assert.equal(h.cfg.simulation.pixelSticker.enabled, true);
+  const pixelOff = await call('/api/features/control', { method: 'POST', body: { id: 'chatPixelSticker', enabled: false } });
+  assert.equal(pixelOff.json.ok, true);
+  assert.equal(h.cfg.simulation.pixelSticker.enabled, false);
   const lanModule = snap.json.modules.find((m) => m.id === 'consoleLanAccess');
   assert.ok(lanModule, '局域网访问卡片必须出现在功能快照里');
   assert.equal(lanModule.enabled, false, '局域网访问默认关');

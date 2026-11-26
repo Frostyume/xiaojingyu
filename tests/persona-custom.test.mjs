@@ -82,6 +82,8 @@ test('自定义角色的唤醒 prompt 不含小鲸鱼内核，但含完整角色
     assert.doesNotMatch(prompt, /人格内核/, '不得注入写死的人格内核');
     assert.doesNotMatch(prompt, /只发像小鲸鱼的东西/, '非文字表达规则不得绑定小鲸鱼');
     assert.match(prompt, /只发符合当前角色设定/, '非文字表达要换成角色中性规则');
+    assert.match(prompt, /qq_send_sticker 发原生 QQ 收藏表情/, '普通聊天应优先原生收藏表情');
+    assert.match(prompt, /自定义心情\/场景贴纸只由系统/, '自定义贴纸只走系统特殊场景');
     assert.doesNotMatch(prompt, /默认温度是软|先软后硬/, '不得残留默认人格的语气规则');
   });
 });

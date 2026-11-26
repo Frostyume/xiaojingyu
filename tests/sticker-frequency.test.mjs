@@ -21,14 +21,29 @@ function pixelSends(h) {
 test('默认降档：minTextsSince=1、minGapMs=10min（仍可配置覆盖）', async () => {
   const h = await bridgeHarness({});
   try {
+    assert.equal(h.cfg.simulation.pixelSticker.enabled, false);
     assert.equal(h.cfg.simulation.pixelSticker.minTextsSince, 1);
     assert.equal(h.cfg.simulation.pixelSticker.minGapMs, 10 * 60 * 1000);
   } finally { await h.close(); }
-  const o = await bridgeHarness({ config: { simulation: { pixelSticker: { minTextsSince: 3, minGapMs: 1800000 } } } });
+  const o = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true, minTextsSince: 3, minGapMs: 1800000 } } } });
   try {
     assert.equal(o.cfg.simulation.pixelSticker.minTextsSince, 3, '配置覆盖必须生效');
     assert.equal(o.cfg.simulation.pixelSticker.minGapMs, 1800000);
   } finally { await o.close(); }
+});
+
+test('默认关闭：达到节奏条件也不发图、不占互斥时间戳', async () => {
+  const h = await bridgeHarness({});
+  try {
+    h.setMode('simulation');
+    const st = h.getSimulationState('group:456');
+    st.textSendsSinceSticker = 10;
+    st.lastPixelStickerAt = 0;
+    await h.maybeSendPixelSticker(st, 'group:456');
+    assert.equal(pixelSends(h).length, 0, '默认关闭不得自动追加回复贴纸');
+    assert.equal(st.lastPixelStickerAt, 0, '默认关闭不得占互斥时间戳');
+    assert.equal(st.textSendsSinceSticker, 10, '默认关闭不得消耗像素节奏计数');
+  } finally { await h.close(); }
 });
 
 test('red: 表情包发送不清零像素计数；像素发送才清零（旧码两者都清 → 红）', async () => {
@@ -59,7 +74,7 @@ test('文字发送递增像素计数：没发表情包的文字回合也能攒�
 });
 
 test('red: 表情包之后的纯文字回合能触发像素贴纸（旧码计数被清+门槛2 → 红）', async () => {
-  const h = await bridgeHarness({});
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -75,7 +90,7 @@ test('red: 表情包之后的纯文字回合能触发像素贴纸（旧码计数
 });
 
 test('red: 像素间隔只看上一张像素，不被表情包的时间戳饿死（旧码看 lastStickerAt → 红）', async () => {
-  const h = await bridgeHarness({});
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -91,7 +106,7 @@ test('red: 像素间隔只看上一张像素，不被表情包的时间戳饿死
 });
 
 test('像素自己的间隔仍然生效：上一张像素太近就不发', async () => {
-  const h = await bridgeHarness({});
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -103,7 +118,7 @@ test('像素自己的间隔仍然生效：上一张像素太近就不发', async
 });
 
 test('多次触发轮换不同变体：不是一张图发到死', async () => {
-  const h = await bridgeHarness({});
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -121,7 +136,7 @@ test('多次触发轮换不同变体：不是一张图发到死', async () => {
 });
 
 test('同回合不双发保留：像素先发后表情包闸不放行（allowMeme=false）', async () => {
-  const h = await bridgeHarness({});
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true } } } });
   try {
     const st = h.getSimulationState('group:456');
     h.noteStickerSent(st, 'pixel');

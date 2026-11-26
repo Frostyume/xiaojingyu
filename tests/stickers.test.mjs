@@ -82,6 +82,8 @@ console.log('## sticker-lib 纯函数');
   ok(diverse.includes('冷门没发过'), '冷门表情进入候选');
   ok(buildStickerStrategyHint().includes('30 分钟内发过'), '策略提示说明近期表情冷却');
   ok(buildStickerStrategyHint().includes('qq_send_sticker'), '策略提示包含发送工具');
+  ok(buildStickerStrategyHint().includes('普通聊天默认用 qq_send_sticker 发原生 QQ 收藏表情'), '策略提示默认优先原生收藏表情');
+  ok(buildStickerStrategyHint().includes('自定义心情/场景贴纸只由系统'), '策略提示划清自定义贴纸边界');
 }
 
 {

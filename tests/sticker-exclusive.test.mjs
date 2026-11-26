@@ -17,7 +17,7 @@ function pixelSends(h) {
 }
 
 test('基线：本回合没发过任何贴纸 → 像素贴纸按节奏发出', async () => {
-  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { minTextsSince: 1, minGapMs: 60000 } } } });
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000 } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -31,7 +31,7 @@ test('基线：本回合没发过任何贴纸 → 像素贴纸按节奏发出', 
 });
 
 test('red: 本回合已发表情包 → 像素贴纸跳过（旧码无闸会同发）', async () => {
-  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { minTextsSince: 1, minGapMs: 60000 } } } });
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000 } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -44,7 +44,7 @@ test('red: 本回合已发表情包 → 像素贴纸跳过（旧码无闸会同�
 });
 
 test('反证：turnWindowMs=0（等价旧码）同一场景两者同发 → 证明上条断言非空转', async () => {
-  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { minTextsSince: 1, minGapMs: 60000, turnWindowMs: 0 } } } });
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000, turnWindowMs: 0 } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -57,7 +57,7 @@ test('反证：turnWindowMs=0（等价旧码）同一场景两者同发 → 证�
 });
 
 test('red: 排队竞态——像素贴纸在途时表情包落地 → 发出前复查放弃像素', async () => {
-  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { minTextsSince: 1, minGapMs: 60000 } } } });
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000 } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -71,7 +71,7 @@ test('red: 排队竞态——像素贴纸在途时表情包落地 → 发出前�
 });
 
 test('red: 同回合双像素钩子只发一张（旧码两张都发）', async () => {
-  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { minTextsSince: 1, minGapMs: 60000 } } } });
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000 } } } });
   try {
     h.setMode('simulation');
     const st = h.getSimulationState('group:456');
@@ -87,7 +87,7 @@ test('red: 同回合双像素钩子只发一张（旧码两张都发）', async 
 
 test('red: 本回合已丢像素贴纸 → agent 的 qq_send_sticker 工具被 409 拦下', async () => {
   const h = await bridgeHarness({
-    config: { consoleAuth: { enabled: false }, simulation: { pixelSticker: { minTextsSince: 1, minGapMs: 60000 } } },
+    config: { consoleAuth: { enabled: false }, simulation: { pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000 } } },
     files: { 'state/stickers.json': [{ id: 'fixture-meme', desc: '夹具表情', source: 'qq', url: 'https://public.invalid/meme.png' }] }
   });
   let server = null;
@@ -114,9 +114,53 @@ test('red: 本回合已丢像素贴纸 → agent 的 qq_send_sticker 工具被 4
   }
 });
 
+test('默认关闭：普通文字回合后 agent 原生表情包不再被自动贴纸 409', async () => {
+  const h = await bridgeHarness({
+    config: { consoleAuth: { enabled: false } },
+    globals: { safeFetchBuffer: async () => ({ buffer: Buffer.from('fixture-native-sticker') }) }
+  });
+  let server = null;
+  try {
+    h.setMode('simulation');
+    const st = h.getSimulationState('group:456');
+    assert.equal(h.cfg.simulation.pixelSticker.enabled, false);
+    server = h.startConsoleServer();
+    if (!server.listening) await new Promise((resolve) => server.once('listening', resolve));
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const headers = { 'content-type': 'application/json', 'x-agent-token': st.agentToken };
+    const textRes = await fetch(`${base}/api/simulation/send-message`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ key: 'group:456', messages: ['普通文字回合'] })
+    });
+    const textBody = await textRes.json();
+    assert.equal(textRes.status, 200, `文字发送应成功：${textBody.error || ''}`);
+    assert.equal(textBody.sent, 1);
+    assert.equal(pixelSends(h).length, 0, '文字发送后不得自动追加像素贴纸');
+    assert.equal(st.lastPixelStickerAt, 0, '文字发送后不得占像素互斥时间戳');
+
+    const stickerRes = await fetch(`${base}/api/simulation/send-sticker`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ key: 'group:456', stickerId: 'fixture-sticker' })
+    });
+    const stickerBody = await stickerRes.json();
+    assert.equal(stickerRes.status, 200, `原生表情包应发送成功：${stickerBody.error || ''}`);
+    assert.equal(stickerBody.ok, true);
+    assert.equal(st.lastPixelStickerAt, 0, '原生表情包不产生像素贴纸时间戳');
+    const nativeSends = h.calls.http.filter((c) => /send_(group|private)_msg$/.test(c.url)
+      && Array.isArray(c.body?.message)
+      && c.body.message.some((s) => s.type === 'image' && s.data?.sub_type === 1 && s.data?.summary === '[表情]'));
+    assert.equal(nativeSends.length, 1, '应通过原生收藏表情段发出');
+  } finally {
+    if (server) await new Promise((resolve) => server.close(resolve));
+    await h.close();
+  }
+});
+
 test('回滚：像素发送失败必须释放占坑，表情包工具不被 409', async () => {
   const h = await bridgeHarness({
-    config: { consoleAuth: { enabled: false }, simulation: { pixelSticker: { minTextsSince: 1, minGapMs: 60000 } } },
+    config: { consoleAuth: { enabled: false }, simulation: { pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000 } } },
     files: { 'state/stickers.json': [{ id: 'fixture-meme', desc: '夹具表情', source: 'qq', url: 'https://public.invalid/meme.png' }] }
   });
   let server = null;
@@ -147,7 +191,7 @@ test('回滚：像素发送失败必须释放占坑，表情包工具不被 409'
 
 test('turn/start 清零互斥时间戳：新回合恢复按节奏发', async () => {
   const h = await bridgeHarness({
-    config: { simulation: { pixelSticker: { minTextsSince: 1, minGapMs: 60000 } } },
+    config: { simulation: { pixelSticker: { enabled: true, afterText: true, minTextsSince: 1, minGapMs: 60000 } } },
     savedState: { sessions: { 'group:456': 'sess-turn-1' }, sessionPolicies: {} }
   });
   try {

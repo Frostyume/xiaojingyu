@@ -30,7 +30,7 @@ import {
   sceneStickerScenes
 } from '../services/media/scene-stickers.js';
 import { buildConfigSchema, validateConfigPatch } from '../runtime/kernel/config-schema.js';
-import { advancedFieldsFor, cardFor, configValueFor } from '../runtime/control/feature-control.js';
+import { advancedFieldsFor, cardEnabled, cardFor, configValueFor } from '../runtime/control/feature-control.js';
 import { CONSOLE_SECURITY_HEADERS, evaluateAgentAccess } from '../console/auth.js';
 import { agentTokenAllowedPath } from '../console/policy.js';
 import { bridgeHarness } from './bridge-harness.mjs';
@@ -316,6 +316,7 @@ test('场景人设护栏：非法 style、改色、挂饰、缺场景或匹配�
 test('配置/schema/卡片：默认 pixel、枚举校验、高级 select 与默认关闭保持', () => {
   const example = readJson('config.example.json');
   assert.equal(example.simulation.pixelSticker.style, 'pixel');
+  assert.equal(example.simulation.pixelSticker.enabled, false);
   assert.equal(example.simulation.sceneSticker.style, 'pixel');
   assert.equal(example.simulation.sceneSticker.enabled, false);
   assert.equal(example.simulation.lifeShare.enabled, false);
@@ -329,6 +330,7 @@ test('配置/schema/卡片：默认 pixel、枚举校验、高级 select 与默�
     assert.equal(validateConfigPatch(example, { [key]: 'chibi' }).ok, false);
   }
   const generated = readJson('config.schema.json');
+  assert.equal(generated.properties.simulation.properties.pixelSticker.properties.enabled.default, false, '生成 schema 应记录回复贴纸默认关闭');
   for (const key of ['simulation.pixelSticker.style', 'simulation.sceneSticker.style']) {
     const field = generated['x-fields'].find((item) => item.key === key);
     assert.ok(field, key);
@@ -336,6 +338,8 @@ test('配置/schema/卡片：默认 pixel、枚举校验、高级 select 与默�
   }
   const replyCard = cardFor('chatPixelSticker');
   assert.equal(replyCard.label, '心情贴纸（像素/二次元）');
+  assert.equal(cardEnabled(replyCard, {}), false, '回复贴纸功能卡缺省关闭');
+  assert.equal(cardEnabled(replyCard, { simulation: { pixelSticker: { enabled: true } } }), true);
   const sceneCard = cardFor('chatSceneSticker');
   assert.equal(sceneCard.configKey, 'simulation.sceneSticker.enabled');
   for (const [card, key] of [[replyCard, 'simulation.pixelSticker.style'], [sceneCard, 'simulation.sceneSticker.style']]) {
@@ -350,8 +354,8 @@ test('配置/schema/卡片：默认 pixel、枚举校验、高级 select 与默�
   assert.equal(configValueFor({ type: 'time' }, '8:05'), '08:05');
 });
 
-test('回复运行链路：默认像素、高级配置热切换与真实发送字节', async () => {
-  const h = await bridgeHarness();
+test('回复运行链路：显式开启像素、高级配置热切换与真实发送字节', async () => {
+  const h = await bridgeHarness({ config: { simulation: { pixelSticker: { enabled: true, afterText: true } } } });
   try {
     assert.equal(h.cfg.simulation.pixelSticker.style, 'pixel');
     h.setMode('simulation');
